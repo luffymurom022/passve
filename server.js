@@ -294,6 +294,75 @@ app.get('/api/wallet/transactions', auth, async (req, res) => {
   res.json(data || []);
 });
 
+
+// ════════════════════════════════
+//  ESCROW TIMEOUT (48h auto-refund)
+// ════════════════════════════════
+
+async function processExpiredEscrows() {
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
+  // Lấy tất cả đơn waiting_qr đã quá 48h
+  const { data: expiredOrders } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('status', 'waiting_qr')
+    .lt('created_at', cutoff);
+
+  if (!expiredOrders || expiredOrders.length === 0) return;
+
+  console.log(`[Escrow Timeout] Xử lý ${expiredOrders.length} đơn hết hạn`);
+
+  for (const order of expiredOrders) {
+    try {
+      // Lấy buyer
+      const { data: buyer } = await supabase
+        .from('users').select('*').eq('id', order.buyer_id).single();
+      if (!buyer) continue;
+
+      // Hoàn tiền: escrow → balance
+      await supabase.from('users').update({
+        balance: buyer.balance + order.total,
+        escrow: Math.max(0, buyer.escrow - order.total)
+      }).eq('id', order.buyer_id);
+
+      // Mở lại vé
+      await supabase.from('tickets')
+        .update({ status: 'available' })
+        .eq('id', order.ticket_id);
+
+      // Cập nhật đơn
+      await supabase.from('orders')
+        .update({ status: 'refunded' })
+        .eq('id', order.id);
+
+      // Ghi transaction
+      await supabase.from('transactions').insert({
+        user_id: order.buyer_id,
+        type: 'refund',
+        amount: order.total,
+        description: `Hoàn tiền tự động: ${order.event_name} (seller không upload QR sau 48h)`,
+        order_id: order.id
+      });
+
+      console.log(`[Escrow Timeout] Hoàn ${order.total.toLocaleString()}đ cho buyer ${order.buyer_name} — đơn ${order.id}`);
+    } catch (e) {
+      console.error(`[Escrow Timeout] Lỗi đơn ${order.id}:`, e.message);
+    }
+  }
+}
+
+// Chạy ngay khi khởi động, sau đó mỗi giờ
+processExpiredEscrows();
+setInterval(processExpiredEscrows, 60 * 60 * 1000);
+
+// Route thủ công cho admin (tuỳ chọn)
+app.post('/api/admin/process-timeouts', async (req, res) => {
+  const secret = req.headers['x-admin-secret'];
+  if (secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  await processExpiredEscrows();
+  res.json({ message: 'Done' });
+});
 // ── HEALTH CHECK ──
 app.get('/', (req, res) => res.json({ status: 'SafePass API đang chạy ✓' }));
 
