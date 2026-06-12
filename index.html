@@ -3651,6 +3651,7 @@ async function submitAuth(tab) {
     await loadTicketsFromAPI();
     await loadOrdersFromAPI();
     setState({});
+    startPolling();
   } catch(e) {
     errEl.textContent = 'Không kết nối được server. Kiểm tra backend đang chạy chưa.'; errEl.style.display='block';
   }
@@ -3821,6 +3822,68 @@ async function submitSellAPI(formData) {
   } catch(e) { showToast('Lỗi kết nối server', 'var(--red)', '❌'); return false; }
 }
 
+
+// ── Polling: thông báo seller khi có đơn mới (mỗi 30s) ──
+let _lastKnownOrderIds = new Set();
+let _pollingStarted = false;
+
+async function pollSellerOrders() {
+  if (!authToken || !currentUser || currentUser.id === 'demo') return;
+  try {
+    const res = await fetch(API + '/orders?role=seller', { headers: getHeaders() });
+    if (!res.ok) return;
+    const orders = await res.json();
+    if (!Array.isArray(orders)) return;
+
+    const newOrders = orders.filter(o =>
+      o.status === 'waiting_qr' && !_lastKnownOrderIds.has(o.id)
+    );
+
+    // Cập nhật set đã biết
+    orders.forEach(o => _lastKnownOrderIds.add(o.id));
+
+    if (newOrders.length === 0) return;
+
+    // Có đơn mới → thông báo
+    newOrders.forEach(o => {
+      NOTIFICATIONS.unshift({
+        id: 'n' + o.id,
+        type: 'order',
+        icon: '🛒',
+        title: 'Đơn hàng mới!',
+        body: (o.buyer_name || 'Ai đó') + ' vừa đặt mua vé ' + o.event_name,
+        time: 'Vừa xong',
+        read: false,
+        action: 'orders'
+      });
+      state.notifCount = (state.notifCount || 0) + 1;
+      state.orderBadge = (state.orderBadge || 0) + 1;
+    });
+
+    // Load lại orders và render
+    await loadOrdersFromAPI();
+    setState({});
+
+    // Toast cho đơn đầu tiên
+    const first = newOrders[0];
+    showToast('Đơn mới: ' + first.event_name, 'var(--ok)', '🛒');
+  } catch(e) {}
+}
+
+function startPolling() {
+  if (_pollingStarted) return;
+  _pollingStarted = true;
+  // Seed set ban đầu (không notify cho order cũ)
+  if (authToken) {
+    fetch(API + '/orders?role=seller', { headers: getHeaders() })
+      .then(r => r.json())
+      .then(orders => {
+        if (Array.isArray(orders)) orders.forEach(o => _lastKnownOrderIds.add(o.id));
+      }).catch(() => {});
+  }
+  setInterval(pollSellerOrders, 30 * 1000);
+}
+
 // ── Boot: kiểm tra đăng nhập ──
 (async function bootAPI() {
   if (authToken) {
@@ -3832,6 +3895,7 @@ async function submitSellAPI(formData) {
         await loadTicketsFromAPI();
         await loadOrdersFromAPI();
         setState({});
+        startPolling();
         return;
       }
     } catch(e) {}
