@@ -143,14 +143,15 @@ app.post('/api/orders', auth, async (req, res) => {
   if (ticket.status !== 'available') return res.status(400).json({ error: 'Vé không còn available' });
   if (ticket.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể mua vé của chính mình' });
 
-  // Kiểm tra số dư người mua
+  // Kiểm tra số dư người mua (phải đủ giá vé + phí 3%)
   const { data: buyer } = await supabase
     .from('users').select('*').eq('id', req.user.id).single();
-  if (buyer.balance < ticket.price)
-    return res.status(400).json({ error: `Số dư không đủ. Cần ${ticket.price.toLocaleString()}đ, hiện có ${buyer.balance.toLocaleString()}đ` });
 
   const fee = Math.round(ticket.price * 0.03);
   const total = ticket.price + fee;
+
+  if (buyer.balance < total)
+    return res.status(400).json({ error: `Số dư không đủ. Cần ${total.toLocaleString()}đ (gồm phí 3%), hiện có ${buyer.balance.toLocaleString()}đ` });
 
   // Trừ tiền buyer → escrow
   await supabase.from('users').update({
