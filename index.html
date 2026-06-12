@@ -1243,33 +1243,59 @@ function buildWalletPage(){
   // Refresh balance from API
   refreshBalance();
 
+  // Load transactions từ API nếu đang ở tab history
   const tab=state.walletTab||"overview";
+  if(tab==="history" && authToken){
+    fetch(API+'/wallet/transactions',{headers:getHeaders()})
+      .then(r=>r.json()).then(data=>{
+        if(Array.isArray(data)){
+          const el=document.getElementById('tx-list');
+          if(!el) return;
+          if(data.length===0){
+            el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--hint);">Chưa có giao dịch nào</div>';
+            return;
+          }
+          el.innerHTML=data.map(t=>renderTxRow(t)).join("");
+          document.getElementById('tx-count')&&(document.getElementById('tx-count').textContent=data.length+' giao dịch');
+        }
+      }).catch(()=>{});
+  }
+
   const txTypes={
-    in:{label:"Nhận tiền",col:"var(--ok)"},
-    out:{label:"Rút tiền",col:"var(--red)"},
-    escrow_in:{label:"Escrow giữ",col:"var(--purple)"},
-    topup:{label:"Nạp tiền",col:"var(--brand)"},
-    fee:{label:"Phí",col:"var(--hint)"},
+    topup:{label:"Nạp tiền",col:"var(--brand)",icon:"💰"},
+    escrow_lock:{label:"Escrow giữ",col:"var(--purple)",icon:"🔒"},
+    escrow_release:{label:"Giải ngân",col:"var(--ok)",icon:"✅"},
+    payout:{label:"Nhận tiền",col:"var(--ok)",icon:"💸"},
+    refund:{label:"Hoàn tiền",col:"var(--cyan)",icon:"↩️"},
+    fee:{label:"Phí",col:"var(--hint)",icon:"📊"},
+    in:{label:"Nhận tiền",col:"var(--ok)",icon:"📥"},
+    out:{label:"Rút tiền",col:"var(--red)",icon:"📤"},
   };
 
-  const txHTML=WALLET.transactions.map(t=>{
-    const isIn=t.amount>0;
-    const ty=txTypes[t.type]||{label:t.type,col:"var(--sub)"};
-    return`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div style="width:40px;height:40px;border-radius:11px;background:${isIn?"var(--okBg)":t.type==="escrow_in"?"var(--purpleBg)":t.type==="topup"?"var(--brandL)":"var(--redBg)"};border:1px solid ${isIn?"rgba(52,216,158,.2)":t.type==="escrow_in"?"rgba(155,135,245,.2)":t.type==="topup"?"rgba(79,142,247,.2)":"rgba(240,86,106,.2)"};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${t.icon}</div>
+  function renderTxRow(t){
+    const ty=txTypes[t.type]||{label:t.type,col:"var(--sub)",icon:"💱"};
+    const isPos=t.amount>0;
+    const amtColor=isPos?"var(--ok)":t.amount===0?"var(--hint)":t.type==="escrow_lock"?"var(--purple)":"var(--red)";
+    const bgColor=isPos?"var(--okBg)":t.type==="escrow_lock"?"var(--purpleBg)":t.type==="topup"?"var(--brandL)":t.type==="refund"?"rgba(0,229,255,.06)":"var(--redBg)";
+    const borderColor=isPos?"rgba(52,216,158,.2)":t.type==="escrow_lock"?"rgba(155,135,245,.2)":t.type==="topup"?"rgba(79,142,247,.2)":t.type==="refund"?"rgba(0,229,255,.2)":"rgba(240,86,106,.2)";
+    const date=t.created_at?new Date(t.created_at).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):(t.date||"");
+    const amtStr=t.amount===0?"—":(isPos?"+":"")+VND(t.amount);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="width:40px;height:40px;border-radius:11px;background:${bgColor};border:1px solid ${borderColor};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${ty.icon}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</div>
+        <div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.description||ty.label}</div>
         <div style="display:flex;align-items:center;gap:7px;margin-top:2px;">
           <span style="font-size:10px;font-weight:700;color:${ty.col};background:${ty.col}18;padding:1px 7px;border-radius:5px;">${ty.label}</span>
-          <span style="font-size:10px;color:var(--hint);font-family:'JetBrains Mono',monospace;">${t.date}</span>
+          <span style="font-size:10px;color:var(--hint);font-family:'JetBrains Mono',monospace;">${date}</span>
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:14px;font-weight:800;font-family:'Inter',sans-serif;color:${t.amount>0?"var(--ok)":t.type==="escrow_in"?"var(--purple)":"var(--red)"};">${t.amount>0?"+":""}${VND(t.amount)}</div>
-        <div style="font-size:9.5px;color:var(--ok);margin-top:1px;">✓ ${t.status==="holding"?"Đang giữ":"Hoàn tất"}</div>
+        <div style="font-size:14px;font-weight:800;font-family:'Inter',sans-serif;color:${amtColor};">${amtStr}</div>
       </div>
     </div>`;
-  }).join("");
+  }
+
+  const txHTML=WALLET.transactions.map(t=>renderTxRow({...t,created_at:null})).join("");
 
   const overviewHTML=`
     <!-- Balance cards -->
@@ -1344,9 +1370,9 @@ function buildWalletPage(){
     <!-- Transaction history -->
     <div style="padding:20px 20px 0;">
       <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:4px;">Lịch sử giao dịch</div>
-      <div style="font-size:11px;color:var(--hint);margin-bottom:14px;">${WALLET.transactions.length} giao dịch gần nhất</div>
+      <div style="font-size:11px;color:var(--hint);margin-bottom:14px;"><span id="tx-count">Đang tải...</span></div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0 16px;">
-        ${txHTML}
+        <div id="tx-list">${authToken?'<div style="text-align:center;padding:30px 0;color:var(--hint);">⏳ Đang tải...</div>':txHTML}</div>
       </div>
     </div>`}
   </div>`;
