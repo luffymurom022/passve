@@ -278,25 +278,11 @@ async function doLogin() {
   if (!secret) return;
   document.getElementById('login-err').textContent = '';
 
-  // Verify bằng cách gọi một admin endpoint thật
-  try {
-    const res = await fetch(API + '/admin/process-timeouts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret })
-    });
-    if (res.status === 403) {
-      document.getElementById('login-err').textContent = 'Secret không đúng.';
-      return;
-    }
-    ADMIN_SECRET = secret;
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    await loadAllData();
-    renderTab();
-  } catch(e) {
-    document.getElementById('login-err').textContent = 'Không kết nối được backend.';
-  }
+  ADMIN_SECRET = secret;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await loadAllData();
+  renderTab();
 }
 
 function doLogout() {
@@ -558,7 +544,7 @@ async function resolveDispute(orderId, winner) {
   btns.forEach(b => b.disabled = true);
 
   try {
-    const res = await fetch(`${API}/admin/orders/${orderId}/resolve`, {
+    const res = await fetch(`${API}/admin/orders/${orderId}/resolve?secret=${encodeURIComponent(ADMIN_SECRET)}`, {
       method: 'POST',
       headers: adminHeaders(),
       body: adminBody({ winner, note })
@@ -719,7 +705,7 @@ async function doRefresh() {
 
 async function doProcessTimeouts() {
   try {
-    const res = await fetch(API + '/admin/process-timeouts', {
+    const res = await fetch(`${API}/admin/process-timeouts?secret=${encodeURIComponent(ADMIN_SECRET)}`, {
       method: 'POST', headers: adminHeaders(), body: adminBody()
     });
     const data = await res.json();

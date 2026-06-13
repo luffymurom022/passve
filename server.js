@@ -465,7 +465,7 @@ app.post('/api/orders/:id/dispute', auth, async (req, res) => {
 
 // Admin resolve dispute → chọn bên thắng
 app.post('/api/admin/orders/:id/resolve', async (req, res) => {
-  const secret = req.headers['x-admin-secret'] || req.body?.secret;
+  const secret = req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
   if (secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
 
   const { winner, note } = req.body; // winner: 'buyer' | 'seller'
@@ -597,7 +597,7 @@ setInterval(processExpiredEscrows, 60 * 60 * 1000);
 
 // Route thủ công cho admin (tuỳ chọn)
 app.post('/api/admin/process-timeouts', async (req, res) => {
-  const secret = req.headers['x-admin-secret'] || req.body?.secret;
+  const secret = req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
   if (secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   await processExpiredEscrows();
   res.json({ message: 'Done' });
