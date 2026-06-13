@@ -770,6 +770,11 @@ function applyFilters(listings){
 
   // Text search
   if(state.query.trim()){
+    // Nếu có kết quả từ API search, ưu tiên dùng
+    if(state._searchIds){
+      results=results.filter(l=>state._searchIds.has(l.id));
+      state._searchIds=null; // dùng 1 lần rồi reset
+    }
     const q=state.query.toLowerCase();
     res=res.filter(l=>
       l.title.toLowerCase().includes(q)||
@@ -1926,15 +1931,38 @@ function onSearchInput(val){
   state.queryInput=val;
   state.showSuggestions=true;
   clearTimeout(searchTimer);
-  if(!val.trim()){state.query="";render();return;}
-  // Debounce search
-  searchTimer=setTimeout(()=>{
+  if(!val.trim()){
+    state.query="";
+    // Reset về danh sách đầy đủ từ API
+    loadTicketsFromAPI().then(()=>render());
+    render();
+    return;
+  }
+  // Debounce 350ms → gọi API search thật
+  searchTimer=setTimeout(async ()=>{
     state.query=val;
     state.loading=true;
     _searchCursor=val.length;
     render();
-    setTimeout(()=>{state.loading=false;render();},350);
-  },280);
+    try{
+      const params=new URLSearchParams({search:val.trim()});
+      const res=await fetch(API+'/tickets?'+params.toString());
+      const data=await res.json();
+      if(Array.isArray(data)){
+        // Merge vào ALL_LISTINGS — giữ local, thêm kết quả API chưa có
+        const existingIds=new Set(ALL_LISTINGS.map(x=>x.id));
+        data.forEach(t=>{
+          if(!existingIds.has(t.id)){
+            ALL_LISTINGS.push(mapTicket(t));
+          }
+        });
+        // Đánh dấu query để filter đúng
+        state._searchIds=new Set(data.map(t=>t.id));
+      }
+    }catch(e){}
+    state.loading=false;
+    render();
+  },350);
   render();
 }
 
@@ -2228,7 +2256,7 @@ function buildOrderDetail(o){
       '<div style="font-size:24px;">⏱️</div>'+
       '<div style="flex:1;">'+
       '<div style="font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Thời hạn upload QR</div>'+
-      '<div style="font-size:16px;font-weight:800;font-family:\\'JetBrains Mono\\',monospace;color:'+countdownColor+';">'+countdownStr+'</div>'+
+      '<div style="font-size:16px;font-weight:800;font-family:\"JetBrains Mono\",monospace;color:'+countdownColor+';">'+countdownStr+'</div>'+
       '<div style="font-size:10.5px;color:var(--sub);margin-top:3px;">Nếu seller không upload sau 48h, tiền tự động hoàn về ví bạn.</div>'+
       '</div></div>';
   }
@@ -3750,6 +3778,27 @@ function logout() {
 }
 
 // ── Load tickets từ API ──
+function mapTicket(t) {
+  return {
+    id: t.id,
+    seller_id: t.seller_id,
+    title: t.event_name,
+    category: 'concerts',
+    price: t.price,
+    original_price: Math.round(t.price * 1.1),
+    date: t.event_date || '',
+    location: t.location || 'TP.HCM',
+    section: t.section || '',
+    quantity: t.quantity || 1,
+    views: Math.floor(Math.random()*500)+50,
+    saved: Math.floor(Math.random()*50),
+    sold: 0,
+    active: t.status === 'available',
+    trust: 85,
+    description: t.description || ''
+  };
+}
+
 async function loadTicketsFromAPI() {
   if (!authToken) return;
   try {
@@ -3757,24 +3806,7 @@ async function loadTicketsFromAPI() {
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
       // Map API format → UI format
-      const mapped = data.map(t => ({
-        id: t.id,
-        seller_id: t.seller_id,
-        title: t.event_name,
-        category: 'concerts',
-        price: t.price,
-        original_price: Math.round(t.price * 1.1),
-        date: t.event_date || '',
-        location: t.location || 'TP.HCM',
-        section: t.section || '',
-        quantity: t.quantity || 1,
-        views: Math.floor(Math.random()*500)+50,
-        saved: Math.floor(Math.random()*50),
-        sold: 0,
-        active: t.status === 'available',
-        trust: 85,
-        description: t.description || ''
-      }));
+      const mapped = data.map(t => mapTicket(t));
       // Prepend API tickets to top of list
       mapped.forEach(t => {
         if (!ALL_LISTINGS.find(l => l.id === t.id)) ALL_LISTINGS.unshift(t);

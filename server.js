@@ -4,12 +4,54 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
+}));
 app.use(express.json());
+
+// ── RATE LIMITING ──
+const generalLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 100,
+  message: { error: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // tối đa 10 lần login/register mỗi 15 phút
+  message: { error: 'Quá nhiều lần thử đăng nhập, vui lòng thử lại sau 15 phút.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const orderLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 phút
+  max: 5, // tối đa 5 đơn/phút (chống spam mua)
+  message: { error: 'Quá nhiều yêu cầu, vui lòng chờ một chút.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const topupLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 giờ
+  max: 10, // tối đa 10 lần nạp/giờ
+  message: { error: 'Quá nhiều lần nạp tiền, vui lòng thử lại sau.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/auth', authLimit);
+app.use('/api/orders', orderLimit);
+app.use('/api/wallet/topup', topupLimit);
+app.use('/api', generalLimit);
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const JWT_SECRET = process.env.JWT_SECRET;
