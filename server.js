@@ -309,6 +309,64 @@ app.get('/api/wallet/transactions', auth, async (req, res) => {
 
 
 
+
+// ════════════════════════════════
+//  REVIEWS
+// ════════════════════════════════
+
+// Buyer gửi đánh giá seller sau khi hoàn tất
+app.post('/api/orders/:id/review', auth, async (req, res) => {
+  const { rating, text } = req.body;
+  if (!rating || rating < 1 || rating > 5)
+    return res.status(400).json({ error: 'Rating phải từ 1-5' });
+  if (!text || text.trim().length < 20)
+    return res.status(400).json({ error: 'Đánh giá phải ít nhất 20 ký tự' });
+
+  const { data: order } = await supabase
+    .from('orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (order.status !== 'completed') return res.status(400).json({ error: 'Chỉ đánh giá được đơn đã hoàn tất' });
+
+  // Kiểm tra đã review chưa
+  const { data: existing } = await supabase
+    .from('reviews').select('id').eq('order_id', req.params.id).single();
+  if (existing) return res.status(400).json({ error: 'Bạn đã đánh giá đơn này rồi' });
+
+  const { data: review, error } = await supabase.from('reviews').insert({
+    order_id: order.id,
+    buyer_id: order.buyer_id,
+    buyer_name: req.user.name,
+    seller_id: order.seller_id,
+    event_name: order.event_name,
+    rating: Number(rating),
+    text: text.trim()
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Cập nhật rating trung bình của seller trong users table
+  const { data: allReviews } = await supabase
+    .from('reviews').select('rating').eq('seller_id', order.seller_id);
+  if (allReviews && allReviews.length > 0) {
+    const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+    await supabase.from('users').update({
+      avg_rating: Math.round(avg * 10) / 10,
+      review_count: allReviews.length
+    }).eq('id', order.seller_id);
+  }
+
+  res.json(review);
+});
+
+// Lấy reviews của 1 seller
+app.get('/api/users/:id/reviews', async (req, res) => {
+  const { data } = await supabase
+    .from('reviews').select('*').eq('seller_id', req.params.id)
+    .order('created_at', { ascending: false }).limit(20);
+  res.json(data || []);
+});
+
 // ════════════════════════════════
 //  DISPUTE
 // ════════════════════════════════
