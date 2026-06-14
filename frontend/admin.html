@@ -532,12 +532,17 @@ async function resolveDispute(orderId, winner) {
     if (!res.ok) throw new Error(data.error || 'Lỗi không xác định');
     
     showToast('✅ ' + data.message, 'ok');
-    // Clear form
-    document.getElementById('dispute-order-id').value = '';
-    document.getElementById('dispute-order-result').innerHTML = `
+    // Clear form (nếu đang ở tab orders)
+    const inputEl = document.getElementById('dispute-order-id');
+    if (inputEl) inputEl.value = '';
+    const resultEl = document.getElementById('dispute-order-result');
+    if (resultEl) resultEl.innerHTML = `
       <div style="background:var(--okBg);border:1px solid rgba(34,211,142,.2);border-radius:10px;padding:14px;font-size:13px;color:var(--ok);">
         ✅ Đã resolve thành công. ${winner === 'buyer' ? 'Tiền hoàn về buyer.' : 'Tiền giải ngân cho seller.'}
       </div>`;
+    // Reload data và re-render tab
+    await loadAllData();
+    renderTab();
   } catch(e) {
     showToast('❌ ' + e.message, 'err');
     btns.forEach(b => b.disabled = false);
