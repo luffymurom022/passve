@@ -7,6 +7,66 @@
 
 ---
 
+## 👤 Các Loại Tài Khoản (Account Types)
+
+### Hiện tại
+
+| Loại | Xác thực | Quyền hạn | Lưu trong DB |
+|------|----------|-----------|--------------|
+| **User thường** | Phone + Password → JWT | Mua vé, bán vé, ví, đánh giá, đổi mật khẩu | ✅ `users` table |
+| **Admin** | `ADMIN_SECRET` (env var) | Xem tất cả đơn, resolve dispute, ban/unban user, xem stats, xuất CSV | ❌ Không có tài khoản riêng |
+
+> Hiện tại một tài khoản User có thể vừa là **Buyer** (người mua), vừa là **Seller** (người bán) — không có phân biệt vai trò cố định.
+
+---
+
+### Quyền hạn chi tiết theo vai trò
+
+#### 🧑 User (Buyer)
+- Xem & tìm kiếm vé trên Marketplace
+- Mua vé → escrow giữ tiền → nhận QR → xác nhận giao dịch
+- Mở khiếu nại nếu có vấn đề
+- Đánh giá seller sau khi giao dịch hoàn tất
+- Xem lịch sử giao dịch ví, xuất CSV
+- Đổi mật khẩu, cập nhật hồ sơ
+
+#### 🏪 User (Seller)
+- Đăng bán vé (tên sự kiện, giá, ngày, địa điểm, mô tả)
+- Sửa / xoá listing vé chưa có người mua
+- Upload QR code sau khi nhận đơn
+- Phản hồi đánh giá của buyer
+- Nhận tiền vào ví sau khi buyer xác nhận
+- Mở khiếu nại nếu cần
+
+#### 🛡️ Admin
+- Truy cập tại `/admin.html` bằng `ADMIN_SECRET`
+- Xem thống kê: Revenue, GMV, Escrow, Users, Disputes
+- Xem & resolve tất cả đơn hàng đang disputed
+- Xem danh sách tất cả users, tìm kiếm theo tên/SĐT
+- Ban / unban tài khoản user
+- Xuất báo cáo CSV tất cả đơn hàng
+- Trigger escrow timeout thủ công
+
+#### 🚫 User bị khóa (`is_banned = true`)
+- Không thể đăng nhập (bị chặn ở bước xác thực)
+- Không thể tạo đơn hàng mới
+- Admin có thể mở khóa bất cứ lúc nào
+
+---
+
+### Kế hoạch mở rộng (chưa build)
+
+| Loại | Mô tả | Ưu tiên |
+|------|-------|---------|
+| `verified_seller` | Seller được xác minh CCCD + tài khoản ngân hàng, hiển thị badge ✓ | Cao |
+| `trusted_buyer` | Buyer có ≥10 giao dịch thành công, được giảm phí hoặc ưu tiên | Trung bình |
+| `vip` / `premium` | Phí giao dịch thấp hơn (1.5% thay vì 3%), hỗ trợ ưu tiên | Trung bình |
+| `moderator` | Admin phụ — chỉ xử lý dispute, không có quyền ban user hay xem revenue | Thấp |
+
+> Để thêm `role` vào hệ thống: cần thêm cột `role text default 'user'` vào bảng `users`, và kiểm tra `role` trong middleware.
+
+---
+
 ## ✅ Nền Tảng (Infrastructure)
 
 - [x] Express.js server chạy trên port 5000, host 0.0.0.0 *(2025-06-15)*
