@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import ws from 'ws';
+import { Resend } from 'resend';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,6 +64,40 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
   realtime: { transport: ws }
 });
 const JWT_SECRET = process.env.JWT_SECRET;
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function sendDisputeNotification(order, reasonText, openedBy, description) {
+  if (!process.env.RESEND_API_KEY || !process.env.ADMIN_EMAIL) return;
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL,
+      subject: `⚠️ Khiếu nại mới — ${order.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#f5a623;margin-bottom:4px;">⚠️ Khiếu nại mới cần xử lý</h2>
+          <p style="color:#7b8fad;margin-top:0;">SafePass Admin Notification</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Đơn hàng ID</td><td style="color:#e8edf8;font-family:monospace;">${order.id}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Sự kiện</td><td style="color:#e8edf8;">${order.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người mua</td><td style="color:#e8edf8;">${order.buyer_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người bán</td><td style="color:#e8edf8;">${order.seller_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Giá trị</td><td style="color:#e8edf8;">${order.total?.toLocaleString('vi-VN')}đ</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Mở bởi</td><td style="color:#e8edf8;">${openedBy === 'buyer' ? '🧑 Người mua' : '🏪 Người bán'}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Lý do</td><td style="color:#f5a623;">${reasonText}</td></tr>
+            ${description ? `<tr><td style="padding:8px 0;color:#7b8fad;vertical-align:top;">Mô tả</td><td style="color:#e8edf8;">${description}</td></tr>` : ''}
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#7b8fad;font-size:14px;">Đăng nhập vào <a href="${process.env.APP_URL || ''}/admin.html" style="color:#3d8ef8;">trang Admin</a> để xử lý khiếu nại này.</p>
+        </div>
+      `
+    });
+    console.log(`[Email] Đã gửi thông báo khiếu nại đến ${process.env.ADMIN_EMAIL}`);
+  } catch (e) {
+    console.error('[Email] Lỗi gửi email:', e.message);
+  }
+}
 
 // ── MIDDLEWARE xác thực token ──
 function auth(req, res, next) {
@@ -467,6 +502,9 @@ app.post('/api/orders/:id/dispute', auth, async (req, res) => {
     description: `Mở khiếu nại: ${order.event_name} — ${reasonText}`,
     order_id: order.id
   });
+
+  // Gửi email thông báo cho admin (không chặn response)
+  sendDisputeNotification(order, reasonText, openedBy, description);
 
   res.json({ message: 'Khiếu nại đã được gửi. Đội hỗ trợ sẽ phản hồi trong 24h.' });
 });
