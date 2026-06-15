@@ -191,18 +191,28 @@ function auth(req, res, next) {
 
 // Đăng ký
 app.post('/api/auth/register', async (req, res) => {
-  const { phone, password, name } = req.body;
+  const { phone, password, name, email } = req.body;
   if (!phone || !password || !name)
     return res.status(400).json({ error: 'Thiếu thông tin' });
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return res.status(400).json({ error: 'Email không hợp lệ' });
 
   const { data: existing } = await supabase
     .from('users').select('id').eq('phone', phone).single();
   if (existing) return res.status(400).json({ error: 'Số điện thoại đã tồn tại' });
 
   const hashed = await bcrypt.hash(password, 10);
-  const { data, error } = await supabase.from('users').insert({
-    phone, password: hashed, name, balance: 0, escrow: 0
-  }).select().single();
+  const insertData = { phone, password: hashed, name, balance: 0, escrow: 0 };
+  if (email) insertData.email = email.toLowerCase().trim();
+
+  let { data, error } = await supabase.from('users').insert(insertData).select().single();
+
+  // Nếu cột email chưa tồn tại trong DB, thử lại không có email
+  if (error && error.message?.includes('email') && email) {
+    const fallback = { phone, password: hashed, name, balance: 0, escrow: 0 };
+    ({ data, error } = await supabase.from('users').insert(fallback).select().single());
+  }
 
   if (error) return res.status(500).json({ error: error.message });
 

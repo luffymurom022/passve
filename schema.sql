@@ -4,10 +4,16 @@ create table users (
   phone text unique not null,
   password text not null,
   name text not null,
+  email text,
   balance bigint default 0,
   escrow bigint default 0,
+  avg_rating numeric default 0,
+  review_count int default 0,
   created_at timestamptz default now()
 );
+
+-- Migration: add email column to existing table (run in Supabase SQL Editor if table already exists)
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS email text;
 
 -- TICKETS
 create table tickets (

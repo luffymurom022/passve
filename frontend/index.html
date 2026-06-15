@@ -3720,6 +3720,7 @@ function showAuthModal(tab = 'login') {
       </div>
       ${tab==='register' ? '<input id="auth-name" placeholder="Họ tên" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">' : ''}
       <input id="auth-phone" placeholder="Số điện thoại" type="tel" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">
+      ${tab==='register' ? '<input id="auth-email" placeholder="Email (để nhận thông báo)" type="email" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">' : ''}
       <input id="auth-pass" placeholder="Mật khẩu" type="password" style="width:100%;margin-bottom:16px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">
       <div id="auth-err" style="color:#f05068;font-size:13px;margin-bottom:10px;display:none;"></div>
       <button onclick="submitAuth('${tab}')" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">
@@ -3734,6 +3735,7 @@ async function submitAuth(tab) {
   const phone = document.getElementById('auth-phone')?.value?.trim();
   const pass = document.getElementById('auth-pass')?.value;
   const name = document.getElementById('auth-name')?.value?.trim();
+  const email = document.getElementById('auth-email')?.value?.trim();
   const errEl = document.getElementById('auth-err');
 
   if (!phone || !pass || (tab==='register' && !name)) {
@@ -3741,9 +3743,11 @@ async function submitAuth(tab) {
   }
 
   try {
+    const body = { phone, password: pass, name };
+    if (tab === 'register' && email) body.email = email;
     const res = await fetch(API + '/auth/' + (tab==='login'?'login':'register'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, password: pass, name })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Lỗi'; errEl.style.display='block'; return; }
