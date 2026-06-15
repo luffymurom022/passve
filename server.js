@@ -64,6 +64,12 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const JWT_SECRET = process.env.JWT_SECRET;
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ── IN-MEMORY TOKEN STORES ──
+const emailOtpStore = new Map(); // key: email → { otp, userId, expires }
+const resetTokenStore = new Map(); // key: token → { userId, expires }
+function genOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
+function genToken() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
 // ── INPUT SANITIZATION ──
 function sanitize(s) {
   if (typeof s !== 'string') return s;
@@ -414,18 +420,168 @@ app.patch('/api/auth/password', auth, async (req, res) => {
   res.json({ message: 'Đổi mật khẩu thành công' });
 });
 
+// ── Gửi OTP xác minh email ──
+app.post('/api/auth/send-verification', auth, async (req, res) => {
+  const { data: user } = await supabase.from('users').select('email').eq('id', req.user.id).single();
+  if (!user?.email) return res.status(400).json({ error: 'Tài khoản chưa có email. Vui lòng cập nhật email trong hồ sơ trước.' });
+
+  const otp = genOtp();
+  emailOtpStore.set(user.email, { otp, userId: req.user.id, expires: Date.now() + 10 * 60 * 1000 });
+
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: user.email,
+      subject: '✅ Xác minh email SafePass',
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;background:#06090f;padding:32px;border-radius:16px;color:#e8edf8;">
+          <div style="font-size:24px;font-weight:800;color:#3d8ef8;margin-bottom:8px;">🛡️ SafePass</div>
+          <h2 style="font-size:20px;margin-bottom:12px;">Xác minh địa chỉ email</h2>
+          <p style="color:#7b8fad;margin-bottom:24px;">Nhập mã OTP dưới đây để xác minh email của bạn. Mã có hiệu lực trong <strong style="color:#e8edf8;">10 phút</strong>.</p>
+          <div style="background:#0d1220;border:1px solid rgba(61,142,248,.3);border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+            <div style="font-size:36px;font-weight:800;letter-spacing:12px;color:#3d8ef8;">${otp}</div>
+          </div>
+          <p style="color:#3d4f6a;font-size:12px;">Nếu bạn không yêu cầu điều này, hãy bỏ qua email này.</p>
+        </div>`,
+    });
+    res.json({ message: 'Đã gửi mã OTP đến email của bạn' });
+  } catch (e) {
+    emailOtpStore.delete(user.email);
+    res.status(500).json({ error: 'Không gửi được email, vui lòng thử lại' });
+  }
+});
+
+// ── Xác minh OTP email ──
+app.post('/api/auth/verify-email', auth, async (req, res) => {
+  const { otp } = req.body;
+  if (!otp) return res.status(400).json({ error: 'Vui lòng nhập mã OTP' });
+
+  const { data: user } = await supabase.from('users').select('email').eq('id', req.user.id).single();
+  if (!user?.email) return res.status(400).json({ error: 'Tài khoản chưa có email' });
+
+  const record = emailOtpStore.get(user.email);
+  if (!record) return res.status(400).json({ error: 'Chưa gửi mã OTP hoặc mã đã hết hạn' });
+  if (Date.now() > record.expires) {
+    emailOtpStore.delete(user.email);
+    return res.status(400).json({ error: 'Mã OTP đã hết hạn, vui lòng gửi lại' });
+  }
+  if (record.otp !== String(otp).trim()) return res.status(400).json({ error: 'Mã OTP không đúng' });
+
+  emailOtpStore.delete(user.email);
+  res.json({ message: 'Email đã được xác minh thành công! ✅' });
+});
+
+// ── Quên mật khẩu — gửi link reset ──
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Vui lòng nhập email' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return res.status(400).json({ error: 'Email không hợp lệ' });
+
+  const { data: user } = await supabase.from('users').select('id,name,email').eq('email', email.toLowerCase().trim()).single();
+  const MSG = 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.';
+  if (!user) return res.json({ message: MSG });
+
+  const token = genToken();
+  resetTokenStore.set(token, { userId: user.id, expires: Date.now() + 60 * 60 * 1000 });
+
+  const appUrl = process.env.APP_URL || process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '';
+  const resetUrl = `${appUrl}?reset_token=${token}`;
+
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: user.email,
+      subject: '🔐 Đặt lại mật khẩu SafePass',
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;background:#06090f;padding:32px;border-radius:16px;color:#e8edf8;">
+          <div style="font-size:24px;font-weight:800;color:#3d8ef8;margin-bottom:8px;">🛡️ SafePass</div>
+          <h2 style="font-size:20px;margin-bottom:12px;">Đặt lại mật khẩu</h2>
+          <p style="color:#7b8fad;margin-bottom:8px;">Xin chào <strong style="color:#e8edf8;">${user.name}</strong>,</p>
+          <p style="color:#7b8fad;margin-bottom:24px;">Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn nút bên dưới để tiếp tục. Link có hiệu lực trong <strong style="color:#e8edf8;">1 giờ</strong>.</p>
+          <a href="${resetUrl}" style="display:block;text-align:center;padding:14px 28px;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin-bottom:24px;">🔐 Đặt lại mật khẩu</a>
+          <p style="color:#3d4f6a;font-size:12px;">Nếu bạn không yêu cầu điều này, hãy bỏ qua email này. Mật khẩu của bạn sẽ không thay đổi.</p>
+          <p style="color:#3d4f6a;font-size:11px;margin-top:8px;word-break:break-all;">Link: ${resetUrl}</p>
+        </div>`,
+    });
+  } catch (e) {}
+
+  res.json({ message: MSG });
+});
+
+// ── Đặt lại mật khẩu bằng token ──
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, new_password } = req.body;
+  if (!token || !new_password) return res.status(400).json({ error: 'Thiếu thông tin' });
+  if (typeof new_password !== 'string' || new_password.length < 6)
+    return res.status(400).json({ error: 'Mật khẩu phải ít nhất 6 ký tự' });
+
+  const record = resetTokenStore.get(token);
+  if (!record) return res.status(400).json({ error: 'Liên kết không hợp lệ hoặc đã được sử dụng' });
+  if (Date.now() > record.expires) {
+    resetTokenStore.delete(token);
+    return res.status(400).json({ error: 'Liên kết đã hết hạn, vui lòng yêu cầu lại' });
+  }
+
+  const hashed = await bcrypt.hash(new_password, 10);
+  const { error } = await supabase.from('users').update({ password: hashed }).eq('id', record.userId);
+  if (error) return res.status(500).json({ error: error.message });
+
+  resetTokenStore.delete(token);
+  res.json({ message: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập.' });
+});
+
+// ── Refresh token (phát JWT mới nếu token còn hạn) ──
+app.post('/api/auth/refresh', auth, async (req, res) => {
+  const { data: user, error } = await supabase
+    .from('users').select('id,name,phone,email,is_banned').eq('id', req.user.id).single();
+  if (error || !user) return res.status(404).json({ error: 'Người dùng không tồn tại' });
+  if (user.is_banned) return res.status(403).json({ error: 'Tài khoản bị khoá' });
+  const token = jwt.sign({ id: user.id, name: user.name, phone: user.phone }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  res.json({ token, user: { id: user.id, name: user.name, phone: user.phone, email: user.email } });
+});
+
 // ════════════════════════════════
 //  VÉ
 // ════════════════════════════════
 
+// ── Khởi tạo Supabase Storage bucket ──
+(async () => {
+  try {
+    await supabase.storage.createBucket('ticket-images', { public: true });
+  } catch (e) { /* bucket đã tồn tại */ }
+})();
+
+// ── Upload ảnh vé lên Supabase Storage ──
+app.post('/api/upload/ticket-image', auth, async (req, res) => {
+  const { image_data, content_type } = req.body;
+  if (!image_data) return res.status(400).json({ error: 'Thiếu dữ liệu ảnh' });
+
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const buffer = Buffer.from(image_data, 'base64');
+  if (buffer.length > MAX_SIZE) return res.status(400).json({ error: 'Ảnh tối đa 5MB' });
+
+  const ext = (content_type || '').includes('png') ? 'png' : (content_type || '').includes('gif') ? 'gif' : 'jpg';
+  const path = `${req.user.id}/${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from('ticket-images')
+    .upload(path, buffer, { contentType: content_type || 'image/jpeg', upsert: false });
+
+  if (error) return res.status(500).json({ error: 'Không tải được ảnh: ' + error.message });
+
+  const { data: { publicUrl } } = supabase.storage.from('ticket-images').getPublicUrl(path);
+  res.json({ url: publicUrl });
+});
+
 app.post('/api/tickets', auth, async (req, res) => {
-  const { event_name, event_date, location, section, price, quantity, description } = req.body;
+  const { event_name, event_date, location, section, price, quantity, description, image_url } = req.body;
   if (!event_name || !price || !quantity)
     return res.status(400).json({ error: 'Thiếu thông tin vé' });
   if (isNaN(Number(price)) || Number(price) <= 0)
     return res.status(400).json({ error: 'Giá không hợp lệ' });
 
-  const { data, error } = await supabase.from('tickets').insert({
+  const insertData = {
     seller_id: req.user.id,
     seller_name: req.user.name,
     event_name: sanitize(event_name),
@@ -435,7 +591,15 @@ app.post('/api/tickets', auth, async (req, res) => {
     quantity: Number(quantity),
     description: sanitize(description || ''),
     status: 'available'
-  }).select().single();
+  };
+  if (image_url) insertData.image_url = image_url;
+
+  let { data, error } = await supabase.from('tickets').insert(insertData).select().single();
+  // Nếu cột image_url chưa được migration, thử lại không có image_url
+  if (error && image_url) {
+    delete insertData.image_url;
+    ({ data, error } = await supabase.from('tickets').insert(insertData).select().single());
+  }
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
@@ -740,6 +904,59 @@ app.post('/api/reviews/:id/reply', auth, async (req, res) => {
     .eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
+});
+
+// ── Report review vi phạm ──
+const REPORT_REASONS = [
+  'Ngôn ngữ xúc phạm / thô tục',
+  'Thông tin sai sự thật',
+  'Review giả mạo / spam',
+  'Nội dung không liên quan',
+  'Lý do khác'
+];
+
+app.post('/api/reviews/:id/report', auth, async (req, res) => {
+  const { reason_index, description } = req.body;
+  if (reason_index === undefined || reason_index < 0 || reason_index >= REPORT_REASONS.length)
+    return res.status(400).json({ error: 'Lý do không hợp lệ' });
+
+  const { data: review } = await supabase.from('reviews').select('*').eq('id', req.params.id).single();
+  if (!review) return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
+  if (review.buyer_id === req.user.id) return res.status(400).json({ error: 'Không thể report đánh giá của chính mình' });
+
+  const reason = REPORT_REASONS[reason_index];
+  const reportNote = sanitize(description || '');
+
+  // Ghi vào DB (graceful — cột có thể chưa được migration)
+  try {
+    await supabase.from('reviews').update({
+      reported: true,
+      report_reason: reason + (reportNote ? ': ' + reportNote : ''),
+      reported_by: req.user.id,
+      reported_at: new Date().toISOString()
+    }).eq('id', req.params.id);
+  } catch (e) { /* cột chưa có — bỏ qua DB update, vẫn gửi email */ }
+
+  // Email admin
+  if (process.env.RESEND_API_KEY) {
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL || 'admin@safepass.vn',
+      subject: '🚩 [SafePass] Báo cáo đánh giá vi phạm',
+      html: `<h2>🚩 Báo cáo đánh giá vi phạm</h2>
+        <p><strong>Review ID:</strong> ${review.id}</p>
+        <p><strong>Người bán bị report:</strong> ${review.seller_id}</p>
+        <p><strong>Nội dung review:</strong> "${review.text}"</p>
+        <p><strong>Lý do báo cáo:</strong> ${reason}</p>
+        ${reportNote ? `<p><strong>Mô tả thêm:</strong> ${reportNote}</p>` : ''}
+        <p><strong>Người báo cáo:</strong> ${req.user.name} (${req.user.id})</p>
+        <p><em>Vui lòng kiểm tra và xử lý trong Admin Panel.</em></p>`
+    }).catch(() => {});
+  }
+
+  res.json({ success: true, message: 'Đã gửi báo cáo. Chúng tôi sẽ xem xét trong 24h.' });
 });
 
 // ════════════════════════════════

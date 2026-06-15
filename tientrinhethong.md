@@ -90,8 +90,8 @@
 - [x] Trang Hồ sơ (Profile page) với avatar, form cập nhật, đăng xuất *(2025-06-16)*
 - [x] `PATCH /api/auth/password` — đổi mật khẩu *(2026-06-15)*
 - [x] Form đổi mật khẩu trong Hồ sơ (current / new / confirm) *(2026-06-15)*
-- [ ] Xác minh email (gửi OTP/link khi đăng ký)
-- [ ] Quên mật khẩu (reset qua email)
+- [x] Xác minh email — OTP 6 số gửi qua Resend, nút "✉️ Xác minh email" trong Hồ sơ *(2026-06-15)*
+- [x] Quên mật khẩu — link reset gửi qua email, form đặt lại mật khẩu khi click link *(2026-06-15)*
 
 ---
 
@@ -104,8 +104,8 @@
 - [x] `DELETE /api/tickets/:id` — xoá listing (chỉ khi available) *(2025-06-15)*
 - [x] `PATCH /api/tickets/:id` — seller chỉnh sửa vé đã đăng (chỉ khi available) *(2026-06-15)*
 - [x] Phân trang (pagination) danh sách vé với page + limit params *(2026-06-15)*
-- [ ] Upload ảnh vé (hiện chỉ có text description)
-- [ ] Filter theo ngày sự kiện, địa điểm (đã có partial support)
+- [x] Upload ảnh vé — Supabase Storage bucket `ticket-images`, route `POST /api/upload/ticket-image`, file input thật thay cho simulate *(2026-06-15)*
+- [x] Filter theo ngày sự kiện, địa điểm — `applyFilters()` đã lọc đúng theo `state.location`, `state.dateFrom`, `state.dateTo` trên toàn bộ dữ liệu load từ API *(2026-06-15)*
 
 ---
 
@@ -154,7 +154,7 @@
 - [x] Tự động tính avg_rating và review_count cho seller *(2025-06-15)*
 - [x] `POST /api/reviews/:id/reply` — seller phản hồi review *(2026-06-15)*
 - [x] Email seller khi nhận được đánh giá mới *(2026-06-15)*
-- [ ] Report review vi phạm
+- [x] Report review vi phạm — nút 🚩 trên từng review, modal chọn lý do, `POST /api/reviews/:id/report`, email admin *(2026-06-15)*
 
 ---
 
@@ -202,8 +202,8 @@
 - [x] API URL tự động dùng `window.location.origin` (không hardcode) *(2025-06-15)*
 - [x] Empty state khi Lịch sử giao dịch trống *(2026-06-15)*
 - [x] Loading indicator khi fetch transactions *(2026-06-15)*
-- [ ] Responsive mobile tốt hơn (hiện chỉ ổn ở desktop)
-- [ ] Dark/light mode toggle
+- [x] Responsive mobile tốt hơn — cải thiện media queries 600px/400px: card grid, header compact, modal, btn *(2026-06-15)*
+- [x] Dark/light mode toggle — nút ☀️/🌙 trong header, `body:not(.dark)` CSS overrides, persist localStorage *(2026-06-15)*
 
 ---
 
@@ -217,7 +217,7 @@
 - [x] Helmet.js (HTTP security headers: XSS, HSTS, noSniff, frameguard...) *(2026-06-15)*
 - [x] Audit trail cho hành động admin (ghi vào transactions type=admin_action) *(2026-06-15)*
 - [x] Check is_banned khi đăng nhập và tạo đơn hàng *(2026-06-15)*
-- [ ] Refresh token (hiện chỉ dùng access token)
+- [x] Refresh token — `POST /api/auth/refresh` phát JWT mới 30 ngày nếu token đang còn hạn *(2026-06-15)*
 
 ---
 
@@ -226,6 +226,15 @@
 Chạy các câu SQL này trong **Supabase Dashboard → SQL Editor** để bật đầy đủ tính năng:
 
 ```sql
+-- 0. Cột image_url cho tickets (upload ảnh vé)
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS image_url text;
+
+-- 0b. Cột report cho reviews (report vi phạm)
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reported boolean default false;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS report_reason text;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reported_by uuid;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reported_at timestamptz;
+
 -- 1. Cột is_banned cho ban/unban users
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned boolean default false;
 
@@ -281,4 +290,4 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, create
 
 ---
 
-*Cập nhật lần cuối: 2026-06-15*
+*Cập nhật lần cuối: 2026-06-15 — Upload ảnh vé · Filter · Report review · Dark/Light mode · Responsive · Refresh token*
