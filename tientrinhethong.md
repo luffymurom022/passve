@@ -1,9 +1,32 @@
 # 🛡️ SafePass — Tiến Trình Hệ Thống
 
-> **Hướng dẫn dùng file này:**
-> - Đọc file này trước khi build để biết trạng thái hiện tại
-> - `[x]` = Đã hoàn thành | `[ ]` = Chưa build | `[~]` = Đang làm / làm một phần
-> - Sau khi build xong một tính năng, cập nhật `[ ]` → `[x]` và ghi ngày hoàn thành
+---
+
+## 🤖 HƯỚNG DẪN CHO AI AGENT — ĐỌC TRƯỚC KHI LÀM BẤT CỨ ĐIỀU GÌ
+
+> **Khi mở project này, AI Agent phải:**
+> 1. Đọc file này đầu tiên, toàn bộ từ đầu đến cuối
+> 2. Tìm tất cả các mục `[ ]` (chưa build) — đó là việc cần làm tiếp theo
+> 3. Build các mục `[ ]` theo thứ tự từ trên xuống dưới, ưu tiên cao trước
+> 4. Sau khi build xong mỗi mục, cập nhật ngay `[ ]` → `[x]` và ghi ngày
+> 5. Không hỏi lại những gì đã rõ ràng trong file — cứ build luôn
+> 6. Nếu một mục `[ ]` có ký hiệu `⚡` = ưu tiên cao, build trước tiên
+> 7. Nếu một mục `[ ]` có ký hiệu `🔒` = cần thông tin từ user (API key, v.v.), bỏ qua và tiếp tục mục khác
+
+> **Quy ước trạng thái:**
+> - `[x]` = Đã hoàn thành
+> - `[ ]` = Chưa build — build ngay
+> - `[~]` = Đang làm / làm một phần
+> - `[-]` = Tạm hoãn / không ưu tiên
+
+> **Stack kỹ thuật:**
+> - Backend: Node.js 20 + Express (ES Modules) — `server.js`
+> - Database: Supabase (PostgreSQL) — không dùng Replit DB
+> - Frontend: Vanilla JS/HTML/CSS — `frontend/index.html`, `frontend/admin.html`
+> - Auth: JWT + bcryptjs (phone + password), token 30 ngày
+> - Email: Resend API (`onboarding@resend.dev`)
+> - Port: 5000, host: 0.0.0.0
+> - Secrets: SUPABASE_URL, SUPABASE_KEY, JWT_SECRET, RESEND_API_KEY, ADMIN_EMAIL, ADMIN_SECRET
 
 ---
 
@@ -54,16 +77,41 @@
 
 ---
 
-### Kế hoạch mở rộng (chưa build)
+## 🗺️ ROADMAP DỰ ÁN
 
-| Loại | Mô tả | Ưu tiên |
-|------|-------|---------|
-| `verified_seller` | Seller được xác minh CCCD + tài khoản ngân hàng, hiển thị badge ✓ | Cao |
-| `trusted_buyer` | Buyer có ≥10 giao dịch thành công, được giảm phí hoặc ưu tiên | Trung bình |
-| `vip` / `premium` | Phí giao dịch thấp hơn (1.5% thay vì 3%), hỗ trợ ưu tiên | Trung bình |
-| `moderator` | Admin phụ — chỉ xử lý dispute, không có quyền ban user hay xem revenue | Thấp |
+### Phase 1 — MVP (✅ Hoàn thành)
+Core marketplace hoạt động: đăng vé, mua vé, escrow, QR, dispute, ví, admin.
 
-> Để thêm `role` vào hệ thống: cần thêm cột `role text default 'user'` vào bảng `users`, và kiểm tra `role` trong middleware.
+### Phase 2 — Trust & Growth (🚧 Đang làm)
+Tăng độ tin cậy, trải nghiệm người dùng tốt hơn, seller được xác minh.
+
+| Tính năng | Ưu tiên | Trạng thái |
+|-----------|---------|------------|
+| Xác minh seller (verified badge) | Cao | `[ ]` |
+| Hệ thống thông báo trong app (bell icon) | Cao | `[ ]` |
+| Trang profile công khai của seller | Trung bình | `[ ]` |
+| Tìm kiếm nâng cao (lọc theo danh mục sự kiện) | Trung bình | `[ ]` |
+| Seller dashboard với analytics đơn giản | Trung bình | `[ ]` |
+| Chat nội bộ giữa buyer và seller trong đơn hàng | Thấp | `[ ]` |
+
+### Phase 3 — Monetization & Scale (📋 Kế hoạch)
+Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
+
+| Tính năng | Ưu tiên | Trạng thái |
+|-----------|---------|------------|
+| Rút tiền về ngân hàng (VNPay / Momo) | Cao | `[ ] 🔒` |
+| Nạp tiền thật qua cổng thanh toán | Cao | `[ ] 🔒` |
+| Gói VIP / Premium (phí giao dịch thấp hơn) | Trung bình | `[ ]` |
+| Moderator role (admin phụ chỉ xử lý dispute) | Thấp | `[ ]` |
+| Mobile app (React Native / Expo) | Thấp | `[ ]` |
+
+### Phase 4 — Advanced (🔮 Tương lai xa)
+| Tính năng | Mô tả |
+|-----------|-------|
+| AI phát hiện gian lận | Tự động flag đơn hàng có dấu hiệu lừa đảo |
+| Hệ thống affiliate | Seller giới thiệu seller mới được hoa hồng |
+| API công khai | Cho phép bên thứ 3 tích hợp SafePass |
+| Multi-currency | Hỗ trợ USD, VND, v.v. |
 
 ---
 
@@ -77,6 +125,7 @@
 - [x] Rate limiting: auth (10/15ph), orders (5/1ph), topup (10/1h), general (100/15ph) *(2025-06-15)*
 - [x] Workflow Replit cấu hình đúng port 5000 webview *(2025-06-15)*
 - [x] Deployment config (autoscale) *(2025-06-15)*
+- [x] Tất cả secrets lưu trong Replit Secrets (vĩnh viễn, không nhập lại) *(2026-06-15)*
 
 ---
 
@@ -90,8 +139,9 @@
 - [x] Trang Hồ sơ (Profile page) với avatar, form cập nhật, đăng xuất *(2025-06-16)*
 - [x] `PATCH /api/auth/password` — đổi mật khẩu *(2026-06-15)*
 - [x] Form đổi mật khẩu trong Hồ sơ (current / new / confirm) *(2026-06-15)*
-- [x] Xác minh email — OTP 6 số gửi qua Resend, nút "✉️ Xác minh email" trong Hồ sơ *(2026-06-15)*
-- [x] Quên mật khẩu — link reset gửi qua email, form đặt lại mật khẩu khi click link *(2026-06-15)*
+- [x] Xác minh email — OTP 6 số gửi qua Resend *(2026-06-15)*
+- [x] Quên mật khẩu — link reset gửi qua email *(2026-06-15)*
+- [x] Refresh token — `POST /api/auth/refresh` *(2026-06-15)*
 
 ---
 
@@ -102,10 +152,10 @@
 - [x] `GET /api/tickets/:id` — chi tiết 1 vé *(2025-06-15)*
 - [x] `GET /api/my-tickets` — vé của seller *(2025-06-15)*
 - [x] `DELETE /api/tickets/:id` — xoá listing (chỉ khi available) *(2025-06-15)*
-- [x] `PATCH /api/tickets/:id` — seller chỉnh sửa vé đã đăng (chỉ khi available) *(2026-06-15)*
-- [x] Phân trang (pagination) danh sách vé với page + limit params *(2026-06-15)*
-- [x] Upload ảnh vé — Supabase Storage bucket `ticket-images`, route `POST /api/upload/ticket-image`, file input thật thay cho simulate *(2026-06-15)*
-- [x] Filter theo ngày sự kiện, địa điểm — `applyFilters()` đã lọc đúng theo `state.location`, `state.dateFrom`, `state.dateTo` trên toàn bộ dữ liệu load từ API *(2026-06-15)*
+- [x] `PATCH /api/tickets/:id` — seller chỉnh sửa vé đã đăng *(2026-06-15)*
+- [x] Phân trang (pagination) danh sách vé *(2026-06-15)*
+- [x] Upload ảnh vé — Supabase Storage bucket `ticket-images` *(2026-06-15)*
+- [x] Filter theo ngày sự kiện, địa điểm *(2026-06-15)*
 
 ---
 
@@ -115,12 +165,12 @@
 - [x] `GET /api/orders` — danh sách đơn (buyer/seller) *(2025-06-15)*
 - [x] `POST /api/orders/:id/upload-qr` — seller upload QR code *(2025-06-15)*
 - [x] `POST /api/orders/:id/confirm` — buyer xác nhận → giải ngân cho seller *(2025-06-15)*
-- [x] Escrow timeout tự động 48h → hoàn tiền buyer nếu seller không upload QR *(2025-06-15)*
+- [x] Escrow timeout tự động 48h → hoàn tiền buyer *(2025-06-15)*
 - [x] Chạy kiểm tra timeout mỗi 1 giờ *(2025-06-15)*
 - [x] Email seller khi có đơn mua mới *(2026-06-15)*
 - [x] Email buyer khi seller upload QR *(2026-06-15)*
 - [x] Email seller khi buyer xác nhận (giải ngân) *(2026-06-15)*
-- [x] Đếm ngược thời gian còn lại trong 48h trên giao diện buyer *(đã có sẵn)*
+- [x] Đếm ngược thời gian còn lại trong 48h trên giao diện buyer *(2026-06-15)*
 
 ---
 
@@ -128,22 +178,22 @@
 
 - [x] `POST /api/orders/:id/dispute` — mở khiếu nại (buyer hoặc seller) *(2025-06-15)*
 - [x] 5 lý do khiếu nại có sẵn *(2025-06-15)*
-- [x] `POST /api/admin/orders/:id/resolve` — admin giải quyết (chọn buyer/seller thắng) *(2025-06-15)*
-- [x] Email thông báo admin khi có khiếu nại mới (Resend) *(2025-06-15)*
-- [x] Email thông báo kết quả giải quyết khiếu nại cho buyer và seller *(2026-06-15)*
-- [x] Thời hạn tự động đóng khiếu nại sau 3 ngày (hoàn tiền buyer) *(2026-06-15)*
+- [x] `POST /api/admin/orders/:id/resolve` — admin giải quyết *(2025-06-15)*
+- [x] Email thông báo admin khi có khiếu nại mới *(2025-06-15)*
+- [x] Email thông báo kết quả giải quyết cho buyer và seller *(2026-06-15)*
+- [x] Thời hạn tự động đóng khiếu nại sau 3 ngày *(2026-06-15)*
 
 ---
 
 ## ✅ Ví & Giao Dịch (Wallet)
 
 - [x] `POST /api/wallet/topup` — nạp tiền (giả lập) *(2025-06-15)*
-- [x] `GET /api/wallet/transactions` — lịch sử giao dịch phân trang (page + limit) *(2026-06-15)*
-- [x] `GET /api/wallet/transactions/export` — export CSV lịch sử giao dịch *(2026-06-15)*
-- [x] Ghi log transaction cho mọi sự kiện: topup, escrow_lock, payout, refund *(2025-06-15)*
+- [x] `GET /api/wallet/transactions` — lịch sử giao dịch phân trang *(2026-06-15)*
+- [x] `GET /api/wallet/transactions/export` — export CSV *(2026-06-15)*
+- [x] Ghi log transaction cho mọi sự kiện *(2025-06-15)*
 - [x] Nút Export CSV trong tab Lịch sử ví *(2026-06-15)*
 - [x] Nút Tải thêm (pagination) trong tab Lịch sử ví *(2026-06-15)*
-- [ ] Rút tiền từ ví về tài khoản ngân hàng (tích hợp cổng thanh toán thật)
+- [ ] Rút tiền từ ví về tài khoản ngân hàng (tích hợp cổng thanh toán thật) 🔒
 
 ---
 
@@ -154,40 +204,36 @@
 - [x] Tự động tính avg_rating và review_count cho seller *(2025-06-15)*
 - [x] `POST /api/reviews/:id/reply` — seller phản hồi review *(2026-06-15)*
 - [x] Email seller khi nhận được đánh giá mới *(2026-06-15)*
-- [x] Report review vi phạm — nút 🚩 trên từng review, modal chọn lý do, `POST /api/reviews/:id/report`, email admin *(2026-06-15)*
+- [x] Report review vi phạm *(2026-06-15)*
 
 ---
 
 ## ✅ Trang Admin
 
-- [x] `GET /api/admin/orders` — danh sách tất cả đơn (filter by status) *(2025-06-15)*
+- [x] `GET /api/admin/orders` — danh sách tất cả đơn *(2025-06-15)*
 - [x] `GET /api/admin/orders/:id` — chi tiết 1 đơn *(2025-06-15)*
-- [x] `GET /api/admin/users` — danh sách users (có search theo tên/SĐT) *(2026-06-15)*
+- [x] `GET /api/admin/users` — danh sách users *(2026-06-15)*
 - [x] `POST /api/admin/users/:id/ban` — khóa tài khoản *(2026-06-15)*
 - [x] `POST /api/admin/users/:id/unban` — mở khóa tài khoản *(2026-06-15)*
-- [x] `GET /api/admin/stats` — thống kê: Revenue, GMV, Escrow, Users, Orders *(2026-06-15)*
+- [x] `GET /api/admin/stats` — thống kê tổng hợp *(2026-06-15)*
 - [x] `GET /api/admin/export` — xuất báo cáo orders CSV *(2026-06-15)*
 - [x] `POST /api/admin/process-timeouts` — trigger escrow timeout thủ công *(2025-06-15)*
-- [x] Trang `admin.html` — overview (revenue stats), disputes, orders, users *(2026-06-15)*
-- [x] Xác thực bằng ADMIN_SECRET *(2025-06-15)*
-- [x] Tìm kiếm user theo tên / số điện thoại *(2026-06-15)*
-- [x] Ban/unban user từ giao diện admin *(2026-06-15)*
-- [x] Xuất báo cáo CSV đơn hàng *(2026-06-15)*
-- [x] Thống kê doanh thu (Revenue, GMV, Escrow locked, Users, Disputes) *(2026-06-15)*
+- [x] Trang `admin.html` — overview, disputes, orders, users *(2026-06-15)*
 
 ---
 
 ## ✅ Email Thông Báo (Notifications)
 
 - [x] Tích hợp Resend API *(2025-06-16)*
-- [x] Email admin khi có **khiếu nại mới** *(2025-06-16)*
-- [x] Email admin **tổng hợp** khi escrow timeout hàng loạt *(2025-06-16)*
-- [x] Email buyer khi **được hoàn tiền tự động** (nếu có email) *(2025-06-16)*
-- [x] Email seller khi có **đơn mua mới** *(2026-06-15)*
-- [x] Email buyer khi seller **upload QR** *(2026-06-15)*
-- [x] Email seller khi **giải ngân** (buyer confirm) *(2026-06-15)*
-- [x] Email buyer/seller khi **khiếu nại được giải quyết** *(2026-06-15)*
-- [x] Email seller khi **nhận được đánh giá mới** *(2026-06-15)*
+- [x] Email admin khi có khiếu nại mới *(2025-06-16)*
+- [x] Email admin tổng hợp khi escrow timeout hàng loạt *(2025-06-16)*
+- [x] Email buyer khi được hoàn tiền tự động *(2025-06-16)*
+- [x] Email seller khi có đơn mua mới *(2026-06-15)*
+- [x] Email buyer khi seller upload QR *(2026-06-15)*
+- [x] Email seller khi giải ngân *(2026-06-15)*
+- [x] Email buyer/seller khi khiếu nại được giải quyết *(2026-06-15)*
+- [x] Email seller khi nhận được đánh giá mới *(2026-06-15)*
+- [ ] ⚡ Thông báo trong app (bell icon) — real-time notification feed cho user
 
 ---
 
@@ -197,51 +243,47 @@
 - [x] Trang Marketplace (xem vé, tìm kiếm, lọc giá) *(2025-06-15)*
 - [x] Trang Ví (wallet overview + lịch sử phân trang + export CSV) *(2026-06-15)*
 - [x] Trang My Orders (đơn mua + đơn bán) *(2025-06-15)*
-- [x] Modal đăng nhập / đăng ký (có field email) *(2025-06-16)*
-- [x] Trang Hồ sơ (👤) — cập nhật tên, email, **đổi mật khẩu**, đăng xuất *(2026-06-15)*
-- [x] API URL tự động dùng `window.location.origin` (không hardcode) *(2025-06-15)*
-- [x] Empty state khi Lịch sử giao dịch trống *(2026-06-15)*
-- [x] Loading indicator khi fetch transactions *(2026-06-15)*
-- [x] Responsive mobile tốt hơn — cải thiện media queries 600px/400px: card grid, header compact, modal, btn *(2026-06-15)*
-- [x] Dark/light mode toggle — nút ☀️/🌙 trong header, `body:not(.dark)` CSS overrides, persist localStorage *(2026-06-15)*
+- [x] Modal đăng nhập / đăng ký *(2025-06-16)*
+- [x] Trang Hồ sơ *(2026-06-15)*
+- [x] Responsive mobile *(2026-06-15)*
+- [x] Dark/light mode toggle *(2026-06-15)*
+- [ ] ⚡ Trang profile công khai của seller (xem vé đang bán + đánh giá) tại `/seller/:id`
+- [ ] Seller dashboard — tab riêng hiển thị doanh thu, đơn hàng, rating theo thời gian
 
 ---
 
-## ✅ Bảo Mật
+## 🚧 Phase 2 — Việc Cần Build Tiếp (theo thứ tự ưu tiên)
 
-- [x] Password hash bcrypt (salt 10) *(2025-06-15)*
-- [x] JWT token với expiry 30 ngày *(2025-06-15)*
-- [x] Rate limiting chống spam *(2025-06-15)*
-- [x] ADMIN_SECRET cho các route admin *(2025-06-15)*
-- [x] Validate & sanitize toàn bộ input (sanitize() helper + validation trên tất cả routes) *(2026-06-15)*
-- [x] Helmet.js (HTTP security headers: XSS, HSTS, noSniff, frameguard...) *(2026-06-15)*
-- [x] Audit trail cho hành động admin (ghi vào transactions type=admin_action) *(2026-06-15)*
-- [x] Check is_banned khi đăng nhập và tạo đơn hàng *(2026-06-15)*
-- [x] Refresh token — `POST /api/auth/refresh` phát JWT mới 30 ngày nếu token đang còn hạn *(2026-06-15)*
+> Agent: đây là danh sách `[ ]` cần build. Đọc từ trên xuống, build lần lượt.
+
+- [ ] ⚡ Thông báo trong app — bell icon trên header, `GET /api/notifications`, `POST /api/notifications/:id/read`, lưu vào bảng `notifications` (Supabase), hiển thị unread count badge, dropdown list 10 thông báo gần nhất, đánh dấu đã đọc tất cả
+- [ ] ⚡ Trang profile công khai seller — route `/seller/:id` hoặc `?seller=id`, hiển thị: avatar, tên, rating, số đơn hoàn thành, danh sách vé đang bán, danh sách reviews
+- [ ] Seller dashboard analytics — tab "Thống kê" trong My Tickets: tổng doanh thu, số vé đã bán, rating trung bình, biểu đồ đơn hàng 30 ngày (Chart.js)
+- [ ] Xác minh seller (verified badge) — admin có thể mark seller là verified, hiển thị ✓ badge xanh trên listing vé và profile
+- [ ] Tìm kiếm nâng cao — dropdown chọn danh mục sự kiện (Âm nhạc, Thể thao, Hội nghị, Khác), filter kết hợp với search hiện tại
+- [ ] Chat nội bộ trong đơn hàng — buyer và seller nhắn tin trong context của 1 đơn, `POST /api/orders/:id/messages`, `GET /api/orders/:id/messages`, hiển thị trong modal chi tiết đơn
 
 ---
 
 ## ⚠️ Cần Chạy Migration trong Supabase SQL Editor
 
-Chạy các câu SQL này trong **Supabase Dashboard → SQL Editor** để bật đầy đủ tính năng:
-
 ```sql
--- 0. Cột image_url cho tickets (upload ảnh vé)
+-- 0. Cột image_url cho tickets
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS image_url text;
 
--- 0b. Cột report cho reviews (report vi phạm)
+-- 0b. Cột report cho reviews
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reported boolean default false;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS report_reason text;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reported_by uuid;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reported_at timestamptz;
 
--- 1. Cột is_banned cho ban/unban users
+-- 1. Cột is_banned
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned boolean default false;
 
--- 2. Cột email (nếu chưa có)
+-- 2. Cột email
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email text;
 
--- 3. Các cột dispute vào orders
+-- 3. Cột dispute vào orders
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_reason text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_description text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_opened_by text;
@@ -250,7 +292,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_resolved_by text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_resolved_at timestamptz;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_note text;
 
--- 4. Bảng reviews (nếu chưa có)
+-- 4. Bảng reviews
 CREATE TABLE IF NOT EXISTS reviews (
   id uuid default gen_random_uuid() primary key,
   order_id uuid references orders(id),
@@ -266,7 +308,21 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 ALTER TABLE reviews DISABLE ROW LEVEL SECURITY;
 
--- 5. Index tối ưu hiệu năng (optional)
+-- 5. Bảng notifications (Phase 2)
+CREATE TABLE IF NOT EXISTS notifications (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  type text not null,
+  title text not null,
+  body text,
+  link text,
+  is_read boolean default false,
+  created_at timestamptz default now()
+);
+ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+
+-- 6. Index tối ưu hiệu năng
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id);
@@ -282,12 +338,12 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, create
 | Runtime | Node.js 20 + ES Modules |
 | Port | 5000 (webview Replit) |
 | Database | Supabase (PostgreSQL) |
-| Auth | JWT + bcryptjs |
+| Auth | JWT + bcryptjs (phone + password) |
 | Email | Resend API (`onboarding@resend.dev`) |
 | Frontend | Vanilla JS + HTML + CSS (SPA) |
 | Security | Helmet.js, bcrypt, rate-limit, sanitize() |
-| Secrets | `SUPABASE_URL`, `SUPABASE_KEY`, `JWT_SECRET`, `ADMIN_SECRET`, `RESEND_API_KEY`, `ADMIN_EMAIL` |
+| Secrets | Lưu trong Replit Secrets — vĩnh viễn, không cần nhập lại |
 
 ---
 
-*Cập nhật lần cuối: 2026-06-15 — Upload ảnh vé · Filter · Report review · Dark/Light mode · Responsive · Refresh token*
+*Cập nhật lần cuối: 2026-06-15 — Thêm hướng dẫn AI Agent tự động đọc & build + Roadmap Phase 1–4*
