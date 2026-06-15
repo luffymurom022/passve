@@ -704,15 +704,8 @@ const SELLER_REVIEWS={
 };
 
 
-/* ── NOTIFICATIONS DATA ── */
-let NOTIFICATIONS=[
-  {id:"n1",type:"order",icon:"🛒",title:"Đơn hàng mới!",body:"Phương Linh vừa đặt mua 2 vé Hà Nội Summer Beats",time:"2 phút trước",read:false,action:"orders"},
-  {id:"n2",type:"qr",icon:"🎫",title:"Vé QR đã sẵn sàng",body:"Coachella Vietnam 2025 — QR đã được upload. Kiểm tra ngay!",time:"1 giờ trước",read:false,action:"orders"},
-  {id:"n3",type:"escrow",icon:"💸",title:"Tiền đã giải ngân",body:"2.670.000đ từ Vietnam Music Week đã về tài khoản",time:"2 ngày trước",read:false,action:"wallet"},
-  {id:"n4",type:"promo",icon:"🔥",title:"Vé hot đang giảm giá",body:"Taylor Swift Eras Tour còn 1 vé cuối — -16% so với giá gốc",time:"3 ngày trước",read:true,action:"search"},
-  {id:"n5",type:"review",icon:"⭐",title:"Nhận xét mới",body:"Đức Minh đã đánh giá 5⭐ cho giao dịch Ed Sheeran",time:"4 ngày trước",read:true,action:"profile"},
-  {id:"n6",type:"system",icon:"🛡",title:"Tài khoản đã xác minh",body:"Danh tính và tài khoản ngân hàng của bạn đã được xác minh thành công",time:"1 tuần trước",read:true,action:"profile"},
-];
+/* ── NOTIFICATIONS DATA (loaded from API) ── */
+let NOTIFICATIONS = [];
 
 /* ── WALLET DATA ── */
 const WALLET={
@@ -773,7 +766,7 @@ let state={
   // sell form
   sellStep:0,
   // notifications
-  notifOpen:false,notifCount:3,
+  notifOpen:false,notifCount:0,
   // review
   showReviewModal:false,reviewOrderId:null,
   // wallet
@@ -1234,40 +1227,70 @@ function buildPlaceholderPage(page){
 function toggleNotif(){
   setState({notifOpen:!state.notifOpen});
 }
-function markAllRead(){
-  NOTIFICATIONS.forEach(n=>n.read=true);
+async function markAllRead(){
+  NOTIFICATIONS.forEach(n=>n.is_read=true);
   setState({notifCount:0,notifOpen:true});
+  if(authToken) fetch(API+'/notifications/read-all',{method:'POST',headers:getHeaders()}).catch(()=>{});
 }
 function buildNotifDropdown(){
-  const items=NOTIFICATIONS.map(n=>`
-    <div onclick="handleNotifClick('${n.id}')" style="display:flex;gap:10px;padding:12px 14px;cursor:pointer;background:${n.read?"transparent":"var(--brandL)"};border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='${n.read?"transparent":"var(--brandL)"}'">
-      <div style="width:36px;height:36px;border-radius:10px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${n.icon}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-          <div style="font-size:12px;font-weight:${n.read?600:800};color:var(--text);line-height:1.3;">${n.title}</div>
-          ${!n.read?`<div style="width:7px;height:7px;border-radius:50%;background:var(--brand);flex-shrink:0;margin-top:3px;"></div>`:""}
+  const unreadCount=NOTIFICATIONS.filter(n=>!n.is_read).length;
+  let items='';
+  if(NOTIFICATIONS.length===0){
+    items=`<div style="text-align:center;padding:32px 16px;color:var(--hint);font-size:13px;">
+      <div style="font-size:28px;margin-bottom:8px;">🔔</div>
+      <div>Chưa có thông báo nào</div>
+    </div>`;
+  } else {
+    items=NOTIFICATIONS.map(n=>{
+      const icon=n.type==='order'?'🛒':n.type==='qr'?'🎫':n.type==='payout'?'💸':n.type==='refund'?'✅':n.type==='dispute'?'⚠️':n.type==='dispute_win'?'✅':n.type==='dispute_lose'?'❌':n.type==='review'?'⭐':n.type==='timeout'?'⏰':'🔔';
+      const isRead=n.is_read;
+      const timeStr=n.created_at?timeAgo(n.created_at):'';
+      const action=n.link==='wallet'?'wallet':n.link==='orders'?'orders':'orders';
+      return`<div onclick="handleNotifClick('${n.id}','${action}')" style="display:flex;gap:10px;padding:12px 14px;cursor:pointer;background:${isRead?"transparent":"var(--brandL)"};border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='${isRead?"transparent":"var(--brandL)"}'">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+            <div style="font-size:12px;font-weight:${isRead?600:800};color:var(--text);line-height:1.3;">${n.title}</div>
+            ${!isRead?`<div style="width:7px;height:7px;border-radius:50%;background:var(--brand);flex-shrink:0;margin-top:3px;"></div>`:""}
+          </div>
+          <div style="font-size:11px;color:var(--sub);margin-top:2px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${n.body||''}</div>
+          <div style="font-size:10px;color:var(--hint);margin-top:3px;font-family:'JetBrains Mono',monospace;">${timeStr}</div>
         </div>
-        <div style="font-size:11px;color:var(--sub);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.body}</div>
-        <div style="font-size:10px;color:var(--hint);margin-top:3px;font-family:'JetBrains Mono',monospace;">${n.time}</div>
-      </div>
-    </div>`).join("");
+      </div>`;
+    }).join("");
+  }
   return`
   <div style="position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--card2);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:9999;animation:dropIn .18s ease;" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);">
-      <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;">Thông báo</div>
-      <button onclick="markAllRead()" style="font-size:11px;color:var(--brand);background:none;border:none;cursor:pointer;font-weight:700;font-family:'Inter',sans-serif;">Đọc tất cả</button>
+      <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;">Thông báo${unreadCount>0?` <span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;margin-left:6px;">${unreadCount}</span>`:''}</div>
+      ${unreadCount>0?`<button onclick="markAllRead()" style="font-size:11px;color:var(--brand);background:none;border:none;cursor:pointer;font-weight:700;font-family:'Inter',sans-serif;">Đọc tất cả</button>`:''}
     </div>
-    <div style="max-height:360px;overflow-y:auto;">${items}</div>
+    <div style="max-height:380px;overflow-y:auto;">${items}</div>
     <div style="padding:10px 14px;text-align:center;border-top:1px solid var(--border);">
       <button onclick="setState({notifOpen:false})" style="font-size:11.5px;color:var(--sub);background:none;border:none;cursor:pointer;font-weight:600;font-family:'Inter',sans-serif;">Đóng</button>
     </div>
   </div>`;
 }
-function handleNotifClick(nid){
+function timeAgo(dateStr){
+  const diff=Date.now()-new Date(dateStr).getTime();
+  const m=Math.floor(diff/60000);
+  if(m<1)return'Vừa xong';
+  if(m<60)return m+'p trước';
+  const h=Math.floor(m/60);
+  if(h<24)return h+'h trước';
+  const d=Math.floor(h/24);
+  if(d<7)return d+' ngày trước';
+  return new Date(dateStr).toLocaleDateString('vi-VN');
+}
+async function handleNotifClick(nid,action){
   const n=NOTIFICATIONS.find(x=>x.id===nid);
   if(!n)return;
-  if(!n.read){n.read=true;state.notifCount=Math.max(0,state.notifCount-1);}
-  setState({notifOpen:false,page:n.action});
+  if(!n.is_read){
+    n.is_read=true;
+    state.notifCount=Math.max(0,state.notifCount-1);
+    if(authToken) fetch(API+'/notifications/'+nid+'/read',{method:'POST',headers:getHeaders()}).catch(()=>{});
+  }
+  setState({notifOpen:false,page:action||'orders'});
 }
 // Close notif on outside click
 document.addEventListener("click",e=>{
@@ -1722,7 +1745,7 @@ function submitReview(orderId){
     SELLER_REVIEWS[sellerId].unshift({buyer:"Bạn",avatar:"VA",rating:reviewForm.rating,text:text||"Giao dịch tốt!",date:new Date().toLocaleDateString("vi-VN")});
   }
   // Add notification
-  NOTIFICATIONS.unshift({id:"n"+UID(),type:"review",icon:"⭐",title:"Đánh giá đã gửi!",body:`Bạn đã đánh giá ${reviewForm.rating}⭐ cho ${other.name}`,time:"Vừa xong",read:false,action:"orders"});
+  NOTIFICATIONS.unshift({id:"n"+UID(),type:"review",icon:"⭐",title:"Đánh giá đã gửi!",body:`Bạn đã đánh giá ${reviewForm.rating}⭐ cho ${other.name}`,created_at:new Date().toISOString(),is_read:false,link:'orders'});
   state.notifCount++;
   closeReviewModal();
   showToast(`Cảm ơn! Đánh giá ${reviewForm.rating}⭐ đã gửi 🎉`,"var(--ok)","⭐");
@@ -4057,6 +4080,7 @@ async function submitAuth(tab) {
     showToast('Chào ' + currentUser.name + '! 👋', 'var(--ok)', '✅');
     await loadTicketsFromAPI();
     await loadOrdersFromAPI();
+    await loadNotificationsFromAPI();
     setState({});
     startPolling();
   } catch(e) {
@@ -4370,7 +4394,23 @@ async function submitSellAPI(formData) {
 }
 
 
-// ── Polling: thông báo seller khi có đơn mới (mỗi 30s) ──
+// ── Load notifications từ API ──
+async function loadNotificationsFromAPI() {
+  if (!authToken || !currentUser || currentUser.id === 'demo') return;
+  try {
+    const res = await fetch(API + '/notifications', { headers: getHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    NOTIFICATIONS = data.notifications || [];
+    const newCount = data.unread || 0;
+    if (newCount !== state.notifCount) {
+      state.notifCount = newCount;
+      render();
+    }
+  } catch(e) {}
+}
+
+// ── Polling: đơn mới + notifications (mỗi 30s) ──
 let _lastKnownOrderIds = new Set();
 let _pollingStarted = false;
 
@@ -4385,42 +4425,24 @@ async function pollSellerOrders() {
     const newOrders = orders.filter(o =>
       o.status === 'waiting_qr' && !_lastKnownOrderIds.has(o.id)
     );
-
-    // Cập nhật set đã biết
     orders.forEach(o => _lastKnownOrderIds.add(o.id));
 
-    if (newOrders.length === 0) return;
+    if (newOrders.length > 0) {
+      await loadOrdersFromAPI();
+      const first = newOrders[0];
+      showToast('Đơn mới: ' + first.event_name, 'var(--ok)', '🛒');
+      state.orderBadge = (state.orderBadge || 0) + newOrders.length;
+    }
 
-    // Có đơn mới → thông báo
-    newOrders.forEach(o => {
-      NOTIFICATIONS.unshift({
-        id: 'n' + o.id,
-        type: 'order',
-        icon: '🛒',
-        title: 'Đơn hàng mới!',
-        body: (o.buyer_name || 'Ai đó') + ' vừa đặt mua vé ' + o.event_name,
-        time: 'Vừa xong',
-        read: false,
-        action: 'orders'
-      });
-      state.notifCount = (state.notifCount || 0) + 1;
-      state.orderBadge = (state.orderBadge || 0) + 1;
-    });
-
-    // Load lại orders và render
-    await loadOrdersFromAPI();
-    setState({});
-
-    // Toast cho đơn đầu tiên
-    const first = newOrders[0];
-    showToast('Đơn mới: ' + first.event_name, 'var(--ok)', '🛒');
+    // Luôn sync notifications từ API
+    await loadNotificationsFromAPI();
+    if (newOrders.length > 0) setState({});
   } catch(e) {}
 }
 
 function startPolling() {
   if (_pollingStarted) return;
   _pollingStarted = true;
-  // Seed set ban đầu (không notify cho order cũ)
   if (authToken) {
     fetch(API + '/orders?role=seller', { headers: getHeaders() })
       .then(r => r.json())
@@ -4449,6 +4471,7 @@ function startPolling() {
         localStorage.setItem('sp_user', JSON.stringify(currentUser));
         await loadTicketsFromAPI();
         await loadOrdersFromAPI();
+        await loadNotificationsFromAPI();
         setState({});
         startPolling();
         return;

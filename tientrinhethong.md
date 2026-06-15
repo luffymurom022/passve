@@ -233,7 +233,7 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 - [x] Email seller khi giải ngân *(2026-06-15)*
 - [x] Email buyer/seller khi khiếu nại được giải quyết *(2026-06-15)*
 - [x] Email seller khi nhận được đánh giá mới *(2026-06-15)*
-- [ ] ⚡ Thông báo trong app (bell icon) — real-time notification feed cho user
+- [x] ⚡ Thông báo trong app (bell icon) — real-time notification feed cho user *(2026-06-15)*
 
 ---
 
@@ -256,7 +256,7 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 
 > Agent: đây là danh sách `[ ]` cần build. Đọc từ trên xuống, build lần lượt.
 
-- [ ] ⚡ Thông báo trong app — bell icon trên header, `GET /api/notifications`, `POST /api/notifications/:id/read`, lưu vào bảng `notifications` (Supabase), hiển thị unread count badge, dropdown list 10 thông báo gần nhất, đánh dấu đã đọc tất cả
+- [x] ⚡ Thông báo trong app — bell icon, `GET /api/notifications`, `POST /api/notifications/:id/read`, `POST /api/notifications/read-all`, bảng `notifications` Supabase, unread badge, dropdown 20 thông báo, đánh dấu đã đọc, polling 30s *(2026-06-15)*
 - [ ] ⚡ Trang profile công khai seller — route `/seller/:id` hoặc `?seller=id`, hiển thị: avatar, tên, rating, số đơn hoàn thành, danh sách vé đang bán, danh sách reviews
 - [ ] Seller dashboard analytics — tab "Thống kê" trong My Tickets: tổng doanh thu, số vé đã bán, rating trung bình, biểu đồ đơn hàng 30 ngày (Chart.js)
 - [ ] Xác minh seller (verified badge) — admin có thể mark seller là verified, hiển thị ✓ badge xanh trên listing vé và profile

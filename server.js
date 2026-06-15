@@ -309,6 +309,16 @@ async function sendDisputeNotification(order, reasonText, openedBy, description)
   } catch (e) { console.error('[Email] Lỗi gửi email:', e.message); }
 }
 
+// ════════════════════════════════
+//  NOTIFICATIONS HELPER
+// ════════════════════════════════
+
+async function createNotification(userId, type, title, body, link = null) {
+  try {
+    await supabase.from('notifications').insert({ user_id: userId, type, title, body, link });
+  } catch (e) { /* bảng notifications chưa được migration — bỏ qua */ }
+}
+
 // ── MIDDLEWARE xác thực token ──
 function auth(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -722,8 +732,10 @@ app.post('/api/orders', auth, async (req, res) => {
     order_id: order.id
   });
 
-  // Email thông báo seller
+  // Email + in-app notification cho seller
   sendNewOrderSellerNotification(order);
+  createNotification(ticket.seller_id, 'order', '🛒 Đơn hàng mới!',
+    `${req.user.name} vừa đặt mua vé ${ticket.event_name}`, '/orders');
 
   res.json(order);
 });
@@ -747,8 +759,10 @@ app.post('/api/orders/:id/upload-qr', auth, async (req, res) => {
 
   await supabase.from('orders').update({ qr_code: sanitize(qr_code), status: 'waiting_confirm' }).eq('id', req.params.id);
 
-  // Email thông báo buyer
+  // Email + in-app notification cho buyer
   sendQRUploadedBuyerNotification(order);
+  createNotification(order.buyer_id, 'qr', '🎫 Vé QR đã sẵn sàng!',
+    `${order.seller_name} đã upload QR vé ${order.event_name}. Kiểm tra ngay!`, '/orders');
 
   res.json({ message: 'Đã upload QR, chờ người mua xác nhận' });
 });
@@ -772,8 +786,10 @@ app.post('/api/orders/:id/confirm', auth, async (req, res) => {
     { user_id: order.buyer_id, type: 'escrow_release', amount: 0, description: `Xác nhận nhận vé: ${order.event_name}`, order_id: order.id }
   ]);
 
-  // Email thông báo seller
+  // Email + in-app notification cho seller
   sendPayoutSellerNotification(order);
+  createNotification(order.seller_id, 'payout', '💸 Tiền đã giải ngân!',
+    `${order.buyer_name} xác nhận nhận vé ${order.event_name}. ${order.price.toLocaleString('vi-VN')}đ đã vào ví.`, '/wallet');
 
   res.json({ message: 'Xác nhận thành công! Tiền đã được giải ngân cho người bán.' });
 });
@@ -875,8 +891,10 @@ app.post('/api/orders/:id/review', auth, async (req, res) => {
     }).eq('id', order.seller_id);
   }
 
-  // Email thông báo seller
+  // Email + in-app notification cho seller
   sendNewReviewSellerNotification(review);
+  createNotification(order.seller_id, 'review', '⭐ Đánh giá mới!',
+    `${req.user.name} đánh giá ${'⭐'.repeat(Number(rating))} cho giao dịch ${order.event_name}`, '/orders');
 
   res.json(review);
 });
@@ -1006,6 +1024,12 @@ app.post('/api/orders/:id/dispute', auth, async (req, res) => {
   });
 
   sendDisputeNotification(order, reasonText, openedBy, description);
+  // Notify the other party
+  const notifyId = isBuyer ? order.seller_id : order.buyer_id;
+  const notifyName = isBuyer ? order.buyer_name : order.seller_name;
+  createNotification(notifyId, 'dispute', '⚠️ Khiếu nại mới',
+    `${notifyName} vừa mở khiếu nại cho đơn hàng ${order.event_name}: ${reasonText}`, '/orders');
+
   res.json({ message: 'Khiếu nại đã được gửi. Đội hỗ trợ sẽ phản hồi trong 24h.' });
 });
 
@@ -1059,8 +1083,19 @@ app.post('/api/admin/orders/:id/resolve', async (req, res) => {
     order_id: order.id
   });
 
-  // Email kết quả cho cả hai
+  // Email + in-app notification cho cả hai
   sendDisputeResolvedNotification(order, winner);
+  if (winner === 'buyer') {
+    createNotification(order.buyer_id, 'dispute_win', '✅ Khiếu nại thành công',
+      `Admin đã xử lý: Bạn thắng khiếu nại đơn hàng ${order.event_name}. Tiền đã hoàn về ví.`, '/wallet');
+    createNotification(order.seller_id, 'dispute_lose', '❌ Khiếu nại không thành công',
+      `Admin đã xử lý khiếu nại đơn hàng ${order.event_name}. Tiền đã được hoàn cho buyer.`, '/orders');
+  } else {
+    createNotification(order.seller_id, 'dispute_win', '✅ Khiếu nại thành công',
+      `Admin đã xử lý: Bạn thắng khiếu nại đơn hàng ${order.event_name}. Tiền đã giải ngân vào ví.`, '/wallet');
+    createNotification(order.buyer_id, 'dispute_lose', '❌ Khiếu nại không thành công',
+      `Admin đã xử lý khiếu nại đơn hàng ${order.event_name}. Tiền đã được chuyển cho seller.`, '/orders');
+  }
 
   res.json({ message: `Đã giải quyết: ${winner} thắng. Tiền đã được xử lý.` });
 });
@@ -1096,6 +1131,10 @@ async function processExpiredEscrows() {
         });
         console.log(`[Escrow Timeout] Hoàn ${order.total.toLocaleString()}đ cho buyer ${order.buyer_name} — đơn ${order.id}`);
         sendEscrowTimeoutBuyerNotification(order);
+        createNotification(order.buyer_id, 'refund', '✅ Hoàn tiền tự động',
+          `Đơn hàng ${order.event_name} quá 48h seller chưa upload QR. ${order.total.toLocaleString('vi-VN')}đ đã hoàn về ví.`, '/wallet');
+        createNotification(order.seller_id, 'timeout', '⏰ Đơn hàng đã hết hạn',
+          `Đơn hàng ${order.event_name} đã bị hủy tự động vì bạn không upload QR sau 48h.`, '/orders');
       } catch (e) { console.error(`[Escrow Timeout] Lỗi đơn ${order.id}:`, e.message); }
     }
     sendEscrowTimeoutAdminNotification(expiredOrders);
@@ -1245,6 +1284,46 @@ app.get('/api/admin/export', async (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
   res.send('\uFEFF' + csv);
+});
+
+// ════════════════════════════════
+//  NOTIFICATIONS API
+// ════════════════════════════════
+
+app.get('/api/notifications', auth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error) return res.json({ notifications: [], unread: 0 });
+    const unread = (data || []).filter(n => !n.is_read).length;
+    res.json({ notifications: data || [], unread });
+  } catch (e) {
+    res.json({ notifications: [], unread: 0 });
+  }
+});
+
+app.post('/api/notifications/read-all', auth, async (req, res) => {
+  try {
+    await supabase.from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', req.user.id)
+      .eq('is_read', false);
+  } catch (e) {}
+  res.json({ ok: true });
+});
+
+app.post('/api/notifications/:id/read', auth, async (req, res) => {
+  try {
+    await supabase.from('notifications')
+      .update({ is_read: true })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
+  } catch (e) {}
+  res.json({ ok: true });
 });
 
 // ── SERVE FRONTEND STATIC FILES ──
