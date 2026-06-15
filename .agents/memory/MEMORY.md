@@ -1,0 +1,2 @@
+- [SafePass schema migrations](safepass-migrations.md) — is_banned, dispute fields, seller_reply must be applied in Supabase SQL Editor before admin features work fully.
+- [SafePass API format change](safepass-api-format.md) — GET /api/tickets now returns {tickets, total, page, limit} not a bare array; frontend handles both via Array.isArray check.

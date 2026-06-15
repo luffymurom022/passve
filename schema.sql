@@ -59,8 +59,54 @@ create table transactions (
   created_at timestamptz default now()
 );
 
+-- REVIEWS
+create table if not exists reviews (
+  id uuid default gen_random_uuid() primary key,
+  order_id uuid references orders(id),
+  buyer_id uuid references users(id),
+  buyer_name text,
+  seller_id uuid references users(id),
+  event_name text,
+  rating int check (rating between 1 and 5),
+  text text,
+  seller_reply text,
+  seller_reply_at timestamptz,
+  created_at timestamptz default now()
+);
+
 -- Tắt RLS để backend có thể đọc/ghi tự do
 alter table users disable row level security;
 alter table tickets disable row level security;
 alter table orders disable row level security;
 alter table transactions disable row level security;
+alter table reviews disable row level security;
+
+-- ═══════════════════════════════════════════════
+-- MIGRATIONS (chạy trong Supabase SQL Editor nếu bảng đã tồn tại)
+-- ═══════════════════════════════════════════════
+
+-- Thêm cột is_banned vào users (ban/unban users)
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned boolean default false;
+
+-- Thêm cột email vào users (nếu chưa có)
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS email text;
+
+-- Thêm các cột dispute vào orders
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_reason text;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_description text;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_opened_by text;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_opened_at timestamptz;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_resolved_by text;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_resolved_at timestamptz;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_note text;
+
+-- Thêm seller_reply vào reviews (nếu bảng đã tồn tại)
+-- ALTER TABLE reviews ADD COLUMN IF NOT EXISTS seller_reply text;
+-- ALTER TABLE reviews ADD COLUMN IF NOT EXISTS seller_reply_at timestamptz;
+
+-- Index tối ưu query
+-- CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+-- CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
+-- CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, created_at DESC);
+-- CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);

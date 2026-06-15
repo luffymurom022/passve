@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import ws from 'ws';
@@ -20,39 +21,36 @@ app.use(cors({
   origin: '*',
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
 }));
+app.use(helmet({
+  contentSecurityPolicy: false, // disabled to allow inline scripts in frontend
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(express.json());
 
 // ── RATE LIMITING ──
 const generalLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: { error: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' },
-  standardHeaders: true,
-  legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false,
 });
-
 const authLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, // tối đa 10 lần login/register mỗi 15 phút
+  max: 10,
   message: { error: 'Quá nhiều lần thử đăng nhập, vui lòng thử lại sau 15 phút.' },
-  standardHeaders: true,
-  legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false,
 });
-
 const orderLimit = rateLimit({
-  windowMs: 60 * 1000, // 1 phút
-  max: 5, // tối đa 5 đơn/phút (chống spam mua)
+  windowMs: 60 * 1000,
+  max: 5,
   message: { error: 'Quá nhiều yêu cầu, vui lòng chờ một chút.' },
-  standardHeaders: true,
-  legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false,
 });
-
 const topupLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 giờ
-  max: 10, // tối đa 10 lần nạp/giờ
+  windowMs: 60 * 60 * 1000,
+  max: 10,
   message: { error: 'Quá nhiều lần nạp tiền, vui lòng thử lại sau.' },
-  standardHeaders: true,
-  legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false,
 });
 
 app.use('/api/auth', authLimit);
@@ -66,6 +64,151 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const JWT_SECRET = process.env.JWT_SECRET;
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ── INPUT SANITIZATION ──
+function sanitize(s) {
+  if (typeof s !== 'string') return s;
+  return s.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
+}
+
+// ════════════════════════════════
+//  EMAIL NOTIFICATIONS
+// ════════════════════════════════
+
+async function sendNewOrderSellerNotification(order) {
+  if (!process.env.RESEND_API_KEY) return;
+  const { data: seller } = await supabase.from('users').select('email').eq('id', order.seller_id).single();
+  if (!seller?.email) return;
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: seller.email,
+      subject: `🛒 Đơn hàng mới — ${order.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#3d8ef8;margin-bottom:4px;">🛒 Bạn có đơn hàng mới!</h2>
+          <p style="color:#7b8fad;margin-top:0;">Người mua đã đặt mua vé của bạn và tiền đang được giữ escrow an toàn.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Sự kiện</td><td style="color:#e8edf8;">${order.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người mua</td><td style="color:#e8edf8;">${order.buyer_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Giá vé</td><td style="color:#3d8ef8;font-weight:600;">${order.price?.toLocaleString('vi-VN')}đ</td></tr>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#f5a623;font-size:14px;font-weight:600;">⚠️ Bạn có 48 giờ để upload QR code vé. Nếu không, đơn sẽ tự động bị hủy và tiền hoàn về buyer.</p>
+          <p style="color:#7b8fad;font-size:14px;">Đăng nhập <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a> để upload QR ngay.</p>
+        </div>`,
+    });
+  } catch (e) { console.error('[Email] Lỗi gửi email đơn mới cho seller:', e.message); }
+}
+
+async function sendQRUploadedBuyerNotification(order) {
+  if (!process.env.RESEND_API_KEY) return;
+  const { data: buyer } = await supabase.from('users').select('email').eq('id', order.buyer_id).single();
+  if (!buyer?.email) return;
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: buyer.email,
+      subject: `🎫 Vé đã sẵn sàng — ${order.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#22d38e;margin-bottom:4px;">🎫 Người bán đã upload QR vé!</h2>
+          <p style="color:#7b8fad;margin-top:0;">Vui lòng xác nhận để giải ngân và hoàn tất giao dịch.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Sự kiện</td><td style="color:#e8edf8;">${order.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người bán</td><td style="color:#e8edf8;">${order.seller_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Tổng tiền</td><td style="color:#22d38e;font-weight:600;">${order.total?.toLocaleString('vi-VN')}đ</td></tr>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#7b8fad;font-size:14px;">Đăng nhập <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a> để xem QR và xác nhận nhận vé.</p>
+        </div>`,
+    });
+  } catch (e) { console.error('[Email] Lỗi gửi email QR cho buyer:', e.message); }
+}
+
+async function sendPayoutSellerNotification(order) {
+  if (!process.env.RESEND_API_KEY) return;
+  const { data: seller } = await supabase.from('users').select('email').eq('id', order.seller_id).single();
+  if (!seller?.email) return;
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: seller.email,
+      subject: `💸 Đã nhận tiền — ${order.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#22d38e;margin-bottom:4px;">💸 Tiền đã vào ví!</h2>
+          <p style="color:#7b8fad;margin-top:0;">Người mua đã xác nhận nhận vé thành công.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Sự kiện</td><td style="color:#e8edf8;">${order.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người mua</td><td style="color:#e8edf8;">${order.buyer_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Số tiền nhận</td><td style="color:#22d38e;font-weight:600;">${order.price?.toLocaleString('vi-VN')}đ</td></tr>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#7b8fad;font-size:14px;">Kiểm tra ví tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
+        </div>`,
+    });
+  } catch (e) { console.error('[Email] Lỗi gửi email giải ngân cho seller:', e.message); }
+}
+
+async function sendDisputeResolvedNotification(order, winner) {
+  if (!process.env.RESEND_API_KEY) return;
+  const [{ data: buyer }, { data: seller }] = await Promise.all([
+    supabase.from('users').select('email').eq('id', order.buyer_id).single(),
+    supabase.from('users').select('email').eq('id', order.seller_id).single(),
+  ]);
+  const buyerWon = winner === 'buyer';
+  const emails = [];
+  if (buyer?.email) emails.push({ to: buyer.email, won: buyerWon, role: 'Người mua', name: order.buyer_name });
+  if (seller?.email) emails.push({ to: seller.email, won: !buyerWon, role: 'Người bán', name: order.seller_name });
+  for (const e of emails) {
+    try {
+      await resend.emails.send({
+        from: 'SafePass <onboarding@resend.dev>',
+        to: e.to,
+        subject: `${e.won ? '✅ Khiếu nại thắng' : '❌ Khiếu nại không thành công'} — ${order.event_name}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+            <h2 style="color:${e.won ? '#22d38e' : '#f05068'};margin-bottom:4px;">${e.won ? '✅ Khiếu nại được chấp thuận' : '❌ Khiếu nại không thành công'}</h2>
+            <p style="color:#7b8fad;margin-top:0;">Admin SafePass đã giải quyết khiếu nại cho đơn hàng <strong>${order.event_name}</strong>.</p>
+            <hr style="border-color:#1a2540;margin:20px 0"/>
+            <p style="color:#e8edf8;">${e.won ? (winner === 'buyer' ? 'Tiền đã được hoàn về ví của bạn.' : 'Tiền đã được giải ngân vào ví của bạn.') : 'Tiền đã được chuyển cho bên kia.'}</p>
+            <hr style="border-color:#1a2540;margin:20px 0"/>
+            <p style="color:#7b8fad;font-size:14px;">Kiểm tra tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
+          </div>`,
+      });
+    } catch (err) { console.error('[Email] Lỗi gửi email kết quả dispute:', err.message); }
+  }
+}
+
+async function sendNewReviewSellerNotification(review) {
+  if (!process.env.RESEND_API_KEY) return;
+  const { data: seller } = await supabase.from('users').select('email').eq('id', review.seller_id).single();
+  if (!seller?.email) return;
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: seller.email,
+      subject: `⭐ Đánh giá mới — ${review.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#f5a623;margin-bottom:4px;">⭐ Bạn nhận được đánh giá mới!</h2>
+          <p style="color:#7b8fad;margin-top:0;">Người mua <strong>${review.buyer_name}</strong> đã đánh giá giao dịch.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Sự kiện</td><td style="color:#e8edf8;">${review.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Rating</td><td style="color:#f5a623;font-weight:600;">${'⭐'.repeat(review.rating)} (${review.rating}/5)</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;vertical-align:top;">Nhận xét</td><td style="color:#e8edf8;">${review.text}</td></tr>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#7b8fad;font-size:14px;">Xem và phản hồi tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
+        </div>`,
+    });
+  } catch (e) { console.error('[Email] Lỗi gửi email review mới cho seller:', e.message); }
+}
+
 async function sendEscrowTimeoutAdminNotification(expiredOrders) {
   if (!process.env.RESEND_API_KEY || !process.env.ADMIN_EMAIL) return;
   try {
@@ -77,7 +220,6 @@ async function sendEscrowTimeoutAdminNotification(expiredOrders) {
         <td style="padding:8px;border-bottom:1px solid #1a2540;color:#e8edf8;">${o.seller_name}</td>
         <td style="padding:8px;border-bottom:1px solid #1a2540;color:#f05068;text-align:right;">${o.total?.toLocaleString('vi-VN')}đ</td>
       </tr>`).join('');
-
     await resend.emails.send({
       from: 'SafePass <onboarding@resend.dev>',
       to: process.env.ADMIN_EMAIL,
@@ -88,31 +230,25 @@ async function sendEscrowTimeoutAdminNotification(expiredOrders) {
           <p style="color:#7b8fad;margin-top:0;">${expiredOrders.length} đơn hàng đã quá 48h, seller không upload QR. Tiền đã hoàn về buyer.</p>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#0d1220;">
-                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">ID</th>
-                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Sự kiện</th>
-                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Buyer</th>
-                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Seller</th>
-                <th style="padding:8px;text-align:right;color:#7b8fad;font-weight:500;font-size:12px;">Hoàn tiền</th>
-              </tr>
-            </thead>
+            <thead><tr style="background:#0d1220;">
+              <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">ID</th>
+              <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Sự kiện</th>
+              <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Buyer</th>
+              <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Seller</th>
+              <th style="padding:8px;text-align:right;color:#7b8fad;font-weight:500;font-size:12px;">Hoàn tiền</th>
+            </tr></thead>
             <tbody>${rows}</tbody>
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Xem chi tiết tại <a href="${process.env.APP_URL || ''}/admin.html" style="color:#3d8ef8;">trang Admin</a>.</p>
-        </div>
-      `
+        </div>`,
     });
     console.log(`[Email] Đã gửi tóm tắt ${expiredOrders.length} escrow timeout cho admin`);
-  } catch (e) {
-    console.error('[Email] Lỗi gửi email escrow timeout (admin):', e.message);
-  }
+  } catch (e) { console.error('[Email] Lỗi gửi email escrow timeout (admin):', e.message); }
 }
 
 async function sendEscrowTimeoutBuyerNotification(order) {
   if (!process.env.RESEND_API_KEY) return;
-  // Lấy email buyer từ users nếu có
   const { data: buyer } = await supabase.from('users').select('email').eq('id', order.buyer_id).single();
   if (!buyer?.email) return;
   try {
@@ -132,12 +268,9 @@ async function sendEscrowTimeoutBuyerNotification(order) {
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Tiền đã trở về ví SafePass của bạn. Bạn có thể mua vé khác tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
-        </div>
-      `
+        </div>`,
     });
-  } catch (e) {
-    console.error(`[Email] Lỗi gửi email hoàn tiền cho buyer ${order.buyer_name}:`, e.message);
-  }
+  } catch (e) { console.error(`[Email] Lỗi gửi email hoàn tiền cho buyer ${order.buyer_name}:`, e.message); }
 }
 
 async function sendDisputeNotification(order, reasonText, openedBy, description) {
@@ -164,13 +297,10 @@ async function sendDisputeNotification(order, reasonText, openedBy, description)
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Đăng nhập vào <a href="${process.env.APP_URL || ''}/admin.html" style="color:#3d8ef8;">trang Admin</a> để xử lý khiếu nại này.</p>
-        </div>
-      `
+        </div>`,
     });
     console.log(`[Email] Đã gửi thông báo khiếu nại đến ${process.env.ADMIN_EMAIL}`);
-  } catch (e) {
-    console.error('[Email] Lỗi gửi email:', e.message);
-  }
+  } catch (e) { console.error('[Email] Lỗi gửi email:', e.message); }
 }
 
 // ── MIDDLEWARE xác thực token ──
@@ -185,154 +315,196 @@ function auth(req, res, next) {
   }
 }
 
+// ── ADMIN secret helper ──
+function adminSecret(req) {
+  return req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
+}
+
 // ════════════════════════════════
 //  AUTH
 // ════════════════════════════════
 
-// Đăng ký
 app.post('/api/auth/register', async (req, res) => {
   const { phone, password, name, email } = req.body;
   if (!phone || !password || !name)
     return res.status(400).json({ error: 'Thiếu thông tin' });
-
+  if (typeof phone !== 'string' || phone.length > 20)
+    return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
+  if (typeof password !== 'string' || password.length < 6)
+    return res.status(400).json({ error: 'Mật khẩu phải ít nhất 6 ký tự' });
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     return res.status(400).json({ error: 'Email không hợp lệ' });
 
-  const { data: existing } = await supabase
-    .from('users').select('id').eq('phone', phone).single();
+  const { data: existing } = await supabase.from('users').select('id').eq('phone', phone).single();
   if (existing) return res.status(400).json({ error: 'Số điện thoại đã tồn tại' });
 
   const hashed = await bcrypt.hash(password, 10);
-  const insertData = { phone, password: hashed, name, balance: 0, escrow: 0 };
+  const insertData = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0 };
   if (email) insertData.email = email.toLowerCase().trim();
 
   let { data, error } = await supabase.from('users').insert(insertData).select().single();
-
-  // Nếu cột email chưa tồn tại trong DB, thử lại không có email
   if (error && error.message?.includes('email') && email) {
-    const fallback = { phone, password: hashed, name, balance: 0, escrow: 0 };
+    const fallback = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0 };
     ({ data, error } = await supabase.from('users').insert(fallback).select().single());
   }
-
   if (error) return res.status(500).json({ error: error.message });
 
-  const token = jwt.sign({ id: data.id, phone, name }, JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token, user: { id: data.id, phone, name, balance: 0, escrow: 0 } });
+  const token = jwt.sign({ id: data.id, phone, name: data.name }, JWT_SECRET, { expiresIn: '30d' });
+  res.json({ token, user: { id: data.id, phone, name: data.name, balance: 0, escrow: 0 } });
 });
 
-// Đăng nhập
 app.post('/api/auth/login', async (req, res) => {
   const { phone, password } = req.body;
-  const { data: user } = await supabase
-    .from('users').select('*').eq('phone', phone).single();
+  if (!phone || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
+  const { data: user } = await supabase.from('users').select('*').eq('phone', phone).single();
   if (!user) return res.status(400).json({ error: 'Số điện thoại không tồn tại' });
+  if (user.is_banned) return res.status(403).json({ error: 'Tài khoản đã bị khóa. Liên hệ hỗ trợ.' });
 
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) return res.status(400).json({ error: 'Sai mật khẩu' });
 
-  const token = jwt.sign(
-    { id: user.id, phone: user.phone, name: user.name },
-    JWT_SECRET, { expiresIn: '30d' }
-  );
+  const token = jwt.sign({ id: user.id, phone: user.phone, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { id: user.id, phone: user.phone, name: user.name, balance: user.balance, escrow: user.escrow } });
 });
 
-// Lấy thông tin user hiện tại
 app.get('/api/auth/me', auth, async (req, res) => {
   const { data } = await supabase
     .from('users').select('id,phone,name,email,balance,escrow,avg_rating,review_count').eq('id', req.user.id).single();
   res.json(data);
 });
 
-// Cập nhật profile (email, name)
 app.patch('/api/auth/profile', auth, async (req, res) => {
   const { email, name } = req.body;
   const updates = {};
-
   if (name !== undefined) {
     if (!name || name.trim().length < 2)
       return res.status(400).json({ error: 'Tên phải ít nhất 2 ký tự' });
-    updates.name = name.trim();
+    updates.name = sanitize(name.trim());
   }
-
   if (email !== undefined) {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       return res.status(400).json({ error: 'Email không hợp lệ' });
     updates.email = email ? email.toLowerCase().trim() : null;
   }
-
   if (Object.keys(updates).length === 0)
     return res.status(400).json({ error: 'Không có thông tin cần cập nhật' });
-
   const { data, error } = await supabase
     .from('users').update(updates).eq('id', req.user.id).select('id,phone,name,email,balance,escrow').single();
-
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Cập nhật thành công', user: data });
+});
+
+// Đổi mật khẩu
+app.patch('/api/auth/password', auth, async (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password)
+    return res.status(400).json({ error: 'Thiếu thông tin' });
+  if (typeof new_password !== 'string' || new_password.length < 6)
+    return res.status(400).json({ error: 'Mật khẩu mới phải ít nhất 6 ký tự' });
+
+  const { data: user } = await supabase.from('users').select('password').eq('id', req.user.id).single();
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+
+  const ok = await bcrypt.compare(current_password, user.password);
+  if (!ok) return res.status(400).json({ error: 'Mật khẩu hiện tại không đúng' });
+
+  const hashed = await bcrypt.hash(new_password, 10);
+  const { error } = await supabase.from('users').update({ password: hashed }).eq('id', req.user.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Đổi mật khẩu thành công' });
 });
 
 // ════════════════════════════════
 //  VÉ
 // ════════════════════════════════
 
-// Đăng bán vé
 app.post('/api/tickets', auth, async (req, res) => {
   const { event_name, event_date, location, section, price, quantity, description } = req.body;
   if (!event_name || !price || !quantity)
     return res.status(400).json({ error: 'Thiếu thông tin vé' });
+  if (isNaN(Number(price)) || Number(price) <= 0)
+    return res.status(400).json({ error: 'Giá không hợp lệ' });
 
   const { data, error } = await supabase.from('tickets').insert({
     seller_id: req.user.id,
     seller_name: req.user.name,
-    event_name, event_date, location, section,
+    event_name: sanitize(event_name),
+    event_date, location: sanitize(location || ''),
+    section: sanitize(section || ''),
     price: Number(price),
     quantity: Number(quantity),
-    description,
+    description: sanitize(description || ''),
     status: 'available'
   }).select().single();
-
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
-// Lấy danh sách vé
 app.get('/api/tickets', async (req, res) => {
-  const { search, min_price, max_price } = req.query;
-  let query = supabase.from('tickets').select('*').eq('status', 'available').order('created_at', { ascending: false });
+  const { search, min_price, max_price, location, date_from, date_to, page, limit } = req.query;
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limit) || 50);
+  const offset = (pageNum - 1) * limitNum;
+
+  let query = supabase.from('tickets').select('*', { count: 'exact' })
+    .eq('status', 'available').order('created_at', { ascending: false })
+    .range(offset, offset + limitNum - 1);
 
   if (search) query = query.ilike('event_name', `%${search}%`);
   if (min_price) query = query.gte('price', Number(min_price));
   if (max_price) query = query.lte('price', Number(max_price));
+  if (location) query = query.ilike('location', `%${location}%`);
+  if (date_from) query = query.gte('event_date', date_from);
+  if (date_to) query = query.lte('event_date', date_to);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  res.json({ tickets: data, total: count, page: pageNum, limit: limitNum });
 });
 
-// Lấy chi tiết 1 vé
 app.get('/api/tickets/:id', async (req, res) => {
-  const { data, error } = await supabase
-    .from('tickets').select('*').eq('id', req.params.id).single();
+  const { data, error } = await supabase.from('tickets').select('*').eq('id', req.params.id).single();
   if (error || !data) return res.status(404).json({ error: 'Không tìm thấy vé' });
   res.json(data);
 });
 
-// Vé của tôi (seller)
 app.get('/api/my-tickets', auth, async (req, res) => {
   const { data } = await supabase
     .from('tickets').select('*').eq('seller_id', req.user.id).order('created_at', { ascending: false });
   res.json(data || []);
 });
 
-// Xoá listing (chỉ khi available)
-app.delete('/api/tickets/:id', auth, async (req, res) => {
-  const { data: ticket } = await supabase
-    .from('tickets').select('*').eq('id', req.params.id).single();
+// Chỉnh sửa vé (chỉ khi available)
+app.patch('/api/tickets/:id', auth, async (req, res) => {
+  const { data: ticket } = await supabase.from('tickets').select('*').eq('id', req.params.id).single();
+  if (!ticket) return res.status(404).json({ error: 'Không tìm thấy vé' });
+  if (ticket.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (ticket.status !== 'available') return res.status(400).json({ error: 'Chỉ chỉnh sửa được vé chưa có đơn đặt' });
 
+  const { event_name, event_date, location, section, price, quantity, description } = req.body;
+  const updates = {};
+  if (event_name) updates.event_name = sanitize(event_name);
+  if (event_date !== undefined) updates.event_date = event_date;
+  if (location !== undefined) updates.location = sanitize(location);
+  if (section !== undefined) updates.section = sanitize(section);
+  if (price !== undefined) {
+    if (isNaN(Number(price)) || Number(price) <= 0)
+      return res.status(400).json({ error: 'Giá không hợp lệ' });
+    updates.price = Number(price);
+  }
+  if (quantity !== undefined) updates.quantity = Number(quantity);
+  if (description !== undefined) updates.description = sanitize(description);
+
+  const { data, error } = await supabase.from('tickets').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/api/tickets/:id', auth, async (req, res) => {
+  const { data: ticket } = await supabase.from('tickets').select('*').eq('id', req.params.id).single();
   if (!ticket) return res.status(404).json({ error: 'Không tìm thấy vé' });
   if (ticket.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
   if (ticket.status !== 'available') return res.status(400).json({ error: 'Chỉ có thể xoá vé chưa có đơn đặt' });
-
   await supabase.from('tickets').delete().eq('id', req.params.id);
   res.json({ message: 'Đã xoá listing' });
 });
@@ -341,20 +513,15 @@ app.delete('/api/tickets/:id', auth, async (req, res) => {
 //  ĐƠN HÀNG / ESCROW
 // ════════════════════════════════
 
-// Tạo đơn mua vé (giữ tiền escrow)
 app.post('/api/orders', auth, async (req, res) => {
   const { ticket_id } = req.body;
-
-  // Lấy thông tin vé
-  const { data: ticket } = await supabase
-    .from('tickets').select('*').eq('id', ticket_id).single();
+  const { data: ticket } = await supabase.from('tickets').select('*').eq('id', ticket_id).single();
   if (!ticket) return res.status(404).json({ error: 'Không tìm thấy vé' });
   if (ticket.status !== 'available') return res.status(400).json({ error: 'Vé không còn available' });
   if (ticket.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể mua vé của chính mình' });
 
-  // Kiểm tra số dư người mua (phải đủ giá vé + phí 3%)
-  const { data: buyer } = await supabase
-    .from('users').select('*').eq('id', req.user.id).single();
+  const { data: buyer } = await supabase.from('users').select('*').eq('id', req.user.id).single();
+  if (buyer.is_banned) return res.status(403).json({ error: 'Tài khoản đã bị khóa' });
 
   const fee = Math.round(ticket.price * 0.03);
   const total = ticket.price + fee;
@@ -362,16 +529,13 @@ app.post('/api/orders', auth, async (req, res) => {
   if (buyer.balance < total)
     return res.status(400).json({ error: `Số dư không đủ. Cần ${total.toLocaleString()}đ (gồm phí 3%), hiện có ${buyer.balance.toLocaleString()}đ` });
 
-  // Trừ tiền buyer → escrow
   await supabase.from('users').update({
     balance: buyer.balance - total,
     escrow: buyer.escrow + total
   }).eq('id', req.user.id);
 
-  // Khoá vé
   await supabase.from('tickets').update({ status: 'pending' }).eq('id', ticket_id);
 
-  // Tạo đơn
   const { data: order, error } = await supabase.from('orders').insert({
     ticket_id,
     buyer_id: req.user.id,
@@ -384,10 +548,8 @@ app.post('/api/orders', auth, async (req, res) => {
     total,
     status: 'waiting_qr'
   }).select().single();
-
   if (error) return res.status(500).json({ error: error.message });
 
-  // Ghi transaction
   await supabase.from('transactions').insert({
     user_id: req.user.id,
     type: 'escrow_lock',
@@ -396,121 +558,124 @@ app.post('/api/orders', auth, async (req, res) => {
     order_id: order.id
   });
 
+  // Email thông báo seller
+  sendNewOrderSellerNotification(order);
+
   res.json(order);
 });
 
-// Lấy danh sách đơn (mua + bán)
 app.get('/api/orders', auth, async (req, res) => {
-  const { role } = req.query; // 'buyer' hoặc 'seller'
+  const { role } = req.query;
   let query = supabase.from('orders').select('*, tickets(section, event_date, location)').order('created_at', { ascending: false });
-
   if (role === 'seller') query = query.eq('seller_id', req.user.id);
   else query = query.eq('buyer_id', req.user.id);
-
   const { data } = await query;
   res.json(data || []);
 });
 
-// Seller upload QR
 app.post('/api/orders/:id/upload-qr', auth, async (req, res) => {
   const { qr_code } = req.body;
-  const { data: order } = await supabase
-    .from('orders').select('*').eq('id', req.params.id).single();
-
+  if (!qr_code) return res.status(400).json({ error: 'Thiếu QR code' });
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
   if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
   if (order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
   if (order.status !== 'waiting_qr') return res.status(400).json({ error: 'Đơn không ở trạng thái chờ QR' });
 
-  await supabase.from('orders').update({
-    qr_code,
-    status: 'waiting_confirm'
-  }).eq('id', req.params.id);
+  await supabase.from('orders').update({ qr_code: sanitize(qr_code), status: 'waiting_confirm' }).eq('id', req.params.id);
+
+  // Email thông báo buyer
+  sendQRUploadedBuyerNotification(order);
 
   res.json({ message: 'Đã upload QR, chờ người mua xác nhận' });
 });
 
-// Buyer xác nhận nhận vé → giải ngân
 app.post('/api/orders/:id/confirm', auth, async (req, res) => {
-  const { data: order } = await supabase
-    .from('orders').select('*').eq('id', req.params.id).single();
-
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
   if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
   if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
   if (order.status !== 'waiting_confirm') return res.status(400).json({ error: 'Đơn chưa có QR để xác nhận' });
 
-  // Lấy thông tin
   const { data: buyer } = await supabase.from('users').select('*').eq('id', order.buyer_id).single();
   const { data: seller } = await supabase.from('users').select('*').eq('id', order.seller_id).single();
 
-  // Giải ngân: escrow → seller (trừ phí)
-  await supabase.from('users').update({
-    escrow: buyer.escrow - order.total,
-  }).eq('id', order.buyer_id);
-
-  await supabase.from('users').update({
-    balance: seller.balance + order.price  // seller nhận giá vé, phí đã trừ
-  }).eq('id', order.seller_id);
-
-  // Cập nhật đơn + vé
+  await supabase.from('users').update({ escrow: buyer.escrow - order.total }).eq('id', order.buyer_id);
+  await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
   await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
   await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
 
-  // Ghi transactions
   await supabase.from('transactions').insert([
-    {
-      user_id: order.seller_id,
-      type: 'payout',
-      amount: order.price,
-      description: `Nhận tiền bán vé: ${order.event_name}`,
-      order_id: order.id
-    },
-    {
-      user_id: order.buyer_id,
-      type: 'escrow_release',
-      amount: 0,
-      description: `Xác nhận nhận vé: ${order.event_name}`,
-      order_id: order.id
-    }
+    { user_id: order.seller_id, type: 'payout', amount: order.price, description: `Nhận tiền bán vé: ${order.event_name}`, order_id: order.id },
+    { user_id: order.buyer_id, type: 'escrow_release', amount: 0, description: `Xác nhận nhận vé: ${order.event_name}`, order_id: order.id }
   ]);
+
+  // Email thông báo seller
+  sendPayoutSellerNotification(order);
 
   res.json({ message: 'Xác nhận thành công! Tiền đã được giải ngân cho người bán.' });
 });
 
 // ════════════════════════════════
-//  VÍ / NẠP TIỀN (giả lập)
+//  VÍ / NẠP TIỀN
 // ════════════════════════════════
 
 app.post('/api/wallet/topup', auth, async (req, res) => {
   const { amount } = req.body;
-  if (!amount || amount < 10000) return res.status(400).json({ error: 'Số tiền tối thiểu 10,000đ' });
+  if (!amount || isNaN(Number(amount)) || Number(amount) < 10000)
+    return res.status(400).json({ error: 'Số tiền tối thiểu 10,000đ' });
 
   const { data: user } = await supabase.from('users').select('*').eq('id', req.user.id).single();
   await supabase.from('users').update({ balance: user.balance + Number(amount) }).eq('id', req.user.id);
-
   await supabase.from('transactions').insert({
     user_id: req.user.id,
     type: 'topup',
     amount: Number(amount),
     description: 'Nạp tiền vào ví'
   });
-
   res.json({ message: `Nạp ${Number(amount).toLocaleString()}đ thành công`, balance: user.balance + Number(amount) });
 });
 
 app.get('/api/wallet/transactions', auth, async (req, res) => {
-  const { data } = await supabase
-    .from('transactions').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false }).limit(50);
-  res.json(data || []);
+  const pageNum = Math.max(1, parseInt(req.query.page) || 1);
+  const limitNum = Math.min(100, parseInt(req.query.limit) || 20);
+  const offset = (pageNum - 1) * limitNum;
+
+  const { data, error, count } = await supabase
+    .from('transactions').select('*', { count: 'exact' })
+    .eq('user_id', req.user.id)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limitNum - 1);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ transactions: data || [], total: count, page: pageNum, limit: limitNum });
 });
 
+// Export CSV lịch sử giao dịch
+app.get('/api/wallet/transactions/export', auth, async (req, res) => {
+  const { data } = await supabase
+    .from('transactions').select('*')
+    .eq('user_id', req.user.id)
+    .order('created_at', { ascending: false })
+    .limit(500);
 
+  const rows = (data || []).map(t => [
+    t.id,
+    t.type,
+    t.amount,
+    `"${(t.description || '').replace(/"/g, '""')}"`,
+    t.order_id || '',
+    t.created_at
+  ].join(','));
 
+  const csv = ['ID,Loại,Số tiền,Mô tả,Order ID,Ngày tạo', ...rows].join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+  res.send('\uFEFF' + csv); // BOM for Excel UTF-8
+});
 
 // ════════════════════════════════
 //  REVIEWS
 // ════════════════════════════════
 
-// Buyer gửi đánh giá seller sau khi hoàn tất
 app.post('/api/orders/:id/review', auth, async (req, res) => {
   const { rating, text } = req.body;
   if (!rating || rating < 1 || rating > 5)
@@ -518,15 +683,12 @@ app.post('/api/orders/:id/review', auth, async (req, res) => {
   if (!text || text.trim().length < 20)
     return res.status(400).json({ error: 'Đánh giá phải ít nhất 20 ký tự' });
 
-  const { data: order } = await supabase
-    .from('orders').select('*').eq('id', req.params.id).single();
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
   if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
   if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
   if (order.status !== 'completed') return res.status(400).json({ error: 'Chỉ đánh giá được đơn đã hoàn tất' });
 
-  // Kiểm tra đã review chưa
-  const { data: existing } = await supabase
-    .from('reviews').select('id').eq('order_id', req.params.id).single();
+  const { data: existing } = await supabase.from('reviews').select('id').eq('order_id', req.params.id).single();
   if (existing) return res.status(400).json({ error: 'Bạn đã đánh giá đơn này rồi' });
 
   const { data: review, error } = await supabase.from('reviews').insert({
@@ -536,14 +698,11 @@ app.post('/api/orders/:id/review', auth, async (req, res) => {
     seller_id: order.seller_id,
     event_name: order.event_name,
     rating: Number(rating),
-    text: text.trim()
+    text: sanitize(text.trim())
   }).select().single();
-
   if (error) return res.status(500).json({ error: error.message });
 
-  // Cập nhật rating trung bình của seller trong users table
-  const { data: allReviews } = await supabase
-    .from('reviews').select('rating').eq('seller_id', order.seller_id);
+  const { data: allReviews } = await supabase.from('reviews').select('rating').eq('seller_id', order.seller_id);
   if (allReviews && allReviews.length > 0) {
     const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
     await supabase.from('users').update({
@@ -552,15 +711,35 @@ app.post('/api/orders/:id/review', auth, async (req, res) => {
     }).eq('id', order.seller_id);
   }
 
+  // Email thông báo seller
+  sendNewReviewSellerNotification(review);
+
   res.json(review);
 });
 
-// Lấy reviews của 1 seller
 app.get('/api/users/:id/reviews', async (req, res) => {
   const { data } = await supabase
     .from('reviews').select('*').eq('seller_id', req.params.id)
     .order('created_at', { ascending: false }).limit(20);
   res.json(data || []);
+});
+
+// Seller phản hồi review
+app.post('/api/reviews/:id/reply', auth, async (req, res) => {
+  const { reply } = req.body;
+  if (!reply || reply.trim().length < 5)
+    return res.status(400).json({ error: 'Phản hồi phải ít nhất 5 ký tự' });
+
+  const { data: review } = await supabase.from('reviews').select('*').eq('id', req.params.id).single();
+  if (!review) return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
+  if (review.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (review.seller_reply) return res.status(400).json({ error: 'Bạn đã phản hồi rồi' });
+
+  const { data, error } = await supabase.from('reviews')
+    .update({ seller_reply: sanitize(reply.trim()), seller_reply_at: new Date().toISOString() })
+    .eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 // ════════════════════════════════
@@ -575,12 +754,9 @@ const DISPUTE_REASONS = [
   'Lý do khác'
 ];
 
-// Mở dispute (buyer hoặc seller)
 app.post('/api/orders/:id/dispute', auth, async (req, res) => {
   const { reason_index, description } = req.body;
-  const { data: order } = await supabase
-    .from('orders').select('*').eq('id', req.params.id).single();
-
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
   if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
 
   const isBuyer = order.buyer_id === req.user.id;
@@ -590,7 +766,6 @@ app.post('/api/orders/:id/dispute', auth, async (req, res) => {
   const allowedStatuses = ['waiting_qr', 'waiting_confirm'];
   if (!allowedStatuses.includes(order.status))
     return res.status(400).json({ error: 'Không thể khiếu nại ở trạng thái này' });
-
   if (order.status === 'disputed')
     return res.status(400).json({ error: 'Đơn đã có khiếu nại đang xử lý' });
 
@@ -600,12 +775,11 @@ app.post('/api/orders/:id/dispute', auth, async (req, res) => {
   await supabase.from('orders').update({
     status: 'disputed',
     dispute_reason: reasonText,
-    dispute_description: description || '',
+    dispute_description: sanitize(description || ''),
     dispute_opened_by: openedBy,
     dispute_opened_at: new Date().toISOString()
   }).eq('id', req.params.id);
 
-  // Ghi transaction (escrow vẫn giữ nguyên)
   await supabase.from('transactions').insert({
     user_id: req.user.id,
     type: 'dispute_opened',
@@ -614,23 +788,19 @@ app.post('/api/orders/:id/dispute', auth, async (req, res) => {
     order_id: order.id
   });
 
-  // Gửi email thông báo cho admin (không chặn response)
   sendDisputeNotification(order, reasonText, openedBy, description);
-
   res.json({ message: 'Khiếu nại đã được gửi. Đội hỗ trợ sẽ phản hồi trong 24h.' });
 });
 
-// Admin resolve dispute → chọn bên thắng
 app.post('/api/admin/orders/:id/resolve', async (req, res) => {
-  const secret = req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
+  const secret = adminSecret(req);
   if (secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
 
-  const { winner, note } = req.body; // winner: 'buyer' | 'seller'
+  const { winner, note } = req.body;
   if (!['buyer', 'seller'].includes(winner))
     return res.status(400).json({ error: 'winner phải là buyer hoặc seller' });
 
-  const { data: order } = await supabase
-    .from('orders').select('*').eq('id', req.params.id).single();
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
   if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
   if (order.status !== 'disputed') return res.status(400).json({ error: 'Đơn không đang ở trạng thái disputed' });
 
@@ -638,46 +808,23 @@ app.post('/api/admin/orders/:id/resolve', async (req, res) => {
   const { data: seller } = await supabase.from('users').select('*').eq('id', order.seller_id).single();
 
   if (winner === 'buyer') {
-    // Hoàn tiền về buyer
     await supabase.from('users').update({
       balance: buyer.balance + order.total,
       escrow: Math.max(0, buyer.escrow - order.total)
     }).eq('id', order.buyer_id);
-
     await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
     await supabase.from('transactions').insert({
-      user_id: order.buyer_id,
-      type: 'refund',
-      amount: order.total,
+      user_id: order.buyer_id, type: 'refund', amount: order.total,
       description: `Hoàn tiền sau khiếu nại: ${order.event_name}${note ? ' — ' + note : ''}`,
       order_id: order.id
     });
   } else {
-    // Giải ngân cho seller
-    await supabase.from('users').update({
-      escrow: Math.max(0, buyer.escrow - order.total)
-    }).eq('id', order.buyer_id);
-
-    await supabase.from('users').update({
-      balance: seller.balance + order.price
-    }).eq('id', order.seller_id);
-
+    await supabase.from('users').update({ escrow: Math.max(0, buyer.escrow - order.total) }).eq('id', order.buyer_id);
+    await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
     await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
     await supabase.from('transactions').insert([
-      {
-        user_id: order.seller_id,
-        type: 'payout',
-        amount: order.price,
-        description: `Nhận tiền sau khiếu nại: ${order.event_name}${note ? ' — ' + note : ''}`,
-        order_id: order.id
-      },
-      {
-        user_id: order.buyer_id,
-        type: 'dispute_closed',
-        amount: 0,
-        description: `Khiếu nại không thành công: ${order.event_name}`,
-        order_id: order.id
-      }
+      { user_id: order.seller_id, type: 'payout', amount: order.price, description: `Nhận tiền sau khiếu nại: ${order.event_name}${note ? ' — ' + note : ''}`, order_id: order.id },
+      { user_id: order.buyer_id, type: 'dispute_closed', amount: 0, description: `Khiếu nại không thành công: ${order.event_name}`, order_id: order.id }
     ]);
   }
 
@@ -685,82 +832,95 @@ app.post('/api/admin/orders/:id/resolve', async (req, res) => {
     status: winner === 'buyer' ? 'refunded' : 'completed',
     dispute_resolved_by: winner,
     dispute_resolved_at: new Date().toISOString(),
-    dispute_note: note || ''
+    dispute_note: sanitize(note || '')
   }).eq('id', req.params.id);
+
+  // Log admin action
+  await supabase.from('transactions').insert({
+    user_id: order.buyer_id, type: 'admin_action', amount: 0,
+    description: `Admin resolved dispute: ${winner} wins — Order ${req.params.id.slice(0,8)}`,
+    order_id: order.id
+  });
+
+  // Email kết quả cho cả hai
+  sendDisputeResolvedNotification(order, winner);
 
   res.json({ message: `Đã giải quyết: ${winner} thắng. Tiền đã được xử lý.` });
 });
 
 // ════════════════════════════════
-//  ESCROW TIMEOUT (48h auto-refund)
+//  ESCROW TIMEOUT + AUTO-CLOSE DISPUTE
 // ════════════════════════════════
 
 async function processExpiredEscrows() {
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const cutoff3d = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Lấy tất cả đơn waiting_qr đã quá 48h
+  // 1. Hoàn tiền waiting_qr quá 48h
   const { data: expiredOrders } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('status', 'waiting_qr')
-    .lt('created_at', cutoff);
+    .from('orders').select('*').eq('status', 'waiting_qr').lt('created_at', cutoff48h);
 
-  if (!expiredOrders || expiredOrders.length === 0) return;
-
-  console.log(`[Escrow Timeout] Xử lý ${expiredOrders.length} đơn hết hạn`);
-
-  for (const order of expiredOrders) {
-    try {
-      // Lấy buyer
-      const { data: buyer } = await supabase
-        .from('users').select('*').eq('id', order.buyer_id).single();
-      if (!buyer) continue;
-
-      // Hoàn tiền: escrow → balance
-      await supabase.from('users').update({
-        balance: buyer.balance + order.total,
-        escrow: Math.max(0, buyer.escrow - order.total)
-      }).eq('id', order.buyer_id);
-
-      // Mở lại vé
-      await supabase.from('tickets')
-        .update({ status: 'available' })
-        .eq('id', order.ticket_id);
-
-      // Cập nhật đơn
-      await supabase.from('orders')
-        .update({ status: 'refunded' })
-        .eq('id', order.id);
-
-      // Ghi transaction
-      await supabase.from('transactions').insert({
-        user_id: order.buyer_id,
-        type: 'refund',
-        amount: order.total,
-        description: `Hoàn tiền tự động: ${order.event_name} (seller không upload QR sau 48h)`,
-        order_id: order.id
-      });
-
-      console.log(`[Escrow Timeout] Hoàn ${order.total.toLocaleString()}đ cho buyer ${order.buyer_name} — đơn ${order.id}`);
-
-      // Gửi email thông báo cho buyer (nếu có email)
-      sendEscrowTimeoutBuyerNotification(order);
-    } catch (e) {
-      console.error(`[Escrow Timeout] Lỗi đơn ${order.id}:`, e.message);
+  if (expiredOrders && expiredOrders.length > 0) {
+    console.log(`[Escrow Timeout] Xử lý ${expiredOrders.length} đơn hết hạn`);
+    for (const order of expiredOrders) {
+      try {
+        const { data: buyer } = await supabase.from('users').select('*').eq('id', order.buyer_id).single();
+        if (!buyer) continue;
+        await supabase.from('users').update({
+          balance: buyer.balance + order.total,
+          escrow: Math.max(0, buyer.escrow - order.total)
+        }).eq('id', order.buyer_id);
+        await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+        await supabase.from('orders').update({ status: 'refunded' }).eq('id', order.id);
+        await supabase.from('transactions').insert({
+          user_id: order.buyer_id, type: 'refund', amount: order.total,
+          description: `Hoàn tiền tự động: ${order.event_name} (seller không upload QR sau 48h)`,
+          order_id: order.id
+        });
+        console.log(`[Escrow Timeout] Hoàn ${order.total.toLocaleString()}đ cho buyer ${order.buyer_name} — đơn ${order.id}`);
+        sendEscrowTimeoutBuyerNotification(order);
+      } catch (e) { console.error(`[Escrow Timeout] Lỗi đơn ${order.id}:`, e.message); }
     }
+    sendEscrowTimeoutAdminNotification(expiredOrders);
   }
 
-  // Gửi 1 email tổng hợp cho admin về tất cả đơn hết hạn
-  sendEscrowTimeoutAdminNotification(expiredOrders);
+  // 2. Auto-close dispute sau 3 ngày (hoàn tiền buyer nếu admin không xử lý)
+  const { data: stalledDisputes } = await supabase
+    .from('orders').select('*').eq('status', 'disputed').lt('dispute_opened_at', cutoff3d);
+
+  if (stalledDisputes && stalledDisputes.length > 0) {
+    console.log(`[Dispute Auto-close] Đóng ${stalledDisputes.length} khiếu nại quá hạn`);
+    for (const order of stalledDisputes) {
+      try {
+        const { data: buyer } = await supabase.from('users').select('*').eq('id', order.buyer_id).single();
+        if (!buyer) continue;
+        await supabase.from('users').update({
+          balance: buyer.balance + order.total,
+          escrow: Math.max(0, buyer.escrow - order.total)
+        }).eq('id', order.buyer_id);
+        await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+        await supabase.from('orders').update({
+          status: 'refunded',
+          dispute_resolved_by: 'auto',
+          dispute_resolved_at: new Date().toISOString(),
+          dispute_note: 'Tự động đóng sau 3 ngày không có phản hồi từ admin'
+        }).eq('id', order.id);
+        await supabase.from('transactions').insert({
+          user_id: order.buyer_id, type: 'refund', amount: order.total,
+          description: `Hoàn tiền tự động: khiếu nại quá 3 ngày không xử lý`,
+          order_id: order.id
+        });
+        console.log(`[Dispute Auto-close] Hoàn tiền đơn ${order.id}`);
+      } catch (e) { console.error(`[Dispute Auto-close] Lỗi đơn ${order.id}:`, e.message); }
+    }
+  }
 }
 
-// Chạy ngay khi khởi động, sau đó mỗi giờ
 processExpiredEscrows();
 setInterval(processExpiredEscrows, 60 * 60 * 1000);
 
-// Route thủ công cho admin (tuỳ chọn)
 app.post('/api/admin/process-timeouts', async (req, res) => {
-  const secret = req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
+  const secret = adminSecret(req);
   if (secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   await processExpiredEscrows();
   res.json({ message: 'Done' });
@@ -770,23 +930,16 @@ app.post('/api/admin/process-timeouts', async (req, res) => {
 //  ADMIN ROUTES
 // ════════════════════════════════
 
-// Helper đọc secret từ mọi nguồn
-function adminSecret(req) {
-  return req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
-}
-
-// Danh sách orders (filter by status)
 app.get('/api/admin/orders', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   const { status } = req.query;
-  let query = supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(100);
+  let query = supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(200);
   if (status) query = query.eq('status', status);
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
   res.json(data || []);
 });
 
-// Chi tiết 1 order
 app.get('/api/admin/orders/:id', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   const { data } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
@@ -794,19 +947,91 @@ app.get('/api/admin/orders/:id', async (req, res) => {
   res.json(data);
 });
 
-// Danh sách users
+// Users với tìm kiếm
 app.get('/api/admin/users', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
-  const { data } = await supabase
-    .from('users')
-    .select('id,phone,name,balance,escrow,avg_rating,review_count,created_at')
+  const { search } = req.query;
+  let query = supabase.from('users')
+    .select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_banned,created_at')
     .order('created_at', { ascending: false });
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);
+  }
+  const { data } = await query;
   res.json(data || []);
 });
+
+// Ban user
+app.post('/api/admin/users/:id/ban', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { reason } = req.body;
+  const { error } = await supabase.from('users').update({ is_banned: true }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  // Audit log
+  await supabase.from('transactions').insert({
+    user_id: req.params.id, type: 'admin_action', amount: 0,
+    description: `Admin banned user${reason ? ': ' + sanitize(reason) : ''}`
+  });
+  res.json({ message: 'Đã khóa tài khoản' });
+});
+
+// Unban user
+app.post('/api/admin/users/:id/unban', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { error } = await supabase.from('users').update({ is_banned: false }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  await supabase.from('transactions').insert({
+    user_id: req.params.id, type: 'admin_action', amount: 0,
+    description: 'Admin unbanned user'
+  });
+  res.json({ message: 'Đã mở khóa tài khoản' });
+});
+
+// Thống kê doanh thu
+app.get('/api/admin/stats', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const [{ data: orders }, { data: users }, { data: tickets }] = await Promise.all([
+    supabase.from('orders').select('status,fee,total,price,created_at'),
+    supabase.from('users').select('id,balance,escrow,is_banned'),
+    supabase.from('tickets').select('status'),
+  ]);
+
+  const completed = (orders || []).filter(o => o.status === 'completed');
+  const totalRevenue = completed.reduce((s, o) => s + (o.fee || 0), 0);
+  const totalGMV = completed.reduce((s, o) => s + (o.price || 0), 0);
+  const totalOrders = (orders || []).length;
+  const completedOrders = completed.length;
+  const disputedOrders = (orders || []).filter(o => o.status === 'disputed').length;
+  const refundedOrders = (orders || []).filter(o => o.status === 'refunded').length;
+  const totalUsers = (users || []).length;
+  const bannedUsers = (users || []).filter(u => u.is_banned).length;
+  const totalEscrowLocked = (users || []).reduce((s, u) => s + (u.escrow || 0), 0);
+  const availableTickets = (tickets || []).filter(t => t.status === 'available').length;
+
+  res.json({
+    totalRevenue, totalGMV, totalOrders, completedOrders, disputedOrders, refundedOrders,
+    totalUsers, bannedUsers, totalEscrowLocked, availableTickets,
+  });
+});
+
+// Export orders CSV
+app.get('/api/admin/export', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(1000);
+  const rows = (data || []).map(o => [
+    o.id, `"${(o.event_name || '').replace(/"/g, '""')}"`,
+    `"${(o.buyer_name || '').replace(/"/g, '""')}"`,
+    `"${(o.seller_name || '').replace(/"/g, '""')}"`,
+    o.price, o.fee, o.total, o.status, o.created_at
+  ].join(','));
+  const csv = ['ID,Sự kiện,Buyer,Seller,Giá,Phí,Tổng,Trạng thái,Ngày tạo', ...rows].join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
+  res.send('\uFEFF' + csv);
+});
+
 // ── SERVE FRONTEND STATIC FILES ──
 app.use(express.static(join(__dirname, 'frontend')));
-
-// Fallback: serve index.html for non-API routes
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(join(__dirname, 'frontend', 'index.html'));

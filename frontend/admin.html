@@ -26,73 +26,44 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
   background-image:radial-gradient(ellipse 80% 60% at 80% -10%,rgba(61,142,248,.06) 0%,transparent 60%),
     radial-gradient(ellipse 60% 50% at -10% 80%,rgba(155,135,245,.04) 0%,transparent 60%);
 }
-.login-card{
-  width:100%;max-width:380px;background:var(--card);border:1px solid var(--border2);
-  border-radius:20px;padding:36px 32px;
-}
+.login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:36px 32px;}
 .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
 .login-logo .shield{width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
 .login-logo h1{font-size:18px;font-weight:700;letter-spacing:-.3px;}
 .login-logo span{font-size:11px;color:var(--sub);font-family:'JetBrains Mono',monospace;background:var(--card2);padding:2px 8px;border-radius:4px;margin-left:4px;}
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:12px;font-weight:500;color:var(--sub);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase;}
-.field input{
-  width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);
-  padding:11px 14px;font-size:14px;color:var(--text);font-family:'JetBrains Mono',monospace;
-  outline:none;transition:border-color .15s;
-}
+.field input{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;color:var(--text);font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .15s;}
 .field input:focus{border-color:var(--brand);}
-.btn-login{
-  width:100%;padding:12px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);
-  font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px;
-}
+.btn-login{width:100%;padding:12px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px;}
 .btn-login:hover{background:var(--brandD);}
 .err{color:var(--red);font-size:13px;margin-top:10px;text-align:center;min-height:18px;}
 
 /* ── APP SHELL ── */
 #app{display:none;}
-.topbar{
-  position:sticky;top:0;z-index:100;height:56px;
-  background:rgba(6,9,15,.9);backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
-}
+.topbar{position:sticky;top:0;z-index:100;height:56px;background:rgba(6,9,15,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
 .topbar-left{display:flex;align-items:center;gap:10px;}
 .topbar-logo{font-size:14px;font-weight:700;}
 .badge-admin{font-size:10px;color:var(--warn);background:var(--warnBg);border:1px solid rgba(245,166,35,.2);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
-.btn-sm{
-  padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;
-  border:1px solid var(--border2);background:var(--card2);color:var(--sub);transition:all .15s;
-}
+.btn-sm{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--sub);transition:all .15s;}
 .btn-sm:hover{background:var(--card3);color:var(--text);}
 .btn-danger{background:var(--redBg);border-color:rgba(240,80,104,.25);color:var(--red);}
 .btn-danger:hover{background:rgba(240,80,104,.15);}
 
 /* ── NAV ── */
-.nav{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid var(--border);}
-.nav-btn{
-  padding:8px 16px;border-radius:8px 8px 0 0;font-size:13px;font-weight:500;cursor:pointer;
-  border:1px solid transparent;border-bottom:none;background:none;color:var(--sub);
-  transition:all .15s;position:relative;bottom:-1px;
-}
+.nav{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid var(--border);overflow-x:auto;}
+.nav-btn{padding:8px 16px;border-radius:8px 8px 0 0;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-bottom:none;background:none;color:var(--sub);transition:all .15s;position:relative;bottom:-1px;white-space:nowrap;}
 .nav-btn.active{background:var(--card);border-color:var(--border);color:var(--text);}
 .nav-btn:hover:not(.active){color:var(--text);}
-.nav-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-width:18px;height:18px;padding:0 5px;
-  background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;margin-left:6px;
-}
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;margin-left:6px;}
 
 /* ── MAIN ── */
 .main{padding:20px;max-width:1100px;margin:0 auto;}
 
 /* ── STATS ROW ── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;}
-.stat-card{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:18px 20px;
-}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
 .stat-label{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
 .stat-val{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-.5px;}
 .stat-val.ok{color:var(--ok);}
@@ -102,80 +73,49 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .stat-sub{font-size:11px;color:var(--hint);margin-top:4px;}
 
 /* ── SECTION ── */
-.section-head{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:14px;
-}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
 .section-title{font-size:14px;font-weight:600;color:var(--text);}
 .section-sub{font-size:12px;color:var(--sub);}
 
 /* ── TABLE ── */
 .tbl-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;}
-th{
-  text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--sub);
-  text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);
-  white-space:nowrap;
-}
-td{
-  padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);
-  vertical-align:top;
-}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:rgba(255,255,255,.018);}
 .mono{font-family:'JetBrains Mono',monospace;font-size:12px;}
 
 /* ── PILLS ── */
-.pill{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;
-}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
 .pill-disputed{background:var(--redBg);color:var(--red);border:1px solid rgba(240,80,104,.2);}
 .pill-completed{background:var(--okBg);color:var(--ok);border:1px solid rgba(34,211,142,.2);}
 .pill-refunded{background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,166,35,.2);}
 .pill-waiting{background:var(--brandL);color:var(--brand);border:1px solid rgba(61,142,248,.2);}
-.pill-buyer{background:var(--purpleBg);color:var(--purple);}
-.pill-seller{background:var(--warnBg);color:var(--warn);}
+.pill-banned{background:var(--redBg);color:var(--red);border:1px solid rgba(240,80,104,.2);}
+.pill-active{background:var(--okBg);color:var(--ok);border:1px solid rgba(34,211,142,.2);}
 
 /* ── DISPUTE CARD ── */
-.dispute-card{
-  background:var(--card);border:1px solid rgba(240,80,104,.2);border-radius:var(--radius);
-  padding:18px;margin-bottom:12px;
-}
+.dispute-card{background:var(--card);border:1px solid rgba(240,80,104,.2);border-radius:var(--radius);padding:18px;margin-bottom:12px;}
 .dispute-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
 .dispute-event{font-size:15px;font-weight:600;margin-bottom:4px;}
 .dispute-meta{font-size:12px;color:var(--sub);}
-.dispute-reason{
-  background:var(--redBg);border:1px solid rgba(240,80,104,.15);border-radius:8px;
-  padding:10px 14px;margin-bottom:14px;font-size:13px;
-}
+.dispute-reason{background:var(--redBg);border:1px solid rgba(240,80,104,.15);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;}
 .dispute-reason .reason-label{font-size:11px;color:var(--red);font-weight:600;text-transform:uppercase;margin-bottom:3px;}
-.dispute-parties{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
-.party-box{background:var(--card2);border-radius:8px;padding:12px 14px;}
-.party-role{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
-.party-name{font-size:13px;font-weight:600;margin-bottom:2px;}
-.party-amount{font-size:12px;color:var(--sub);}
 .resolve-area{display:flex;flex-direction:column;gap:8px;}
-.resolve-note{
-  width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);
-  padding:10px 12px;font-size:13px;color:var(--text);outline:none;resize:vertical;
-  font-family:'Inter',sans-serif;transition:border-color .15s;
-}
+.resolve-note{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--text);outline:none;resize:vertical;font-family:'Inter',sans-serif;transition:border-color .15s;}
 .resolve-note:focus{border-color:var(--brand);}
 .resolve-btns{display:flex;gap:8px;}
-.btn-resolve{
-  flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
-  border:1px solid;transition:all .15s;
-}
-.btn-resolve-buyer{
-  background:var(--purpleBg);border-color:rgba(155,135,245,.3);color:var(--purple);
-}
+.btn-resolve{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;}
+.btn-resolve-buyer{background:var(--purpleBg);border-color:rgba(155,135,245,.3);color:var(--purple);}
 .btn-resolve-buyer:hover{background:rgba(155,135,245,.15);}
-.btn-resolve-seller{
-  background:var(--warnBg);border-color:rgba(245,166,35,.3);color:var(--warn);
-}
+.btn-resolve-seller{background:var(--warnBg);border-color:rgba(245,166,35,.3);color:var(--warn);}
 .btn-resolve-seller:hover{background:rgba(245,166,35,.15);}
 .btn-resolve:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── SEARCH BOX ── */
+.search-box{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;font-family:'Inter',sans-serif;}
+.search-box:focus{border-color:var(--brand);}
 
 /* ── EMPTY ── */
 .empty{text-align:center;padding:48px 20px;color:var(--sub);}
@@ -183,39 +123,26 @@ tr:hover td{background:rgba(255,255,255,.018);}
 .empty-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
 
 /* ── TOAST ── */
-#toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-  background:var(--card3);border:1px solid var(--border2);border-radius:10px;
-  padding:12px 20px;font-size:13px;font-weight:500;white-space:nowrap;
-  opacity:0;transition:opacity .2s;z-index:9999;pointer-events:none;
-  box-shadow:0 8px 32px rgba(0,0,0,.5);
-}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card3);border:1px solid var(--border2);border-radius:10px;padding:12px 20px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:opacity .2s;z-index:9999;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.5);}
 #toast.show{opacity:1;}
 #toast.ok{border-color:rgba(34,211,142,.3);color:var(--ok);}
 #toast.err{border-color:rgba(240,80,104,.3);color:var(--red);}
 
 /* ── ACTIONS BAR ── */
-.actions-bar{
-  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;
-  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;
-}
-.btn-action{
-  padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
-  border:1px solid;transition:all .15s;
-}
+.actions-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.btn-action{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;}
 .btn-action-primary{background:var(--brandM);border-color:rgba(61,142,248,.3);color:var(--brand);}
 .btn-action-primary:hover{background:rgba(61,142,248,.2);}
 .btn-action-warn{background:var(--warnBg);border-color:rgba(245,166,35,.3);color:var(--warn);}
 .btn-action-warn:hover{background:rgba(245,166,35,.15);}
+.btn-action-ok{background:var(--okBg);border-color:rgba(34,211,142,.3);color:var(--ok);}
+.btn-action-ok:hover{background:rgba(34,211,142,.15);}
 .action-spacer{flex:1;}
 .last-refresh{font-size:11px;color:var(--hint);align-self:center;}
 
 /* ── LOADING ── */
 .loading{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:13px;padding:20px;}
-.spin{
-  width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--brand);
-  border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;
-}
+.spin{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
@@ -226,9 +153,7 @@ tr:hover td{background:rgba(255,255,255,.018);}
   <div class="login-card">
     <div class="login-logo">
       <div class="shield">🛡️</div>
-      <div>
-        <h1>SafePass <span>ADMIN</span></h1>
-      </div>
+      <div><h1>SafePass <span>ADMIN</span></h1></div>
     </div>
     <div class="field">
       <label>Admin Secret</label>
@@ -269,7 +194,7 @@ tr:hover td{background:rgba(255,255,255,.018);}
 const API = window.location.origin + '/api';
 let ADMIN_SECRET = '';
 let currentTab = 'overview';
-let _data = { orders: [], users: [], disputes: [] };
+let _data = { orders: [], users: [], disputes: [], stats: null, tickets: [] };
 let lastRefresh = null;
 
 // ── LOGIN ──
@@ -277,8 +202,14 @@ async function doLogin() {
   const secret = document.getElementById('secret-input').value.trim();
   if (!secret) return;
   document.getElementById('login-err').textContent = '';
-
   ADMIN_SECRET = secret;
+
+  // Quick check
+  try {
+    const res = await fetch(API + '/admin/orders?status=disputed', { headers: adminHeaders() });
+    if (!res.ok) { document.getElementById('login-err').textContent = 'Secret không đúng'; ADMIN_SECRET = ''; return; }
+  } catch(e) { document.getElementById('login-err').textContent = 'Không kết nối được server'; ADMIN_SECRET = ''; return; }
+
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   await loadAllData();
@@ -302,32 +233,30 @@ function adminBody(extra = {}) {
 // ── DATA ──
 async function loadAllData() {
   try {
-    const [ticketsRes, disputesRes, ordersRes] = await Promise.all([
-      fetch(API + '/tickets').then(r => r.json()),
+    const [ticketsRes, disputesRes, ordersRes, usersRes, statsRes] = await Promise.all([
+      fetch(API + '/tickets?limit=100').then(r => r.json()).catch(() => ({ tickets: [] })),
       fetch(API + '/admin/orders?status=disputed', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/orders', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/users', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/stats', { headers: adminHeaders() }).then(r => r.ok ? r.json() : null),
     ]);
-    _data.tickets = Array.isArray(ticketsRes) ? ticketsRes : [];
+    const ticketsArr = Array.isArray(ticketsRes) ? ticketsRes : (ticketsRes.tickets || []);
+    _data.tickets = ticketsArr;
     _data.disputes = Array.isArray(disputesRes) ? disputesRes : [];
     _data.orders = Array.isArray(ordersRes) ? ordersRes : [];
+    _data.users = Array.isArray(usersRes) ? usersRes : [];
+    _data.stats = statsRes;
   } catch(e) { console.error('loadAllData:', e); }
   lastRefresh = new Date();
   updateDisputeBadge();
 }
 
-async function loadOrdersAdmin() {
-  return _data.orders || [];
-}
-
 function updateDisputeBadge() {
   const count = _data.disputes ? _data.disputes.length : 0;
   const badge = document.getElementById('dispute-badge');
-  if (count > 0) {
-    badge.textContent = count;
-    badge.style.display = 'inline-flex';
-  } else {
-    badge.style.display = 'none';
-  }
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-flex'; }
+  else { badge.style.display = 'none'; }
 }
 
 // ── TABS ──
@@ -348,22 +277,53 @@ function renderTab() {
 
 // ── OVERVIEW ──
 function buildOverview() {
-  const tickets = _data.tickets || [];
-  const totalTickets = tickets.length;
   const timeStr = lastRefresh ? lastRefresh.toLocaleTimeString('vi-VN') : '—';
+  const s = _data.stats || {};
 
-  return `
-  <div class="actions-bar">
-    <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới dữ liệu</button>
-    <button class="btn-action btn-action-warn" onclick="doProcessTimeouts()">⏰ Xử lý Escrow Timeout</button>
-    <div class="action-spacer"></div>
-    <span class="last-refresh">Cập nhật lúc ${timeStr}</span>
-  </div>
+  const fmtRevenue = (n) => {
+    if (!n && n !== 0) return '—';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+    return n.toLocaleString('vi-VN');
+  };
 
+  const revenueStats = _data.stats ? `
+  <div class="stats-row" style="margin-bottom:12px;">
+    <div class="stat-card" style="border-color:rgba(34,211,142,.2);">
+      <div class="stat-label">💰 Phí SafePass (Revenue)</div>
+      <div class="stat-val ok">${fmtRevenue(s.totalRevenue)}đ</div>
+      <div class="stat-sub">Tổng phí 3% đã thu</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(61,142,248,.2);">
+      <div class="stat-label">📦 GMV (Tổng giá trị)</div>
+      <div class="stat-val brand">${fmtRevenue(s.totalGMV)}đ</div>
+      <div class="stat-sub">Tổng giá vé đã giao dịch</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(155,135,245,.2);">
+      <div class="stat-label">🔒 Escrow đang giữ</div>
+      <div class="stat-val" style="color:var(--purple);">${fmtRevenue(s.totalEscrowLocked)}đ</div>
+      <div class="stat-sub">Tiền trong escrow</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">✅ Đơn hoàn thành</div>
+      <div class="stat-val ok">${s.completedOrders || 0}</div>
+      <div class="stat-sub">/${s.totalOrders || 0} tổng đơn</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">⚠️ Disputes pending</div>
+      <div class="stat-val red">${(_data.disputes||[]).length}</div>
+      <div class="stat-sub">chờ admin xử lý</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">👥 Người dùng</div>
+      <div class="stat-val brand">${s.totalUsers || 0}</div>
+      <div class="stat-sub">${s.bannedUsers ? `${s.bannedUsers} bị khóa` : 'đang hoạt động'}</div>
+    </div>
+  </div>` : `
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-label">Vé đang bán</div>
-      <div class="stat-val brand">${totalTickets}</div>
+      <div class="stat-val brand">${(_data.tickets||[]).length}</div>
       <div class="stat-sub">listings available</div>
     </div>
     <div class="stat-card">
@@ -372,16 +332,27 @@ function buildOverview() {
       <div class="stat-sub">chờ admin xử lý</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Escrow đang mở</div>
-      <div class="stat-val warn">${(_data.orders||[]).filter(o=>['waiting_qr','waiting_confirm'].includes(o.status)).length}</div>
-      <div class="stat-sub">đơn waiting_qr / waiting_confirm</div>
-    </div>
-    <div class="stat-card">
       <div class="stat-label">Tổng đơn</div>
       <div class="stat-val ok">${(_data.orders||[]).length}</div>
       <div class="stat-sub">tất cả trạng thái</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-label">Escrow đang mở</div>
+      <div class="stat-val warn">${(_data.orders||[]).filter(o=>['waiting_qr','waiting_confirm'].includes(o.status)).length}</div>
+      <div class="stat-sub">waiting_qr / waiting_confirm</div>
+    </div>
+  </div>`;
+
+  return `
+  <div class="actions-bar">
+    <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
+    <button class="btn-action btn-action-warn" onclick="doProcessTimeouts()">⏰ Xử lý Escrow Timeout</button>
+    <button class="btn-action btn-action-ok" onclick="exportOrdersCSV()">📥 Xuất CSV đơn hàng</button>
+    <div class="action-spacer"></div>
+    <span class="last-refresh">Cập nhật lúc ${timeStr}</span>
   </div>
+
+  ${revenueStats}
 
   <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
     <div class="section-head">
@@ -390,46 +361,44 @@ function buildOverview() {
         <div class="section-sub">Các thao tác thường dùng</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
       <div style="background:var(--card2);border-radius:10px;padding:16px;">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px;">🔥 Resolve Dispute</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Vào tab "Khiếu nại" để xem và xử lý các tranh chấp đang pending</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Xem và xử lý các tranh chấp đang pending</div>
         <button class="btn-action btn-action-primary" style="width:100%;" onclick="switchTab('disputes')">Xem khiếu nại →</button>
       </div>
       <div style="background:var(--card2);border-radius:10px;padding:16px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">⏰ Escrow Timeout</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Trigger thủ công hoàn tiền các đơn waiting_qr quá 48h</div>
-        <button class="btn-action btn-action-warn" style="width:100%;" onclick="doProcessTimeouts()">Chạy ngay</button>
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">👥 Quản lý users</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Tìm kiếm, xem thống kê, ban/unban tài khoản</div>
+        <button class="btn-action btn-action-primary" style="width:100%;" onclick="switchTab('users')">Xem users →</button>
       </div>
       <div style="background:var(--card2);border-radius:10px;padding:16px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">📊 Xem Đơn Hàng</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Tra cứu và resolve đơn bằng Order ID cụ thể</div>
-        <button class="btn-action btn-action-primary" style="width:100%;" onclick="switchTab('orders')">Tra cứu →</button>
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">📊 Xem tất cả đơn</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Tra cứu đơn hàng theo ID, xuất báo cáo CSV</div>
+        <button class="btn-action btn-action-primary" style="width:100%;" onclick="switchTab('orders')">Xem đơn hàng →</button>
       </div>
     </div>
   </div>
 
   <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
     <div class="section-head">
-      <div class="section-title">📋 Vé đang available</div>
+      <div class="section-title">🎟️ Vé đang available (${(_data.tickets||[]).length})</div>
     </div>
-    ${buildTicketsTable(tickets)}
+    ${buildTicketsTable(_data.tickets || [])}
   </div>`;
 }
 
 function buildTicketsTable(tickets) {
   if (!tickets.length) return '<div class="empty"><div class="empty-icon">🎟️</div><div class="empty-title">Không có vé nào</div></div>';
   return `<div class="tbl-wrap"><table>
-    <thead><tr>
-      <th>Sự kiện</th><th>Seller</th><th>Giá</th><th>Địa điểm</th><th>Ngày</th>
-    </tr></thead>
+    <thead><tr><th>Sự kiện</th><th>Seller</th><th>Giá</th><th>Địa điểm</th><th>Ngày</th></tr></thead>
     <tbody>
     ${tickets.map(t => `<tr>
       <td><div style="font-weight:500">${esc(t.event_name)}</div><div style="font-size:11px;color:var(--sub)">${esc(t.section||'')}</div></td>
       <td>${esc(t.seller_name||'')}</td>
       <td class="mono">${fmtVND(t.price)}</td>
       <td style="font-size:12px;color:var(--sub)">${esc(t.location||'—')}</td>
-      <td class="mono" style="font-size:11px;color:var(--sub)">${t.event_date ? t.event_date.slice(0,10) : '—'}</td>
+      <td class="mono" style="font-size:11px;color:var(--sub)">${t.event_date ? String(t.event_date).slice(0,10) : '—'}</td>
     </tr>`).join('')}
     </tbody>
   </table></div>`;
@@ -445,9 +414,8 @@ function buildDisputes() {
         <div class="section-title">🔥 Khiếu nại đang chờ xử lý</div>
         <div class="section-sub">${disputes.length} đơn disputed</div>
       </div>
-      <button class="btn-action btn-action-primary" onclick="doRefresh().then(renderTab)">🔄 Làm mới</button>
+      <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
     </div>
-
     ${disputes.length === 0
       ? `<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Không có khiếu nại nào</div><div style="font-size:13px;color:var(--hint);margin-top:4px;">Mọi đơn hàng đều ổn</div></div>`
       : disputes.map(o => buildResolveForm(o.id, o)).join('')
@@ -457,9 +425,7 @@ function buildDisputes() {
   <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px;">
     <div class="section-title" style="margin-bottom:12px;">🔍 Resolve theo Order ID thủ công</div>
     <div style="display:flex;gap:10px;">
-      <input id="dispute-order-id" placeholder="Order ID (UUID)..."
-        style="flex:1;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;font-family:'JetBrains Mono',monospace;"
-        onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor=''"
+      <input id="dispute-order-id" placeholder="Order ID (UUID)..." class="search-box"
         onkeydown="if(event.key==='Enter')loadDisputeOrder()">
       <button class="btn-action btn-action-primary" onclick="loadDisputeOrder()">🔍 Tải đơn</button>
     </div>
@@ -472,14 +438,16 @@ async function loadDisputeOrder() {
   if (!orderId) return;
   const el = document.getElementById('dispute-order-result');
   el.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải...</div>';
-
   try {
-    // Không có GET /admin/orders/:id public, thử dùng workaround
-    // Thực ra không có endpoint để get single order by admin, chỉ có resolve
-    // Hiển thị form resolve trực tiếp với order ID đã nhập
-    el.innerHTML = buildResolveForm(orderId, null);
+    const res = await fetch(`${API}/admin/orders/${orderId}`, { headers: adminHeaders() });
+    if (res.ok) {
+      const order = await res.json();
+      el.innerHTML = buildOrderDetail(order);
+    } else {
+      el.innerHTML = buildResolveForm(orderId, null);
+    }
   } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);font-size:13px;">Lỗi: ${e.message}</div>`;
+    el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`;
   }
 }
 
@@ -491,27 +459,22 @@ function buildResolveForm(orderId, order) {
         <div class="dispute-event">${order ? esc(order.event_name) : 'Order: ' + orderId.slice(0,8) + '...'}</div>
         <div class="dispute-meta">
           ${order ? `Buyer: <strong>${esc(order.buyer_name)}</strong> · Seller: <strong>${esc(order.seller_name)}</strong> · Tổng: <strong>${fmtVND(order.total)}</strong>` : 'Nhập ghi chú và chọn bên thắng để resolve'}
+          ${order && order.dispute_opened_at ? `<br><span style="font-size:11px;color:var(--hint);">Mở lúc: ${new Date(order.dispute_opened_at).toLocaleString('vi-VN')}</span>` : ''}
         </div>
       </div>
       <span class="pill pill-disputed">⚠️ Disputed</span>
     </div>
-
     ${order && order.dispute_reason ? `
     <div class="dispute-reason">
       <div class="reason-label">Lý do khiếu nại</div>
       <div>${esc(order.dispute_reason)}</div>
       ${order.dispute_description ? `<div style="margin-top:6px;color:var(--sub);font-size:12px;">${esc(order.dispute_description)}</div>` : ''}
     </div>` : ''}
-
     <div class="resolve-area">
       <textarea class="resolve-note" id="note-${orderId}" rows="2" placeholder="Ghi chú lý do quyết định (optional)..."></textarea>
       <div class="resolve-btns">
-        <button class="btn-resolve btn-resolve-buyer" onclick="resolveDispute('${orderId}','buyer')">
-          👤 Buyer thắng — Hoàn tiền
-        </button>
-        <button class="btn-resolve btn-resolve-seller" onclick="resolveDispute('${orderId}','seller')">
-          🏪 Seller thắng — Giải ngân
-        </button>
+        <button class="btn-resolve btn-resolve-buyer" onclick="resolveDispute('${orderId}','buyer')">👤 Buyer thắng — Hoàn tiền</button>
+        <button class="btn-resolve btn-resolve-seller" onclick="resolveDispute('${orderId}','seller')">🏪 Seller thắng — Giải ngân</button>
       </div>
     </div>
   </div>`;
@@ -521,26 +484,13 @@ async function resolveDispute(orderId, winner) {
   const note = (document.getElementById('note-' + orderId)?.value || '').trim();
   const btns = document.querySelectorAll(`[onclick*="${orderId}"]`);
   btns.forEach(b => b.disabled = true);
-
   try {
     const res = await fetch(`${API}/admin/orders/${orderId}/resolve?secret=${encodeURIComponent(ADMIN_SECRET)}`, {
-      method: 'POST',
-      headers: adminHeaders(),
-      body: adminBody({ winner, note })
+      method: 'POST', headers: adminHeaders(), body: adminBody({ winner, note })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lỗi không xác định');
-    
     showToast('✅ ' + data.message, 'ok');
-    // Clear form (nếu đang ở tab orders)
-    const inputEl = document.getElementById('dispute-order-id');
-    if (inputEl) inputEl.value = '';
-    const resultEl = document.getElementById('dispute-order-result');
-    if (resultEl) resultEl.innerHTML = `
-      <div style="background:var(--okBg);border:1px solid rgba(34,211,142,.2);border-radius:10px;padding:14px;font-size:13px;color:var(--ok);">
-        ✅ Đã resolve thành công. ${winner === 'buyer' ? 'Tiền hoàn về buyer.' : 'Tiền giải ngân cho seller.'}
-      </div>`;
-    // Reload data và re-render tab
     await loadAllData();
     renderTab();
   } catch(e) {
@@ -562,8 +512,13 @@ function buildOrders() {
   return `
   <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
     <div class="section-head">
-      <div class="section-title">📋 Tất cả đơn hàng (${orders.length})</div>
-      <button class="btn-action btn-action-primary" onclick="doRefresh().then(renderTab)">🔄 Làm mới</button>
+      <div>
+        <div class="section-title">📋 Tất cả đơn hàng (${orders.length})</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-action btn-action-ok" onclick="exportOrdersCSV()">📥 Xuất CSV</button>
+        <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
+      </div>
     </div>
     ${orders.length === 0
       ? '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Chưa có đơn hàng nào</div></div>'
@@ -576,7 +531,7 @@ function buildOrders() {
           <td style="font-size:12px">${esc(o.seller_name)}</td>
           <td class="mono">${fmtVND(o.total)}</td>
           <td>${statusMap[o.status] || `<span class="pill">${o.status}</span>`}</td>
-          <td class="mono" style="font-size:11px;color:var(--sub)">${o.created_at ? o.created_at.slice(0,10) : '—'}</td>
+          <td class="mono" style="font-size:11px;color:var(--sub)">${o.created_at ? String(o.created_at).slice(0,10) : '—'}</td>
         </tr>`).join('')}</tbody>
       </table></div>`
     }
@@ -585,27 +540,11 @@ function buildOrders() {
   <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
     <div class="section-title" style="margin-bottom:12px;">🔍 Tra cứu đơn hàng</div>
     <div style="display:flex;gap:10px;">
-      <input id="search-order-id" placeholder="Order ID (UUID)..."
-        style="flex:1;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;font-family:'JetBrains Mono',monospace;"
-        onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor=''">
+      <input id="search-order-id" placeholder="Order ID (UUID)..." class="search-box"
+        onkeydown="if(event.key==='Enter')searchOrder()">
       <button class="btn-action btn-action-primary" onclick="searchOrder()">Tìm</button>
     </div>
     <div id="order-search-result" style="margin-top:14px;"></div>
-  </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
-    <div class="section-title" style="margin-bottom:6px;">💡 Cần thêm vào backend</div>
-    <div style="font-size:13px;color:var(--sub);margin-bottom:14px;">Để tra cứu đầy đủ, thêm route sau vào server.js:</div>
-    <pre style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12px;color:var(--ok);overflow-x:auto;font-family:'JetBrains Mono',monospace;line-height:1.7;">// GET single order by admin
-app.get('/api/admin/orders/:id', async (req, res) => {
-  const secret = req.headers['x-admin-secret'];
-  if (secret !== process.env.ADMIN_SECRET)
-    return res.status(403).json({ error: 'Forbidden' });
-  const { data } = await supabase
-    .from('orders').select('*').eq('id', req.params.id).single();
-  if (!data) return res.status(404).json({ error: 'Không tìm thấy' });
-  res.json(data);
-});</pre>
   </div>`;
 }
 
@@ -614,18 +553,13 @@ async function searchOrder() {
   if (!id) return;
   const el = document.getElementById('order-search-result');
   el.innerHTML = '<div class="loading"><div class="spin"></div> Đang tìm...</div>';
-  
   try {
-    // Try admin endpoint (may not exist yet)
     const res = await fetch(`${API}/admin/orders/${id}`, { headers: adminHeaders() });
     if (res.ok) {
       const order = await res.json();
       el.innerHTML = buildOrderDetail(order);
     } else {
-      // Fallback: show resolve form directly
-      el.innerHTML = `
-        <div style="font-size:13px;color:var(--sub);margin-bottom:10px;">Route GET /admin/orders/:id chưa tồn tại. Hiển thị form resolve trực tiếp:</div>
-        ${buildResolveForm(id, null)}`;
+      el.innerHTML = `<div style="font-size:13px;color:var(--sub);margin-bottom:10px;">Không tìm thấy đơn. Thử resolve trực tiếp:</div>${buildResolveForm(id, null)}`;
     }
   } catch(e) {
     el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`;
@@ -662,51 +596,94 @@ function buildOrderDetail(order) {
 
 // ── USERS ──
 function buildUsers() {
+  const users = _data.users || [];
   return `
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
-    <div class="section-title" style="margin-bottom:6px;">👥 Quản lý người dùng</div>
-    <div style="font-size:13px;color:var(--sub);margin-bottom:16px;">Thêm route vào backend để xem danh sách users:</div>
-    <pre style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12px;color:var(--ok);overflow-x:auto;font-family:'JetBrains Mono',monospace;line-height:1.7;">app.get('/api/admin/users', async (req, res) => {
-  const secret = req.headers['x-admin-secret'];
-  if (secret !== process.env.ADMIN_SECRET)
-    return res.status(403).json({ error: 'Forbidden' });
-  const { data } = await supabase
-    .from('users')
-    .select('id,phone,name,balance,escrow,avg_rating,review_count,created_at')
-    .order('created_at', { ascending: false });
-  res.json(data || []);
-});</pre>
-
-    <div style="margin-top:16px;display:flex;gap:10px;">
-      <button class="btn-action btn-action-primary" onclick="loadUsers()">📥 Tải danh sách users</button>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
+    <div class="section-head">
+      <div>
+        <div class="section-title">👥 Quản lý người dùng (${users.length})</div>
+        <div class="section-sub">${users.filter(u=>u.is_banned).length} tài khoản bị khóa</div>
+      </div>
+      <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
     </div>
-    <div id="users-list" style="margin-top:16px;"></div>
-  </div>`;
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <input id="user-search-input" placeholder="🔍 Tìm theo tên hoặc số điện thoại..." class="search-box" style="flex:1;"
+        oninput="filterUsersTable(this.value)">
+    </div>
+
+    ${users.length === 0
+      ? '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Không có người dùng nào</div></div>'
+      : `<div class="tbl-wrap"><table id="users-table">
+        <thead><tr>
+          <th>Tên</th><th>SĐT</th><th>Balance</th><th>Escrow</th><th>Rating</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hành động</th>
+        </tr></thead>
+        <tbody id="users-tbody">
+          ${users.map(u => buildUserRow(u)).join('')}
+        </tbody>
+      </table></div>`
+    }
+  </div>
+
+  <div id="user-action-result" style="margin-top:12px;"></div>`;
 }
 
-async function loadUsers() {
-  const el = document.getElementById('users-list');
-  if (!el) return;
-  el.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải...</div>';
+function buildUserRow(u) {
+  const statusPill = u.is_banned
+    ? '<span class="pill pill-banned">🚫 Bị khóa</span>'
+    : '<span class="pill pill-active">✅ Hoạt động</span>';
+  const actionBtn = u.is_banned
+    ? `<button class="btn-action btn-action-ok" style="padding:5px 12px;font-size:11px;" onclick="unbanUser('${u.id}','${esc(u.name)}')">Mở khóa</button>`
+    : `<button class="btn-action btn-action-warn" style="padding:5px 12px;font-size:11px;" onclick="banUser('${u.id}','${esc(u.name)}')">Khóa</button>`;
+  return `<tr data-name="${esc((u.name||'').toLowerCase())}" data-phone="${esc(u.phone||'')}">
+    <td style="font-weight:500">${esc(u.name)}</td>
+    <td class="mono">${esc(u.phone)}</td>
+    <td class="mono" style="color:var(--ok)">${fmtVND(u.balance)}</td>
+    <td class="mono" style="color:var(--purple)">${fmtVND(u.escrow)}</td>
+    <td>${u.avg_rating ? `⭐ ${u.avg_rating} (${u.review_count || 0})` : '—'}</td>
+    <td>${statusPill}</td>
+    <td class="mono" style="font-size:11px;color:var(--sub)">${u.created_at ? String(u.created_at).slice(0,10) : '—'}</td>
+    <td>${actionBtn}</td>
+  </tr>`;
+}
+
+function filterUsersTable(q) {
+  const rows = document.querySelectorAll('#users-tbody tr');
+  const term = q.toLowerCase().trim();
+  rows.forEach(r => {
+    const name = r.dataset.name || '';
+    const phone = r.dataset.phone || '';
+    r.style.display = (!term || name.includes(term) || phone.includes(term)) ? '' : 'none';
+  });
+}
+
+async function banUser(userId, name) {
+  const reason = prompt(`Lý do khóa tài khoản ${name}? (optional)`);
+  if (reason === null) return; // cancelled
   try {
-    const res = await fetch(API + '/admin/users', { headers: adminHeaders() });
-    if (!res.ok) throw new Error('Route chưa tồn tại. Thêm vào backend trước.');
-    const users = await res.json();
-    if (!users.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Không có user</div></div>'; return; }
-    el.innerHTML = `<div class="tbl-wrap"><table>
-      <thead><tr><th>Tên</th><th>SĐT</th><th>Balance</th><th>Escrow</th><th>Rating</th><th>Ngày tạo</th></tr></thead>
-      <tbody>${users.map(u => `<tr>
-        <td style="font-weight:500">${esc(u.name)}</td>
-        <td class="mono">${esc(u.phone)}</td>
-        <td class="mono ok">${fmtVND(u.balance)}</td>
-        <td class="mono warn">${fmtVND(u.escrow)}</td>
-        <td>${u.avg_rating ? `⭐ ${u.avg_rating} (${u.review_count})` : '—'}</td>
-        <td class="mono" style="font-size:11px;color:var(--sub)">${u.created_at ? u.created_at.slice(0,10) : '—'}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
-  } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);font-size:13px;background:var(--redBg);padding:12px;border-radius:8px;">${e.message}</div>`;
-  }
+    const res = await fetch(`${API}/admin/users/${userId}/ban`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody({ reason: reason || '' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast(`✅ Đã khóa tài khoản ${name}`, 'ok');
+    await loadAllData();
+    renderTab();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+async function unbanUser(userId, name) {
+  if (!confirm(`Mở khóa tài khoản ${name}?`)) return;
+  try {
+    const res = await fetch(`${API}/admin/users/${userId}/unban`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast(`✅ Đã mở khóa tài khoản ${name}`, 'ok');
+    await loadAllData();
+    renderTab();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
 // ── ACTIONS ──
@@ -725,9 +702,24 @@ async function doProcessTimeouts() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     showToast('✅ Đã xử lý escrow timeouts', 'ok');
-  } catch(e) {
-    showToast('❌ ' + e.message, 'err');
-  }
+    await loadAllData();
+    renderTab();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+async function exportOrdersCSV() {
+  try {
+    showToast('📥 Đang xuất CSV...', 'ok');
+    const res = await fetch(`${API}/admin/export?secret=${encodeURIComponent(ADMIN_SECRET)}`, { headers: adminHeaders() });
+    if (!res.ok) { showToast('❌ Xuất thất bại', 'err'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'orders_safepass.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast('✅ Xuất CSV thành công!', 'ok');
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
 // ── UTILS ──
