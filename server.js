@@ -66,6 +66,80 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const JWT_SECRET = process.env.JWT_SECRET;
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+async function sendEscrowTimeoutAdminNotification(expiredOrders) {
+  if (!process.env.RESEND_API_KEY || !process.env.ADMIN_EMAIL) return;
+  try {
+    const rows = expiredOrders.map(o => `
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #1a2540;font-family:monospace;font-size:12px;color:#7b8fad;">${o.id.slice(0,8)}…</td>
+        <td style="padding:8px;border-bottom:1px solid #1a2540;color:#e8edf8;">${o.event_name}</td>
+        <td style="padding:8px;border-bottom:1px solid #1a2540;color:#e8edf8;">${o.buyer_name}</td>
+        <td style="padding:8px;border-bottom:1px solid #1a2540;color:#e8edf8;">${o.seller_name}</td>
+        <td style="padding:8px;border-bottom:1px solid #1a2540;color:#f05068;text-align:right;">${o.total?.toLocaleString('vi-VN')}đ</td>
+      </tr>`).join('');
+
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL,
+      subject: `⏰ Escrow Timeout — ${expiredOrders.length} đơn đã tự động hoàn tiền`,
+      html: `
+        <div style="font-family:sans-serif;max-width:640px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#f05068;margin-bottom:4px;">⏰ Escrow Timeout tự động</h2>
+          <p style="color:#7b8fad;margin-top:0;">${expiredOrders.length} đơn hàng đã quá 48h, seller không upload QR. Tiền đã hoàn về buyer.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#0d1220;">
+                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">ID</th>
+                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Sự kiện</th>
+                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Buyer</th>
+                <th style="padding:8px;text-align:left;color:#7b8fad;font-weight:500;font-size:12px;">Seller</th>
+                <th style="padding:8px;text-align:right;color:#7b8fad;font-weight:500;font-size:12px;">Hoàn tiền</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#7b8fad;font-size:14px;">Xem chi tiết tại <a href="${process.env.APP_URL || ''}/admin.html" style="color:#3d8ef8;">trang Admin</a>.</p>
+        </div>
+      `
+    });
+    console.log(`[Email] Đã gửi tóm tắt ${expiredOrders.length} escrow timeout cho admin`);
+  } catch (e) {
+    console.error('[Email] Lỗi gửi email escrow timeout (admin):', e.message);
+  }
+}
+
+async function sendEscrowTimeoutBuyerNotification(order) {
+  if (!process.env.RESEND_API_KEY) return;
+  // Lấy email buyer từ users nếu có
+  const { data: buyer } = await supabase.from('users').select('email').eq('id', order.buyer_id).single();
+  if (!buyer?.email) return;
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: buyer.email,
+      subject: `✅ Hoàn tiền tự động — ${order.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#22d38e;margin-bottom:4px;">✅ Tiền đã được hoàn về ví của bạn</h2>
+          <p style="color:#7b8fad;margin-top:0;">Đơn hàng đã quá 48h mà người bán chưa cung cấp QR code.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:120px;">Sự kiện</td><td style="color:#e8edf8;">${order.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người bán</td><td style="color:#e8edf8;">${order.seller_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Số tiền hoàn</td><td style="color:#22d38e;font-weight:600;">${order.total?.toLocaleString('vi-VN')}đ</td></tr>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#7b8fad;font-size:14px;">Tiền đã trở về ví SafePass của bạn. Bạn có thể mua vé khác tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
+        </div>
+      `
+    });
+  } catch (e) {
+    console.error(`[Email] Lỗi gửi email hoàn tiền cho buyer ${order.buyer_name}:`, e.message);
+  }
+}
+
 async function sendDisputeNotification(order, reasonText, openedBy, description) {
   if (!process.env.RESEND_API_KEY || !process.env.ADMIN_EMAIL) return;
   try {
@@ -631,10 +705,16 @@ async function processExpiredEscrows() {
       });
 
       console.log(`[Escrow Timeout] Hoàn ${order.total.toLocaleString()}đ cho buyer ${order.buyer_name} — đơn ${order.id}`);
+
+      // Gửi email thông báo cho buyer (nếu có email)
+      sendEscrowTimeoutBuyerNotification(order);
     } catch (e) {
       console.error(`[Escrow Timeout] Lỗi đơn ${order.id}:`, e.message);
     }
   }
+
+  // Gửi 1 email tổng hợp cho admin về tất cả đơn hết hạn
+  sendEscrowTimeoutAdminNotification(expiredOrders);
 }
 
 // Chạy ngay khi khởi động, sau đó mỗi giờ
