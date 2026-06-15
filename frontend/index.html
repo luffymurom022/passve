@@ -621,6 +621,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;}
 .alert-row:hover{border-color:var(--border2);}
 .alert-row.triggered{border-color:rgba(34,211,142,.3);background:var(--okBg);}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -758,7 +759,7 @@ let state={
   // listing detail
   activeListing:null, listingBack:"search",
   // orders
-  orderBadge:2,orderTab:"buyer",orderFilter:"all",
+  orderBadge:2,orderTab:"buyer",orderFilter:"all",sellerStats:null,sellerStatsLoading:false,
   activeOrder:null,showQRModal:false,showDisputeModal:false,showConfirmModal:false,
   modalOrderId:null,
   // chat
@@ -2219,19 +2220,177 @@ function buildOrdersPage(){
     ?'<div style="text-align:center;padding:60px 20px;"><div style="font-size:48px;margin-bottom:12px;">📭</div><div style="font-size:16px;font-weight:800;font-family:\'Syne\',sans-serif;margin-bottom:6px;">Chưa có đơn hàng</div><div style="font-size:12px;color:var(--sub);">Các đơn hàng phù hợp sẽ xuất hiện ở đây</div></div>'
     :orders.map(buildOrderCard).join("");
 
+  var isStats=state.orderTab==="stats";
+
+  if(isStats) return buildSellerStatsPage();
+
   return '<div style="padding-bottom:80px;">'
     +'<div style="padding:20px 20px 0;">'
     +'<div style="font-size:22px;font-weight:800;font-family:\'Syne\',sans-serif;margin-bottom:2px;">📋 Quản lý Đơn hàng</div>'
     +'<div style="font-size:12px;color:var(--sub);">Theo dõi và quản lý giao dịch an toàn</div></div>'
     +'<div style="padding:16px 20px 0;">'
     +'<div style="display:flex;background:var(--bg2);border-radius:12px;border:1px solid var(--border);overflow:hidden;">'
-    +'<button onclick="setState({orderTab:\'buyer\',orderFilter:\'all\',activeOrder:null})" style="flex:1;padding:11px;font-size:13px;font-weight:700;font-family:\'Plus Jakarta Sans\',sans-serif;border:none;cursor:pointer;transition:all .2s;background:'+(isBuyer?"linear-gradient(135deg,var(--brand),var(--brandD))":"transparent")+';color:'+(isBuyer?"var(--bg)":"var(--sub)")+';">🛒 Người mua ('+buyer.length+')</button>'
-    +'<button onclick="setState({orderTab:\'seller\',orderFilter:\'all\',activeOrder:null})" style="flex:1;padding:11px;font-size:13px;font-weight:700;font-family:\'Plus Jakarta Sans\',sans-serif;border:none;cursor:pointer;transition:all .2s;background:'+(!isBuyer?"linear-gradient(135deg,var(--brand),var(--brandD))":"transparent")+';color:'+(!isBuyer?"var(--bg)":"var(--sub)")+';">🏷️ Người bán ('+seller.length+')</button>'
+    +'<button onclick="setState({orderTab:\'buyer\',orderFilter:\'all\',activeOrder:null})" style="flex:1;padding:11px;font-size:12px;font-weight:700;font-family:\'Plus Jakarta Sans\',sans-serif;border:none;cursor:pointer;transition:all .2s;background:'+(isBuyer?"linear-gradient(135deg,var(--brand),var(--brandD))":"transparent")+';color:'+(isBuyer?"var(--bg)":"var(--sub)")+';">🛒 Người mua</button>'
+    +'<button onclick="setState({orderTab:\'seller\',orderFilter:\'all\',activeOrder:null})" style="flex:1;padding:11px;font-size:12px;font-weight:700;font-family:\'Plus Jakarta Sans\',sans-serif;border:none;cursor:pointer;transition:all .2s;background:'+(!isBuyer&&!isStats?"linear-gradient(135deg,var(--brand),var(--brandD))":"transparent")+';color:'+(!isBuyer&&!isStats?"var(--bg)":"var(--sub)")+';">🏷️ Người bán</button>'
+    +'<button onclick="openSellerStats()" style="flex:1;padding:11px;font-size:12px;font-weight:700;font-family:\'Plus Jakarta Sans\',sans-serif;border:none;cursor:pointer;transition:all .2s;background:transparent;color:var(--sub);">📊 Thống kê</button>'
     +'</div></div>'
     +'<div style="display:flex;gap:10px;padding:14px 20px;overflow-x:auto;">'+statsHTML+'</div>'
     +'<div style="display:flex;gap:6px;padding:0 20px 14px;overflow-x:auto;">'+filtersHTML+'</div>'
     +'<div style="padding:0 20px;display:flex;flex-direction:column;gap:12px;">'+ordersHTML+'</div>'
     +'</div>';
+}
+
+/* ══════════════════════════════════════════
+   📊 SELLER STATS DASHBOARD
+══════════════════════════════════════════ */
+let _sellerChartInstance = null;
+
+function openSellerStats(){
+  setState({orderTab:'stats', orderFilter:'all', activeOrder:null});
+  if(!state.sellerStats && !state.sellerStatsLoading) loadSellerStats();
+}
+
+async function loadSellerStats(){
+  if(!authToken) return;
+  state.sellerStatsLoading = true;
+  try {
+    const res = await fetch(API+'/seller/stats', {headers: getHeaders()});
+    if(res.ok){
+      state.sellerStats = await res.json();
+    }
+  } catch(e){}
+  state.sellerStatsLoading = false;
+  render();
+  setTimeout(initSellerChart, 80);
+}
+
+function initSellerChart(){
+  const canvas = document.getElementById('seller-orders-chart');
+  if(!canvas || !window.Chart) return;
+  const s = state.sellerStats;
+  if(!s || !s.orders_by_day) return;
+  if(_sellerChartInstance){ _sellerChartInstance.destroy(); _sellerChartInstance=null; }
+
+  const days = s.orders_by_day;
+  // Show only every 5th label to avoid clutter
+  const labels = days.map((d,i)=>{
+    const dt = new Date(d.date);
+    return (i%5===0||i===days.length-1) ? (dt.getMonth()+1)+'/'+(dt.getDate()) : '';
+  });
+  const counts = days.map(d=>d.count);
+  const revenues = days.map(d=>d.revenue);
+
+  const ctx = canvas.getContext('2d');
+  _sellerChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Đơn hoàn thành',
+        data: counts,
+        backgroundColor: 'rgba(61,142,248,0.75)',
+        borderColor: '#3d8ef8',
+        borderWidth: 1,
+        borderRadius: 4,
+        yAxisID: 'y',
+      },{
+        label: 'Doanh thu (đ)',
+        data: revenues,
+        type: 'line',
+        borderColor: '#34d89e',
+        backgroundColor: 'rgba(52,216,158,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y2',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{ labels:{ color:'#7b8fad', font:{size:10}, boxWidth:12 } } },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380', font:{size:9}} },
+        y: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380', font:{size:9}, stepSize:1}, position:'left' },
+        y2: { grid:{display:false}, ticks:{color:'#34d89e', font:{size:9}, callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v}, position:'right' },
+      }
+    }
+  });
+}
+
+function buildSellerStatsPage(){
+  const s = state.sellerStats;
+  const loading = state.sellerStatsLoading;
+  const noData = !s && !loading;
+
+  const statCards = [
+    {icon:'💸', label:'Tổng doanh thu', val: s ? VND(s.total_revenue) : (loading?'⏳':'—'), col:'var(--ok)'},
+    {icon:'🎟', label:'Đã bán (hoàn thành)', val: s ? s.total_sold+' đơn' : (loading?'⏳':'—'), col:'var(--brand)'},
+    {icon:'⭐', label:'Rating trung bình', val: s ? (s.avg_rating||'—')+(s.avg_rating?'⭐':'') : (loading?'⏳':'—'), col:'var(--gold)'},
+    {icon:'💬', label:'Tổng đánh giá', val: s ? s.total_reviews+' đánh giá' : (loading?'⏳':'—'), col:'var(--purple)'},
+    {icon:'📦', label:'Tổng đơn hàng', val: s ? s.total_orders : (loading?'⏳':'—'), col:'var(--brand)'},
+    {icon:'❗', label:'Cần xử lý', val: s ? s.pending : (loading?'⏳':'—'), col:'var(--red)'},
+  ];
+
+  const cardsHTML = statCards.map(c=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px;">
+      <div style="font-size:20px;">${c.icon}</div>
+      <div style="font-size:16px;font-weight:800;font-family:'Inter',sans-serif;color:${c.col};">${c.val}</div>
+      <div style="font-size:10px;color:var(--hint);font-weight:600;">${c.label}</div>
+    </div>`).join('');
+
+  const topHTML = s && s.top_listings && s.top_listings.length > 0
+    ? s.top_listings.map((t,i)=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:800;color:var(--hint);width:18px;text-align:center;">${i+1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.event_name}</div>
+          <div style="font-size:10px;color:var(--hint);margin-top:2px;">${t.count} đơn hoàn thành</div>
+        </div>
+        <div style="font-size:13px;font-weight:800;color:var(--ok);">${VND(t.revenue)}</div>
+      </div>`).join('')
+    : '<div style="text-align:center;padding:20px 0;color:var(--hint);font-size:12px;">Chưa có dữ liệu</div>';
+
+  return `<div style="padding-bottom:80px;">
+    <div style="padding:20px 20px 0;">
+      <div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;margin-bottom:2px;">📊 Thống kê bán hàng</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Hiệu suất 30 ngày gần nhất</div>
+
+      <!-- Tab switcher -->
+      <div style="display:flex;background:var(--bg2);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px;">
+        <button onclick="setState({orderTab:'buyer',orderFilter:'all',activeOrder:null})" style="flex:1;padding:11px;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;border:none;cursor:pointer;background:transparent;color:var(--sub);">🛒 Người mua</button>
+        <button onclick="setState({orderTab:'seller',orderFilter:'all',activeOrder:null})" style="flex:1;padding:11px;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;border:none;cursor:pointer;background:transparent;color:var(--sub);">🏷️ Người bán</button>
+        <button style="flex:1;padding:11px;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;border:none;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brandD));color:var(--bg);">📊 Thống kê</button>
+      </div>
+
+      ${noData ? `<div style="text-align:center;padding:40px 20px;color:var(--hint);">
+        <div style="font-size:40px;margin-bottom:10px;">📊</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Chưa có dữ liệu</div>
+        <div style="font-size:12px;">Đăng nhập để xem thống kê bán hàng</div>
+      </div>` : ''}
+
+      <!-- Stat cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">${cardsHTML}</div>
+
+      <!-- Chart -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">📈 Đơn hàng & doanh thu 30 ngày</div>
+        ${loading ? `<div style="text-align:center;padding:40px;color:var(--hint);font-size:12px;">⏳ Đang tải...</div>`
+          : `<div style="position:relative;height:180px;"><canvas id="seller-orders-chart"></canvas></div>`}
+      </div>
+
+      <!-- Top listings -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">🏆 Sự kiện doanh thu cao nhất</div>
+        ${topHTML}
+      </div>
+
+      <!-- Refresh -->
+      <div style="text-align:center;padding-bottom:10px;">
+        <button onclick="state.sellerStats=null;openSellerStats()" style="font-size:12px;color:var(--sub);background:none;border:1px solid var(--border);border-radius:10px;padding:8px 18px;cursor:pointer;font-family:'Inter',sans-serif;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">🔄 Làm mới dữ liệu</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function buildOrderCard(o){

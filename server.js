@@ -1292,6 +1292,69 @@ app.post('/api/admin/users/:id/unban', async (req, res) => {
   res.json({ message: 'Đã mở khóa tài khoản' });
 });
 
+// ── Seller dashboard stats ──
+app.get('/api/seller/stats', auth, async (req, res) => {
+  const sellerId = req.user.id;
+  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [ordersRes, reviewsRes] = await Promise.all([
+    supabase.from('orders').select('*').eq('seller_id', sellerId).order('created_at', { ascending: false }),
+    supabase.from('reviews').select('rating,created_at').eq('seller_id', sellerId),
+  ]);
+
+  const orders = ordersRes.data || [];
+  const reviews = reviewsRes.data || [];
+  const completed = orders.filter(o => ['completed', 'confirmed', 'qr_uploaded'].includes(o.status));
+
+  const totalRevenue = completed.reduce((s, o) => s + ((o.total || 0) - (o.fee || 0)), 0);
+  const totalSold = completed.length;
+  const avgRating = reviews.length > 0
+    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0;
+
+  // Orders by day (last 30 days)
+  const byDay = {};
+  const revenueByDay = {};
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    byDay[key] = 0; revenueByDay[key] = 0;
+  }
+  completed.forEach(o => {
+    const key = (o.created_at || '').slice(0, 10);
+    if (key in byDay) { byDay[key]++; revenueByDay[key] += (o.total || 0) - (o.fee || 0); }
+  });
+
+  const ordersByDay = Object.entries(byDay).map(([date, count]) => ({
+    date, count, revenue: revenueByDay[date] || 0
+  }));
+
+  // Top listings by revenue
+  const topListings = {};
+  completed.forEach(o => {
+    if (!o.event_name) return;
+    if (!topListings[o.event_name]) topListings[o.event_name] = { event_name: o.event_name, count: 0, revenue: 0 };
+    topListings[o.event_name].count++;
+    topListings[o.event_name].revenue += (o.total || 0) - (o.fee || 0);
+  });
+  const top = Object.values(topListings).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
+  // Recent orders
+  const recent = orders.slice(0, 5).map(o => ({
+    id: o.id, event_name: o.event_name, status: o.status,
+    total: o.total, created_at: o.created_at
+  }));
+
+  res.json({
+    total_revenue: totalRevenue, total_sold: totalSold,
+    avg_rating: avgRating, total_reviews: reviews.length,
+    total_orders: orders.length,
+    pending: orders.filter(o => o.status === 'awaiting_seller').length,
+    orders_by_day: ordersByDay,
+    top_listings: top,
+    recent_orders: recent,
+  });
+});
+
 // Thống kê doanh thu
 app.get('/api/admin/stats', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
