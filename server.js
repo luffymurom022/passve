@@ -5,6 +5,12 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import ws from 'ws';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
@@ -53,7 +59,9 @@ app.use('/api/orders', orderLimit);
 app.use('/api/wallet/topup', topupLimit);
 app.use('/api', generalLimit);
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+  realtime: { transport: ws }
+});
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // ── MIDDLEWARE xác thực token ──
@@ -640,8 +648,15 @@ app.get('/api/admin/users', async (req, res) => {
     .order('created_at', { ascending: false });
   res.json(data || []);
 });
-// ── HEALTH CHECK ──
-app.get('/', (req, res) => res.json({ status: 'SafePass API đang chạy ✓' }));
+// ── SERVE FRONTEND STATIC FILES ──
+app.use(express.static(join(__dirname, 'frontend')));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✓ SafePass API chạy tại http://localhost:${PORT}`));
+// Fallback: serve index.html for non-API routes
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(join(__dirname, 'frontend', 'index.html'));
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`));

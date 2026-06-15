@@ -3691,7 +3691,7 @@ render();
    🔌 SAFEPASS API LAYER — kết nối backend thật
 ══════════════════════════════════════════ */
 
-const API = 'https://passve.up.railway.app/api';
+const API = window.location.origin + '/api';
 
 // ── Auth state ──
 let currentUser = JSON.parse(localStorage.getItem('sp_user') || 'null');

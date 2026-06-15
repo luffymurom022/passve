@@ -266,7 +266,7 @@ tr:hover td{background:rgba(255,255,255,.018);}
 <div id="toast"></div>
 
 <script>
-const API = 'https://passve.up.railway.app/api';
+const API = window.location.origin + '/api';
 let ADMIN_SECRET = '';
 let currentTab = 'overview';
 let _data = { orders: [], users: [], disputes: [] };
