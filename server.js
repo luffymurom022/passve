@@ -240,8 +240,35 @@ app.post('/api/auth/login', async (req, res) => {
 // Lấy thông tin user hiện tại
 app.get('/api/auth/me', auth, async (req, res) => {
   const { data } = await supabase
-    .from('users').select('id,phone,name,balance,escrow').eq('id', req.user.id).single();
+    .from('users').select('id,phone,name,email,balance,escrow,avg_rating,review_count').eq('id', req.user.id).single();
   res.json(data);
+});
+
+// Cập nhật profile (email, name)
+app.patch('/api/auth/profile', auth, async (req, res) => {
+  const { email, name } = req.body;
+  const updates = {};
+
+  if (name !== undefined) {
+    if (!name || name.trim().length < 2)
+      return res.status(400).json({ error: 'Tên phải ít nhất 2 ký tự' });
+    updates.name = name.trim();
+  }
+
+  if (email !== undefined) {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ error: 'Email không hợp lệ' });
+    updates.email = email ? email.toLowerCase().trim() : null;
+  }
+
+  if (Object.keys(updates).length === 0)
+    return res.status(400).json({ error: 'Không có thông tin cần cập nhật' });
+
+  const { data, error } = await supabase
+    .from('users').update(updates).eq('id', req.user.id).select('id,phone,name,email,balance,escrow').single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Cập nhật thành công', user: data });
 });
 
 // ════════════════════════════════
