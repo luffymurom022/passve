@@ -899,6 +899,55 @@ app.post('/api/orders/:id/review', auth, async (req, res) => {
   res.json(review);
 });
 
+// ── Public seller profile ──
+app.get('/api/users/:id', async (req, res) => {
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, name, phone, trust_score, is_verified, created_at, bio, avatar_url')
+    .eq('id', req.params.id).single();
+  if (error || !user) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+
+  // Aggregated stats
+  const { data: reviewStats } = await supabase
+    .from('reviews').select('rating').eq('seller_id', req.params.id);
+  const reviews = reviewStats || [];
+  const totalReviews = reviews.length;
+  const avgRating = totalReviews > 0
+    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / totalReviews) * 10) / 10
+    : 0;
+
+  const { count: totalSold } = await supabase
+    .from('orders').select('*', { count: 'exact', head: true })
+    .eq('seller_id', req.params.id).in('status', ['completed', 'confirmed', 'qr_uploaded']);
+
+  // Mask phone: only show last 3 digits
+  const maskedPhone = user.phone ? '****' + user.phone.slice(-3) : '';
+
+  res.json({
+    id: user.id,
+    name: user.name,
+    phone_masked: maskedPhone,
+    trust_score: user.trust_score || 0,
+    is_verified: user.is_verified || false,
+    created_at: user.created_at,
+    bio: user.bio || '',
+    avatar_url: user.avatar_url || '',
+    avg_rating: avgRating,
+    total_reviews: totalReviews,
+    total_sold: totalSold || 0,
+  });
+});
+
+// ── Public seller listings ──
+app.get('/api/users/:id/listings', async (req, res) => {
+  const { data, error } = await supabase
+    .from('tickets').select('*')
+    .eq('seller_id', req.params.id).eq('status', 'available')
+    .order('created_at', { ascending: false }).limit(20);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
 app.get('/api/users/:id/reviews', async (req, res) => {
   const { data } = await supabase
     .from('reviews').select('*').eq('seller_id', req.params.id)

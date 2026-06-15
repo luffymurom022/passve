@@ -767,6 +767,7 @@ let state={
   sellStep:0,
   // notifications
   notifOpen:false,notifCount:0,
+  sellerProfileId:null,
   // review
   showReviewModal:false,reviewOrderId:null,
   // wallet
@@ -1218,6 +1219,7 @@ function buildPlaceholderPage(page){
   if(page==="map") return buildMapPage();
   if(page==="compare") return buildComparePage();
   if(page==="alerts") return buildAlertsPage();
+  if(page==="seller_profile") return buildSellerProfilePage(state.sellerProfileId);
   return`<div style="text-align:center;padding:80px 20px;"><div style="font-size:13px;color:var(--sub);">Sắp ra mắt.</div></div>`;
 }
 
@@ -2873,7 +2875,7 @@ function buildListingDetail(lid){
         </div>
         <div style="font-size:12px;color:var(--sub);line-height:1.6;margin-bottom:12px;">"${seller.bio}"</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="showToast('Đang mở hồ sơ người bán...','var(--brand)','👤')" class="btn btn-ghost btn-sm" style="flex:1;">👤 Xem hồ sơ</button>
+          <button onclick="openSellerProfile('${l.seller_id}')" class="btn btn-ghost btn-sm" style="flex:1;">👤 Xem hồ sơ</button>
           <button onclick="showToast('Mở chat với người bán...','var(--purple)','💬')" class="btn btn-outline btn-sm" style="flex:1;">💬 Nhắn tin</button>
         </div>
       </div>
@@ -2895,6 +2897,184 @@ function buildListingDetail(lid){
         <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:12px;">🔗 Vé tương tự</div>
         <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;">${similarHTML}</div>
       </div>`:""}
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   👤 SELLER PROFILE PAGE
+══════════════════════════════════════════ */
+function openSellerProfile(sellerId){
+  setState({page:'seller_profile', sellerProfileId: sellerId});
+}
+
+function buildSellerProfilePage(sellerId){
+  if(!sellerId) return `<div style="text-align:center;padding:60px 20px;color:var(--hint);">Không tìm thấy người bán.</div>`;
+
+  // Check cached data or use local fallback
+  const cached = window._sellerProfiles && window._sellerProfiles[sellerId];
+  const local = SELLERS[sellerId];
+  const cachedListings = window._sellerListings && window._sellerListings[sellerId];
+  const cachedReviews = window._sellerReviews && window._sellerReviews[sellerId];
+
+  // Async fetch profile + listings + reviews in background
+  if(!cached){
+    if(!window._sellerProfiles) window._sellerProfiles = {};
+    window._sellerProfiles[sellerId] = 'loading';
+    Promise.all([
+      fetch(API+'/users/'+sellerId).then(r=>r.json()).catch(()=>null),
+      fetch(API+'/users/'+sellerId+'/listings').then(r=>r.json()).catch(()=>[]),
+      fetch(API+'/users/'+sellerId+'/reviews').then(r=>r.json()).catch(()=>[]),
+    ]).then(([profile, listings, reviews]) => {
+      if(profile && !profile.error) window._sellerProfiles[sellerId] = profile;
+      if(Array.isArray(listings)) { if(!window._sellerListings) window._sellerListings={}; window._sellerListings[sellerId]=listings; }
+      if(Array.isArray(reviews)) { if(!window._sellerReviews) window._sellerReviews={}; window._sellerReviews[sellerId]=reviews; }
+      render();
+    });
+  }
+
+  // Merge API data with local fallback
+  const profile = (cached && cached!=='loading') ? cached : null;
+  const name = profile?.name || local?.name || 'Người bán';
+  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const isVerified = profile?.is_verified ?? local?.verified ?? false;
+  const trust = profile?.trust_score ?? local?.trust ?? 0;
+  const avgRating = profile?.avg_rating ?? local?.rating ?? 0;
+  const totalReviews = profile?.total_reviews ?? local?.reviews ?? 0;
+  const totalSold = profile?.total_sold ?? local?.sales ?? 0;
+  const bio = profile?.bio || local?.bio || '';
+  const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('vi-VN',{month:'long',year:'numeric'}) : (local?.joined||'');
+  const loading = cached==='loading';
+
+  const tc = trust>=80?'var(--ok)':trust>=60?'var(--warn)':'var(--red)';
+  const stars = n=>Array.from({length:5},(_,i)=>`<span style="color:${i<Math.round(n)?'var(--gold)':'var(--border2)'};">★</span>`).join('');
+
+  // Listings
+  const listings = cachedListings || [];
+  const listingsHTML = loading ? `<div style="text-align:center;padding:24px;color:var(--hint);font-size:12px;">⏳ Đang tải...</div>`
+    : listings.length===0 ? `<div style="text-align:center;padding:24px;color:var(--hint);font-size:12px;">Không có vé nào đang bán.</div>`
+    : listings.map(t=>{
+      const disc = t.original_price && t.price < t.original_price ? Math.round((1-t.price/t.original_price)*100) : 0;
+      return `<div onclick="setState({page:'listing',activeListing:'${t.id}'})" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:800;line-height:1.3;flex:1;">${t.event_name}</div>
+          ${disc>0?`<span style="font-size:10px;background:rgba(245,166,35,.15);color:var(--gold);border:1px solid rgba(245,166,35,.3);padding:2px 7px;border-radius:6px;white-space:nowrap;">-${disc}%</span>`:''}
+        </div>
+        <div style="font-size:11px;color:var(--hint);margin-bottom:6px;">📍 ${t.location||''} · 📅 ${t.event_date||''}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:14px;font-weight:800;color:var(--brand);">${VND(t.price)}</div>
+          <div style="font-size:10px;color:var(--hint);">Còn ${t.quantity||1} vé</div>
+        </div>
+      </div>`;
+    }).join('');
+
+  // Reviews
+  const reviews = cachedReviews || SELLER_REVIEWS[sellerId] || [];
+  const reviewsHTML = loading ? `<div style="text-align:center;padding:24px;color:var(--hint);font-size:12px;">⏳ Đang tải...</div>`
+    : reviews.length===0 ? `<div style="text-align:center;padding:24px;color:var(--hint);font-size:12px;">Chưa có đánh giá nào.</div>`
+    : reviews.map(r=>{
+      const rname = r.buyer_name || r.buyer || 'Ẩn danh';
+      const rdate = r.created_at ? new Date(r.created_at).toLocaleDateString('vi-VN') : (r.date||'');
+      return `<div style="padding:13px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:var(--purpleBg);border:1px solid rgba(155,135,245,.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--purple);flex-shrink:0;">${rname.slice(0,2).toUpperCase()}</div>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:700;">${rname}</div>
+            <div style="font-size:10px;color:var(--hint);font-family:'JetBrains Mono',monospace;">${rdate}</div>
+          </div>
+          <div style="font-size:12px;">${stars(r.rating)}</div>
+        </div>
+        <div style="font-size:12px;color:var(--sub);line-height:1.6;">"${r.text||''}"</div>
+        ${r.seller_reply?`<div style="margin-top:8px;padding:8px 10px;background:var(--bg2);border-left:2px solid var(--brand);border-radius:0 8px 8px 0;font-size:11px;color:var(--sub);"><span style="color:var(--brand);font-weight:700;">Phản hồi:</span> ${r.seller_reply}</div>`:''}
+      </div>`;
+    }).join('');
+
+  // Rating breakdown bar
+  const ratingBarsHTML = [5,4,3,2,1].map(star=>{
+    const count = reviews.filter(r=>r.rating===star).length;
+    const pct = reviews.length>0 ? Math.round(count/reviews.length*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <div style="font-size:11px;color:var(--hint);width:14px;text-align:right;">${star}</div>
+      <div style="font-size:10px;color:var(--gold);">★</div>
+      <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:3px;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--hint);width:28px;text-align:right;">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="max-width:680px;margin:0 auto;padding:0 0 100px;">
+    <!-- Back -->
+    <div style="padding:14px 20px 0;">
+      <button onclick="history.back()||setState({page:'search'})" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--sub);cursor:pointer;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;padding:0;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--sub)'">
+        ← Quay lại
+      </button>
+    </div>
+
+    <!-- Profile header -->
+    <div style="padding:20px 20px 0;">
+      <div style="background:linear-gradient(135deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--border2);border-radius:20px;padding:24px;margin-bottom:14px;position:relative;overflow:hidden;">
+        <!-- Glow -->
+        <div style="position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(circle,rgba(61,142,248,.12) 0%,transparent 70%);border-radius:50%;pointer-events:none;"></div>
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+          <!-- Avatar holographic -->
+          <div style="flex-shrink:0;">
+            <svg width="72" height="72" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%;animation:holoFlicker 5s infinite,holoGlow 4s ease-in-out infinite;">
+              <defs><radialGradient id="spbg" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="#9b87f5" stop-opacity=".22"/><stop offset="100%" stop-color="#030912" stop-opacity="0"/></radialGradient><linearGradient id="spscan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9b87f5" stop-opacity="0"/><stop offset="50%" stop-color="#9b87f5" stop-opacity=".5"/><stop offset="100%" stop-color="#9b87f5" stop-opacity="0"/></linearGradient><clipPath id="spclip"><circle cx="32" cy="32" r="30"/></clipPath></defs>
+              <circle cx="32" cy="32" r="32" fill="#040c18"/><circle cx="32" cy="32" r="30" stroke="#9b87f5" stroke-width="1" fill="none" opacity=".45"/>
+              <circle cx="32" cy="32" r="26" fill="url(#spbg)"/>
+              <circle cx="32" cy="32" r="18" stroke="#9b87f5" stroke-width=".6" fill="none" opacity=".2" stroke-dasharray="3 4" style="animation:holoRing 6s linear reverse infinite;transform-origin:32px 32px;"/>
+              <line x1="2" y1="22" x2="62" y2="22" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#spclip)"/>
+              <line x1="2" y1="32" x2="62" y2="32" stroke="#9b87f5" stroke-width=".35" opacity=".12" clip-path="url(#spclip)"/>
+              <line x1="2" y1="42" x2="62" y2="42" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#spclip)"/>
+              <rect x="2" y="0" width="60" height="12" fill="url(#spscan)" clip-path="url(#spclip)" style="animation:holoScan 3.5s 1s linear infinite;"/>
+              <polygon points="32,14 42,20 42,32 32,38 22,32 22,20" fill="none" stroke="#9b87f5" stroke-width="1.1" opacity=".55" style="animation:holoPulse 2.5s .5s ease-in-out infinite;"/>
+              <text x="32" y="37" text-anchor="middle" font-size="14" font-weight="800" fill="#9b87f5" font-family="JetBrains Mono,monospace" letter-spacing="1">${initials}</text>
+            </svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+              <div style="font-size:18px;font-weight:800;font-family:'Inter',sans-serif;">${name}</div>
+              ${isVerified?`<span style="font-size:10px;color:var(--ok);font-weight:700;background:var(--okBg);padding:3px 8px;border-radius:6px;border:1px solid rgba(52,216,158,.2);">✓ Xác minh</span>`:''}
+            </div>
+            <div style="font-size:11px;color:var(--hint);margin-bottom:10px;">Thành viên từ ${joinedDate}${profile?.phone_masked?' · '+profile.phone_masked:''}</div>
+            ${bio?`<div style="font-size:12px;color:var(--sub);line-height:1.6;font-style:italic;">"${bio}"</div>`:''}
+          </div>
+          <div style="text-align:center;flex-shrink:0;">
+            <div style="font-size:22px;font-weight:800;font-family:'Inter',sans-serif;color:${tc};">🛡 ${trust}</div>
+            <div style="font-size:9px;color:var(--hint);letter-spacing:.05em;">TRUST SCORE</div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px;">
+          ${[
+            {label:'Đánh giá TB',val:avgRating?avgRating+'⭐':'—',sub:totalReviews+' đánh giá'},
+            {label:'Đã bán',val:totalSold,sub:'giao dịch hoàn thành'},
+            {label:'Trust Score',val:trust,sub:trust>=80?'Rất uy tín':trust>=60?'Uy tín':'Cần cẩn thận'},
+          ].map(s=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:15px;font-weight:800;font-family:'Inter',sans-serif;">${s.val}</div>
+            <div style="font-size:10px;color:var(--hint);margin-top:3px;">${s.label}</div>
+            <div style="font-size:9px;color:var(--hint);opacity:.6;margin-top:1px;">${s.sub}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Active listings -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:12px;">🎟 Vé đang bán (${loading?'...':listings.length})</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">${listingsHTML}</div>
+      </div>
+
+      <!-- Reviews section -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;">⭐ Đánh giá (${loading?'...':reviews.length})</div>
+          ${avgRating>0?`<div style="font-size:18px;font-weight:800;color:var(--gold);">${stars(avgRating)} ${avgRating}</div>`:''}
+        </div>
+        ${reviews.length>0?`<div style="margin-bottom:16px;">${ratingBarsHTML}</div>`:''}
+        <div>${reviewsHTML}</div>
+      </div>
     </div>
   </div>`;
 }

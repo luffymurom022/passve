@@ -257,7 +257,7 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 > Agent: đây là danh sách `[ ]` cần build. Đọc từ trên xuống, build lần lượt.
 
 - [x] ⚡ Thông báo trong app — bell icon, `GET /api/notifications`, `POST /api/notifications/:id/read`, `POST /api/notifications/read-all`, bảng `notifications` Supabase, unread badge, dropdown 20 thông báo, đánh dấu đã đọc, polling 30s *(2026-06-15)*
-- [ ] ⚡ Trang profile công khai seller — route `/seller/:id` hoặc `?seller=id`, hiển thị: avatar, tên, rating, số đơn hoàn thành, danh sách vé đang bán, danh sách reviews
+- [x] ⚡ Trang profile công khai seller — `GET /api/users/:id` + `GET /api/users/:id/listings`, trang `seller_profile` với avatar holographic, trust score, stats, vé đang bán, reviews + rating bars *(2026-06-15)*
 - [ ] Seller dashboard analytics — tab "Thống kê" trong My Tickets: tổng doanh thu, số vé đã bán, rating trung bình, biểu đồ đơn hàng 30 ngày (Chart.js)
 - [ ] Xác minh seller (verified badge) — admin có thể mark seller là verified, hiển thị ✓ badge xanh trên listing vé và profile
 - [ ] Tìm kiếm nâng cao — dropdown chọn danh mục sự kiện (Âm nhạc, Thể thao, Hội nghị, Khác), filter kết hợp với search hiện tại
