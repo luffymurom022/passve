@@ -219,6 +219,7 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 - [x] `GET /api/admin/export` — xuất báo cáo orders CSV *(2026-06-15)*
 - [x] `POST /api/admin/process-timeouts` — trigger escrow timeout thủ công *(2025-06-15)*
 - [x] Trang `admin.html` — overview, disputes, orders, users *(2026-06-15)*
+- [x] Admin Dashboard trong SPA — tab 🔐 Admin (chỉ hiện với is_admin), 4 tabs: Tổng quan/Khiếu nại/Đơn hàng/Người dùng, resolve dispute, ban/unban, verify/unverify ngay trong app *(2026-06-16)*
 
 ---
 

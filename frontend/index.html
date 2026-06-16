@@ -3067,129 +3067,409 @@ function buildListingDetail(lid){
 }
 
 /* ══════════════════════════════════════════
-   🔐 ADMIN VERIFY PAGE
+   🔐 ADMIN DASHBOARD (4 tabs)
 ══════════════════════════════════════════ */
-let _adminUsers = null;
-let _adminUsersLoading = false;
-let _adminSearch = '';
+let _adminData = { stats: null, disputes: [], orders: [], users: [], loaded: false };
+let _adminTab = 'overview';
+let _adminLoading = false;
+let _adminLastRefresh = null;
+let _adminUserFilter = '';
 
-async function loadAdminUsers(){
-  if(!authToken || !currentUser?.is_admin) return;
-  _adminUsersLoading = true; render();
-  try {
-    const params = _adminSearch ? '?search='+encodeURIComponent(_adminSearch) : '';
-    const res = await fetch(API+'/admin/users'+params, {
-      headers: { ...getHeaders(), 'x-admin-secret': localStorage.getItem('sp_admsec')||'' }
-    });
-    if(res.ok) _adminUsers = await res.json();
-    else { showToast('Sai Admin Secret!','var(--red)','❌'); }
-  } catch(e){}
-  _adminUsersLoading = false; render();
+function adminH() {
+  const sec = localStorage.getItem('sp_admsec') || '';
+  return { 'Content-Type': 'application/json', 'x-admin-secret': sec };
 }
 
-async function adminVerifyUser(userId, verify){
-  const secret = localStorage.getItem('sp_admsec')||'';
+async function adminLoadData(silent = false) {
+  if (!currentUser?.is_admin) return;
+  if (!silent) { _adminLoading = true; render(); }
+  try {
+    const sec = encodeURIComponent(localStorage.getItem('sp_admsec') || '');
+    const [statsRes, disputesRes, ordersRes, usersRes] = await Promise.all([
+      fetch(API + '/admin/stats', { headers: adminH() }).then(r => r.ok ? r.json() : null),
+      fetch(API + '/admin/orders?status=disputed', { headers: adminH() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/orders', { headers: adminH() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/users', { headers: adminH() }).then(r => r.ok ? r.json() : []),
+    ]);
+    if (statsRes === null && !silent) { showToast('Sai Admin Secret — kiểm tra lại', 'var(--red)', '❌'); }
+    _adminData.stats = statsRes;
+    _adminData.disputes = Array.isArray(disputesRes) ? disputesRes : [];
+    _adminData.orders = Array.isArray(ordersRes) ? ordersRes : [];
+    _adminData.users = Array.isArray(usersRes) ? usersRes : [];
+    _adminData.loaded = true;
+    _adminLastRefresh = new Date();
+  } catch(e) { if (!silent) showToast('Lỗi kết nối server', 'var(--red)', '❌'); }
+  _adminLoading = false;
+  render();
+}
+
+async function adminVerifyUser(userId, verify) {
   const action = verify ? 'verify' : 'unverify';
-  const res = await fetch(API+'/admin/users/'+userId+'/'+action, {
-    method:'POST', headers:{ ...getHeaders(), 'x-admin-secret': secret }
-  });
-  if(res.ok){
-    const u = _adminUsers?.find(x=>x.id===userId);
-    if(u) u.is_verified = verify;
-    showToast(verify?'✓ Đã xác minh seller':'Đã bỏ xác minh','var(--ok)','✅');
+  const res = await fetch(API + '/admin/users/' + userId + '/' + action, { method: 'POST', headers: adminH() });
+  if (res.ok) {
+    const u = _adminData.users.find(x => x.id === userId);
+    if (u) u.is_verified = verify;
+    showToast(verify ? '✓ Đã xác minh seller' : 'Đã bỏ xác minh', 'var(--ok)', '✅');
     render();
-  } else {
-    showToast('Lỗi: Kiểm tra admin secret','var(--red)','❌');
+  } else { showToast('Lỗi: Kiểm tra admin secret', 'var(--red)', '❌'); }
+}
+
+async function adminBanUser(userId, ban) {
+  const action = ban ? 'ban' : 'unban';
+  const res = await fetch(API + '/admin/users/' + userId + '/' + action, {
+    method: 'POST', headers: adminH(), body: JSON.stringify({ reason: '' })
+  });
+  if (res.ok) {
+    const u = _adminData.users.find(x => x.id === userId);
+    if (u) u.is_banned = ban;
+    showToast(ban ? '🚫 Đã khoá tài khoản' : '✅ Đã mở khoá', ban ? 'var(--red)' : 'var(--ok)', ban ? '🚫' : '✅');
+    render();
+  } else { showToast('Lỗi: Kiểm tra admin secret', 'var(--red)', '❌'); }
+}
+
+async function adminResolveDispute(orderId, winner) {
+  const noteEl = document.getElementById('adm-note-' + orderId);
+  const note = noteEl ? noteEl.value.trim() : '';
+  const btns = document.querySelectorAll('[data-resolve-id="' + orderId + '"]');
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '.5'; });
+  try {
+    const res = await fetch(API + '/admin/orders/' + orderId + '/resolve', {
+      method: 'POST',
+      headers: adminH(),
+      body: JSON.stringify({ winner, note, secret: localStorage.getItem('sp_admsec') || '' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lỗi không xác định');
+    showToast('✅ ' + data.message, 'var(--ok)', '✅');
+    await adminLoadData(true);
+  } catch(e) {
+    showToast('❌ ' + e.message, 'var(--red)', '❌');
+    btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
   }
 }
 
-function buildAdminVerifyPage(){
-  if(!currentUser?.is_admin) return `<div style="text-align:center;padding:80px 20px;color:var(--hint);">Không có quyền truy cập.</div>`;
+async function adminExportCSV() {
+  try {
+    showToast('📥 Đang xuất CSV...', 'var(--brand)', '📥');
+    const sec = encodeURIComponent(localStorage.getItem('sp_admsec') || '');
+    const res = await fetch(API + '/admin/export?secret=' + sec, { headers: adminH() });
+    if (!res.ok) { showToast('❌ Xuất thất bại', 'var(--red)', '❌'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'orders_safepass.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast('✅ Xuất CSV thành công!', 'var(--ok)', '✅');
+  } catch(e) { showToast('❌ ' + e.message, 'var(--red)', '❌'); }
+}
 
-  const secret = localStorage.getItem('sp_admsec')||'';
-  const users = _adminUsers || [];
+async function adminProcessTimeouts() {
+  try {
+    const sec = encodeURIComponent(localStorage.getItem('sp_admsec') || '');
+    const res = await fetch(API + '/admin/process-timeouts?secret=' + sec, {
+      method: 'POST', headers: adminH(), body: JSON.stringify({ secret: localStorage.getItem('sp_admsec') || '' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ Đã xử lý escrow timeouts', 'var(--ok)', '✅');
+    await adminLoadData(true);
+  } catch(e) { showToast('❌ ' + e.message, 'var(--red)', '❌'); }
+}
 
-  return `<div style="padding-bottom:80px;">
-    <div style="padding:20px 20px 0;">
-      <div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;margin-bottom:2px;">🔐 Admin — Xác minh Seller</div>
-      <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Quản lý verified badge cho người bán</div>
+async function adminLookupOrder(inputId, resultId) {
+  const id = (document.getElementById(inputId)?.value || '').trim();
+  if (!id) return;
+  const el = document.getElementById(resultId);
+  if (!el) return;
+  el.innerHTML = '<div style="padding:16px;color:var(--hint);font-size:12px;">⏳ Đang tải...</div>';
+  try {
+    const res = await fetch(API + '/admin/orders/' + id, { headers: adminH() });
+    if (res.ok) {
+      const o = await res.json();
+      el.innerHTML = adminOrderDetail(o);
+    } else {
+      el.innerHTML = adminResolveCard(id, null);
+    }
+  } catch(e) { el.innerHTML = `<div style="color:var(--red);font-size:12px;">${e.message}</div>`; }
+}
 
-      <!-- Admin secret input -->
+function adminEsc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function adminFmtVND(n) {
+  if (!n && n !== 0) return '—';
+  return Number(n).toLocaleString('vi-VN') + 'đ';
+}
+function adminFmtBig(n) {
+  if (!n && n !== 0) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(0)+'K';
+  return n.toLocaleString('vi-VN');
+}
+function adminStatusPill(status) {
+  const map = {
+    waiting_qr: '<span style="font-size:10px;font-weight:700;background:rgba(61,142,248,.1);color:var(--brand);border:1px solid rgba(61,142,248,.2);padding:2px 8px;border-radius:6px;">⏳ Chờ QR</span>',
+    waiting_confirm: '<span style="font-size:10px;font-weight:700;background:rgba(61,142,248,.1);color:var(--brand);border:1px solid rgba(61,142,248,.2);padding:2px 8px;border-radius:6px;">📸 Chờ confirm</span>',
+    completed: '<span style="font-size:10px;font-weight:700;background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.2);padding:2px 8px;border-radius:6px;">✅ Hoàn tất</span>',
+    disputed: '<span style="font-size:10px;font-weight:700;background:var(--redBg);color:var(--red);border:1px solid rgba(240,80,104,.2);padding:2px 8px;border-radius:6px;">⚠️ Tranh chấp</span>',
+    refunded: '<span style="font-size:10px;font-weight:700;background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,166,35,.2);padding:2px 8px;border-radius:6px;">↩️ Hoàn tiền</span>',
+  };
+  return map[status] || `<span style="font-size:10px;font-weight:700;border:1px solid var(--border);padding:2px 8px;border-radius:6px;">${status}</span>`;
+}
+
+function adminResolveCard(orderId, order) {
+  return `<div style="background:var(--card);border:1.5px solid rgba(240,80,104,.25);border-radius:14px;padding:16px;margin-bottom:10px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;">${order ? adminEsc(order.event_name) : 'Order: ' + orderId.slice(0,8) + '…'}</div>
+        ${order ? `<div style="font-size:11px;color:var(--sub);margin-top:2px;">Buyer: <b>${adminEsc(order.buyer_name)}</b> · Seller: <b>${adminEsc(order.seller_name)}</b> · Tổng: <b>${adminFmtVND(order.total)}</b>${order.dispute_opened_at ? ' · Mở: '+new Date(order.dispute_opened_at).toLocaleString('vi-VN') : ''}</div>` : ''}
+      </div>
+      ${adminStatusPill('disputed')}
+    </div>
+    ${order?.dispute_reason ? `<div style="background:var(--redBg);border:1px solid rgba(240,80,104,.15);border-radius:8px;padding:10px 12px;margin-bottom:10px;"><div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;margin-bottom:3px;">Lý do khiếu nại</div><div style="font-size:12px;">${adminEsc(order.dispute_reason)}</div>${order.dispute_description?`<div style="font-size:11px;color:var(--sub);margin-top:4px;">${adminEsc(order.dispute_description)}</div>`:''}</div>` : ''}
+    <textarea id="adm-note-${orderId}" rows="2" placeholder="Ghi chú lý do quyết định (optional)..." style="width:100%;background:var(--bg2);border:1.5px solid var(--border2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text);outline:none;resize:vertical;font-family:'Inter',sans-serif;margin-bottom:8px;" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+    <div style="display:flex;gap:8px;">
+      <button data-resolve-id="${orderId}" onclick="adminResolveDispute('${orderId}','buyer')" style="flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid rgba(155,135,245,.3);background:var(--purpleBg);color:var(--purple);cursor:pointer;">👤 Buyer thắng — Hoàn tiền</button>
+      <button data-resolve-id="${orderId}" onclick="adminResolveDispute('${orderId}','seller')" style="flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid rgba(245,166,35,.3);background:var(--warnBg);color:var(--warn);cursor:pointer;">🏪 Seller thắng — Giải ngân</button>
+    </div>
+  </div>`;
+}
+
+function adminOrderDetail(o) {
+  return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;">${adminEsc(o.event_name)}</div>
+        <div style="font-size:10px;color:var(--hint);font-family:'JetBrains Mono',monospace;margin-top:2px;">${o.id}</div>
+      </div>
+      ${adminStatusPill(o.status)}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:12px;">
+      <div><span style="color:var(--sub);">Buyer:</span> <b>${adminEsc(o.buyer_name)}</b></div>
+      <div><span style="color:var(--sub);">Seller:</span> <b>${adminEsc(o.seller_name)}</b></div>
+      <div><span style="color:var(--sub);">Giá vé:</span> <span style="font-family:'JetBrains Mono',monospace;">${adminFmtVND(o.price)}</span></div>
+      <div><span style="color:var(--sub);">Tổng+phí:</span> <span style="font-family:'JetBrains Mono',monospace;">${adminFmtVND(o.total)}</span></div>
+    </div>
+    ${o.status === 'disputed' ? adminResolveCard(o.id, o) : ''}
+  </div>`;
+}
+
+function buildAdminVerifyPage() {
+  if (!currentUser?.is_admin) return `<div style="text-align:center;padding:80px 20px;color:var(--hint);">Không có quyền truy cập.</div>`;
+
+  const sec = localStorage.getItem('sp_admsec') || '';
+  const s = _adminData.stats || {};
+  const disputes = _adminData.disputes;
+  const orders = _adminData.orders;
+  const users = _adminData.users;
+  const loaded = _adminData.loaded;
+  const timeStr = _adminLastRefresh ? _adminLastRefresh.toLocaleTimeString('vi-VN') : '—';
+
+  const TAB_STYLE = (id) => `padding:8px 14px;border-radius:10px 10px 0 0;font-size:12px;font-weight:${_adminTab===id?'700':'500'};cursor:pointer;border:1px solid ${_adminTab===id?'var(--border)':'transparent'};border-bottom:1px solid ${_adminTab===id?'var(--card)':'transparent'};background:${_adminTab===id?'var(--card)':'none'};color:${_adminTab===id?'var(--text)':'var(--sub)'};transition:all .15s;white-space:nowrap;position:relative;bottom:-1px;`;
+
+  const tabs = `
+    <div style="display:flex;gap:2px;border-bottom:1px solid var(--border);overflow-x:auto;padding:0 16px;margin-bottom:0;">
+      <button style="${TAB_STYLE('overview')}" onclick="_adminTab='overview';render()">📊 Tổng quan</button>
+      <button style="${TAB_STYLE('disputes')}" onclick="_adminTab='disputes';render()">🔥 Khiếu nại${disputes.length>0?` <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;background:var(--red);color:#fff;border-radius:8px;font-size:9px;margin-left:3px;">${disputes.length}</span>`:''}
+      </button>
+      <button style="${TAB_STYLE('orders')}" onclick="_adminTab='orders';render()">📋 Đơn hàng</button>
+      <button style="${TAB_STYLE('users')}" onclick="_adminTab='users';render()">👥 Người dùng</button>
+    </div>`;
+
+  // ─── Secret bar ───
+  const secretBar = `
+    <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:var(--hint);white-space:nowrap;">🔑 Secret:</span>
+      <input type="password" value="${adminEsc(sec)}" oninput="localStorage.setItem('sp_admsec',this.value)"
+        placeholder="Nhập admin secret..."
+        style="flex:1;min-width:0;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border2);background:var(--card);color:var(--text);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;"
+        onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+      <button onclick="adminLoadData(false)" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(61,142,248,.3);background:rgba(61,142,248,.1);color:var(--brand);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🔄 Tải</button>
+      ${loaded?`<span style="font-size:10px;color:var(--hint);white-space:nowrap;">${timeStr}</span>`:''}
+    </div>`;
+
+  // ─── Not loaded yet ───
+  if (!loaded && !_adminLoading) {
+    return `<div style="padding-bottom:80px;"><div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;padding:20px 16px 0;">🔐 Admin Dashboard</div>${secretBar}<div style="text-align:center;padding:60px 20px;color:var(--hint);"><div style="font-size:36px;margin-bottom:10px;">🔐</div><div style="font-size:13px;">Nhập Admin Secret và bấm "Tải"</div></div></div>`;
+  }
+  if (_adminLoading) {
+    return `<div style="padding-bottom:80px;"><div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;padding:20px 16px 0;">🔐 Admin Dashboard</div>${secretBar}<div style="text-align:center;padding:60px 20px;color:var(--hint);font-size:13px;">⏳ Đang tải dữ liệu...</div></div>`;
+  }
+
+  // ─── OVERVIEW TAB ───
+  const overviewTab = () => {
+    const statCard = (label, val, col, sub) =>
+      `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;flex:1;min-width:130px;">
+        <div style="font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">${label}</div>
+        <div style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${col};">${val}</div>
+        ${sub?`<div style="font-size:10px;color:var(--hint);margin-top:2px;">${sub}</div>`:''}
+      </div>`;
+    return `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        ${statCard('💰 Revenue', adminFmtBig(s.totalRevenue)+'đ', 'var(--ok)', 'Phí 3% đã thu')}
+        ${statCard('📦 GMV', adminFmtBig(s.totalGMV)+'đ', 'var(--brand)', 'Tổng giá trị GD')}
+        ${statCard('🔒 Escrow', adminFmtBig(s.totalEscrowLocked)+'đ', 'var(--purple)', 'Đang giữ')}
+        ${statCard('✅ Đơn HT', s.completedOrders||0, 'var(--ok)', '/'+(s.totalOrders||0)+' tổng')}
+        ${statCard('⚠️ Disputes', disputes.length, 'var(--red)', 'Chờ xử lý')}
+        ${statCard('👥 Users', s.totalUsers||0, 'var(--brand)', (s.bannedUsers||0)+' bị khoá')}
+        ${statCard('🎟️ Vé bán', s.availableTickets||0, 'var(--warn)', 'available')}
+      </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;color:var(--hint);margin-bottom:8px;">🔑 Admin Secret</div>
-        <div style="display:flex;gap:8px;">
-          <input type="password" value="${secret}" oninput="localStorage.setItem('sp_admsec',this.value)"
-            placeholder="Nhập admin secret..."
-            style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;font-family:'Inter',sans-serif;outline:none;"
-            onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
-          <button onclick="loadAdminUsers()" class="btn btn-primary btn-sm">Tải danh sách</button>
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">⚡ Quick Actions</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="_adminTab='disputes';render()" style="padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(61,142,248,.3);background:rgba(61,142,248,.1);color:var(--brand);cursor:pointer;">🔥 Xem khiếu nại${disputes.length>0?' ('+disputes.length+')':''}</button>
+          <button onclick="_adminTab='users';render()" style="padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(61,142,248,.3);background:rgba(61,142,248,.1);color:var(--brand);cursor:pointer;">👥 Quản lý users</button>
+          <button onclick="adminExportCSV()" style="padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);cursor:pointer;">📥 Xuất CSV</button>
+          <button onclick="adminProcessTimeouts()" style="padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(245,166,35,.3);background:var(--warnBg);color:var(--warn);cursor:pointer;">⏰ Escrow Timeout</button>
+          <button onclick="adminLoadData(false)" style="padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--bg2);color:var(--sub);cursor:pointer;">🔄 Làm mới</button>
         </div>
       </div>
+      ${disputes.length > 0 ? `
+      <div style="background:var(--card);border:1.5px solid rgba(240,80,104,.2);border-radius:14px;padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px;">🔥 ${disputes.length} khiếu nại đang chờ xử lý</div>
+        ${disputes.slice(0,2).map(o => adminResolveCard(o.id, o)).join('')}
+        ${disputes.length > 2 ? `<button onclick="_adminTab='disputes';render()" style="width:100%;padding:9px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(240,80,104,.3);background:var(--redBg);color:var(--red);cursor:pointer;margin-top:6px;">Xem thêm ${disputes.length-2} khiếu nại →</button>` : ''}
+      </div>` : `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;color:var(--hint);font-size:13px;">✅ Không có khiếu nại nào đang chờ</div>`}`;
+  };
 
-      <!-- Search -->
-      ${_adminUsers !== null ? `
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <input type="text" value="${_adminSearch}" oninput="_adminSearch=this.value" onkeydown="if(event.key==='Enter')loadAdminUsers()"
-          placeholder="Tìm theo tên, số điện thoại..."
-          style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-family:'Inter',sans-serif;outline:none;"
-          onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
-        <button onclick="loadAdminUsers()" class="btn btn-ghost btn-sm">🔍</button>
-      </div>` : ''}
-
-      <!-- Stats -->
-      ${_adminUsers !== null ? `
-      <div style="display:flex;gap:10px;margin-bottom:14px;">
-        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:18px;font-weight:800;color:var(--brand);">${users.length}</div>
-          <div style="font-size:10px;color:var(--hint);">Tổng users</div>
-        </div>
-        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:18px;font-weight:800;color:var(--ok);">${users.filter(u=>u.is_verified).length}</div>
-          <div style="font-size:10px;color:var(--hint);">Đã xác minh</div>
-        </div>
-        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:18px;font-weight:800;color:var(--red);">${users.filter(u=>u.is_banned).length}</div>
-          <div style="font-size:10px;color:var(--hint);">Bị khoá</div>
-        </div>
-      </div>` : ''}
-
-      <!-- Loading -->
-      ${_adminUsersLoading ? `<div style="text-align:center;padding:40px;color:var(--hint);font-size:13px;">⏳ Đang tải...</div>` : ''}
-
-      <!-- User list -->
-      ${!_adminUsersLoading && _adminUsers !== null ? `
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${users.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--hint);">Không tìm thấy user nào.</div>` :
-          users.map(u => `
-          <div style="background:var(--card);border:1px solid ${u.is_verified?'rgba(52,216,158,.3)':u.is_banned?'rgba(240,86,106,.25)':'var(--border)'};border-radius:14px;padding:14px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:40px;height:40px;border-radius:50%;background:var(--purpleBg);border:1px solid rgba(155,135,245,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--purple);flex-shrink:0;">${(u.name||'?').slice(0,2).toUpperCase()}</div>
-              <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                  <span style="font-size:13px;font-weight:700;">${u.name||'—'}</span>
-                  ${u.is_verified?`<span style="font-size:9px;font-weight:800;color:var(--ok);background:var(--okBg);padding:2px 6px;border-radius:5px;border:1px solid rgba(52,216,158,.2);">✓ Đã xác minh</span>`:''}
-                  ${u.is_banned?`<span style="font-size:9px;font-weight:800;color:var(--red);background:var(--redBg);padding:2px 6px;border-radius:5px;">🚫 Bị khoá</span>`:''}
-                </div>
-                <div style="font-size:10px;color:var(--hint);margin-top:2px;">${u.phone||''} · ${u.email||'Chưa có email'}</div>
-                <div style="font-size:10px;color:var(--hint);">⭐ ${u.avg_rating||'—'} · ${u.review_count||0} đánh giá · Tham gia: ${u.created_at?new Date(u.created_at).toLocaleDateString('vi-VN'):''}</div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-                ${u.is_verified
-                  ? `<button onclick="adminVerifyUser('${u.id}',false)" style="font-size:10px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid rgba(240,86,106,.3);background:var(--redBg);color:var(--red);cursor:pointer;white-space:nowrap;">✗ Bỏ XM</button>`
-                  : `<button onclick="adminVerifyUser('${u.id}',true)" style="font-size:10px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);cursor:pointer;white-space:nowrap;">✓ Xác minh</button>`
-                }
-                <button onclick="openSellerProfile('${u.id}')" style="font-size:10px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--sub);cursor:pointer;">👤 Xem</button>
-              </div>
-            </div>
-          </div>`).join('')}
-      </div>` : ''}
-
-      ${_adminUsers === null && !_adminUsersLoading ? `
-      <div style="text-align:center;padding:40px 20px;color:var(--hint);">
-        <div style="font-size:36px;margin-bottom:10px;">🔐</div>
-        <div style="font-size:13px;">Nhập Admin Secret và bấm "Tải danh sách"</div>
-      </div>` : ''}
+  // ─── DISPUTES TAB ───
+  const disputesTab = () => `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;">🔥 Khiếu nại đang chờ (${disputes.length})</div>
+      <button onclick="adminLoadData(false)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:11px;font-weight:600;cursor:pointer;">🔄 Làm mới</button>
     </div>
+    ${disputes.length === 0
+      ? `<div style="text-align:center;padding:48px 20px;color:var(--hint);"><div style="font-size:32px;margin-bottom:8px;">✅</div><div style="font-size:13px;">Không có khiếu nại nào — mọi đơn đều ổn!</div></div>`
+      : disputes.map(o => adminResolveCard(o.id, o)).join('')
+    }
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-top:14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🔍 Resolve theo Order ID thủ công</div>
+      <div style="display:flex;gap:8px;">
+        <input id="adm-dispute-id" placeholder="Order ID (UUID)..." onkeydown="if(event.key==='Enter')adminLookupOrder('adm-dispute-id','adm-dispute-result')"
+          style="flex:1;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;"
+          onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+        <button onclick="adminLookupOrder('adm-dispute-id','adm-dispute-result')" style="padding:8px 14px;border-radius:9px;border:1px solid rgba(61,142,248,.3);background:rgba(61,142,248,.1);color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;">Tải đơn</button>
+      </div>
+      <div id="adm-dispute-result" style="margin-top:12px;"></div>
+    </div>`;
+
+  // ─── ORDERS TAB ───
+  const ordersTab = () => `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;">📋 Tất cả đơn hàng (${orders.length})</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="adminExportCSV()" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);font-size:11px;font-weight:700;cursor:pointer;">📥 CSV</button>
+        <button onclick="adminLoadData(false)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:11px;font-weight:600;cursor:pointer;">🔄</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border);margin-bottom:14px;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <thead><tr style="border-bottom:1px solid var(--border);">
+          ${['Sự kiện','Buyer','Seller','Tổng','Trạng thái','Ngày'].map(h=>`<th style="text-align:left;padding:10px 12px;color:var(--sub);font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;">${h}</th>`).join('')}
+        </tr></thead>
+        <tbody>
+        ${orders.length === 0
+          ? `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--hint);">Chưa có đơn hàng nào</td></tr>`
+          : orders.map(o=>`<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 12px;">
+              <div style="font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${adminEsc(o.event_name)}</div>
+              <div style="font-size:9px;color:var(--hint);font-family:'JetBrains Mono',monospace;">${o.id.slice(0,8)}…</div>
+            </td>
+            <td style="padding:10px 12px;color:var(--sub);">${adminEsc(o.buyer_name)}</td>
+            <td style="padding:10px 12px;color:var(--sub);">${adminEsc(o.seller_name)}</td>
+            <td style="padding:10px 12px;font-family:'JetBrains Mono',monospace;">${adminFmtVND(o.total)}</td>
+            <td style="padding:10px 12px;">${adminStatusPill(o.status)}</td>
+            <td style="padding:10px 12px;color:var(--hint);font-family:'JetBrains Mono',monospace;font-size:10px;">${o.created_at?String(o.created_at).slice(0,10):'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🔍 Tra cứu đơn theo ID</div>
+      <div style="display:flex;gap:8px;">
+        <input id="adm-order-id" placeholder="Order ID (UUID)..." onkeydown="if(event.key==='Enter')adminLookupOrder('adm-order-id','adm-order-result')"
+          style="flex:1;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;"
+          onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+        <button onclick="adminLookupOrder('adm-order-id','adm-order-result')" style="padding:8px 14px;border-radius:9px;border:1px solid rgba(61,142,248,.3);background:rgba(61,142,248,.1);color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;">Tìm</button>
+      </div>
+      <div id="adm-order-result" style="margin-top:12px;"></div>
+    </div>`;
+
+  // ─── USERS TAB ───
+  const filteredUsers = _adminUserFilter
+    ? users.filter(u => (u.name||'').toLowerCase().includes(_adminUserFilter.toLowerCase()) || (u.phone||'').includes(_adminUserFilter))
+    : users;
+
+  const usersTab = () => `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:700;">👥 Người dùng (${users.length})</div>
+      <button onclick="adminLoadData(false)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:11px;font-weight:600;cursor:pointer;">🔄</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input value="${adminEsc(_adminUserFilter)}" oninput="_adminUserFilter=this.value;render()"
+        placeholder="🔍 Tìm theo tên hoặc số điện thoại..."
+        style="flex:1;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;outline:none;"
+        onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex:1;min-width:80px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--brand);">${users.length}</div>
+        <div style="font-size:9px;color:var(--hint);">Tổng</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex:1;min-width:80px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--ok);">${users.filter(u=>u.is_verified).length}</div>
+        <div style="font-size:9px;color:var(--hint);">Xác minh</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex:1;min-width:80px;text-align:center;">
+        <div style="font-size:18px;font-weight:800;color:var(--red);">${users.filter(u=>u.is_banned).length}</div>
+        <div style="font-size:9px;color:var(--hint);">Bị khoá</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${filteredUsers.length === 0
+        ? `<div style="text-align:center;padding:40px;color:var(--hint);">Không tìm thấy user nào.</div>`
+        : filteredUsers.map(u => `
+        <div style="background:var(--card);border:1px solid ${u.is_verified?'rgba(52,216,158,.25)':u.is_banned?'rgba(240,80,104,.2)':'var(--border)'};border-radius:12px;padding:12px 14px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:38px;height:38px;border-radius:50%;background:var(--purpleBg);border:1px solid rgba(155,135,245,.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--purple);flex-shrink:0;">${(u.name||'?').slice(0,2).toUpperCase()}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                <span style="font-size:13px;font-weight:700;">${adminEsc(u.name)||'—'}</span>
+                ${u.is_verified?`<span style="font-size:9px;font-weight:700;color:var(--ok);background:var(--okBg);padding:1px 6px;border-radius:5px;border:1px solid rgba(52,216,158,.2);">✓ XM</span>`:''}
+                ${u.is_banned?`<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--redBg);padding:1px 6px;border-radius:5px;">🚫</span>`:''}
+              </div>
+              <div style="font-size:10px;color:var(--hint);margin-top:1px;">${adminEsc(u.phone||'')} · ${adminEsc(u.email||'—')}</div>
+              <div style="font-size:10px;color:var(--hint);">⭐ ${u.avg_rating||'—'} · Ví: <span style="color:var(--ok);">${adminFmtVND(u.balance)}</span> · Escrow: <span style="color:var(--purple);">${adminFmtVND(u.escrow)}</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+              ${u.is_verified
+                ? `<button onclick="adminVerifyUser('${u.id}',false)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(240,80,104,.3);background:var(--redBg);color:var(--red);cursor:pointer;">✗ Bỏ XM</button>`
+                : `<button onclick="adminVerifyUser('${u.id}',true)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);cursor:pointer;">✓ Xác minh</button>`
+              }
+              ${u.is_banned
+                ? `<button onclick="adminBanUser('${u.id}',false)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);cursor:pointer;">🔓 Mở khoá</button>`
+                : `<button onclick="adminBanUser('${u.id}',true)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(240,80,104,.3);background:var(--redBg);color:var(--red);cursor:pointer;">🚫 Khoá</button>`
+              }
+            </div>
+          </div>
+        </div>`).join('')
+      }
+    </div>`;
+
+  const tabContent = _adminTab === 'overview' ? overviewTab()
+    : _adminTab === 'disputes' ? disputesTab()
+    : _adminTab === 'orders' ? ordersTab()
+    : usersTab();
+
+  return `<div style="padding-bottom:80px;">
+    <div style="padding:16px 16px 0;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:20px;font-weight:800;font-family:'Syne',sans-serif;">🔐 Admin Dashboard</div>
+      <span style="font-size:10px;font-weight:700;color:var(--warn);background:var(--warnBg);border:1px solid rgba(245,166,35,.2);padding:3px 9px;border-radius:6px;font-family:'JetBrains Mono',monospace;">ADMIN</span>
+    </div>
+    ${secretBar}
+    <div style="padding:0 16px;">${tabs}</div>
+    <div style="padding:14px 16px;">${tabContent}</div>
   </div>`;
 }
 
