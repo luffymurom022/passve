@@ -913,6 +913,7 @@ function renderCard(l,idx,listView){
           <span style="font-size:16px;font-weight:800;color:var(--brand);font-family:'Inter',sans-serif;">${VND(l.price)}</span>
           <span style="font-size:10.5px;color:var(--hint);text-decoration:line-through;">${VND(l.original_price)}</span>
           <div style="display:flex;align-items:center;gap:3px;font-size:11px;font-family:'JetBrains Mono',monospace;color:${trustCol};font-weight:700;background:${trustCol}15;padding:2px 7px;border-radius:6px;border:1px solid ${trustCol}30;">🛡 ${l.trust}</div>
+          ${(l.sellerVerified||(SELLERS[l.seller_id]?.verified))?`<span style="font-size:10px;font-weight:700;color:var(--ok);background:var(--okBg);padding:2px 7px;border-radius:6px;border:1px solid rgba(52,216,158,.2);">✓ Xác minh</span>`:''}
           <span style="font-size:10px;color:var(--hint);">SL: ${l.quantity}</span>
         </div>
       </div>
@@ -928,7 +929,10 @@ function renderCard(l,idx,listView){
     <div style="position:relative;padding-bottom:52%;overflow:hidden;">
       <div style="position:absolute;inset:0;${catGrad(l.category)};display:flex;align-items:center;justify-content:center;font-size:42px;">${catEmoji(l.category)}</div>
       <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.65))"></div>
-      <div style="position:absolute;top:8px;left:8px;background:rgba(240,86,106,.9);color:#fff;font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:6px;letter-spacing:.04em;">-${disc}%</div>
+      <div style="position:absolute;top:8px;left:8px;display:flex;gap:5px;align-items:center;">
+        <span style="background:rgba(240,86,106,.9);color:#fff;font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:6px;letter-spacing:.04em;">-${disc}%</span>
+        ${(l.sellerVerified||(SELLERS[l.seller_id]?.verified))?`<span style="background:rgba(52,216,158,.9);color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:6px;">✓ Xác minh</span>`:''}
+      </div>
       <button onclick="event.stopPropagation();toggleWish('${l.id}')" style="position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);cursor:pointer;font-size:15px;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">${wished?"❤️":"🤍"}</button>
       <div style="position:absolute;bottom:8px;left:10px;right:10px;display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:10px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.5);padding:2px 7px;border-radius:5px;backdrop-filter:blur(4px);">📍 ${l.location}</div>
@@ -1159,6 +1163,7 @@ function render(){
     {id:"analytics",icon:"📊",label:"Analytics"},
     {id:"aichat",icon:"💬",label:"AI Chat"},
     {id:"profile",icon:"👤",label:"Hồ sơ"},
+    ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
   ];
 
   document.getElementById("root").innerHTML=`
@@ -1221,6 +1226,7 @@ function buildPlaceholderPage(page){
   if(page==="compare") return buildComparePage();
   if(page==="alerts") return buildAlertsPage();
   if(page==="seller_profile") return buildSellerProfilePage(state.sellerProfileId);
+  if(page==="admin_verify") return buildAdminVerifyPage();
   return`<div style="text-align:center;padding:80px 20px;"><div style="font-size:13px;color:var(--sub);">Sắp ra mắt.</div></div>`;
 }
 
@@ -3061,6 +3067,133 @@ function buildListingDetail(lid){
 }
 
 /* ══════════════════════════════════════════
+   🔐 ADMIN VERIFY PAGE
+══════════════════════════════════════════ */
+let _adminUsers = null;
+let _adminUsersLoading = false;
+let _adminSearch = '';
+
+async function loadAdminUsers(){
+  if(!authToken || !currentUser?.is_admin) return;
+  _adminUsersLoading = true; render();
+  try {
+    const params = _adminSearch ? '?search='+encodeURIComponent(_adminSearch) : '';
+    const res = await fetch(API+'/admin/users'+params, {
+      headers: { ...getHeaders(), 'x-admin-secret': localStorage.getItem('sp_admsec')||'' }
+    });
+    if(res.ok) _adminUsers = await res.json();
+    else { showToast('Sai Admin Secret!','var(--red)','❌'); }
+  } catch(e){}
+  _adminUsersLoading = false; render();
+}
+
+async function adminVerifyUser(userId, verify){
+  const secret = localStorage.getItem('sp_admsec')||'';
+  const action = verify ? 'verify' : 'unverify';
+  const res = await fetch(API+'/admin/users/'+userId+'/'+action, {
+    method:'POST', headers:{ ...getHeaders(), 'x-admin-secret': secret }
+  });
+  if(res.ok){
+    const u = _adminUsers?.find(x=>x.id===userId);
+    if(u) u.is_verified = verify;
+    showToast(verify?'✓ Đã xác minh seller':'Đã bỏ xác minh','var(--ok)','✅');
+    render();
+  } else {
+    showToast('Lỗi: Kiểm tra admin secret','var(--red)','❌');
+  }
+}
+
+function buildAdminVerifyPage(){
+  if(!currentUser?.is_admin) return `<div style="text-align:center;padding:80px 20px;color:var(--hint);">Không có quyền truy cập.</div>`;
+
+  const secret = localStorage.getItem('sp_admsec')||'';
+  const users = _adminUsers || [];
+
+  return `<div style="padding-bottom:80px;">
+    <div style="padding:20px 20px 0;">
+      <div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;margin-bottom:2px;">🔐 Admin — Xác minh Seller</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Quản lý verified badge cho người bán</div>
+
+      <!-- Admin secret input -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--hint);margin-bottom:8px;">🔑 Admin Secret</div>
+        <div style="display:flex;gap:8px;">
+          <input type="password" value="${secret}" oninput="localStorage.setItem('sp_admsec',this.value)"
+            placeholder="Nhập admin secret..."
+            style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;font-family:'Inter',sans-serif;outline:none;"
+            onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+          <button onclick="loadAdminUsers()" class="btn btn-primary btn-sm">Tải danh sách</button>
+        </div>
+      </div>
+
+      <!-- Search -->
+      ${_adminUsers !== null ? `
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input type="text" value="${_adminSearch}" oninput="_adminSearch=this.value" onkeydown="if(event.key==='Enter')loadAdminUsers()"
+          placeholder="Tìm theo tên, số điện thoại..."
+          style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-family:'Inter',sans-serif;outline:none;"
+          onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+        <button onclick="loadAdminUsers()" class="btn btn-ghost btn-sm">🔍</button>
+      </div>` : ''}
+
+      <!-- Stats -->
+      ${_adminUsers !== null ? `
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:var(--brand);">${users.length}</div>
+          <div style="font-size:10px;color:var(--hint);">Tổng users</div>
+        </div>
+        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:var(--ok);">${users.filter(u=>u.is_verified).length}</div>
+          <div style="font-size:10px;color:var(--hint);">Đã xác minh</div>
+        </div>
+        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:var(--red);">${users.filter(u=>u.is_banned).length}</div>
+          <div style="font-size:10px;color:var(--hint);">Bị khoá</div>
+        </div>
+      </div>` : ''}
+
+      <!-- Loading -->
+      ${_adminUsersLoading ? `<div style="text-align:center;padding:40px;color:var(--hint);font-size:13px;">⏳ Đang tải...</div>` : ''}
+
+      <!-- User list -->
+      ${!_adminUsersLoading && _adminUsers !== null ? `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${users.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--hint);">Không tìm thấy user nào.</div>` :
+          users.map(u => `
+          <div style="background:var(--card);border:1px solid ${u.is_verified?'rgba(52,216,158,.3)':u.is_banned?'rgba(240,86,106,.25)':'var(--border)'};border-radius:14px;padding:14px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:40px;height:40px;border-radius:50%;background:var(--purpleBg);border:1px solid rgba(155,135,245,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--purple);flex-shrink:0;">${(u.name||'?').slice(0,2).toUpperCase()}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span style="font-size:13px;font-weight:700;">${u.name||'—'}</span>
+                  ${u.is_verified?`<span style="font-size:9px;font-weight:800;color:var(--ok);background:var(--okBg);padding:2px 6px;border-radius:5px;border:1px solid rgba(52,216,158,.2);">✓ Đã xác minh</span>`:''}
+                  ${u.is_banned?`<span style="font-size:9px;font-weight:800;color:var(--red);background:var(--redBg);padding:2px 6px;border-radius:5px;">🚫 Bị khoá</span>`:''}
+                </div>
+                <div style="font-size:10px;color:var(--hint);margin-top:2px;">${u.phone||''} · ${u.email||'Chưa có email'}</div>
+                <div style="font-size:10px;color:var(--hint);">⭐ ${u.avg_rating||'—'} · ${u.review_count||0} đánh giá · Tham gia: ${u.created_at?new Date(u.created_at).toLocaleDateString('vi-VN'):''}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                ${u.is_verified
+                  ? `<button onclick="adminVerifyUser('${u.id}',false)" style="font-size:10px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid rgba(240,86,106,.3);background:var(--redBg);color:var(--red);cursor:pointer;white-space:nowrap;">✗ Bỏ XM</button>`
+                  : `<button onclick="adminVerifyUser('${u.id}',true)" style="font-size:10px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);cursor:pointer;white-space:nowrap;">✓ Xác minh</button>`
+                }
+                <button onclick="openSellerProfile('${u.id}')" style="font-size:10px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--sub);cursor:pointer;">👤 Xem</button>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${_adminUsers === null && !_adminUsersLoading ? `
+      <div style="text-align:center;padding:40px 20px;color:var(--hint);">
+        <div style="font-size:36px;margin-bottom:10px;">🔐</div>
+        <div style="font-size:13px;">Nhập Admin Secret và bấm "Tải danh sách"</div>
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
    👤 SELLER PROFILE PAGE
 ══════════════════════════════════════════ */
 function openSellerProfile(sellerId){
@@ -4343,8 +4476,6 @@ async function changePassword(){
   }
 }
 
-/* boot */
-render();
 /* ══════════════════════════════════════════
    🔌 SAFEPASS API LAYER — kết nối backend thật
 ══════════════════════════════════════════ */
@@ -4358,6 +4489,9 @@ let authToken = localStorage.getItem('sp_token') || null;
 function getHeaders() {
   return { 'Content-Type': 'application/json', ...(authToken ? { Authorization: 'Bearer ' + authToken } : {}) };
 }
+
+/* boot */
+render();
 
 // ── Login / Register Modal ──
 function showAuthModal(tab = 'login') {
@@ -4595,7 +4729,8 @@ function mapTicket(t) {
     active: t.status === 'available',
     trust: 85,
     description: t.description || '',
-    image_url: t.image_url || null
+    image_url: t.image_url || null,
+    sellerVerified: t.seller_verified || false,
   };
 }
 

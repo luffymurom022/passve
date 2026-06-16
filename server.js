@@ -385,8 +385,9 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', auth, async (req, res) => {
   const { data } = await supabase
-    .from('users').select('id,phone,name,email,balance,escrow,avg_rating,review_count').eq('id', req.user.id).single();
-  res.json(data);
+    .from('users').select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_verified').eq('id', req.user.id).single();
+  if (!data) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+  res.json({ ...data, is_admin: data.email === process.env.ADMIN_EMAIL });
 });
 
 app.patch('/api/auth/profile', auth, async (req, res) => {
@@ -633,7 +634,20 @@ app.get('/api/tickets', async (req, res) => {
 
   const { data, error, count } = await query;
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ tickets: data, total: count, page: pageNum, limit: limitNum });
+
+  // Enrich with seller verification status
+  let enriched = data || [];
+  if (enriched.length > 0) {
+    const sellerIds = [...new Set(enriched.map(t => t.seller_id).filter(Boolean))];
+    if (sellerIds.length > 0) {
+      const { data: sellers } = await supabase.from('users').select('id,is_verified').in('id', sellerIds);
+      const verMap = {};
+      (sellers || []).forEach(s => { verMap[s.id] = s.is_verified || false; });
+      enriched = enriched.map(t => ({ ...t, seller_verified: verMap[t.seller_id] || false }));
+    }
+  }
+
+  res.json({ tickets: enriched, total: count, page: pageNum, limit: limitNum });
 });
 
 app.get('/api/tickets/:id', async (req, res) => {
@@ -1257,13 +1271,33 @@ app.get('/api/admin/users', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   const { search } = req.query;
   let query = supabase.from('users')
-    .select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_banned,created_at')
+    .select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_banned,is_verified,created_at')
     .order('created_at', { ascending: false });
   if (search) {
     query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);
   }
   const { data } = await query;
   res.json(data || []);
+});
+
+// Verify seller
+app.post('/api/admin/users/:id/verify', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { error } = await supabase.from('users').update({ is_verified: true }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  await supabase.from('transactions').insert({
+    user_id: req.params.id, type: 'admin_action', amount: 0,
+    description: 'Admin verified seller account'
+  }).catch(() => {});
+  res.json({ message: 'Đã xác minh seller' });
+});
+
+// Unverify seller
+app.post('/api/admin/users/:id/unverify', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { error } = await supabase.from('users').update({ is_verified: false }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Đã bỏ xác minh seller' });
 });
 
 // Ban user
