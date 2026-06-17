@@ -67,7 +67,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // ── IN-MEMORY TOKEN STORES ──
 const emailOtpStore = new Map(); // key: email → { otp, userId, expires }
 const resetTokenStore = new Map(); // key: token → { userId, expires }
-const qrReminderSentSet = new Set(); // key: orderId — tránh gửi nhắc nhở trùng lặp
+const qrReminderSentSet = new Set(); // key: orderId — tránh gửi nhắc nhở seller trùng lặp
+const buyerReminderSentSet = new Set(); // key: orderId — tránh gửi nhắc nhở buyer trùng lặp
 function genOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 function genToken() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
@@ -278,6 +279,40 @@ async function sendEscrowTimeoutBuyerNotification(order) {
         </div>`,
     });
   } catch (e) { console.error(`[Email] Lỗi gửi email hoàn tiền cho buyer ${order.buyer_name}:`, e.message); }
+}
+
+async function sendQRReminderBuyerNotification(order) {
+  if (!process.env.RESEND_API_KEY) return;
+  const { data: buyer } = await supabase.from('users').select('email').eq('id', order.buyer_id).single();
+  if (!buyer?.email) return;
+  const deadline = new Date(new Date(order.created_at).getTime() + 48 * 60 * 60 * 1000);
+  const deadlineStr = deadline.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: buyer.email,
+      subject: `🕐 Người bán chưa upload QR — ${order.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#f5a623;margin-bottom:4px;">🕐 Cập nhật đơn hàng của bạn</h2>
+          <p style="color:#7b8fad;margin-top:0;">Đã 24 giờ kể từ khi bạn đặt mua, nhưng người bán chưa upload QR code vé.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Sự kiện</td><td style="color:#e8edf8;">${order.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người bán</td><td style="color:#e8edf8;">${order.seller_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Số tiền</td><td style="color:#3d8ef8;font-weight:600;">${order.total?.toLocaleString('vi-VN')}đ</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Deadline hoàn tiền</td><td style="color:#22d38e;font-weight:600;">${deadlineStr}</td></tr>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <div style="background:#0d1220;border:1px solid #1a2540;border-radius:8px;padding:16px;margin-bottom:20px;">
+            <p style="margin:0;color:#e8edf8;font-weight:600;font-size:14px;">Tiền của bạn vẫn an toàn trong escrow 🔒</p>
+            <p style="margin:8px 0 0;color:#7b8fad;font-size:14px;">Nếu seller không upload QR trước <strong style="color:#f05068;">${deadlineStr}</strong>, hệ thống sẽ tự động hoàn toàn bộ tiền về ví của bạn.</p>
+          </div>
+          <p style="color:#7b8fad;font-size:14px;">Nếu bạn nghi ngờ có gian lận, bạn có thể <a href="${process.env.APP_URL || ''}" style="color:#f05068;font-weight:600;">mở khiếu nại ngay</a> thay vì chờ tự động hoàn tiền.</p>
+        </div>`,
+    });
+    console.log(`[Email] Đã gửi nhắc nhở 24h cho buyer ${order.buyer_name} — đơn ${order.id}`);
+  } catch (e) { console.error(`[Email] Lỗi gửi nhắc nhở 24h cho buyer ${order.buyer_name}:`, e.message); }
 }
 
 async function sendQRReminderSellerNotification(order) {
@@ -1474,7 +1509,24 @@ async function processExpiredEscrows() {
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   const cutoff3d = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
 
-  // 0. Nhắc nhở seller còn ~12 giờ (đơn từ 36-37h trước)
+  // 0a. Nhắc nhở buyer sau 24h seller chưa upload QR (đơn từ 24-25h trước)
+  const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const cutoff25h = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+  const { data: buyerReminderOrders } = await supabase
+    .from('orders').select('*').eq('status', 'waiting_qr')
+    .lt('created_at', cutoff24h).gt('created_at', cutoff25h);
+  if (buyerReminderOrders && buyerReminderOrders.length > 0) {
+    for (const order of buyerReminderOrders) {
+      if (buyerReminderSentSet.has(order.id)) continue;
+      buyerReminderSentSet.add(order.id);
+      sendQRReminderBuyerNotification(order);
+      createNotification(order.buyer_id, 'warning', '🕐 Seller chưa upload QR sau 24h',
+        `Đơn hàng ${order.event_name}: seller chưa upload QR. Tiền bạn vẫn an toàn trong escrow. Nếu không có QR sau 48h, tiền tự hoàn.`, '/orders');
+      console.log(`[Buyer Reminder] Đã nhắc buyer ${order.buyer_name} — đơn ${order.id}`);
+    }
+  }
+
+  // 0b. Nhắc nhở seller còn ~12 giờ (đơn từ 36-37h trước)
   const cutoff36h = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
   const cutoff37h = new Date(Date.now() - 37 * 60 * 60 * 1000).toISOString();
   const { data: reminderOrders } = await supabase
