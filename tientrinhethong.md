@@ -82,17 +82,17 @@
 ### Phase 1 — MVP (✅ Hoàn thành)
 Core marketplace hoạt động: đăng vé, mua vé, escrow, QR, dispute, ví, admin.
 
-### Phase 2 — Trust & Growth (🚧 Đang làm)
+### Phase 2 — Trust & Growth (✅ Hoàn thành)
 Tăng độ tin cậy, trải nghiệm người dùng tốt hơn, seller được xác minh.
 
 | Tính năng | Ưu tiên | Trạng thái |
 |-----------|---------|------------|
-| Xác minh seller (verified badge) | Cao | `[x]` |
-| Hệ thống thông báo trong app (bell icon) | Cao | `[ ]` |
-| Trang profile công khai của seller | Trung bình | `[ ]` |
-| Tìm kiếm nâng cao (lọc theo danh mục sự kiện) | Trung bình | `[ ]` |
-| Seller dashboard với analytics đơn giản | Trung bình | `[ ]` |
-| Chat nội bộ giữa buyer và seller trong đơn hàng | Thấp | `[ ]` |
+| Xác minh seller (verified badge) | Cao | `[x]` ✅ 2026-06-16 |
+| Hệ thống thông báo trong app (bell icon) | Cao | `[x]` ✅ 2026-06-15 |
+| Trang profile công khai của seller | Trung bình | `[x]` ✅ 2026-06-15 |
+| Tìm kiếm nâng cao (lọc theo danh mục sự kiện) | Trung bình | `[x]` ✅ 2026-06-17 |
+| Seller dashboard với analytics đơn giản | Trung bình | `[x]` ✅ 2026-06-15 |
+| Chat nội bộ giữa buyer và seller trong đơn hàng | Thấp | `[x]` ✅ 2026-06-17 |
 
 ### Phase 3 — Monetization & Scale (📋 Kế hoạch)
 Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
@@ -248,8 +248,8 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 - [x] Trang Hồ sơ *(2026-06-15)*
 - [x] Responsive mobile *(2026-06-15)*
 - [x] Dark/light mode toggle *(2026-06-15)*
-- [ ] ⚡ Trang profile công khai của seller (xem vé đang bán + đánh giá) tại `/seller/:id`
-- [ ] Seller dashboard — tab riêng hiển thị doanh thu, đơn hàng, rating theo thời gian
+- [x] ⚡ Trang profile công khai của seller (xem vé đang bán + đánh giá) tại `/seller/:id` ✅ 2026-06-15
+- [x] Seller dashboard — tab riêng hiển thị doanh thu, đơn hàng, rating theo thời gian ✅ 2026-06-15
 
 ---
 
