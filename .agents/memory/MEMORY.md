@@ -1,3 +1,3 @@
-- [SafePass schema migrations](safepass-migrations.md) — is_banned, dispute fields, seller_reply, image_url, review report columns must be applied in Supabase SQL Editor before features work fully.
+- [SafePass schema migrations](safepass-migrations.md) — is_banned, dispute fields, seller_reply, image_url, review report columns, and kyc_requests table must be applied in Supabase SQL Editor before features work fully.
 - [SafePass API format change](safepass-api-format.md) — GET /api/tickets now returns {tickets, total, page, limit} not a bare array; frontend handles both via Array.isArray check.
 - [SafePass build order](safepass-build-order.md) — always read tientrinhethong.md first; build [ ] items in file order; token stores (emailOtpStore, resetTokenStore) are in-memory Maps in server.js.

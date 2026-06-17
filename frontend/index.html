@@ -5104,6 +5104,9 @@ function buildProfilePage(){
     }
   }).catch(()=>{});
 
+  // Load KYC status
+  loadKycStatus();
+
   const u=currentUser;
   const initials=(u.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
@@ -5135,6 +5138,15 @@ function buildProfilePage(){
       <button onclick="saveProfile()" style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">Lưu thay đổi</button>
     </div>
 
+    <!-- KYC Verification -->
+    <div id="kyc-section" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;">🪪 Xác minh danh tính (KYC)</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Xác minh CCCD để tăng độ tin cậy và mở khóa các tính năng nâng cao.</div>
+      <div id="kyc-status-box">
+        <div style="text-align:center;padding:12px 0;color:var(--hint);font-size:13px;">⏳ Đang tải...</div>
+      </div>
+    </div>
+
     <!-- Change password -->
     <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:16px;">
       <div style="font-size:14px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;">🔐 Đổi mật khẩu</div>
@@ -5157,6 +5169,111 @@ function buildProfilePage(){
       <button onclick="logout()" style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(240,80,104,.3);background:var(--redBg);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;">🚪 Đăng xuất</button>
     </div>
   </div>`;
+}
+
+// ── KYC ──
+async function loadKycStatus(){
+  const box=document.getElementById('kyc-status-box');
+  if(!box||!authToken) return;
+  try{
+    const res=await fetch(API+'/kyc/status',{headers:getHeaders()});
+    const d=await res.json();
+    renderKycBox(box,d);
+  }catch(e){
+    box.innerHTML='<div style="font-size:12px;color:var(--hint);">Không tải được trạng thái KYC.</div>';
+  }
+}
+
+function renderKycBox(box,d){
+  const status=d.status||'none';
+  if(status==='approved'){
+    box.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(52,216,158,.08);border:1px solid rgba(52,216,158,.25);border-radius:12px;">
+      <span style="font-size:22px;">✅</span>
+      <div><div style="font-size:13px;font-weight:700;color:var(--ok);">Đã xác minh thành công</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:2px;">Tài khoản của bạn đã được xác minh danh tính.</div></div></div>`;
+    return;
+  }
+  if(status==='pending'){
+    box.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:12px;">
+      <span style="font-size:22px;">⏳</span>
+      <div><div style="font-size:13px;font-weight:700;color:var(--warn);">Đang chờ duyệt</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:2px;">Yêu cầu KYC đã gửi. Admin sẽ xem xét trong 24–48 giờ.</div></div></div>`;
+    return;
+  }
+  // none or rejected — show upload form
+  const rejHtml=status==='rejected'?`<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(240,80,104,.08);border:1px solid rgba(240,80,104,.25);border-radius:10px;margin-bottom:14px;">
+    <span>❌</span><div><div style="font-size:12px;font-weight:700;color:var(--red);">Yêu cầu bị từ chối</div>
+    ${d.reject_reason?`<div style="font-size:11px;color:var(--sub);margin-top:2px;">Lý do: ${d.reject_reason}</div>`:''}
+    <div style="font-size:11px;color:var(--sub);margin-top:2px;">Bạn có thể nộp lại với ảnh rõ hơn.</div></div></div>`:'';
+
+  box.innerHTML=`${rejHtml}
+  <div style="display:grid;gap:12px;">
+    <div>
+      <label style="display:block;font-size:12px;color:var(--sub);margin-bottom:6px;">📄 Mặt trước CCCD / Passport</label>
+      <div id="kyc-front-preview" onclick="document.getElementById('kyc-front').click()" style="border:2px dashed var(--border2);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:border-color .2s;font-size:12px;color:var(--hint);">
+        📷 Nhấn để chọn ảnh
+      </div>
+      <input id="kyc-front" type="file" accept="image/*" style="display:none" onchange="previewKycImg('kyc-front','kyc-front-preview')">
+    </div>
+    <div>
+      <label style="display:block;font-size:12px;color:var(--sub);margin-bottom:6px;">📄 Mặt sau CCCD / Passport</label>
+      <div id="kyc-back-preview" onclick="document.getElementById('kyc-back').click()" style="border:2px dashed var(--border2);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:border-color .2s;font-size:12px;color:var(--hint);">
+        📷 Nhấn để chọn ảnh
+      </div>
+      <input id="kyc-back" type="file" accept="image/*" style="display:none" onchange="previewKycImg('kyc-back','kyc-back-preview')">
+    </div>
+    <div>
+      <label style="display:block;font-size:12px;color:var(--sub);margin-bottom:6px;">🤳 Ảnh selfie cầm CCCD</label>
+      <div id="kyc-selfie-preview" onclick="document.getElementById('kyc-selfie').click()" style="border:2px dashed var(--border2);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:border-color .2s;font-size:12px;color:var(--hint);">
+        📷 Nhấn để chọn ảnh
+      </div>
+      <input id="kyc-selfie" type="file" accept="image/*" style="display:none" onchange="previewKycImg('kyc-selfie','kyc-selfie-preview')">
+    </div>
+  </div>
+  <div id="kyc-msg" style="font-size:12px;margin-top:10px;display:none;"></div>
+  <button id="kyc-submit-btn" onclick="submitKyc()" style="margin-top:14px;width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#9b87f5,#7b6fff);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">🪪 Gửi xác minh KYC</button>`;
+}
+
+function previewKycImg(inputId,previewId){
+  const file=document.getElementById(inputId)?.files?.[0];
+  const preview=document.getElementById(previewId);
+  if(!file||!preview) return;
+  const url=URL.createObjectURL(file);
+  preview.innerHTML=`<img src="${url}" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:cover;">`;
+  preview.style.padding='6px';
+}
+
+async function submitKyc(){
+  const front=document.getElementById('kyc-front')?.files?.[0];
+  const back=document.getElementById('kyc-back')?.files?.[0];
+  const selfie=document.getElementById('kyc-selfie')?.files?.[0];
+  const msgEl=document.getElementById('kyc-msg');
+  const btn=document.getElementById('kyc-submit-btn');
+  if(!front||!back||!selfie){
+    msgEl.textContent='Vui lòng chọn đủ 3 ảnh.';msgEl.style.color='var(--red)';msgEl.style.display='block';return;
+  }
+  btn.disabled=true;btn.textContent='⏳ Đang gửi...';
+  const fd=new FormData();
+  fd.append('front_image',front);
+  fd.append('back_image',back);
+  fd.append('selfie_image',selfie);
+  try{
+    const res=await fetch(API+'/kyc/submit',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+authToken},
+      body:fd,
+    });
+    const data=await res.json();
+    if(!res.ok){
+      msgEl.textContent=data.error||'Lỗi gửi KYC';msgEl.style.color='var(--red)';msgEl.style.display='block';
+      btn.disabled=false;btn.textContent='🪪 Gửi xác minh KYC';return;
+    }
+    const box=document.getElementById('kyc-status-box');
+    if(box) renderKycBox(box,{status:'pending'});
+  }catch(e){
+    msgEl.textContent='Không kết nối được server';msgEl.style.color='var(--red)';msgEl.style.display='block';
+    btn.disabled=false;btn.textContent='🪪 Gửi xác minh KYC';
+  }
 }
 
 async function saveProfile(){

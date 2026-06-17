@@ -119,6 +119,23 @@ alter table reviews disable row level security;
 -- ALTER TABLE order_messages DISABLE ROW LEVEL SECURITY;
 -- CREATE INDEX IF NOT EXISTS idx_order_messages_order ON order_messages(order_id, created_at ASC);
 
+-- ═══════════════════════════════════════════════
+-- KYC REQUESTS TABLE
+-- ═══════════════════════════════════════════════
+-- Chạy trong Supabase SQL Editor:
+-- CREATE TABLE IF NOT EXISTS kyc_requests (
+--   id uuid default gen_random_uuid() primary key,
+--   user_id uuid references users(id) on delete cascade,
+--   front_image text not null,
+--   back_image text not null,
+--   selfie_image text not null,
+--   status text default 'pending',  -- pending | approved | rejected
+--   reject_reason text,
+--   created_at timestamptz default now()
+-- );
+-- ALTER TABLE kyc_requests DISABLE ROW LEVEL SECURITY;
+-- CREATE INDEX IF NOT EXISTS idx_kyc_user ON kyc_requests(user_id, created_at DESC);
+
 -- Index tối ưu query
 -- CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 -- CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);

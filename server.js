@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import ws from 'ws';
 import { Resend } from 'resend';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,6 +64,26 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 });
 const JWT_SECRET = process.env.JWT_SECRET;
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// ── MULTER (memory storage — files go directly to Supabase Storage) ──
+const kycUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per file
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Chỉ chấp nhận file ảnh (jpg, png, heic…)'));
+    }
+    cb(null, true);
+  },
+});
+
+// ── CREATE KYC STORAGE BUCKET (best-effort on startup) ──
+(async () => {
+  try {
+    await supabase.storage.createBucket('kyc-documents', { public: false });
+    console.log('[KYC] Bucket kyc-documents ready.');
+  } catch (e) { /* bucket already exists — that's fine */ }
+})();
 
 // ── IN-MEMORY TOKEN STORES ──
 const emailOtpStore = new Map(); // key: email → { otp, userId, expires }
@@ -2057,6 +2078,155 @@ app.post('/api/notifications/:id/read', auth, async (req, res) => {
       .eq('user_id', req.user.id);
   } catch (e) {}
   res.json({ ok: true });
+});
+
+// ════════════════════════════════
+//  KYC VERIFICATION
+// ════════════════════════════════
+
+// POST /api/kyc/submit — user uploads 3 images
+app.post('/api/kyc/submit', auth, kycUpload.fields([
+  { name: 'front_image', maxCount: 1 },
+  { name: 'back_image', maxCount: 1 },
+  { name: 'selfie_image', maxCount: 1 },
+]), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const files = req.files || {};
+    if (!files.front_image || !files.back_image || !files.selfie_image) {
+      return res.status(400).json({ error: 'Vui lòng tải lên đủ 3 ảnh: mặt trước CCCD, mặt sau CCCD và ảnh selfie.' });
+    }
+
+    // Check for existing pending/approved request
+    const { data: existing } = await supabase
+      .from('kyc_requests')
+      .select('status')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (existing && existing.length > 0) {
+      const st = existing[0].status;
+      if (st === 'approved') return res.status(400).json({ error: 'Tài khoản của bạn đã được xác minh KYC.' });
+      if (st === 'pending') return res.status(400).json({ error: 'Yêu cầu KYC của bạn đang được xử lý, vui lòng chờ.' });
+    }
+
+    const ts = Date.now();
+    const uploadOne = async (fieldKey, file) => {
+      const ext = (file.mimetype.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+      const path = `${userId}/${ts}_${fieldKey}.${ext}`;
+      const { error } = await supabase.storage
+        .from('kyc-documents')
+        .upload(path, file.buffer, { contentType: file.mimetype, upsert: true });
+      if (error) throw new Error(`Upload ${fieldKey} thất bại: ${error.message}`);
+      return path;
+    };
+
+    const [frontPath, backPath, selfiePath] = await Promise.all([
+      uploadOne('front', files.front_image[0]),
+      uploadOne('back', files.back_image[0]),
+      uploadOne('selfie', files.selfie_image[0]),
+    ]);
+
+    const { error: dbErr } = await supabase.from('kyc_requests').insert({
+      user_id: userId,
+      front_image: frontPath,
+      back_image: backPath,
+      selfie_image: selfiePath,
+      status: 'pending',
+    });
+    if (dbErr) throw new Error(dbErr.message);
+
+    res.json({ success: true, message: 'Yêu cầu xác minh KYC đã được gửi!' });
+  } catch (e) {
+    console.error('[KYC] submit:', e.message);
+    res.status(500).json({ error: e.message || 'Lỗi gửi KYC' });
+  }
+});
+
+// GET /api/kyc/status — user checks their KYC status
+app.get('/api/kyc/status', auth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('kyc_requests')
+      .select('id, status, reject_reason, created_at')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    res.json(data && data.length > 0 ? data[0] : { status: 'none' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/admin/kyc — admin lists all KYC requests
+app.get('/api/admin/kyc', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const { data, error } = await supabase
+      .from('kyc_requests')
+      .select('*, users(name, phone, email)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    const withUrls = await Promise.all((data || []).map(async (kyc) => {
+      const [fRes, bRes, sRes] = await Promise.all([
+        supabase.storage.from('kyc-documents').createSignedUrl(kyc.front_image, 3600),
+        supabase.storage.from('kyc-documents').createSignedUrl(kyc.back_image, 3600),
+        supabase.storage.from('kyc-documents').createSignedUrl(kyc.selfie_image, 3600),
+      ]);
+      return {
+        ...kyc,
+        front_url: fRes.data?.signedUrl || null,
+        back_url: bRes.data?.signedUrl || null,
+        selfie_url: sRes.data?.signedUrl || null,
+      };
+    }));
+
+    res.json(withUrls);
+  } catch (e) {
+    console.error('[KYC] admin list:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/kyc/:id/approve
+app.post('/api/admin/kyc/:id/approve', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const { id } = req.params;
+    const { data: kyc, error: fetchErr } = await supabase
+      .from('kyc_requests').select('user_id, status').eq('id', id).single();
+    if (fetchErr || !kyc) return res.status(404).json({ error: 'Không tìm thấy yêu cầu KYC' });
+    if (kyc.status === 'approved') return res.status(400).json({ error: 'Đã duyệt rồi' });
+
+    await supabase.from('kyc_requests').update({ status: 'approved' }).eq('id', id);
+    await supabase.from('users').update({ is_verified: true }).eq('id', kyc.user_id);
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/kyc/:id/reject
+app.post('/api/admin/kyc/:id/reject', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const { data: kyc, error: fetchErr } = await supabase
+      .from('kyc_requests').select('status').eq('id', id).single();
+    if (fetchErr || !kyc) return res.status(404).json({ error: 'Không tìm thấy yêu cầu KYC' });
+
+    await supabase.from('kyc_requests')
+      .update({ status: 'rejected', reject_reason: reason || null })
+      .eq('id', id);
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ════════════════════════════════

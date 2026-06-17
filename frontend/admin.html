@@ -302,6 +302,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item" onclick="switchTab('users')" data-tab="users">👥 Users</div>
     <div class="mob-nav-item" onclick="switchTab('transactions')" data-tab="transactions">💳 Giao dịch</div>
     <div class="mob-nav-item" onclick="switchTab('withdrawals')" data-tab="withdrawals">💸 Rút tiền <span class="mob-badge" id="mob-withdraw-badge" style="display:none">0</span></div>
+    <div class="mob-nav-item" onclick="switchTab('kyc')" data-tab="kyc">🪪 KYC <span class="mob-badge" id="mob-kyc-badge" style="display:none">0</span></div>
   </div>
 
   <div class="layout">
@@ -319,6 +320,9 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="sidebar-section">Tài chính</div>
       <div class="nav-item" onclick="switchTab('transactions')" data-tab="transactions"><span class="nav-icon">💳</span> Giao dịch</div>
       <div class="nav-item" onclick="switchTab('withdrawals')" data-tab="withdrawals"><span class="nav-icon">💸</span> Rút tiền <span class="nav-badge" id="withdraw-badge" style="display:none">0</span></div>
+
+      <div class="sidebar-section">Xác minh</div>
+      <div class="nav-item" onclick="switchTab('kyc')" data-tab="kyc"><span class="nav-icon">🪪</span> KYC <span class="nav-badge" id="kyc-badge" style="display:none">0</span></div>
     </nav>
 
     <!-- MAIN -->
@@ -536,6 +540,28 @@ tr:hover td{background:rgba(255,255,255,.015);}
         </div>
       </div>
 
+      <!-- ── PAGE: KYC ── -->
+      <div class="page" id="page-kyc">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">🪪 Xác minh danh tính (KYC)</div>
+              <div class="card-sub" id="kyc-sub">Đang tải...</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select class="filter-select" id="kyc-filter" onchange="renderKyc()">
+                <option value="pending">⏳ Chờ duyệt</option>
+                <option value="approved">✅ Đã duyệt</option>
+                <option value="rejected">❌ Từ chối</option>
+                <option value="">Tất cả</option>
+              </select>
+              <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
+            </div>
+          </div>
+          <div id="kyc-list" class="card-body"></div>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
@@ -557,7 +583,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
 const API = window.location.origin + '/api';
 let ADMIN_SECRET = '';
 let currentTab = 'overview';
-let _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [] };
+let _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [], kyc: [] };
 let lastRefresh = null;
 
 // ═══════════════ AUTH ═══════════════
@@ -583,7 +609,7 @@ function doLogout() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('secret-input').value = '';
-  _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [] };
+  _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [], kyc: [] };
 }
 
 function adminHeaders() {
@@ -596,13 +622,14 @@ function adminBody(extra = {}) {
 // ═══════════════ DATA ═══════════════
 async function loadAllData() {
   try {
-    const [statsRes, ordersRes, usersRes, ticketsRes, txnRes, wdRes] = await Promise.all([
+    const [statsRes, ordersRes, usersRes, ticketsRes, txnRes, wdRes, kycRes] = await Promise.all([
       fetch(API + '/admin/stats', { headers: adminHeaders() }).then(r => r.ok ? r.json() : null),
       fetch(API + '/admin/orders', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/users', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/tickets', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/transactions', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/withdrawals', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/kyc', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
     ]);
     _data.stats = statsRes;
     _data.orders = Array.isArray(ordersRes) ? ordersRes : [];
@@ -611,6 +638,7 @@ async function loadAllData() {
     _data.tickets = Array.isArray(ticketsRes) ? ticketsRes : [];
     _data.transactions = Array.isArray(txnRes) ? txnRes : [];
     _data.withdrawals = Array.isArray(wdRes) ? wdRes : [];
+    _data.kyc = Array.isArray(kycRes) ? kycRes : [];
   } catch(e) { console.error('loadAllData:', e); }
   lastRefresh = new Date();
   updateBadges();
@@ -627,10 +655,16 @@ function updateRefreshTime() {
 function updateBadges() {
   const dc = _data.disputes.length;
   const wc = _data.withdrawals.filter(w => w.status === 'pending').length;
+  const kc = (_data.kyc || []).filter(k => k.status === 'pending').length;
   ['dispute-badge','mob-dispute-badge'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = dc; el.style.display = dc > 0 ? 'flex' : 'none';
+  });
+  ['kyc-badge','mob-kyc-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = kc; el.style.display = kc > 0 ? 'flex' : 'none';
   });
   ['withdraw-badge','mob-withdraw-badge'].forEach(id => {
     const el = document.getElementById(id);
@@ -681,6 +715,7 @@ function renderCurrentTab() {
   else if (currentTab === 'users') renderUsers();
   else if (currentTab === 'transactions') renderTransactions();
   else if (currentTab === 'withdrawals') renderWithdrawals();
+  else if (currentTab === 'kyc') renderKyc();
 }
 
 async function doRefresh() {
@@ -1371,6 +1406,102 @@ async function doRejectWd(wdId) {
     showToast('✅ ' + data.message, 'ok');
     await loadAllData();
     renderWithdrawals();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+// ═══════════════ KYC ═══════════════
+function renderKyc() {
+  const filter = document.getElementById('kyc-filter')?.value ?? 'pending';
+  const list = (_data.kyc || []).filter(k => !filter || k.status === filter);
+  const pending = (_data.kyc || []).filter(k => k.status === 'pending').length;
+  setText('kyc-sub', `${list.length} yêu cầu · ${pending} chờ duyệt`);
+  const el = document.getElementById('kyc-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🪪</div><div class="empty-title">Không có yêu cầu KYC nào</div><div class="empty-sub">Chưa có ai nộp KYC.</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(k => buildKycCard(k)).join('');
+}
+
+function buildKycCard(k) {
+  const u = k.users || {};
+  const statusBadge = k.status === 'approved'
+    ? '<span style="font-size:11px;font-weight:700;color:var(--ok);background:rgba(52,216,158,.12);border:1px solid rgba(52,216,158,.3);padding:2px 8px;border-radius:6px;">✅ Đã duyệt</span>'
+    : k.status === 'rejected'
+    ? '<span style="font-size:11px;font-weight:700;color:var(--red);background:rgba(240,80,104,.1);border:1px solid rgba(240,80,104,.3);padding:2px 8px;border-radius:6px;">❌ Từ chối</span>'
+    : '<span style="font-size:11px;font-weight:700;color:var(--warn);background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);padding:2px 8px;border-radius:6px;">⏳ Chờ duyệt</span>';
+
+  const imgStyle = 'width:100%;max-height:180px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--border);';
+  const imgHtml = (url, label) => url
+    ? `<div><div style="font-size:11px;color:var(--hint);margin-bottom:4px;">${label}</div><img src="${url}" style="${imgStyle}" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'"></div>`
+    : `<div style="font-size:11px;color:var(--hint);">${label}: N/A</div>`;
+
+  const actions = k.status === 'pending' ? `
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-ok" style="flex:1" onclick="approveKyc('${k.id}','${esc(u.name||'')}')">✅ Duyệt</button>
+      <button class="btn btn-red" style="flex:1" onclick="showRejectKyc('${k.id}','${esc(u.name||'')}')">❌ Từ chối</button>
+    </div>` : k.status === 'rejected' && k.reject_reason ? `
+    <div style="margin-top:8px;font-size:12px;color:var(--hint);">Lý do từ chối: <span style="color:var(--red);">${esc(k.reject_reason)}</span></div>` : '';
+
+  return `<div style="border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;">${esc(u.name || '—')}</div>
+        <div style="font-size:12px;color:var(--sub);">📱 ${esc(u.phone || '—')} ${u.email ? '· 📧 ' + esc(u.email) : ''}</div>
+        <div style="font-size:11px;color:var(--hint);margin-top:2px;">Nộp lúc: ${new Date(k.created_at).toLocaleString('vi-VN')}</div>
+      </div>
+      ${statusBadge}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
+      ${imgHtml(k.front_url, '📄 Mặt trước CCCD')}
+      ${imgHtml(k.back_url, '📄 Mặt sau CCCD')}
+      ${imgHtml(k.selfie_url, '🤳 Selfie')}
+    </div>
+    ${actions}
+  </div>`;
+}
+
+async function approveKyc(id, name) {
+  if (!confirm(`Duyệt KYC cho "${name}"?\nTài khoản sẽ được đánh dấu Đã xác minh.`)) return;
+  try {
+    const res = await fetch(`${API}/admin/kyc/${id}/approve`, { method: 'POST', headers: adminHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ Đã duyệt KYC thành công', 'ok');
+    await loadAllData();
+    renderKyc();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+function showRejectKyc(id, name) {
+  openModal('❌ Từ chối KYC', `
+    <div class="modal-field">
+      <label>Người dùng</label>
+      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(name)}</div>
+    </div>
+    <div class="modal-field">
+      <label>Lý do từ chối</label>
+      <textarea class="modal-input modal-textarea" id="kyc-reject-reason" placeholder="Ảnh mờ, không khớp thông tin..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
+      <button class="btn btn-red" onclick="doRejectKyc('${id}')">❌ Từ chối</button>
+    </div>
+  `);
+}
+
+async function doRejectKyc(id) {
+  const reason = document.getElementById('kyc-reject-reason')?.value.trim() || '';
+  closeModal();
+  try {
+    const res = await fetch(`${API}/admin/kyc/${id}/reject`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason, secret: ADMIN_SECRET })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ Đã từ chối yêu cầu KYC', 'ok');
+    await loadAllData();
+    renderKyc();
   } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
