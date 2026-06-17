@@ -1901,6 +1901,108 @@ app.get('/api/admin/stats', async (req, res) => {
   });
 });
 
+// All tickets (admin)
+app.get('/api/admin/tickets', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { status, search } = req.query;
+  let query = supabase.from('tickets').select('*').order('created_at', { ascending: false }).limit(300);
+  if (status) query = query.eq('status', status);
+  if (search) query = query.or(`event_name.ilike.%${search}%,seller_name.ilike.%${search}%`);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// All transactions (admin)
+app.get('/api/admin/transactions', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { user_id, type } = req.query;
+  let query = supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(300);
+  if (user_id) query = query.eq('user_id', user_id);
+  if (type) query = query.eq('type', type);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// Force cancel order (admin) — refund buyer
+app.post('/api/admin/orders/:id/force-cancel', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { note } = req.body;
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+  const cancelable = ['waiting_qr', 'waiting_confirm', 'disputed'];
+  if (!cancelable.includes(order.status))
+    return res.status(400).json({ error: `Không thể hủy đơn ở trạng thái "${order.status}"` });
+
+  const { data: buyer } = await supabase.from('users').select('balance,escrow').eq('id', order.buyer_id).single();
+  if (!buyer) return res.status(404).json({ error: 'Không tìm thấy buyer' });
+
+  await supabase.from('users').update({
+    balance: buyer.balance + order.total,
+    escrow: Math.max(0, buyer.escrow - order.total),
+  }).eq('id', order.buyer_id);
+
+  await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+  await supabase.from('orders').update({
+    status: 'refunded',
+    dispute_note: sanitize(note || 'Admin force cancelled'),
+    dispute_resolved_at: new Date().toISOString(),
+  }).eq('id', req.params.id);
+
+  await supabase.from('transactions').insert([
+    { user_id: order.buyer_id, type: 'refund', amount: order.total, description: `Admin hủy đơn — hoàn tiền: ${order.event_name}${note ? ' — ' + sanitize(note) : ''}`, order_id: order.id },
+    { user_id: order.seller_id, type: 'admin_action', amount: 0, description: `Admin hủy đơn: ${order.event_name}`, order_id: order.id },
+  ]);
+
+  createNotification(order.buyer_id, 'refund', '↩️ Đơn hàng bị hủy — Tiền hoàn về ví', `Admin đã hủy đơn hàng ${order.event_name}. Tiền đã hoàn về ví của bạn.`, '/orders');
+  createNotification(order.seller_id, 'system', '❌ Đơn hàng bị Admin hủy', `Đơn hàng ${order.event_name} đã bị Admin hủy.`, '/orders');
+
+  res.json({ message: 'Đã hủy đơn và hoàn tiền cho buyer thành công.' });
+});
+
+// Force release escrow to seller (admin)
+app.post('/api/admin/orders/:id/force-release', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { note } = req.body;
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+  const releasable = ['waiting_qr', 'waiting_confirm', 'disputed'];
+  if (!releasable.includes(order.status))
+    return res.status(400).json({ error: `Không thể giải ngân đơn ở trạng thái "${order.status}"` });
+
+  const { data: buyer } = await supabase.from('users').select('escrow').eq('id', order.buyer_id).single();
+  const { data: seller } = await supabase.from('users').select('balance').eq('id', order.seller_id).single();
+  if (!buyer || !seller) return res.status(404).json({ error: 'Không tìm thấy buyer/seller' });
+
+  await supabase.from('users').update({ escrow: Math.max(0, buyer.escrow - order.total) }).eq('id', order.buyer_id);
+  await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
+  await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
+  await supabase.from('orders').update({
+    status: 'completed',
+    dispute_note: sanitize(note || 'Admin force released'),
+    dispute_resolved_at: new Date().toISOString(),
+  }).eq('id', req.params.id);
+
+  await supabase.from('transactions').insert([
+    { user_id: order.seller_id, type: 'payout', amount: order.price, description: `Admin giải ngân: ${order.event_name}${note ? ' — ' + sanitize(note) : ''}`, order_id: order.id },
+    { user_id: order.buyer_id, type: 'admin_action', amount: 0, description: `Admin giải ngân đơn hàng: ${order.event_name}`, order_id: order.id },
+  ]);
+
+  createNotification(order.seller_id, 'payout', '💸 Tiền đã vào ví!', `Admin đã giải ngân đơn hàng ${order.event_name}.`, '/wallet');
+  createNotification(order.buyer_id, 'system', '✅ Đơn hàng hoàn tất', `Admin đã xác nhận hoàn tất đơn hàng ${order.event_name}.`, '/orders');
+
+  res.json({ message: 'Đã giải ngân escrow cho seller thành công.' });
+});
+
+// Delete ticket (admin)
+app.delete('/api/admin/tickets/:id', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { error } = await supabase.from('tickets').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Đã xóa vé thành công.' });
+});
+
 // Export orders CSV
 app.get('/api/admin/export', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });

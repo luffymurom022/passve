@@ -9,182 +9,545 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --bg:#06090f;--bg2:#090d16;--card:#0d1220;--card2:#101828;--card3:#131d2e;
-  --border:rgba(255,255,255,.055);--border2:rgba(255,255,255,.1);--border3:rgba(255,255,255,.16);
-  --brand:#3d8ef8;--brandD:#2e7ef0;--brandL:rgba(61,142,248,.07);--brandM:rgba(61,142,248,.12);
+  --border:rgba(255,255,255,.055);--border2:rgba(255,255,255,.1);--border3:rgba(255,255,255,.18);
+  --brand:#3d8ef8;--brandD:#2e7ef0;--brandL:rgba(61,142,248,.07);--brandM:rgba(61,142,248,.13);
   --text:#e8edf8;--sub:#7b8fad;--hint:#3d4f6a;
-  --ok:#22d38e;--okBg:rgba(34,211,142,.08);
-  --warn:#f5a623;--warnBg:rgba(245,166,35,.08);
-  --red:#f05068;--redBg:rgba(240,80,104,.08);
-  --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);
-  --radius:14px;--radius-sm:8px;
+  --ok:#22d38e;--okBg:rgba(34,211,142,.08);--okBorder:rgba(34,211,142,.2);
+  --warn:#f5a623;--warnBg:rgba(245,166,35,.08);--warnBorder:rgba(245,166,35,.2);
+  --red:#f05068;--redBg:rgba(240,80,104,.08);--redBorder:rgba(240,80,104,.2);
+  --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);--purpleBorder:rgba(155,135,245,.2);
+  --cyan:#00e5ff;
+  --radius:14px;--radius-sm:8px;--radius-xs:6px;
+  --sidebar:220px;
 }
+
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
 
-/* ── LOGIN ── */
+/* ═══════════════ LOGIN ═══════════════ */
 #login-screen{
   display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;
-  background-image:radial-gradient(ellipse 80% 60% at 80% -10%,rgba(61,142,248,.06) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 50% at -10% 80%,rgba(155,135,245,.04) 0%,transparent 60%);
+  background:radial-gradient(ellipse 80% 60% at 70% 0%,rgba(61,142,248,.07) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 50% at 10% 90%,rgba(155,135,245,.05) 0%,transparent 60%);
 }
-.login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:36px 32px;}
-.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
-.login-logo .shield{width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
-.login-logo h1{font-size:18px;font-weight:700;letter-spacing:-.3px;}
-.login-logo span{font-size:11px;color:var(--sub);font-family:'JetBrains Mono',monospace;background:var(--card2);padding:2px 8px;border-radius:4px;margin-left:4px;}
-.field{margin-bottom:16px;}
-.field label{display:block;font-size:12px;font-weight:500;color:var(--sub);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase;}
-.field input{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;color:var(--text);font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .15s;}
-.field input:focus{border-color:var(--brand);}
-.btn-login{width:100%;padding:12px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px;}
-.btn-login:hover{background:var(--brandD);}
-.err{color:var(--red);font-size:13px;margin-top:10px;text-align:center;min-height:18px;}
+.login-card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:40px 36px;}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.login-shield{width:42px;height:42px;background:linear-gradient(135deg,#3d8ef8,#6a5af9);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.login-title{font-size:20px;font-weight:800;letter-spacing:-.4px;}
+.login-badge{display:inline-block;font-size:10px;color:var(--warn);background:var(--warnBg);border:1px solid var(--warnBorder);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:6px;vertical-align:middle;}
+.login-sub{font-size:13px;color:var(--sub);margin-bottom:28px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--sub);margin-bottom:7px;letter-spacing:.5px;text-transform:uppercase;}
+.field input{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;font-size:14px;color:var(--text);font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .15s,box-shadow .15s;}
+.field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(61,142,248,.12);}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,#3d8ef8,#2e7ef0);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:4px;letter-spacing:.2px;}
+.btn-login:hover{opacity:.9;}
+.btn-login:active{transform:scale(.99);}
+.login-err{color:var(--red);font-size:13px;margin-top:12px;text-align:center;min-height:18px;}
 
-/* ── APP SHELL ── */
-#app{display:none;}
-.topbar{position:sticky;top:0;z-index:100;height:56px;background:rgba(6,9,15,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
-.topbar-left{display:flex;align-items:center;gap:10px;}
-.topbar-logo{font-size:14px;font-weight:700;}
-.badge-admin{font-size:10px;color:var(--warn);background:var(--warnBg);border:1px solid rgba(245,166,35,.2);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
-.topbar-right{display:flex;align-items:center;gap:10px;}
-.btn-sm{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--sub);transition:all .15s;}
+/* ═══════════════ APP SHELL ═══════════════ */
+#app{display:none;min-height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:200;height:54px;background:rgba(6,9,15,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px;}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;letter-spacing:-.3px;flex-shrink:0;}
+.topbar-shield{width:30px;height:30px;background:linear-gradient(135deg,#3d8ef8,#6a5af9);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.badge-admin{font-size:9px;color:var(--warn);background:var(--warnBg);border:1px solid var(--warnBorder);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:.3px;}
+.topbar-center{flex:1;display:flex;align-items:center;justify-content:center;}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.refresh-time{font-size:11px;color:var(--hint);font-family:'JetBrains Mono',monospace;}
+.btn-sm{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--sub);transition:all .15s;white-space:nowrap;}
 .btn-sm:hover{background:var(--card3);color:var(--text);}
-.btn-danger{background:var(--redBg);border-color:rgba(240,80,104,.25);color:var(--red);}
-.btn-danger:hover{background:rgba(240,80,104,.15);}
+.btn-sm-brand{background:var(--brandM);border-color:rgba(61,142,248,.25);color:var(--brand);}
+.btn-sm-brand:hover{background:rgba(61,142,248,.2);}
+.btn-sm-danger{background:var(--redBg);border-color:var(--redBorder);color:var(--red);}
+.btn-sm-danger:hover{background:rgba(240,80,104,.15);}
 
-/* ── NAV ── */
-.nav{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid var(--border);overflow-x:auto;}
-.nav-btn{padding:8px 16px;border-radius:8px 8px 0 0;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-bottom:none;background:none;color:var(--sub);transition:all .15s;position:relative;bottom:-1px;white-space:nowrap;}
-.nav-btn.active{background:var(--card);border-color:var(--border);color:var(--text);}
-.nav-btn:hover:not(.active){color:var(--text);}
-.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;margin-left:6px;}
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:calc(100vh - 54px);}
 
-/* ── MAIN ── */
-.main{padding:20px;max-width:1100px;margin:0 auto;}
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;}
+.sidebar-section{padding:12px 10px 6px;font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);margin:1px 8px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;transition:all .15s;border:1px solid transparent;position:relative;user-select:none;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.active{background:var(--brandM);border-color:rgba(61,142,248,.2);color:var(--brand);font-weight:600;}
+.nav-item .nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.nav-item .nav-badge{margin-left:auto;min-width:18px;height:18px;padding:0 5px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 
-/* ── STATS ROW ── */
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
-.stat-label{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
-.stat-val{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-.5px;}
-.stat-val.ok{color:var(--ok);}
-.stat-val.warn{color:var(--warn);}
-.stat-val.red{color:var(--red);}
-.stat-val.brand{color:var(--brand);}
-.stat-sub{font-size:11px;color:var(--hint);margin-top:4px;}
+/* ── MOBILE NAV ── */
+.mobile-nav{display:none;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--bg2);padding:0 12px;gap:2px;scrollbar-width:none;}
+.mobile-nav::-webkit-scrollbar{display:none;}
+.mob-nav-item{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:12px 14px;font-size:12px;font-weight:500;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;}
+.mob-nav-item.active{color:var(--brand);border-bottom-color:var(--brand);}
+.mob-nav-item .mob-badge{min-width:16px;height:16px;padding:0 4px;background:var(--red);color:#fff;border-radius:8px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 
-/* ── SECTION ── */
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
-.section-title{font-size:14px;font-weight:600;color:var(--text);}
-.section-sub{font-size:12px;color:var(--sub);}
+/* ── MAIN CONTENT ── */
+.main{flex:1;min-width:0;padding:24px;overflow:hidden;}
+.page{display:none;}
+.page.active{display:block;}
 
-/* ── TABLE ── */
-.tbl-wrap{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;}
-th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
-td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top;}
+/* ═══════════════ STAT CARDS ═══════════════ */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;transition:border-color .2s;}
+.stat-card:hover{border-color:var(--border2);}
+.stat-label{font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.stat-val{font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-.5px;line-height:1;}
+.stat-val.c-ok{color:var(--ok);}
+.stat-val.c-warn{color:var(--warn);}
+.stat-val.c-red{color:var(--red);}
+.stat-val.c-brand{color:var(--brand);}
+.stat-val.c-purple{color:var(--purple);}
+.stat-sub{font-size:11px;color:var(--hint);margin-top:6px;}
+
+/* ═══════════════ CARDS ═══════════════ */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.card-sub{font-size:12px;color:var(--sub);margin-top:2px;}
+.card-body{padding:20px;}
+
+/* ═══════════════ TOOLBAR ═══════════════ */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:200px;}
+.search-input{flex:1;min-width:160px;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 14px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color .15s,box-shadow .15s;}
+.search-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(61,142,248,.1);}
+.search-input::placeholder{color:var(--hint);}
+.filter-select{background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 12px;font-size:12px;color:var(--text);font-family:'Inter',sans-serif;outline:none;cursor:pointer;transition:border-color .15s;}
+.filter-select:focus{border-color:var(--brand);}
+
+/* ═══════════════ TABLE ═══════════════ */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius-sm);}
+table{width:100%;border-collapse:collapse;min-width:500px;}
+thead{position:sticky;top:0;z-index:1;}
+th{text-align:left;padding:10px 14px;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;background:var(--card2);border-bottom:1px solid var(--border);white-space:nowrap;}
+th:first-child{border-radius:var(--radius-sm) 0 0 0;}
+th:last-child{border-radius:0 var(--radius-sm) 0 0;}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
-tr:hover td{background:rgba(255,255,255,.018);}
+tr:hover td{background:rgba(255,255,255,.015);}
 .mono{font-family:'JetBrains Mono',monospace;font-size:12px;}
 
-/* ── PILLS ── */
-.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
-.pill-disputed{background:var(--redBg);color:var(--red);border:1px solid rgba(240,80,104,.2);}
-.pill-completed{background:var(--okBg);color:var(--ok);border:1px solid rgba(34,211,142,.2);}
-.pill-refunded{background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,166,35,.2);}
-.pill-waiting{background:var(--brandL);color:var(--brand);border:1px solid rgba(61,142,248,.2);}
-.pill-banned{background:var(--redBg);color:var(--red);border:1px solid rgba(240,80,104,.2);}
-.pill-active{background:var(--okBg);color:var(--ok);border:1px solid rgba(34,211,142,.2);}
+/* ═══════════════ PILLS ═══════════════ */
+.pill{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;border:1px solid;}
+.pill-ok{background:var(--okBg);color:var(--ok);border-color:var(--okBorder);}
+.pill-warn{background:var(--warnBg);color:var(--warn);border-color:var(--warnBorder);}
+.pill-red{background:var(--redBg);color:var(--red);border-color:var(--redBorder);}
+.pill-blue{background:var(--brandL);color:var(--brand);border-color:rgba(61,142,248,.2);}
+.pill-purple{background:var(--purpleBg);color:var(--purple);border-color:var(--purpleBorder);}
+.pill-gray{background:rgba(255,255,255,.05);color:var(--sub);border-color:var(--border);}
 
-/* ── DISPUTE CARD ── */
-.dispute-card{background:var(--card);border:1px solid rgba(240,80,104,.2);border-radius:var(--radius);padding:18px;margin-bottom:12px;}
-.dispute-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
-.dispute-event{font-size:15px;font-weight:600;margin-bottom:4px;}
-.dispute-meta{font-size:12px;color:var(--sub);}
-.dispute-reason{background:var(--redBg);border:1px solid rgba(240,80,104,.15);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;}
-.dispute-reason .reason-label{font-size:11px;color:var(--red);font-weight:600;text-transform:uppercase;margin-bottom:3px;}
-.resolve-area{display:flex;flex-direction:column;gap:8px;}
-.resolve-note{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--text);outline:none;resize:vertical;font-family:'Inter',sans-serif;transition:border-color .15s;}
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;white-space:nowrap;font-family:'Inter',sans-serif;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-primary{background:linear-gradient(135deg,#3d8ef8,#2e7ef0);border-color:transparent;color:#fff;}
+.btn-primary:hover:not(:disabled){opacity:.9;}
+.btn-brand{background:var(--brandM);border-color:rgba(61,142,248,.25);color:var(--brand);}
+.btn-brand:hover:not(:disabled){background:rgba(61,142,248,.2);}
+.btn-ok{background:var(--okBg);border-color:var(--okBorder);color:var(--ok);}
+.btn-ok:hover:not(:disabled){background:rgba(34,211,142,.14);}
+.btn-warn{background:var(--warnBg);border-color:var(--warnBorder);color:var(--warn);}
+.btn-warn:hover:not(:disabled){background:rgba(245,166,35,.14);}
+.btn-red{background:var(--redBg);border-color:var(--redBorder);color:var(--red);}
+.btn-red:hover:not(:disabled){background:rgba(240,80,104,.14);}
+.btn-purple{background:var(--purpleBg);border-color:var(--purpleBorder);color:var(--purple);}
+.btn-purple:hover:not(:disabled){background:rgba(155,135,245,.14);}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--sub);}
+.btn-ghost:hover:not(:disabled){background:var(--card2);color:var(--text);}
+.btn-xs{padding:5px 11px;font-size:11px;}
+.btn-sm-btn{padding:7px 13px;font-size:12px;}
+
+/* ═══════════════ DISPUTE CARD ═══════════════ */
+.dispute-card{background:var(--card);border:1px solid var(--redBorder);border-radius:var(--radius);padding:20px;margin-bottom:12px;}
+.dispute-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.dispute-event{font-size:15px;font-weight:700;margin-bottom:4px;}
+.dispute-meta{font-size:12px;color:var(--sub);line-height:1.6;}
+.dispute-reason-box{background:var(--redBg);border:1px solid var(--redBorder);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
+.dispute-reason-label{font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.resolve-note{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;outline:none;resize:vertical;transition:border-color .15s;margin-bottom:10px;}
 .resolve-note:focus{border-color:var(--brand);}
-.resolve-btns{display:flex;gap:8px;}
-.btn-resolve{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;}
-.btn-resolve-buyer{background:var(--purpleBg);border-color:rgba(155,135,245,.3);color:var(--purple);}
-.btn-resolve-buyer:hover{background:rgba(155,135,245,.15);}
-.btn-resolve-seller{background:var(--warnBg);border-color:rgba(245,166,35,.3);color:var(--warn);}
-.btn-resolve-seller:hover{background:rgba(245,166,35,.15);}
-.btn-resolve:disabled{opacity:.4;cursor:not-allowed;}
+.resolve-btns{display:flex;gap:8px;flex-wrap:wrap;}
 
-/* ── SEARCH BOX ── */
-.search-box{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;font-family:'Inter',sans-serif;}
-.search-box:focus{border-color:var(--brand);}
+/* ═══════════════ USER DETAIL ═══════════════ */
+.user-actions-row{display:flex;flex-wrap:wrap;gap:8px;}
 
-/* ── EMPTY ── */
-.empty{text-align:center;padding:48px 20px;color:var(--sub);}
-.empty-icon{font-size:36px;margin-bottom:10px;}
-.empty-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+/* ═══════════════ MODAL ═══════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
+.modal-title{font-size:15px;font-weight:700;}
+.modal-close{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--sub);transition:all .15s;}
+.modal-close:hover{background:var(--card3);color:var(--text);}
+.modal-body{padding:24px;}
+.modal-field{margin-bottom:16px;}
+.modal-field label{display:block;font-size:11px;font-weight:600;color:var(--sub);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;}
+.modal-input{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 13px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;}
+.modal-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(61,142,248,.1);}
+.modal-textarea{resize:vertical;min-height:80px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:8px;}
 
-/* ── TOAST ── */
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card3);border:1px solid var(--border2);border-radius:10px;padding:12px 20px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:opacity .2s;z-index:9999;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+/* ═══════════════ ORDER DETAIL PANEL ═══════════════ */
+.order-detail{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-top:12px;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.detail-item .d-label{font-size:11px;color:var(--sub);margin-bottom:3px;}
+.detail-item .d-val{font-size:13px;font-weight:500;}
+.detail-actions{display:flex;gap:8px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--border);margin-top:14px;}
+
+/* ═══════════════ EMPTY STATE ═══════════════ */
+.empty{text-align:center;padding:56px 24px;color:var(--sub);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.empty-sub{font-size:13px;color:var(--hint);}
+
+/* ═══════════════ QUICK ACTIONS GRID ═══════════════ */
+.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+.quick-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.quick-icon{font-size:24px;margin-bottom:10px;}
+.quick-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+.quick-sub{font-size:12px;color:var(--sub);margin-bottom:12px;line-height:1.5;}
+
+/* ═══════════════ TOAST ═══════════════ */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--card3);border:1px solid var(--border2);border-radius:12px;padding:12px 22px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:opacity .2s,transform .2s;z-index:9999;pointer-events:none;box-shadow:0 8px 40px rgba(0,0,0,.5);}
 #toast.show{opacity:1;}
-#toast.ok{border-color:rgba(34,211,142,.3);color:var(--ok);}
-#toast.err{border-color:rgba(240,80,104,.3);color:var(--red);}
+#toast.ok{border-color:var(--okBorder);color:var(--ok);}
+#toast.err{border-color:var(--redBorder);color:var(--red);}
 
-/* ── ACTIONS BAR ── */
-.actions-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
-.btn-action{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;}
-.btn-action-primary{background:var(--brandM);border-color:rgba(61,142,248,.3);color:var(--brand);}
-.btn-action-primary:hover{background:rgba(61,142,248,.2);}
-.btn-action-warn{background:var(--warnBg);border-color:rgba(245,166,35,.3);color:var(--warn);}
-.btn-action-warn:hover{background:rgba(245,166,35,.15);}
-.btn-action-ok{background:var(--okBg);border-color:rgba(34,211,142,.3);color:var(--ok);}
-.btn-action-ok:hover{background:rgba(34,211,142,.15);}
-.action-spacer{flex:1;}
-.last-refresh{font-size:11px;color:var(--hint);align-self:center;}
-
-/* ── LOADING ── */
-.loading{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:13px;padding:20px;}
+/* ═══════════════ LOADING ═══════════════ */
+.loading{display:flex;align-items:center;gap:10px;color:var(--sub);font-size:13px;padding:24px;}
 .spin{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
+
+/* ═══════════════ AMOUNT COLORS ═══════════════ */
+.amt-pos{color:var(--ok);}
+.amt-neg{color:var(--red);}
+.amt-neutral{color:var(--sub);}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .mobile-nav{display:flex;}
+  .main{padding:16px 12px;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .detail-grid{grid-template-columns:1fr;}
+  .topbar{padding:0 14px;}
+  .refresh-time{display:none;}
+  .modal{border-radius:16px;}
+  .resolve-btns{flex-direction:column;}
+  .resolve-btns .btn{flex:none;}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .stat-val{font-size:20px;}
+  .quick-grid{grid-template-columns:1fr;}
+}
+
+/* ═══════════════ SCROLLBAR ═══════════════ */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--card3);border-radius:4px;}
+
+/* ═══════════════ ROW HOVER ACTIONS ═══════════════ */
+.row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+
+/* ═══════════════ INFO BANNER ═══════════════ */
+.info-banner{background:var(--brandL);border:1px solid rgba(61,142,248,.2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--brand);display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.warn-banner{background:var(--warnBg);border:1px solid var(--warnBorder);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--warn);display:flex;align-items:center;gap:10px;margin-bottom:16px;}
 </style>
 </head>
 <body>
 
-<!-- ══════════ LOGIN ══════════ -->
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <div class="shield">🛡️</div>
-      <div><h1>SafePass <span>ADMIN</span></h1></div>
+      <div class="login-shield">🛡️</div>
+      <div>
+        <div class="login-title">SafePass <span class="login-badge">ADMIN</span></div>
+      </div>
     </div>
+    <p class="login-sub">Đăng nhập bằng Admin Secret Key để truy cập bảng điều khiển.</p>
     <div class="field">
-      <label>Admin Secret</label>
-      <input type="password" id="secret-input" placeholder="Nhập admin secret key..." onkeydown="if(event.key==='Enter')doLogin()">
+      <label>Admin Secret Key</label>
+      <input type="password" id="secret-input" placeholder="••••••••••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="btn-login" onclick="doLogin()">Đăng nhập</button>
-    <div class="err" id="login-err"></div>
+    <button class="btn-login" onclick="doLogin()">🔐 Đăng nhập</button>
+    <div class="login-err" id="login-err"></div>
   </div>
 </div>
 
-<!-- ══════════ APP ══════════ -->
+<!-- ═══════════════ APP ═══════════════ -->
 <div id="app">
+
+  <!-- TOPBAR -->
   <div class="topbar">
-    <div class="topbar-left">
-      <span class="topbar-logo">🛡️ SafePass</span>
+    <div class="topbar-brand">
+      <div class="topbar-shield">🛡️</div>
+      SafePass
       <span class="badge-admin">ADMIN</span>
     </div>
     <div class="topbar-right">
-      <button class="btn-sm btn-danger" onclick="doLogout()">Đăng xuất</button>
+      <span class="refresh-time" id="refresh-time">—</span>
+      <button class="btn-sm btn-sm-brand" onclick="doRefresh()">🔄 Làm mới</button>
+      <button class="btn-sm btn-sm-danger" onclick="doLogout()">Đăng xuất</button>
     </div>
   </div>
 
-  <div class="nav" id="nav">
-    <button class="nav-btn active" onclick="switchTab('overview')" id="tab-overview">📊 Tổng quan</button>
-    <button class="nav-btn" onclick="switchTab('disputes')" id="tab-disputes">🔥 Khiếu nại <span class="nav-badge" id="dispute-badge" style="display:none">0</span></button>
-    <button class="nav-btn" onclick="switchTab('orders')" id="tab-orders">📋 Đơn hàng</button>
-    <button class="nav-btn" onclick="switchTab('users')" id="tab-users">👥 Người dùng</button>
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav" id="mobile-nav">
+    <div class="mob-nav-item active" onclick="switchTab('overview')" data-tab="overview">📊 Tổng quan</div>
+    <div class="mob-nav-item" onclick="switchTab('disputes')" data-tab="disputes">🔥 Khiếu nại <span class="mob-badge" id="mob-dispute-badge" style="display:none">0</span></div>
+    <div class="mob-nav-item" onclick="switchTab('orders')" data-tab="orders">📋 Đơn hàng</div>
+    <div class="mob-nav-item" onclick="switchTab('tickets')" data-tab="tickets">🎟️ Vé</div>
+    <div class="mob-nav-item" onclick="switchTab('users')" data-tab="users">👥 Users</div>
+    <div class="mob-nav-item" onclick="switchTab('transactions')" data-tab="transactions">💳 Giao dịch</div>
+    <div class="mob-nav-item" onclick="switchTab('withdrawals')" data-tab="withdrawals">💸 Rút tiền <span class="mob-badge" id="mob-withdraw-badge" style="display:none">0</span></div>
   </div>
 
-  <div class="main">
-    <div id="tab-content"></div>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-section">Tổng quan</div>
+      <div class="nav-item active" onclick="switchTab('overview')" data-tab="overview"><span class="nav-icon">📊</span> Dashboard</div>
+
+      <div class="sidebar-section">Quản lý</div>
+      <div class="nav-item" onclick="switchTab('disputes')" data-tab="disputes"><span class="nav-icon">🔥</span> Khiếu nại <span class="nav-badge" id="dispute-badge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="switchTab('orders')" data-tab="orders"><span class="nav-icon">📋</span> Đơn hàng</div>
+      <div class="nav-item" onclick="switchTab('tickets')" data-tab="tickets"><span class="nav-icon">🎟️</span> Vé</div>
+      <div class="nav-item" onclick="switchTab('users')" data-tab="users"><span class="nav-icon">👥</span> Người dùng</div>
+
+      <div class="sidebar-section">Tài chính</div>
+      <div class="nav-item" onclick="switchTab('transactions')" data-tab="transactions"><span class="nav-icon">💳</span> Giao dịch</div>
+      <div class="nav-item" onclick="switchTab('withdrawals')" data-tab="withdrawals"><span class="nav-icon">💸</span> Rút tiền <span class="nav-badge" id="withdraw-badge" style="display:none">0</span></div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- ── PAGE: OVERVIEW ── -->
+      <div class="page active" id="page-overview">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-label">👥 Người dùng</div><div class="stat-val c-brand" id="s-users">—</div><div class="stat-sub" id="s-users-sub">đang tải...</div></div>
+          <div class="stat-card"><div class="stat-label">💰 Doanh thu (Phí)</div><div class="stat-val c-ok" id="s-revenue">—</div><div class="stat-sub">3% phí giao dịch</div></div>
+          <div class="stat-card"><div class="stat-label">📦 GMV</div><div class="stat-val c-brand" id="s-gmv">—</div><div class="stat-sub">Tổng giá trị giao dịch</div></div>
+          <div class="stat-card"><div class="stat-label">🔒 Escrow đang giữ</div><div class="stat-val c-purple" id="s-escrow">—</div><div class="stat-sub">Trong escrow</div></div>
+          <div class="stat-card"><div class="stat-label">✅ Đơn hoàn thành</div><div class="stat-val c-ok" id="s-completed">—</div><div class="stat-sub" id="s-completed-sub">/ tổng đơn</div></div>
+          <div class="stat-card"><div class="stat-label">🎟️ Vé đang bán</div><div class="stat-val c-warn" id="s-tickets">—</div><div class="stat-sub">available listings</div></div>
+          <div class="stat-card"><div class="stat-label">⚠️ Disputes chờ</div><div class="stat-val c-red" id="s-disputes">—</div><div class="stat-sub">cần xử lý</div></div>
+          <div class="stat-card"><div class="stat-label">💸 Rút tiền chờ</div><div class="stat-val c-warn" id="s-withdrawals">—</div><div class="stat-sub">yêu cầu pending</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">⚡ Quick Actions</div><div class="card-sub">Thao tác thường dùng</div></div>
+            <button class="btn btn-brand btn-sm-btn" onclick="doProcessTimeouts()">⏰ Xử lý Escrow Timeout</button>
+          </div>
+          <div class="card-body">
+            <div class="quick-grid">
+              <div class="quick-card">
+                <div class="quick-icon">🔥</div>
+                <div class="quick-title">Resolve Dispute</div>
+                <div class="quick-sub">Xem và xử lý các tranh chấp đang chờ admin</div>
+                <button class="btn btn-red btn-sm-btn" style="width:100%" onclick="switchTab('disputes')">Xem khiếu nại →</button>
+              </div>
+              <div class="quick-card">
+                <div class="quick-icon">💸</div>
+                <div class="quick-title">Duyệt rút tiền</div>
+                <div class="quick-sub">Xét duyệt yêu cầu rút tiền của người dùng</div>
+                <button class="btn btn-warn btn-sm-btn" style="width:100%" onclick="switchTab('withdrawals')">Xem rút tiền →</button>
+              </div>
+              <div class="quick-card">
+                <div class="quick-icon">👥</div>
+                <div class="quick-title">Quản lý Users</div>
+                <div class="quick-sub">Ban/unban, verify seller, set moderator</div>
+                <button class="btn btn-brand btn-sm-btn" style="width:100%" onclick="switchTab('users')">Quản lý users →</button>
+              </div>
+              <div class="quick-card">
+                <div class="quick-icon">📋</div>
+                <div class="quick-title">Đơn hàng</div>
+                <div class="quick-sub">Tra cứu, hủy đơn, hoàn tiền, giải ngân</div>
+                <button class="btn btn-brand btn-sm-btn" style="width:100%" onclick="switchTab('orders')">Xem đơn hàng →</button>
+              </div>
+              <div class="quick-card">
+                <div class="quick-icon">📥</div>
+                <div class="quick-title">Xuất CSV</div>
+                <div class="quick-sub">Tải báo cáo đơn hàng dạng CSV</div>
+                <button class="btn btn-ok btn-sm-btn" style="width:100%" onclick="exportOrdersCSV()">📥 Xuất CSV →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: DISPUTES ── -->
+      <div class="page" id="page-disputes">
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">🔥 Khiếu nại đang chờ</div><div class="card-sub" id="disputes-sub">Đang tải...</div></div>
+            <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
+          </div>
+          <div class="card-body" id="disputes-list"><div class="loading"><div class="spin"></div> Đang tải...</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">🔍 Resolve theo Order ID</div>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;gap:10px;">
+              <input id="dispute-order-id" placeholder="Nhập Order ID (UUID)..." class="search-input" style="flex:1"
+                onkeydown="if(event.key==='Enter')loadDisputeOrder()">
+              <button class="btn btn-brand btn-sm-btn" onclick="loadDisputeOrder()">🔍 Tải đơn</button>
+            </div>
+            <div id="dispute-order-result" style="margin-top:14px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: ORDERS ── -->
+      <div class="page" id="page-orders">
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">📋 Tất cả đơn hàng</div><div class="card-sub" id="orders-sub">Đang tải...</div></div>
+            <button class="btn btn-ok btn-sm-btn" onclick="exportOrdersCSV()">📥 Xuất CSV</button>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="search-input" placeholder="🔍 Tìm theo tên sự kiện, buyer, seller..." id="orders-search" oninput="filterOrders()">
+              </div>
+              <select class="filter-select" id="orders-filter" onchange="filterOrders()">
+                <option value="">Tất cả trạng thái</option>
+                <option value="waiting_qr">⏳ Chờ QR</option>
+                <option value="waiting_confirm">📸 Chờ confirm</option>
+                <option value="disputed">⚠️ Tranh chấp</option>
+                <option value="completed">✅ Hoàn tất</option>
+                <option value="refunded">↩️ Hoàn tiền</option>
+              </select>
+            </div>
+            <div id="orders-table-wrap" class="tbl-wrap"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">🔍 Tra cứu & Thao tác đơn hàng</div></div>
+          <div class="card-body">
+            <div style="display:flex;gap:10px;">
+              <input id="search-order-id" placeholder="Nhập Order ID (UUID)..." class="search-input" style="flex:1"
+                onkeydown="if(event.key==='Enter')searchOrderAction()">
+              <button class="btn btn-brand btn-sm-btn" onclick="searchOrderAction()">Tìm</button>
+            </div>
+            <div id="order-action-result" style="margin-top:14px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: TICKETS ── -->
+      <div class="page" id="page-tickets">
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">🎟️ Tất cả vé</div><div class="card-sub" id="tickets-sub">Đang tải...</div></div>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="search-input" placeholder="🔍 Tìm theo sự kiện, seller..." id="tickets-search" oninput="filterTickets()">
+              </div>
+              <select class="filter-select" id="tickets-filter" onchange="filterTickets()">
+                <option value="">Tất cả</option>
+                <option value="available">✅ Đang bán</option>
+                <option value="sold">💫 Đã bán</option>
+                <option value="expired">❌ Hết hạn</option>
+              </select>
+            </div>
+            <div id="tickets-table-wrap" class="tbl-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: USERS ── -->
+      <div class="page" id="page-users">
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">👥 Quản lý người dùng</div><div class="card-sub" id="users-sub">Đang tải...</div></div>
+            <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="search-input" placeholder="🔍 Tìm theo tên hoặc số điện thoại..." id="users-search" oninput="filterUsers()">
+              </div>
+              <select class="filter-select" id="users-filter" onchange="filterUsers()">
+                <option value="">Tất cả</option>
+                <option value="active">✅ Hoạt động</option>
+                <option value="banned">🚫 Bị khóa</option>
+                <option value="verified">✔️ Đã verify</option>
+              </select>
+            </div>
+            <div id="users-table-wrap" class="tbl-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: TRANSACTIONS ── -->
+      <div class="page" id="page-transactions">
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">💳 Lịch sử giao dịch</div><div class="card-sub" id="transactions-sub">Đang tải...</div></div>
+            <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="search-input" placeholder="🔍 Tìm theo mô tả, user..." id="txn-search" oninput="filterTxns()">
+              </div>
+              <select class="filter-select" id="txn-filter" onchange="filterTxns()">
+                <option value="">Tất cả loại</option>
+                <option value="topup">💰 Nạp tiền</option>
+                <option value="purchase">🛒 Mua vé</option>
+                <option value="payout">💸 Nhận tiền</option>
+                <option value="refund">↩️ Hoàn tiền</option>
+                <option value="withdraw">🏦 Rút tiền</option>
+                <option value="withdraw_pending">⏳ Rút chờ duyệt</option>
+                <option value="admin_action">⚙️ Admin action</option>
+              </select>
+            </div>
+            <div id="txn-table-wrap" class="tbl-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: WITHDRAWALS ── -->
+      <div class="page" id="page-withdrawals">
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">💸 Yêu cầu rút tiền</div><div class="card-sub" id="withdrawals-sub">Đang tải...</div></div>
+            <div style="display:flex;gap:8px;">
+              <select class="filter-select" id="wd-filter" onchange="filterWithdrawals()">
+                <option value="pending">⏳ Chờ duyệt</option>
+                <option value="approved">✅ Đã duyệt</option>
+                <option value="rejected">❌ Từ chối</option>
+                <option value="">Tất cả</option>
+              </select>
+              <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
+            </div>
+          </div>
+          <div id="withdrawals-list" class="card-body"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════ ACTION MODAL ═══════════════ -->
+<div class="modal-overlay" id="action-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">Xác nhận</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 
@@ -194,21 +557,20 @@ tr:hover td{background:rgba(255,255,255,.018);}
 const API = window.location.origin + '/api';
 let ADMIN_SECRET = '';
 let currentTab = 'overview';
-let _data = { orders: [], users: [], disputes: [], stats: null, tickets: [] };
+let _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [] };
 let lastRefresh = null;
 
-// ── LOGIN ──
+// ═══════════════ AUTH ═══════════════
 async function doLogin() {
   const secret = document.getElementById('secret-input').value.trim();
   if (!secret) return;
-  document.getElementById('login-err').textContent = '';
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = '';
   ADMIN_SECRET = secret;
-
-  // Quick check
   try {
-    const res = await fetch(API + '/admin/orders?status=disputed', { headers: adminHeaders() });
-    if (!res.ok) { document.getElementById('login-err').textContent = 'Secret không đúng'; ADMIN_SECRET = ''; return; }
-  } catch(e) { document.getElementById('login-err').textContent = 'Không kết nối được server'; ADMIN_SECRET = ''; return; }
+    const res = await fetch(API + '/admin/stats', { headers: adminHeaders() });
+    if (!res.ok) { errEl.textContent = '❌ Secret không đúng'; ADMIN_SECRET = ''; return; }
+  } catch(e) { errEl.textContent = '❌ Không kết nối được server'; ADMIN_SECRET = ''; return; }
 
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -221,6 +583,7 @@ function doLogout() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('secret-input').value = '';
+  _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [] };
 }
 
 function adminHeaders() {
@@ -230,506 +593,853 @@ function adminBody(extra = {}) {
   return JSON.stringify({ secret: ADMIN_SECRET, ...extra });
 }
 
-// ── DATA ──
+// ═══════════════ DATA ═══════════════
 async function loadAllData() {
   try {
-    const [ticketsRes, disputesRes, ordersRes, usersRes, statsRes] = await Promise.all([
-      fetch(API + '/tickets?limit=100').then(r => r.json()).catch(() => ({ tickets: [] })),
-      fetch(API + '/admin/orders?status=disputed', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
+    const [statsRes, ordersRes, usersRes, ticketsRes, txnRes, wdRes] = await Promise.all([
+      fetch(API + '/admin/stats', { headers: adminHeaders() }).then(r => r.ok ? r.json() : null),
       fetch(API + '/admin/orders', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/users', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
-      fetch(API + '/admin/stats', { headers: adminHeaders() }).then(r => r.ok ? r.json() : null),
+      fetch(API + '/admin/tickets', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/transactions', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/withdrawals', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
     ]);
-    const ticketsArr = Array.isArray(ticketsRes) ? ticketsRes : (ticketsRes.tickets || []);
-    _data.tickets = ticketsArr;
-    _data.disputes = Array.isArray(disputesRes) ? disputesRes : [];
-    _data.orders = Array.isArray(ordersRes) ? ordersRes : [];
-    _data.users = Array.isArray(usersRes) ? usersRes : [];
     _data.stats = statsRes;
+    _data.orders = Array.isArray(ordersRes) ? ordersRes : [];
+    _data.disputes = _data.orders.filter(o => o.status === 'disputed');
+    _data.users = Array.isArray(usersRes) ? usersRes : [];
+    _data.tickets = Array.isArray(ticketsRes) ? ticketsRes : [];
+    _data.transactions = Array.isArray(txnRes) ? txnRes : [];
+    _data.withdrawals = Array.isArray(wdRes) ? wdRes : [];
   } catch(e) { console.error('loadAllData:', e); }
   lastRefresh = new Date();
-  updateDisputeBadge();
+  updateBadges();
+  updateStats();
+  updateRefreshTime();
 }
 
-function updateDisputeBadge() {
-  const count = _data.disputes ? _data.disputes.length : 0;
-  const badge = document.getElementById('dispute-badge');
-  if (!badge) return;
-  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-flex'; }
-  else { badge.style.display = 'none'; }
+function updateRefreshTime() {
+  if (lastRefresh) {
+    document.getElementById('refresh-time').textContent = 'Lúc ' + lastRefresh.toLocaleTimeString('vi-VN');
+  }
 }
 
-// ── TABS ──
+function updateBadges() {
+  const dc = _data.disputes.length;
+  const wc = _data.withdrawals.filter(w => w.status === 'pending').length;
+  ['dispute-badge','mob-dispute-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = dc; el.style.display = dc > 0 ? 'flex' : 'none';
+  });
+  ['withdraw-badge','mob-withdraw-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = wc; el.style.display = wc > 0 ? 'flex' : 'none';
+  });
+}
+
+function updateStats() {
+  const s = _data.stats || {};
+  setText('s-users', fmt(s.totalUsers, 0));
+  setText('s-users-sub', `${s.bannedUsers || 0} bị khóa`);
+  setText('s-revenue', fmtShort(s.totalRevenue));
+  setText('s-gmv', fmtShort(s.totalGMV));
+  setText('s-escrow', fmtShort(s.totalEscrowLocked));
+  setText('s-completed', fmt(s.completedOrders, 0));
+  setText('s-completed-sub', `/ ${s.totalOrders || 0} tổng đơn`);
+  setText('s-tickets', fmt(s.availableTickets, 0));
+  setText('s-disputes', _data.disputes.length);
+  setText('s-withdrawals', (_data.withdrawals || []).filter(w => w.status === 'pending').length);
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ═══════════════ TABS ═══════════════
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  renderTab();
+  document.querySelectorAll('.nav-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.mob-nav-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById('page-' + tab);
+  if (page) page.classList.add('active');
+  renderCurrentTab();
+  window.scrollTo(0, 0);
 }
 
-function renderTab() {
-  const el = document.getElementById('tab-content');
-  if (currentTab === 'overview') el.innerHTML = buildOverview();
-  else if (currentTab === 'disputes') el.innerHTML = buildDisputes();
-  else if (currentTab === 'orders') el.innerHTML = buildOrders();
-  else if (currentTab === 'users') el.innerHTML = buildUsers();
+function renderCurrentTab() {
+  if (currentTab === 'disputes') renderDisputes();
+  else if (currentTab === 'orders') renderOrders();
+  else if (currentTab === 'tickets') renderTickets();
+  else if (currentTab === 'users') renderUsers();
+  else if (currentTab === 'transactions') renderTransactions();
+  else if (currentTab === 'withdrawals') renderWithdrawals();
 }
 
-// ── OVERVIEW ──
-function buildOverview() {
-  const timeStr = lastRefresh ? lastRefresh.toLocaleTimeString('vi-VN') : '—';
-  const s = _data.stats || {};
+async function doRefresh() {
+  showToast('🔄 Đang tải lại...', 'ok');
+  await loadAllData();
+  renderCurrentTab();
+  showToast('✅ Đã cập nhật', 'ok');
+}
 
-  const fmtRevenue = (n) => {
-    if (!n && n !== 0) return '—';
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-    if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
-    return n.toLocaleString('vi-VN');
-  };
+// ═══════════════ DISPUTES ═══════════════
+function renderDisputes() {
+  const list = _data.disputes;
+  setText('disputes-sub', `${list.length} khiếu nại chờ xử lý`);
+  const el = document.getElementById('disputes-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Không có khiếu nại nào</div><div class="empty-sub">Mọi đơn hàng đều ổn!</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(o => buildDisputeCard(o)).join('');
+}
 
-  const revenueStats = _data.stats ? `
-  <div class="stats-row" style="margin-bottom:12px;">
-    <div class="stat-card" style="border-color:rgba(34,211,142,.2);">
-      <div class="stat-label">💰 Phí SafePass (Revenue)</div>
-      <div class="stat-val ok">${fmtRevenue(s.totalRevenue)}đ</div>
-      <div class="stat-sub">Tổng phí 3% đã thu</div>
-    </div>
-    <div class="stat-card" style="border-color:rgba(61,142,248,.2);">
-      <div class="stat-label">📦 GMV (Tổng giá trị)</div>
-      <div class="stat-val brand">${fmtRevenue(s.totalGMV)}đ</div>
-      <div class="stat-sub">Tổng giá vé đã giao dịch</div>
-    </div>
-    <div class="stat-card" style="border-color:rgba(155,135,245,.2);">
-      <div class="stat-label">🔒 Escrow đang giữ</div>
-      <div class="stat-val" style="color:var(--purple);">${fmtRevenue(s.totalEscrowLocked)}đ</div>
-      <div class="stat-sub">Tiền trong escrow</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">✅ Đơn hoàn thành</div>
-      <div class="stat-val ok">${s.completedOrders || 0}</div>
-      <div class="stat-sub">/${s.totalOrders || 0} tổng đơn</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">⚠️ Disputes pending</div>
-      <div class="stat-val red">${(_data.disputes||[]).length}</div>
-      <div class="stat-sub">chờ admin xử lý</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">👥 Người dùng</div>
-      <div class="stat-val brand">${s.totalUsers || 0}</div>
-      <div class="stat-sub">${s.bannedUsers ? `${s.bannedUsers} bị khóa` : 'đang hoạt động'}</div>
-    </div>
-  </div>` : `
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Vé đang bán</div>
-      <div class="stat-val brand">${(_data.tickets||[]).length}</div>
-      <div class="stat-sub">listings available</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Disputes pending</div>
-      <div class="stat-val red">${(_data.disputes||[]).length}</div>
-      <div class="stat-sub">chờ admin xử lý</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Tổng đơn</div>
-      <div class="stat-val ok">${(_data.orders||[]).length}</div>
-      <div class="stat-sub">tất cả trạng thái</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Escrow đang mở</div>
-      <div class="stat-val warn">${(_data.orders||[]).filter(o=>['waiting_qr','waiting_confirm'].includes(o.status)).length}</div>
-      <div class="stat-sub">waiting_qr / waiting_confirm</div>
-    </div>
-  </div>`;
-
+function buildDisputeCard(o) {
   return `
-  <div class="actions-bar">
-    <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
-    <button class="btn-action btn-action-warn" onclick="doProcessTimeouts()">⏰ Xử lý Escrow Timeout</button>
-    <button class="btn-action btn-action-ok" onclick="exportOrdersCSV()">📥 Xuất CSV đơn hàng</button>
-    <div class="action-spacer"></div>
-    <span class="last-refresh">Cập nhật lúc ${timeStr}</span>
-  </div>
-
-  ${revenueStats}
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
-    <div class="section-head">
+  <div class="dispute-card" id="dcard-${o.id}">
+    <div class="dispute-top">
       <div>
-        <div class="section-title">⚡ Quick Actions</div>
-        <div class="section-sub">Các thao tác thường dùng</div>
+        <div class="dispute-event">${esc(o.event_name)}</div>
+        <div class="dispute-meta">
+          Buyer: <strong>${esc(o.buyer_name)}</strong> &nbsp;·&nbsp; Seller: <strong>${esc(o.seller_name)}</strong>
+          &nbsp;·&nbsp; Tổng: <strong style="color:var(--brand)">${fmtVND(o.total)}</strong>
+          ${o.dispute_opened_at ? `<br><span style="font-size:11px;color:var(--hint);">Mở lúc: ${new Date(o.dispute_opened_at).toLocaleString('vi-VN')}</span>` : ''}
+          ${o.dispute_opened_by ? `&nbsp;·&nbsp; <span style="font-size:11px;">Mở bởi: ${o.dispute_opened_by === 'buyer' ? '🧑 Buyer' : '🏪 Seller'}</span>` : ''}
+        </div>
       </div>
+      <span class="pill pill-red">⚠️ Disputed</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-      <div style="background:var(--card2);border-radius:10px;padding:16px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">🔥 Resolve Dispute</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Xem và xử lý các tranh chấp đang pending</div>
-        <button class="btn-action btn-action-primary" style="width:100%;" onclick="switchTab('disputes')">Xem khiếu nại →</button>
-      </div>
-      <div style="background:var(--card2);border-radius:10px;padding:16px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">👥 Quản lý users</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Tìm kiếm, xem thống kê, ban/unban tài khoản</div>
-        <button class="btn-action btn-action-primary" style="width:100%;" onclick="switchTab('users')">Xem users →</button>
-      </div>
-      <div style="background:var(--card2);border-radius:10px;padding:16px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">📊 Xem tất cả đơn</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:10px;">Tra cứu đơn hàng theo ID, xuất báo cáo CSV</div>
-        <button class="btn-action btn-action-primary" style="width:100%;" onclick="switchTab('orders')">Xem đơn hàng →</button>
-      </div>
+    ${o.dispute_reason ? `
+    <div class="dispute-reason-box">
+      <div class="dispute-reason-label">Lý do khiếu nại</div>
+      <div style="font-size:13px">${esc(o.dispute_reason)}</div>
+      ${o.dispute_description ? `<div style="margin-top:6px;font-size:12px;color:var(--sub)">${esc(o.dispute_description)}</div>` : ''}
+    </div>` : ''}
+    <textarea class="resolve-note" id="note-${o.id}" rows="2" placeholder="Ghi chú lý do quyết định (không bắt buộc)..."></textarea>
+    <div class="resolve-btns">
+      <button class="btn btn-purple" onclick="resolveDispute('${o.id}','buyer')">👤 Buyer thắng — Hoàn tiền</button>
+      <button class="btn btn-warn" onclick="resolveDispute('${o.id}','seller')">🏪 Seller thắng — Giải ngân</button>
+      <button class="btn btn-ghost btn-sm-btn" onclick="showOrderDetail('${o.id}')">🔍 Xem chi tiết</button>
     </div>
-  </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;">
-    <div class="section-head">
-      <div class="section-title">🎟️ Vé đang available (${(_data.tickets||[]).length})</div>
-    </div>
-    ${buildTicketsTable(_data.tickets || [])}
-  </div>`;
-}
-
-function buildTicketsTable(tickets) {
-  if (!tickets.length) return '<div class="empty"><div class="empty-icon">🎟️</div><div class="empty-title">Không có vé nào</div></div>';
-  return `<div class="tbl-wrap"><table>
-    <thead><tr><th>Sự kiện</th><th>Seller</th><th>Giá</th><th>Địa điểm</th><th>Ngày</th></tr></thead>
-    <tbody>
-    ${tickets.map(t => `<tr>
-      <td><div style="font-weight:500">${esc(t.event_name)}</div><div style="font-size:11px;color:var(--sub)">${esc(t.section||'')}</div></td>
-      <td>${esc(t.seller_name||'')}</td>
-      <td class="mono">${fmtVND(t.price)}</td>
-      <td style="font-size:12px;color:var(--sub)">${esc(t.location||'—')}</td>
-      <td class="mono" style="font-size:11px;color:var(--sub)">${t.event_date ? String(t.event_date).slice(0,10) : '—'}</td>
-    </tr>`).join('')}
-    </tbody>
-  </table></div>`;
-}
-
-// ── DISPUTES ──
-function buildDisputes() {
-  const disputes = _data.disputes || [];
-  return `
-  <div style="margin-bottom:16px;">
-    <div class="section-head">
-      <div>
-        <div class="section-title">🔥 Khiếu nại đang chờ xử lý</div>
-        <div class="section-sub">${disputes.length} đơn disputed</div>
-      </div>
-      <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
-    </div>
-    ${disputes.length === 0
-      ? `<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Không có khiếu nại nào</div><div style="font-size:13px;color:var(--hint);margin-top:4px;">Mọi đơn hàng đều ổn</div></div>`
-      : disputes.map(o => buildResolveForm(o.id, o)).join('')
-    }
-  </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px;">
-    <div class="section-title" style="margin-bottom:12px;">🔍 Resolve theo Order ID thủ công</div>
-    <div style="display:flex;gap:10px;">
-      <input id="dispute-order-id" placeholder="Order ID (UUID)..." class="search-box"
-        onkeydown="if(event.key==='Enter')loadDisputeOrder()">
-      <button class="btn-action btn-action-primary" onclick="loadDisputeOrder()">🔍 Tải đơn</button>
-    </div>
-    <div id="dispute-order-result" style="margin-top:14px;"></div>
   </div>`;
 }
 
 async function loadDisputeOrder() {
-  const orderId = document.getElementById('dispute-order-id').value.trim();
-  if (!orderId) return;
+  const id = document.getElementById('dispute-order-id').value.trim();
+  if (!id) return;
   const el = document.getElementById('dispute-order-result');
   el.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải...</div>';
   try {
-    const res = await fetch(`${API}/admin/orders/${orderId}`, { headers: adminHeaders() });
+    const res = await fetch(`${API}/admin/orders/${id}`, { headers: adminHeaders() });
     if (res.ok) {
-      const order = await res.json();
-      el.innerHTML = buildOrderDetail(order);
+      const o = await res.json();
+      el.innerHTML = o.status === 'disputed' ? buildDisputeCard(o) : buildOrderDetailPanel(o);
     } else {
-      el.innerHTML = buildResolveForm(orderId, null);
+      el.innerHTML = buildDisputeCard({ id, event_name: 'Order: ' + id.slice(0,8) + '...', buyer_name:'?', seller_name:'?', total:0 });
     }
-  } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`;
-  }
-}
-
-function buildResolveForm(orderId, order) {
-  return `
-  <div class="dispute-card">
-    <div class="dispute-header">
-      <div>
-        <div class="dispute-event">${order ? esc(order.event_name) : 'Order: ' + orderId.slice(0,8) + '...'}</div>
-        <div class="dispute-meta">
-          ${order ? `Buyer: <strong>${esc(order.buyer_name)}</strong> · Seller: <strong>${esc(order.seller_name)}</strong> · Tổng: <strong>${fmtVND(order.total)}</strong>` : 'Nhập ghi chú và chọn bên thắng để resolve'}
-          ${order && order.dispute_opened_at ? `<br><span style="font-size:11px;color:var(--hint);">Mở lúc: ${new Date(order.dispute_opened_at).toLocaleString('vi-VN')}</span>` : ''}
-        </div>
-      </div>
-      <span class="pill pill-disputed">⚠️ Disputed</span>
-    </div>
-    ${order && order.dispute_reason ? `
-    <div class="dispute-reason">
-      <div class="reason-label">Lý do khiếu nại</div>
-      <div>${esc(order.dispute_reason)}</div>
-      ${order.dispute_description ? `<div style="margin-top:6px;color:var(--sub);font-size:12px;">${esc(order.dispute_description)}</div>` : ''}
-    </div>` : ''}
-    <div class="resolve-area">
-      <textarea class="resolve-note" id="note-${orderId}" rows="2" placeholder="Ghi chú lý do quyết định (optional)..."></textarea>
-      <div class="resolve-btns">
-        <button class="btn-resolve btn-resolve-buyer" onclick="resolveDispute('${orderId}','buyer')">👤 Buyer thắng — Hoàn tiền</button>
-        <button class="btn-resolve btn-resolve-seller" onclick="resolveDispute('${orderId}','seller')">🏪 Seller thắng — Giải ngân</button>
-      </div>
-    </div>
-  </div>`;
+  } catch(e) { el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`; }
 }
 
 async function resolveDispute(orderId, winner) {
   const note = (document.getElementById('note-' + orderId)?.value || '').trim();
-  const btns = document.querySelectorAll(`[onclick*="${orderId}"]`);
+  const card = document.getElementById('dcard-' + orderId);
+  const btns = card?.querySelectorAll('button') || [];
   btns.forEach(b => b.disabled = true);
   try {
-    const res = await fetch(`${API}/admin/orders/${orderId}/resolve?secret=${encodeURIComponent(ADMIN_SECRET)}`, {
+    const res = await fetch(`${API}/admin/orders/${orderId}/resolve`, {
       method: 'POST', headers: adminHeaders(), body: adminBody({ winner, note })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lỗi không xác định');
-    showToast('✅ ' + data.message, 'ok');
+    showToast(`✅ ${winner === 'buyer' ? 'Đã hoàn tiền cho Buyer' : 'Đã giải ngân cho Seller'}`, 'ok');
     await loadAllData();
-    renderTab();
+    renderDisputes();
   } catch(e) {
     showToast('❌ ' + e.message, 'err');
     btns.forEach(b => b.disabled = false);
   }
 }
 
-// ── ORDERS (tra cứu) ──
-function buildOrders() {
-  const orders = _data.orders || [];
-  const statusMap = {
-    waiting_qr: '<span class="pill pill-waiting">⏳ Chờ QR</span>',
-    waiting_confirm: '<span class="pill pill-waiting">📸 Chờ confirm</span>',
-    completed: '<span class="pill pill-completed">✅ Hoàn tất</span>',
-    disputed: '<span class="pill pill-disputed">⚠️ Tranh chấp</span>',
-    refunded: '<span class="pill pill-refunded">↩️ Hoàn tiền</span>',
-  };
-  return `
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
-    <div class="section-head">
-      <div>
-        <div class="section-title">📋 Tất cả đơn hàng (${orders.length})</div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-action btn-action-ok" onclick="exportOrdersCSV()">📥 Xuất CSV</button>
-        <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
-      </div>
-    </div>
-    ${orders.length === 0
-      ? '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Chưa có đơn hàng nào</div></div>'
-      : `<div class="tbl-wrap"><table>
-        <thead><tr><th>Sự kiện</th><th>Buyer</th><th>Seller</th><th>Tổng</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead>
-        <tbody>${orders.map(o => `<tr>
-          <td><div style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.event_name)}</div>
-              <div class="mono" style="font-size:10px;color:var(--hint)">${o.id.slice(0,8)}...</div></td>
-          <td style="font-size:12px">${esc(o.buyer_name)}</td>
-          <td style="font-size:12px">${esc(o.seller_name)}</td>
-          <td class="mono">${fmtVND(o.total)}</td>
-          <td>${statusMap[o.status] || `<span class="pill">${o.status}</span>`}</td>
-          <td class="mono" style="font-size:11px;color:var(--sub)">${o.created_at ? String(o.created_at).slice(0,10) : '—'}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>`
-    }
-  </div>
+// ═══════════════ ORDERS ═══════════════
+const ORDER_STATUS = {
+  waiting_qr: '<span class="pill pill-blue">⏳ Chờ QR</span>',
+  waiting_confirm: '<span class="pill pill-blue">📸 Chờ confirm</span>',
+  completed: '<span class="pill pill-ok">✅ Hoàn tất</span>',
+  disputed: '<span class="pill pill-red">⚠️ Tranh chấp</span>',
+  refunded: '<span class="pill pill-warn">↩️ Hoàn tiền</span>',
+};
 
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
-    <div class="section-title" style="margin-bottom:12px;">🔍 Tra cứu đơn hàng</div>
-    <div style="display:flex;gap:10px;">
-      <input id="search-order-id" placeholder="Order ID (UUID)..." class="search-box"
-        onkeydown="if(event.key==='Enter')searchOrder()">
-      <button class="btn-action btn-action-primary" onclick="searchOrder()">Tìm</button>
-    </div>
-    <div id="order-search-result" style="margin-top:14px;"></div>
-  </div>`;
+function renderOrders() {
+  const orders = _data.orders;
+  setText('orders-sub', `${orders.length} đơn hàng`);
+  renderOrdersTable(orders);
 }
 
-async function searchOrder() {
+function renderOrdersTable(orders) {
+  const wrap = document.getElementById('orders-table-wrap');
+  if (!orders.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Không có đơn hàng nào</div></div>';
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Sự kiện</th><th>Buyer</th><th>Seller</th><th>Tổng</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
+    </tr></thead>
+    <tbody>${orders.map(o => `<tr
+      data-event="${esc((o.event_name||'').toLowerCase())}"
+      data-buyer="${esc((o.buyer_name||'').toLowerCase())}"
+      data-seller="${esc((o.seller_name||'').toLowerCase())}"
+      data-status="${esc(o.status||'')}">
+      <td>
+        <div style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.event_name)}</div>
+        <div class="mono" style="font-size:10px;color:var(--hint)">${o.id.slice(0,8)}…</div>
+      </td>
+      <td style="font-size:12px">${esc(o.buyer_name)}</td>
+      <td style="font-size:12px">${esc(o.seller_name)}</td>
+      <td class="mono" style="color:var(--brand)">${fmtVND(o.total)}</td>
+      <td>${ORDER_STATUS[o.status] || `<span class="pill pill-gray">${o.status}</span>`}</td>
+      <td class="mono" style="font-size:11px;color:var(--sub)">${(o.created_at||'').slice(0,10)}</td>
+      <td><button class="btn btn-ghost btn-xs" onclick="showOrderDetail('${o.id}')">🔍 Chi tiết</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function filterOrders() {
+  const q = (document.getElementById('orders-search')?.value || '').toLowerCase().trim();
+  const st = document.getElementById('orders-filter')?.value || '';
+  let orders = _data.orders;
+  if (st) orders = orders.filter(o => o.status === st);
+  if (q) orders = orders.filter(o =>
+    (o.event_name||'').toLowerCase().includes(q) ||
+    (o.buyer_name||'').toLowerCase().includes(q) ||
+    (o.seller_name||'').toLowerCase().includes(q) ||
+    (o.id||'').toLowerCase().includes(q)
+  );
+  setText('orders-sub', `${orders.length} / ${_data.orders.length} đơn hàng`);
+  renderOrdersTable(orders);
+}
+
+async function searchOrderAction() {
   const id = document.getElementById('search-order-id').value.trim();
   if (!id) return;
-  const el = document.getElementById('order-search-result');
+  const el = document.getElementById('order-action-result');
   el.innerHTML = '<div class="loading"><div class="spin"></div> Đang tìm...</div>';
   try {
     const res = await fetch(`${API}/admin/orders/${id}`, { headers: adminHeaders() });
     if (res.ok) {
-      const order = await res.json();
-      el.innerHTML = buildOrderDetail(order);
+      const o = await res.json();
+      el.innerHTML = buildOrderDetailPanel(o);
     } else {
-      el.innerHTML = `<div style="font-size:13px;color:var(--sub);margin-bottom:10px;">Không tìm thấy đơn. Thử resolve trực tiếp:</div>${buildResolveForm(id, null)}`;
+      el.innerHTML = `<div class="warn-banner">⚠️ Không tìm thấy đơn hàng với ID: ${esc(id)}</div>`;
     }
-  } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`;
-  }
+  } catch(e) { el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`; }
 }
 
-function buildOrderDetail(order) {
-  const statusPill = {
-    waiting_qr: '<span class="pill pill-waiting">⏳ Chờ QR</span>',
-    waiting_confirm: '<span class="pill pill-waiting">📸 Chờ confirm</span>',
-    completed: '<span class="pill pill-completed">✅ Hoàn tất</span>',
-    disputed: '<span class="pill pill-disputed">⚠️ Tranh chấp</span>',
-    refunded: '<span class="pill pill-refunded">↩️ Hoàn tiền</span>',
-  }[order.status] || `<span class="pill">${order.status}</span>`;
-
+function buildOrderDetailPanel(o) {
+  const canCancel = ['waiting_qr','waiting_confirm','disputed'].includes(o.status);
+  const canRelease = ['waiting_qr','waiting_confirm','disputed'].includes(o.status);
   return `
-  <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+  <div class="order-detail">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
       <div>
-        <div style="font-size:15px;font-weight:600;">${esc(order.event_name)}</div>
-        <div class="mono" style="font-size:11px;color:var(--hint);margin-top:2px;">${order.id}</div>
+        <div style="font-size:15px;font-weight:700">${esc(o.event_name)}</div>
+        <div class="mono" style="font-size:11px;color:var(--hint);margin-top:2px">${o.id}</div>
       </div>
-      ${statusPill}
+      ${ORDER_STATUS[o.status] || `<span class="pill pill-gray">${o.status}</span>`}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div style="font-size:12px;"><span style="color:var(--sub)">Buyer:</span> <strong>${esc(order.buyer_name)}</strong></div>
-      <div style="font-size:12px;"><span style="color:var(--sub)">Seller:</span> <strong>${esc(order.seller_name)}</strong></div>
-      <div style="font-size:12px;"><span style="color:var(--sub)">Giá vé:</span> <span class="mono">${fmtVND(order.price)}</span></div>
-      <div style="font-size:12px;"><span style="color:var(--sub)">Tổng (+phí):</span> <span class="mono">${fmtVND(order.total)}</span></div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="d-label">Buyer</div><div class="d-val">${esc(o.buyer_name)}</div></div>
+      <div class="detail-item"><div class="d-label">Seller</div><div class="d-val">${esc(o.seller_name)}</div></div>
+      <div class="detail-item"><div class="d-label">Giá vé</div><div class="d-val mono" style="color:var(--brand)">${fmtVND(o.price)}</div></div>
+      <div class="detail-item"><div class="d-label">Phí (3%)</div><div class="d-val mono" style="color:var(--warn)">${fmtVND(o.fee)}</div></div>
+      <div class="detail-item"><div class="d-label">Tổng (buyer trả)</div><div class="d-val mono" style="color:var(--brand)">${fmtVND(o.total)}</div></div>
+      <div class="detail-item"><div class="d-label">Ngày tạo</div><div class="d-val mono" style="font-size:12px">${(o.created_at||'').slice(0,16).replace('T',' ')}</div></div>
     </div>
-    ${order.status === 'disputed' ? buildResolveForm(order.id, order) : ''}
+    ${o.dispute_reason ? `<div class="dispute-reason-box"><div class="dispute-reason-label">Lý do khiếu nại</div><div>${esc(o.dispute_reason)}</div></div>` : ''}
+    <div class="detail-actions">
+      ${canCancel ? `<button class="btn btn-red btn-sm-btn" onclick="showForceCancel('${o.id}','${esc(o.event_name)}')">↩️ Hủy đơn & Hoàn tiền</button>` : ''}
+      ${canRelease ? `<button class="btn btn-ok btn-sm-btn" onclick="showForceRelease('${o.id}','${esc(o.event_name)}')">💸 Giải ngân Escrow</button>` : ''}
+      ${o.status === 'disputed' ? `<button class="btn btn-purple btn-sm-btn" onclick="resolveDispute('${o.id}','buyer')">👤 Buyer thắng</button><button class="btn btn-warn btn-sm-btn" onclick="resolveDispute('${o.id}','seller')">🏪 Seller thắng</button>` : ''}
+      ${!canCancel && !canRelease && o.status !== 'disputed' ? `<div style="color:var(--sub);font-size:13px">Đơn hàng đã kết thúc — không có thao tác nào khả dụng.</div>` : ''}
+    </div>
   </div>`;
 }
 
-// ── USERS ──
-function buildUsers() {
-  const users = _data.users || [];
-  return `
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
-    <div class="section-head">
-      <div>
-        <div class="section-title">👥 Quản lý người dùng (${users.length})</div>
-        <div class="section-sub">${users.filter(u=>u.is_banned).length} tài khoản bị khóa</div>
-      </div>
-      <button class="btn-action btn-action-primary" onclick="doRefresh()">🔄 Làm mới</button>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-bottom:16px;">
-      <input id="user-search-input" placeholder="🔍 Tìm theo tên hoặc số điện thoại..." class="search-box" style="flex:1;"
-        oninput="filterUsersTable(this.value)">
-    </div>
-
-    ${users.length === 0
-      ? '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Không có người dùng nào</div></div>'
-      : `<div class="tbl-wrap"><table id="users-table">
-        <thead><tr>
-          <th>Tên</th><th>SĐT</th><th>Balance</th><th>Escrow</th><th>Rating</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hành động</th>
-        </tr></thead>
-        <tbody id="users-tbody">
-          ${users.map(u => buildUserRow(u)).join('')}
-        </tbody>
-      </table></div>`
+async function showOrderDetail(orderId) {
+  const el = document.getElementById('order-action-result') || document.getElementById('dispute-order-result');
+  if (currentTab === 'orders') {
+    const searchEl = document.getElementById('search-order-id');
+    if (searchEl) searchEl.value = orderId;
+    await searchOrderAction();
+    document.getElementById('order-action-result')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    const res = await fetch(`${API}/admin/orders/${orderId}`, { headers: adminHeaders() });
+    if (res.ok) {
+      const o = await res.json();
+      openModal('🔍 Chi tiết đơn hàng', buildOrderDetailPanel(o));
     }
-  </div>
-
-  <div id="user-action-result" style="margin-top:12px;"></div>`;
+  }
 }
 
-function buildUserRow(u) {
-  const statusPill = u.is_banned
-    ? '<span class="pill pill-banned">🚫 Bị khóa</span>'
-    : '<span class="pill pill-active">✅ Hoạt động</span>';
-  const actionBtn = u.is_banned
-    ? `<button class="btn-action btn-action-ok" style="padding:5px 12px;font-size:11px;" onclick="unbanUser('${u.id}','${esc(u.name)}')">Mở khóa</button>`
-    : `<button class="btn-action btn-action-warn" style="padding:5px 12px;font-size:11px;" onclick="banUser('${u.id}','${esc(u.name)}')">Khóa</button>`;
-  return `<tr data-name="${esc((u.name||'').toLowerCase())}" data-phone="${esc(u.phone||'')}">
-    <td style="font-weight:500">${esc(u.name)}</td>
-    <td class="mono">${esc(u.phone)}</td>
-    <td class="mono" style="color:var(--ok)">${fmtVND(u.balance)}</td>
-    <td class="mono" style="color:var(--purple)">${fmtVND(u.escrow)}</td>
-    <td>${u.avg_rating ? `⭐ ${u.avg_rating} (${u.review_count || 0})` : '—'}</td>
-    <td>${statusPill}</td>
-    <td class="mono" style="font-size:11px;color:var(--sub)">${u.created_at ? String(u.created_at).slice(0,10) : '—'}</td>
-    <td>${actionBtn}</td>
-  </tr>`;
+function showForceCancel(orderId, eventName) {
+  openModal('↩️ Hủy đơn & Hoàn tiền', `
+    <div class="warn-banner">⚠️ Thao tác này sẽ hoàn toàn bộ tiền về ví Buyer và đặt lại vé về trạng thái "Đang bán".</div>
+    <div class="modal-field">
+      <label>Sự kiện</label>
+      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(eventName)}</div>
+    </div>
+    <div class="modal-field">
+      <label>Ghi chú (lý do hủy)</label>
+      <textarea class="modal-input modal-textarea" id="cancel-note" placeholder="Ghi chú cho buyer & seller..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
+      <button class="btn btn-red" onclick="doForceCancel('${orderId}')">↩️ Xác nhận hủy đơn</button>
+    </div>
+  `);
 }
 
-function filterUsersTable(q) {
-  const rows = document.querySelectorAll('#users-tbody tr');
-  const term = q.toLowerCase().trim();
-  rows.forEach(r => {
-    const name = r.dataset.name || '';
-    const phone = r.dataset.phone || '';
-    r.style.display = (!term || name.includes(term) || phone.includes(term)) ? '' : 'none';
-  });
-}
-
-async function banUser(userId, name) {
-  const reason = prompt(`Lý do khóa tài khoản ${name}? (optional)`);
-  if (reason === null) return; // cancelled
+async function doForceCancel(orderId) {
+  const note = document.getElementById('cancel-note')?.value.trim() || '';
+  closeModal();
   try {
-    const res = await fetch(`${API}/admin/users/${userId}/ban`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ reason: reason || '' })
+    const res = await fetch(`${API}/admin/orders/${orderId}/force-cancel`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    showToast(`✅ Đã khóa tài khoản ${name}`, 'ok');
+    showToast('✅ ' + data.message, 'ok');
     await loadAllData();
-    renderTab();
+    renderCurrentTab();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+function showForceRelease(orderId, eventName) {
+  openModal('💸 Giải ngân Escrow cho Seller', `
+    <div class="info-banner">ℹ️ Thao tác này sẽ chuyển tiền từ escrow vào ví Seller và đánh dấu đơn hoàn tất.</div>
+    <div class="modal-field">
+      <label>Sự kiện</label>
+      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(eventName)}</div>
+    </div>
+    <div class="modal-field">
+      <label>Ghi chú (lý do giải ngân)</label>
+      <textarea class="modal-input modal-textarea" id="release-note" placeholder="Ghi chú lý do giải ngân..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
+      <button class="btn btn-ok" onclick="doForceRelease('${orderId}')">💸 Xác nhận giải ngân</button>
+    </div>
+  `);
+}
+
+async function doForceRelease(orderId) {
+  const note = document.getElementById('release-note')?.value.trim() || '';
+  closeModal();
+  try {
+    const res = await fetch(`${API}/admin/orders/${orderId}/force-release`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ ' + data.message, 'ok');
+    await loadAllData();
+    renderCurrentTab();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+// ═══════════════ TICKETS ═══════════════
+const TICKET_STATUS = {
+  available: '<span class="pill pill-ok">✅ Đang bán</span>',
+  sold: '<span class="pill pill-purple">💫 Đã bán</span>',
+  expired: '<span class="pill pill-gray">❌ Hết hạn</span>',
+};
+
+function renderTickets() {
+  const tickets = _data.tickets;
+  setText('tickets-sub', `${tickets.length} vé`);
+  renderTicketsTable(tickets);
+}
+
+function renderTicketsTable(tickets) {
+  const wrap = document.getElementById('tickets-table-wrap');
+  if (!tickets.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🎟️</div><div class="empty-title">Không có vé nào</div></div>';
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Sự kiện</th><th>Seller</th><th>Giá</th><th>Địa điểm</th><th>Ngày sự kiện</th><th>Trạng thái</th><th>Đăng lúc</th><th>Thao tác</th>
+    </tr></thead>
+    <tbody>${tickets.map(t => `<tr
+      data-event="${esc((t.event_name||'').toLowerCase())}"
+      data-seller="${esc((t.seller_name||'').toLowerCase())}"
+      data-status="${esc(t.status||'')}">
+      <td>
+        <div style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.event_name)}</div>
+        ${t.section ? `<div style="font-size:11px;color:var(--sub)">${esc(t.section)}</div>` : ''}
+      </td>
+      <td style="font-size:12px">${esc(t.seller_name||'—')}</td>
+      <td class="mono" style="color:var(--brand)">${fmtVND(t.price)}</td>
+      <td style="font-size:12px;color:var(--sub);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.location||'—')}</td>
+      <td class="mono" style="font-size:11px;color:var(--sub)">${(t.event_date||'—').slice?.(0,10)||'—'}</td>
+      <td>${TICKET_STATUS[t.status] || `<span class="pill pill-gray">${t.status}</span>`}</td>
+      <td class="mono" style="font-size:11px;color:var(--sub)">${(t.created_at||'').slice(0,10)}</td>
+      <td><button class="btn btn-red btn-xs" onclick="deleteTicket('${t.id}','${esc(t.event_name)}')">🗑️</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function filterTickets() {
+  const q = (document.getElementById('tickets-search')?.value || '').toLowerCase().trim();
+  const st = document.getElementById('tickets-filter')?.value || '';
+  let tickets = _data.tickets;
+  if (st) tickets = tickets.filter(t => t.status === st);
+  if (q) tickets = tickets.filter(t =>
+    (t.event_name||'').toLowerCase().includes(q) ||
+    (t.seller_name||'').toLowerCase().includes(q)
+  );
+  setText('tickets-sub', `${tickets.length} / ${_data.tickets.length} vé`);
+  renderTicketsTable(tickets);
+}
+
+async function deleteTicket(ticketId, eventName) {
+  openModal('🗑️ Xóa vé', `
+    <div class="warn-banner">⚠️ Xóa vé này sẽ gỡ listing khỏi hệ thống. Không thể khôi phục.</div>
+    <div class="modal-field">
+      <label>Vé</label>
+      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(eventName)}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
+      <button class="btn btn-red" onclick="doDeleteTicket('${ticketId}')">🗑️ Xác nhận xóa</button>
+    </div>
+  `);
+}
+
+async function doDeleteTicket(ticketId) {
+  closeModal();
+  try {
+    const res = await fetch(`${API}/admin/tickets/${ticketId}`, {
+      method: 'DELETE', headers: adminHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ ' + data.message, 'ok');
+    await loadAllData();
+    renderTickets();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+// ═══════════════ USERS ═══════════════
+function renderUsers() {
+  const users = _data.users;
+  const banned = users.filter(u => u.is_banned).length;
+  const verified = users.filter(u => u.is_verified).length;
+  setText('users-sub', `${users.length} người dùng · ${banned} bị khóa · ${verified} đã verify`);
+  renderUsersTable(users);
+}
+
+function renderUsersTable(users) {
+  const wrap = document.getElementById('users-table-wrap');
+  if (!users.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Không có người dùng nào</div></div>';
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Tên</th><th>SĐT</th><th>Email</th><th>Balance</th><th>Escrow</th><th>Rating</th><th>Trạng thái</th><th>Đăng ký</th><th>Thao tác</th>
+    </tr></thead>
+    <tbody id="users-tbody">${users.map(u => buildUserRow(u)).join('')}</tbody>
+  </table>`;
+}
+
+function buildUserRow(u) {
+  const statusPills = [];
+  if (u.is_banned) statusPills.push('<span class="pill pill-red">🚫 Khóa</span>');
+  else statusPills.push('<span class="pill pill-ok">✅ Hoạt động</span>');
+  if (u.is_verified) statusPills.push('<span class="pill pill-blue" style="margin-left:4px">✔️ Verified</span>');
+  if (u.is_moderator) statusPills.push('<span class="pill pill-purple" style="margin-left:4px">⚖️ Mod</span>');
+
+  return `<tr
+    data-name="${esc((u.name||'').toLowerCase())}"
+    data-phone="${esc(u.phone||'')}"
+    data-status="${u.is_banned?'banned':'active'}"
+    data-verified="${u.is_verified?'verified':''}">
+    <td style="font-weight:600">${esc(u.name)}</td>
+    <td class="mono" style="font-size:12px">${esc(u.phone)}</td>
+    <td style="font-size:11px;color:var(--sub);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.email||'—')}</td>
+    <td class="mono" style="color:var(--ok);font-size:12px">${fmtVND(u.balance)}</td>
+    <td class="mono" style="color:var(--purple);font-size:12px">${fmtVND(u.escrow)}</td>
+    <td style="font-size:12px">${u.avg_rating ? `⭐ ${u.avg_rating} <span style="color:var(--hint)">(${u.review_count||0})</span>` : '<span style="color:var(--hint)">—</span>'}</td>
+    <td>${statusPills.join('')}</td>
+    <td class="mono" style="font-size:11px;color:var(--sub)">${(u.created_at||'').slice(0,10)}</td>
+    <td>
+      <div class="row-actions">
+        ${u.is_banned
+          ? `<button class="btn btn-ok btn-xs" onclick="unbanUser('${u.id}','${esc(u.name)}')">✅ Mở khóa</button>`
+          : `<button class="btn btn-red btn-xs" onclick="showBanUser('${u.id}','${esc(u.name)}')">🚫 Khóa</button>`}
+        ${u.is_verified
+          ? `<button class="btn btn-ghost btn-xs" onclick="unverifyUser('${u.id}','${esc(u.name)}')">❌ Bỏ verify</button>`
+          : `<button class="btn btn-brand btn-xs" onclick="verifyUser('${u.id}','${esc(u.name)}')">✔️ Verify</button>`}
+        <button class="btn btn-ghost btn-xs" onclick="toggleMod('${u.id}','${esc(u.name)}',${!!u.is_moderator})">${u.is_moderator?'❌ Bỏ Mod':'⚖️ Set Mod'}</button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function filterUsers() {
+  const q = (document.getElementById('users-search')?.value || '').toLowerCase().trim();
+  const filter = document.getElementById('users-filter')?.value || '';
+  let users = _data.users;
+  if (filter === 'banned') users = users.filter(u => u.is_banned);
+  else if (filter === 'active') users = users.filter(u => !u.is_banned);
+  else if (filter === 'verified') users = users.filter(u => u.is_verified);
+  if (q) users = users.filter(u =>
+    (u.name||'').toLowerCase().includes(q) ||
+    (u.phone||'').includes(q) ||
+    (u.email||'').toLowerCase().includes(q)
+  );
+  const banned = users.filter(u => u.is_banned).length;
+  setText('users-sub', `${users.length} / ${_data.users.length} người dùng · ${banned} bị khóa`);
+  const tbody = document.getElementById('users-tbody');
+  if (tbody) tbody.innerHTML = users.map(u => buildUserRow(u)).join('');
+}
+
+function showBanUser(userId, name) {
+  openModal('🚫 Khóa tài khoản', `
+    <div class="warn-banner">⚠️ Người dùng sẽ không thể đăng nhập sau khi bị khóa.</div>
+    <div class="modal-field">
+      <label>Người dùng</label>
+      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(name)}</div>
+    </div>
+    <div class="modal-field">
+      <label>Lý do khóa (optional)</label>
+      <textarea class="modal-input modal-textarea" id="ban-reason" placeholder="Lý do khóa tài khoản..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
+      <button class="btn btn-red" onclick="doBanUser('${userId}')">🚫 Xác nhận khóa</button>
+    </div>
+  `);
+}
+
+async function doBanUser(userId) {
+  const reason = document.getElementById('ban-reason')?.value.trim() || '';
+  closeModal();
+  try {
+    const res = await fetch(`${API}/admin/users/${userId}/ban`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody({ reason })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ Đã khóa tài khoản', 'ok');
+    const u = _data.users.find(u => u.id === userId);
+    if (u) u.is_banned = true;
+    filterUsers();
   } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
 async function unbanUser(userId, name) {
-  if (!confirm(`Mở khóa tài khoản ${name}?`)) return;
+  if (!confirm(`Mở khóa tài khoản "${name}"?`)) return;
   try {
     const res = await fetch(`${API}/admin/users/${userId}/unban`, {
       method: 'POST', headers: adminHeaders(), body: adminBody()
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    showToast(`✅ Đã mở khóa tài khoản ${name}`, 'ok');
-    await loadAllData();
-    renderTab();
+    showToast('✅ Đã mở khóa tài khoản', 'ok');
+    const u = _data.users.find(u => u.id === userId);
+    if (u) u.is_banned = false;
+    filterUsers();
   } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
-// ── ACTIONS ──
-async function doRefresh() {
-  showToast('🔄 Đang tải lại...', 'ok');
-  await loadAllData();
-  renderTab();
-  showToast('✅ Đã cập nhật', 'ok');
+async function verifyUser(userId, name) {
+  if (!confirm(`Xác minh seller "${name}"?`)) return;
+  try {
+    const res = await fetch(`${API}/admin/users/${userId}/verify`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ Đã xác minh seller', 'ok');
+    const u = _data.users.find(u => u.id === userId);
+    if (u) u.is_verified = true;
+    filterUsers();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
+async function unverifyUser(userId, name) {
+  if (!confirm(`Hủy xác minh seller "${name}"?`)) return;
+  try {
+    const res = await fetch(`${API}/admin/users/${userId}/unverify`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ Đã hủy xác minh seller', 'ok');
+    const u = _data.users.find(u => u.id === userId);
+    if (u) u.is_verified = false;
+    filterUsers();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+async function toggleMod(userId, name, isMod) {
+  const action = isMod ? 'thu hồi quyền Moderator' : 'cấp quyền Moderator';
+  if (!confirm(`Xác nhận ${action} cho "${name}"?`)) return;
+  try {
+    const res = await fetch(`${API}/admin/users/${userId}/set-moderator`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody({ is_moderator: !isMod })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ ' + data.message, 'ok');
+    const u = _data.users.find(u => u.id === userId);
+    if (u) u.is_moderator = !isMod;
+    filterUsers();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+// ═══════════════ TRANSACTIONS ═══════════════
+const TXN_LABELS = {
+  topup: { label: '💰 Nạp tiền', cls: 'pill-ok' },
+  purchase: { label: '🛒 Mua vé', cls: 'pill-blue' },
+  payout: { label: '💸 Nhận tiền', cls: 'pill-ok' },
+  refund: { label: '↩️ Hoàn tiền', cls: 'pill-warn' },
+  withdraw: { label: '🏦 Rút tiền', cls: 'pill-red' },
+  withdraw_pending: { label: '⏳ Rút chờ duyệt', cls: 'pill-warn' },
+  withdraw_rejected: { label: '❌ Rút bị từ chối', cls: 'pill-red' },
+  admin_action: { label: '⚙️ Admin', cls: 'pill-gray' },
+  dispute_opened: { label: '⚠️ Mở KN', cls: 'pill-red' },
+  dispute_closed: { label: '🔒 Đóng KN', cls: 'pill-gray' },
+  fee: { label: '🏷️ Phí', cls: 'pill-gray' },
+};
+
+function renderTransactions() {
+  const txns = _data.transactions;
+  setText('transactions-sub', `${txns.length} giao dịch gần nhất`);
+  renderTxnTable(txns);
+}
+
+function renderTxnTable(txns) {
+  const wrap = document.getElementById('txn-table-wrap');
+  if (!txns.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">💳</div><div class="empty-title">Không có giao dịch nào</div></div>';
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Loại</th><th>Số tiền</th><th>Mô tả</th><th>User ID</th><th>Thời gian</th>
+    </tr></thead>
+    <tbody>${txns.map(t => {
+      const info = TXN_LABELS[t.type] || { label: t.type, cls: 'pill-gray' };
+      const amtCls = t.amount > 0 ? 'amt-pos' : t.amount < 0 ? 'amt-neg' : 'amt-neutral';
+      const amtStr = t.amount > 0 ? '+' + fmtVND(t.amount) : t.amount < 0 ? fmtVND(t.amount) : '—';
+      return `<tr
+        data-desc="${esc((t.description||'').toLowerCase())}"
+        data-type="${esc(t.type||'')}">
+        <td><span class="pill ${info.cls}">${info.label}</span></td>
+        <td class="mono ${amtCls}" style="font-weight:600">${amtStr}</td>
+        <td style="font-size:12px;color:var(--sub);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.description||'')}">${esc(t.description||'—')}</td>
+        <td class="mono" style="font-size:10px;color:var(--hint)">${(t.user_id||'').slice(0,8)}…</td>
+        <td class="mono" style="font-size:11px;color:var(--sub)">${(t.created_at||'').slice(0,16).replace('T',' ')}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function filterTxns() {
+  const q = (document.getElementById('txn-search')?.value || '').toLowerCase().trim();
+  const type = document.getElementById('txn-filter')?.value || '';
+  let txns = _data.transactions;
+  if (type) txns = txns.filter(t => t.type === type);
+  if (q) txns = txns.filter(t =>
+    (t.description||'').toLowerCase().includes(q) ||
+    (t.user_id||'').includes(q)
+  );
+  setText('transactions-sub', `${txns.length} / ${_data.transactions.length} giao dịch`);
+  renderTxnTable(txns);
+}
+
+// ═══════════════ WITHDRAWALS ═══════════════
+function renderWithdrawals() {
+  const filter = document.getElementById('wd-filter')?.value || 'pending';
+  const wds = _data.withdrawals.filter(w => !filter || w.status === filter);
+  const pending = _data.withdrawals.filter(w => w.status === 'pending').length;
+  setText('withdrawals-sub', `${wds.length} yêu cầu · ${pending} chờ duyệt`);
+  const el = document.getElementById('withdrawals-list');
+  if (!wds.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-title">Không có yêu cầu nào</div><div class="empty-sub">Không có rút tiền ' + (filter || '') + '</div></div>';
+    return;
+  }
+  el.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Người dùng</th><th>Số tiền</th><th>Ngân hàng</th><th>Số TK</th><th>Chủ TK</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
+    </tr></thead>
+    <tbody>${wds.map(w => {
+      const statusEl = w.status === 'pending' ? '<span class="pill pill-warn">⏳ Chờ duyệt</span>'
+        : w.status === 'approved' ? '<span class="pill pill-ok">✅ Đã duyệt</span>'
+        : '<span class="pill pill-red">❌ Từ chối</span>';
+      return `<tr>
+        <td style="font-weight:600">${esc(w.user_name||'—')}<br><span class="mono" style="font-size:11px;color:var(--sub)">${esc(w.user_phone||'')}</span></td>
+        <td class="mono" style="color:var(--warn);font-weight:700">${fmtVND(w.amount)}</td>
+        <td style="font-size:12px">${esc(w.bank_name||'—')}</td>
+        <td class="mono" style="font-size:12px">${esc(w.account_number||'—')}</td>
+        <td style="font-size:12px">${esc(w.account_holder||'—')}</td>
+        <td>${statusEl}</td>
+        <td class="mono" style="font-size:11px;color:var(--sub)">${(w.created_at||'').slice(0,10)}</td>
+        <td>
+          ${w.status === 'pending' ? `
+          <div class="row-actions">
+            <button class="btn btn-ok btn-xs" onclick="approveWithdrawal('${w.id}')">✅ Duyệt</button>
+            <button class="btn btn-red btn-xs" onclick="showRejectWithdrawal('${w.id}','${esc(w.user_name)}')">❌ Từ chối</button>
+          </div>` : w.admin_note ? `<span style="font-size:11px;color:var(--sub)">${esc(w.admin_note)}</span>` : '—'}
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function filterWithdrawals() {
+  renderWithdrawals();
+}
+
+async function approveWithdrawal(wdId) {
+  openModal('✅ Duyệt rút tiền', `
+    <div class="info-banner">ℹ️ Xác nhận bạn đã chuyển tiền thành công cho người dùng.</div>
+    <div class="modal-field">
+      <label>Ghi chú (optional)</label>
+      <input class="modal-input" id="approve-note" placeholder="VD: Đã chuyển lúc 14:30...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
+      <button class="btn btn-ok" onclick="doApproveWd('${wdId}')">✅ Xác nhận duyệt</button>
+    </div>
+  `);
+}
+
+async function doApproveWd(wdId) {
+  const note = document.getElementById('approve-note')?.value.trim() || '';
+  closeModal();
+  try {
+    const res = await fetch(`${API}/admin/withdrawals/${wdId}/approve`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ ' + data.message, 'ok');
+    await loadAllData();
+    renderWithdrawals();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+function showRejectWithdrawal(wdId, name) {
+  openModal('❌ Từ chối rút tiền', `
+    <div class="warn-banner">⚠️ Tiền sẽ được hoàn về ví của người dùng.</div>
+    <div class="modal-field">
+      <label>Người dùng</label>
+      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(name)}</div>
+    </div>
+    <div class="modal-field">
+      <label>Lý do từ chối</label>
+      <textarea class="modal-input modal-textarea" id="reject-note" placeholder="Lý do từ chối..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
+      <button class="btn btn-red" onclick="doRejectWd('${wdId}')">❌ Từ chối</button>
+    </div>
+  `);
+}
+
+async function doRejectWd(wdId) {
+  const note = document.getElementById('reject-note')?.value.trim() || '';
+  closeModal();
+  try {
+    const res = await fetch(`${API}/admin/withdrawals/${wdId}/reject`, {
+      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showToast('✅ ' + data.message, 'ok');
+    await loadAllData();
+    renderWithdrawals();
+  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+}
+
+// ═══════════════ MISC ACTIONS ═══════════════
 async function doProcessTimeouts() {
   try {
-    const res = await fetch(`${API}/admin/process-timeouts?secret=${encodeURIComponent(ADMIN_SECRET)}`, {
+    const res = await fetch(`${API}/admin/process-timeouts`, {
       method: 'POST', headers: adminHeaders(), body: adminBody()
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     showToast('✅ Đã xử lý escrow timeouts', 'ok');
     await loadAllData();
-    renderTab();
+    renderCurrentTab();
   } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
 async function exportOrdersCSV() {
   try {
     showToast('📥 Đang xuất CSV...', 'ok');
-    const res = await fetch(`${API}/admin/export?secret=${encodeURIComponent(ADMIN_SECRET)}`, { headers: adminHeaders() });
+    const res = await fetch(`${API}/admin/export`, { headers: adminHeaders() });
     if (!res.ok) { showToast('❌ Xuất thất bại', 'err'); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'orders_safepass.csv';
+    a.href = url; a.download = `orders_safepass_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
     showToast('✅ Xuất CSV thành công!', 'ok');
   } catch(e) { showToast('❌ ' + e.message, 'err'); }
 }
 
-// ── UTILS ──
+// ═══════════════ MODAL ═══════════════
+function openModal(title, bodyHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('action-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('action-modal').classList.remove('open');
+}
+
+document.getElementById('action-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ═══════════════ UTILS ═══════════════
 function fmtVND(n) {
-  if (!n && n !== 0) return '—';
+  if (n === null || n === undefined) return '—';
   return Number(n).toLocaleString('vi-VN') + 'đ';
 }
+
+function fmtShort(n) {
+  if (n === null || n === undefined || (!n && n !== 0)) return '—';
+  if (n >= 1000000000) return (n / 1000000000).toFixed(1) + 'B';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'Mđ';
+  if (n >= 1000) return (n / 1000).toFixed(0) + 'Kđ';
+  return Number(n).toLocaleString('vi-VN') + 'đ';
+}
+
+function fmt(n, decimals = 0) {
+  if (n === null || n === undefined) return '—';
+  return Number(n).toLocaleString('vi-VN');
+}
+
 function esc(s) {
   if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
 let toastTimer;
@@ -738,7 +1448,11 @@ function showToast(msg, type = 'ok') {
   t.textContent = msg;
   t.className = 'show ' + type;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+  toastTimer = setTimeout(() => { t.className = ''; }, 3200);
+}
+
+function renderTab() {
+  renderCurrentTab();
 }
 </script>
 </body>
