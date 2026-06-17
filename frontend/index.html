@@ -1364,6 +1364,109 @@ async function loadTransactions(page){
   }
 }
 
+async function loadWithdrawals(){
+  const el=document.getElementById('wd-list');
+  if(!el||!authToken) return;
+  try{
+    const res=await fetch(API+'/wallet/withdrawals',{headers:getHeaders()});
+    const data=await res.json();
+    if(!data.length){el.innerHTML='<div style="text-align:center;padding:40px 0;"><div style="font-size:32px;margin-bottom:8px;">📭</div><div style="font-size:13px;font-weight:700;">Chưa có yêu cầu rút tiền nào</div></div>';return;}
+    const statusMap={
+      pending:{label:'⏳ Chờ duyệt',col:'var(--warn)',bg:'var(--warnBg)'},
+      approved:{label:'✅ Đã duyệt',col:'var(--ok)',bg:'var(--okBg)'},
+      rejected:{label:'❌ Từ chối',col:'var(--red)',bg:'var(--redBg)'},
+    };
+    el.innerHTML=data.map(w=>{
+      const s=statusMap[w.status]||{label:w.status,col:'var(--hint)',bg:'var(--card)'};
+      const dt=w.created_at?new Date(w.created_at).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:15px;font-weight:800;font-family:'Inter',sans-serif;color:var(--text);">-${VND(w.amount)}</div>
+          <span style="font-size:10px;font-weight:700;color:${s.col};background:${s.bg};padding:3px 10px;border-radius:8px;border:1px solid ${s.col}22;">${s.label}</span>
+        </div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:3px;">🏦 ${w.bank_name} · <span style="font-family:'JetBrains Mono',monospace;">${w.account_number}</span></div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:3px;">👤 ${w.account_holder}</div>
+        ${w.admin_note?`<div style="font-size:11px;color:var(--hint);margin-top:6px;padding:6px 10px;background:var(--bg2);border-radius:8px;">Ghi chú: ${w.admin_note}</div>`:''}
+        <div style="font-size:10px;color:var(--hint);margin-top:6px;">${dt}</div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--red);">Lỗi tải dữ liệu</div>';}
+}
+
+const BANKS_LIST=['Vietcombank','Techcombank','MB Bank','VPBank','BIDV','Agribank','VietinBank','ACB','TPBank','SHB','OCB','MSB','HDBank','SeABank','LienVietPostBank','VIB','Sacombank','Eximbank','NamA Bank','BacA Bank'];
+
+function showWithdrawModal(){
+  if(!authToken){showToast('Cần đăng nhập','var(--red)','❌');return;}
+  let el=document.getElementById('wd-modal');
+  if(!el){el=document.createElement('div');el.id='wd-modal';document.body.appendChild(el);}
+  const bal=currentUser?.balance??0;
+  el.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;';
+  el.innerHTML=`
+    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;">💳 Rút tiền</div>
+        <button onclick="document.getElementById('wd-modal').style.display='none'" style="background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;padding:4px;">✕</button>
+      </div>
+      <div style="background:var(--brandL);border:1px solid rgba(61,142,248,.2);border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+        <div style="font-size:10px;color:var(--sub);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Số dư khả dụng</div>
+        <div style="font-size:22px;font-weight:800;color:var(--brand);">${VND(bal)}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;display:block;margin-bottom:5px;">Số tiền rút (tối thiểu 50,000đ)</label>
+        <input id="wd-amount" type="number" min="50000" max="50000000" placeholder="Nhập số tiền..." style="width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:14px;font-weight:700;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          ${[100000,500000,1000000,2000000].map(v=>`<button onclick="document.getElementById('wd-amount').value='${v}'" style="flex:1;padding:5px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--sub);font-size:10px;font-weight:700;cursor:pointer;">${v>=1000000?(v/1000000)+'M':(v/1000)+'K'}</button>`).join('')}
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;display:block;margin-bottom:5px;">Ngân hàng</label>
+        <select id="wd-bank" style="width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+          <option value="">-- Chọn ngân hàng --</option>
+          ${BANKS_LIST.map(b=>`<option value="${b}">${b}</option>`).join('')}
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;display:block;margin-bottom:5px;">Số tài khoản</label>
+        <input id="wd-acno" type="text" placeholder="Nhập số tài khoản..." style="width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;display:block;margin-bottom:5px;">Tên chủ tài khoản</label>
+        <input id="wd-holder" type="text" placeholder="Nhập tên chủ tài khoản (IN HOA)..." style="width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;text-transform:uppercase;" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
+      </div>
+      <div id="wd-err" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;padding:8px 12px;background:var(--redBg);border-radius:8px;"></div>
+      <div style="background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:10px 13px;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--warn);font-weight:700;margin-bottom:3px;">⚠️ Lưu ý</div>
+        <div style="font-size:11px;color:var(--sub);line-height:1.6;">• Tiền sẽ được trừ ngay khỏi ví khi gửi yêu cầu<br>• Admin duyệt trong 1-2 ngày làm việc<br>• Nếu bị từ chối, tiền sẽ hoàn về ví tự động</div>
+      </div>
+      <button onclick="submitWithdraw()" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--brand),#2563eb);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💳 Xác nhận rút tiền</button>
+    </div>`;
+}
+
+async function submitWithdraw(){
+  const amount=parseInt(document.getElementById('wd-amount')?.value||0);
+  const bank_name=document.getElementById('wd-bank')?.value||'';
+  const account_number=document.getElementById('wd-acno')?.value?.trim()||'';
+  const account_holder=document.getElementById('wd-holder')?.value?.trim()||'';
+  const errEl=document.getElementById('wd-err');
+  function showErr(msg){errEl.textContent=msg;errEl.style.display='block';}
+  if(!amount||amount<50000){showErr('Số tiền tối thiểu là 50,000đ');return;}
+  if(!bank_name){showErr('Vui lòng chọn ngân hàng');return;}
+  if(!account_number){showErr('Vui lòng nhập số tài khoản');return;}
+  if(!account_holder){showErr('Vui lòng nhập tên chủ tài khoản');return;}
+  errEl.style.display='none';
+  const btn=document.querySelector('#wd-modal button:last-child');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Đang gửi...';}
+  try{
+    const res=await fetch(API+'/wallet/withdraw',{method:'POST',headers:getHeaders(),body:JSON.stringify({amount,bank_name,account_number,account_holder})});
+    const data=await res.json();
+    if(!res.ok){showErr(data.error||'Lỗi không xác định');if(btn){btn.disabled=false;btn.textContent='💳 Xác nhận rút tiền';}return;}
+    document.getElementById('wd-modal').style.display='none';
+    showToast('✅ '+data.message,'var(--ok)','✅');
+    refreshBalance();
+    setState({walletTab:'withdraw'});
+  }catch(e){showErr('Không kết nối được server');if(btn){btn.disabled=false;btn.textContent='💳 Xác nhận rút tiền';}}
+}
+
 async function exportTransactionsCSV(){
   if(!authToken){showToast('Cần đăng nhập','var(--red)','❌');return;}
   try{
@@ -1388,6 +1491,9 @@ function buildWalletPage(){
   const tab=state.walletTab||"overview";
   if(tab==="history" && authToken){
     setTimeout(()=>loadTransactions(1),50);
+  }
+  if(tab==="withdraw" && authToken){
+    setTimeout(()=>loadWithdrawals(),50);
   }
 
   const txTypes={
@@ -1436,7 +1542,7 @@ function buildWalletPage(){
         <div data-balance style="font-size:34px;font-weight:800;font-family:'Inter',sans-serif;color:var(--brand);margin-bottom:16px;">${VND(currentUser?.balance ?? WALLET.balance)}</div>
         <div style="display:flex;gap:8px;">
           <button onclick="(function(){var a=prompt('Số tiền muốn nạp (VND):','100000');if(a)topupWalletAPI(parseInt(a));})()" class="btn btn-primary btn-sm" style="flex:1;">⬆️ Nạp tiền</button>
-          <button onclick="showToast('Tính năng rút tiền sắp ra mắt!','var(--purple)','💳')" class="btn btn-ghost btn-sm" style="flex:1;border-color:var(--border2);">💳 Rút tiền</button>
+          <button onclick="showWithdrawModal()" class="btn btn-ghost btn-sm" style="flex:1;border-color:var(--border2);">💳 Rút tiền</button>
         </div>
       </div>
       <!-- Mini stats -->
@@ -1528,11 +1634,11 @@ function buildWalletPage(){
 
     <!-- Tabs -->
     <div style="display:flex;gap:0;margin:14px 20px 0;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-      ${[{id:"overview",label:"Tổng quan"},{id:"history",label:"Lịch sử"}].map(t=>`
-      <button onclick="setState({walletTab:'${t.id}'})" style="flex:1;padding:10px;font-size:12.5px;font-weight:700;background:${tab===t.id?"var(--brandM)":"transparent"};color:${tab===t.id?"var(--brand)":"var(--sub)"};border:none;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;">${t.label}</button>`).join("")}
+      ${[{id:"overview",label:"Tổng quan"},{id:"history",label:"Lịch sử"},{id:"withdraw",label:"💳 Rút tiền"}].map(t=>`
+      <button onclick="setState({walletTab:'${t.id}'})" style="flex:1;padding:10px;font-size:12px;font-weight:700;background:${tab===t.id?"var(--brandM)":"transparent"};color:${tab===t.id?"var(--brand)":"var(--sub)"};border:none;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;">${t.label}</button>`).join("")}
     </div>
 
-    ${tab==="overview"?overviewHTML:`
+    ${tab==="overview"?overviewHTML:tab==="history"?`
     <!-- Transaction history -->
     <div style="padding:20px 20px 0;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
@@ -1544,6 +1650,12 @@ function buildWalletPage(){
         <div id="tx-list">${authToken?'<div style="text-align:center;padding:30px 0;color:var(--hint);">⏳ Đang tải...</div>':txHTML}</div>
       </div>
       <button id="tx-load-more" onclick="loadTransactions(_txPage+1)" style="display:none;width:100%;margin-top:12px;padding:11px;border-radius:12px;border:1px solid var(--border2);background:var(--card);color:var(--brand);font-size:13px;font-weight:700;cursor:pointer;">Tải thêm</button>
+    </div>`:
+    /* Rút tiền tab */`
+    <div style="padding:20px;">
+      <button onclick="showWithdrawModal()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--brand),#2563eb);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;">💳 Tạo yêu cầu rút tiền mới</button>
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Lịch sử rút tiền</div>
+      <div id="wd-list"><div style="text-align:center;padding:30px 0;color:var(--hint);">⏳ Đang tải...</div></div>
     </div>`}
   </div>`;
 }
@@ -3104,7 +3216,7 @@ function buildListingDetail(lid){
 /* ══════════════════════════════════════════
    🔐 ADMIN DASHBOARD (4 tabs)
 ══════════════════════════════════════════ */
-let _adminData = { stats: null, disputes: [], orders: [], users: [], loaded: false };
+let _adminData = { stats: null, disputes: [], orders: [], users: [], withdrawals: [], loaded: false };
 let _adminTab = 'overview';
 let _adminLoading = false;
 let _adminLastRefresh = null;
@@ -3120,17 +3232,19 @@ async function adminLoadData(silent = false) {
   if (!silent) { _adminLoading = true; render(); }
   try {
     const sec = encodeURIComponent(localStorage.getItem('sp_admsec') || '');
-    const [statsRes, disputesRes, ordersRes, usersRes] = await Promise.all([
+    const [statsRes, disputesRes, ordersRes, usersRes, wdRes] = await Promise.all([
       fetch(API + '/admin/stats', { headers: adminH() }).then(r => r.ok ? r.json() : null),
       fetch(API + '/admin/orders?status=disputed', { headers: adminH() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/orders', { headers: adminH() }).then(r => r.ok ? r.json() : []),
       fetch(API + '/admin/users', { headers: adminH() }).then(r => r.ok ? r.json() : []),
+      fetch(API + '/admin/withdrawals', { headers: adminH() }).then(r => r.ok ? r.json() : []),
     ]);
     if (statsRes === null && !silent) { showToast('Sai Admin Secret — kiểm tra lại', 'var(--red)', '❌'); }
     _adminData.stats = statsRes;
     _adminData.disputes = Array.isArray(disputesRes) ? disputesRes : [];
     _adminData.orders = Array.isArray(ordersRes) ? ordersRes : [];
     _adminData.users = Array.isArray(usersRes) ? usersRes : [];
+    _adminData.withdrawals = Array.isArray(wdRes) ? wdRes : [];
     _adminData.loaded = true;
     _adminLastRefresh = new Date();
   } catch(e) { if (!silent) showToast('Lỗi kết nối server', 'var(--red)', '❌'); }
@@ -3147,6 +3261,34 @@ async function adminVerifyUser(userId, verify) {
     showToast(verify ? '✓ Đã xác minh seller' : 'Đã bỏ xác minh', 'var(--ok)', '✅');
     render();
   } else { showToast('Lỗi: Kiểm tra admin secret', 'var(--red)', '❌'); }
+}
+
+async function adminApproveWithdraw(id) {
+  const note = prompt('Ghi chú cho user (tùy chọn):') ?? '';
+  try {
+    const res = await fetch(API + '/admin/withdrawals/' + id + '/approve', {
+      method: 'POST', headers: adminH(), body: JSON.stringify({ note })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Lỗi', 'var(--red)', '❌'); return; }
+    showToast(data.message || 'Đã duyệt', 'var(--ok)', '✅');
+    adminLoadData(true);
+  } catch(e) { showToast('Lỗi kết nối', 'var(--red)', '❌'); }
+}
+
+async function adminRejectWithdraw(id) {
+  const note = prompt('Lý do từ chối (bắt buộc):');
+  if (note === null) return;
+  if (!note.trim()) { showToast('Vui lòng nhập lý do từ chối', 'var(--red)', '❌'); return; }
+  try {
+    const res = await fetch(API + '/admin/withdrawals/' + id + '/reject', {
+      method: 'POST', headers: adminH(), body: JSON.stringify({ note })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Lỗi', 'var(--red)', '❌'); return; }
+    showToast(data.message || 'Đã từ chối', 'var(--ok)', '✅');
+    adminLoadData(true);
+  } catch(e) { showToast('Lỗi kết nối', 'var(--red)', '❌'); }
 }
 
 async function adminBanUser(userId, ban) {
@@ -3322,6 +3464,7 @@ function buildAdminVerifyPage() {
       </button>
       <button style="${TAB_STYLE('orders')}" onclick="_adminTab='orders';render()">📋 Đơn hàng</button>
       <button style="${TAB_STYLE('users')}" onclick="_adminTab='users';render()">👥 Người dùng</button>
+      <button style="${TAB_STYLE('withdrawals')}" onclick="_adminTab='withdrawals';render()">💸 Rút tiền${_adminData.withdrawals.filter(w=>w.status==='pending').length>0?` <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;background:var(--warn);color:#000;border-radius:8px;font-size:9px;margin-left:3px;">${_adminData.withdrawals.filter(w=>w.status==='pending').length}</span>`:''}</button>
     </div>`;
 
   // ─── Secret bar ───
@@ -3510,9 +3653,45 @@ function buildAdminVerifyPage() {
       }
     </div>`;
 
+  const withdrawalsTab = () => {
+    const wds = _adminData.withdrawals || [];
+    const pending = wds.filter(w=>w.status==='pending');
+    const others = wds.filter(w=>w.status!=='pending');
+    const statusMap={pending:{label:'⏳ Chờ duyệt',col:'var(--warn)',bg:'var(--warnBg)'},approved:{label:'✅ Đã duyệt',col:'var(--ok)',bg:'var(--okBg)'},rejected:{label:'❌ Từ chối',col:'var(--red)',bg:'var(--redBg)'}};
+    const wdCard = (w) => {
+      const s=statusMap[w.status]||{label:w.status,col:'var(--hint)',bg:'var(--card)'};
+      const dt=w.created_at?new Date(w.created_at).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:15px;font-weight:800;font-family:'Inter',sans-serif;">💸 ${(w.amount||0).toLocaleString('vi-VN')}đ</div>
+          <span style="font-size:10px;font-weight:700;color:${s.col};background:${s.bg};padding:3px 10px;border-radius:8px;border:1px solid ${s.col}22;">${s.label}</span>
+        </div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:2px;">👤 ${adminEsc(w.user_name||'')} · ${adminEsc(w.user_phone||'')}</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:2px;">🏦 ${adminEsc(w.bank_name||'')} · <span style="font-family:'JetBrains Mono',monospace;">${adminEsc(w.account_number||'')}</span></div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:2px;">Chủ TK: ${adminEsc(w.account_holder||'')}</div>
+        ${w.admin_note?`<div style="font-size:11px;color:var(--hint);padding:5px 10px;background:var(--bg2);border-radius:8px;margin-top:5px;">Ghi chú: ${adminEsc(w.admin_note)}</div>`:''}
+        <div style="font-size:10px;color:var(--hint);margin-top:5px;">${dt}</div>
+        ${w.status==='pending'?`
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button onclick="adminApproveWithdraw('${w.id}')" style="flex:1;padding:9px;border-radius:9px;border:none;background:var(--ok);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✅ Duyệt</button>
+          <button onclick="adminRejectWithdraw('${w.id}')" style="flex:1;padding:9px;border-radius:9px;border:1px solid var(--red);background:var(--redBg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;">❌ Từ chối</button>
+        </div>`:''}
+      </div>`;
+    };
+    return`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;">💸 Yêu cầu rút tiền${pending.length>0?` (${pending.length} chờ duyệt)`:''}</div>
+        <button onclick="adminLoadData(false)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:11px;font-weight:600;cursor:pointer;">🔄 Làm mới</button>
+      </div>
+      ${pending.length===0&&others.length===0?`<div style="text-align:center;padding:48px 20px;color:var(--hint);"><div style="font-size:32px;margin-bottom:8px;">📭</div><div style="font-size:13px;">Chưa có yêu cầu rút tiền nào</div></div>`:''}
+      ${pending.length>0?`<div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px;padding:8px 12px;background:var(--warnBg);border-radius:10px;">⏳ ${pending.length} yêu cầu đang chờ xử lý</div>${pending.map(wdCard).join('')}`:''}
+      ${others.length>0?`<div style="font-size:12px;font-weight:700;color:var(--sub);margin:12px 0 8px;">Đã xử lý</div>${others.slice(0,30).map(wdCard).join('')}`:''}`;
+  };
+
   const tabContent = _adminTab === 'overview' ? overviewTab()
     : _adminTab === 'disputes' ? disputesTab()
     : _adminTab === 'orders' ? ordersTab()
+    : _adminTab === 'withdrawals' ? withdrawalsTab()
     : usersTab();
 
   return `<div style="padding-bottom:80px;">

@@ -99,7 +99,7 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 
 | Tính năng | Ưu tiên | Trạng thái |
 |-----------|---------|------------|
-| Rút tiền về ngân hàng (VNPay / Momo) | Cao | `[ ] 🔒` |
+| Rút tiền về ngân hàng (manual escrow — admin duyệt) | Cao | `[x]` ✅ 2026-06-17 |
 | Nạp tiền thật qua cổng thanh toán | Cao | `[ ] 🔒` |
 | Gói VIP / Premium (phí giao dịch thấp hơn) | Trung bình | `[x]` ✅ 2026-06-17 |
 | Moderator role (admin phụ chỉ xử lý dispute) | Thấp | `[x]` ✅ 2026-06-17 |
@@ -351,6 +351,25 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, created_at DESC);
+
+-- 7. Bảng withdrawal_requests (Phase 3 — Rút tiền)
+CREATE TABLE IF NOT EXISTS withdrawal_requests (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id),
+  user_name text,
+  user_phone text,
+  amount bigint not null,
+  bank_name text not null,
+  account_number text not null,
+  account_holder text not null,
+  status text default 'pending',
+  admin_note text,
+  processed_at timestamptz,
+  created_at timestamptz default now()
+);
+ALTER TABLE withdrawal_requests DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_withdrawals_user ON withdrawal_requests(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawal_requests(status, created_at DESC);
 ```
 
 ---
@@ -370,4 +389,4 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, create
 
 ---
 
-*Cập nhật lần cuối: 2026-06-17 — Gói VIP/Premium (1.5% fee, 30 ngày, 500k) + Moderator role (xử lý dispute, cấp qua Admin)*
+*Cập nhật lần cuối: 2026-06-17 — Rút tiền (manual escrow admin duyệt) + Gói VIP/Premium + Moderator role*

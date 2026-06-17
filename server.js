@@ -919,6 +919,178 @@ app.get('/api/wallet/transactions/export', auth, async (req, res) => {
 });
 
 // ════════════════════════════════
+//  WITHDRAWAL REQUESTS
+// ════════════════════════════════
+
+const BANKS = ['Vietcombank','Techcombank','MB Bank','VPBank','BIDV','Agribank','VietinBank','ACB','TPBank','SHB','OCB','MSB','HDBank','SeABank','LienVietPostBank','VIB','Sacombank','Eximbank','NamA Bank','BacA Bank'];
+
+app.post('/api/wallet/withdraw', auth, async (req, res) => {
+  const { amount, bank_name, account_number, account_holder } = req.body;
+  if (!amount || !bank_name || !account_number || !account_holder)
+    return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin' });
+  const amt = parseInt(amount);
+  if (isNaN(amt) || amt < 50000)
+    return res.status(400).json({ error: 'Số tiền rút tối thiểu 50,000đ' });
+  if (amt > 50000000)
+    return res.status(400).json({ error: 'Số tiền rút tối đa 50,000,000đ mỗi lần' });
+
+  const { data: user } = await supabase.from('users').select('*').eq('id', req.user.id).single();
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+  if (user.balance < amt)
+    return res.status(400).json({ error: `Số dư không đủ. Số dư hiện tại: ${user.balance.toLocaleString('vi-VN')}đ` });
+
+  // Check pending withdrawal
+  const { data: pending } = await supabase.from('withdrawal_requests')
+    .select('id').eq('user_id', req.user.id).eq('status', 'pending').limit(1);
+  if (pending && pending.length > 0)
+    return res.status(400).json({ error: 'Bạn đang có yêu cầu rút tiền chờ xử lý. Vui lòng chờ admin duyệt trước khi tạo yêu cầu mới.' });
+
+  // Deduct balance immediately (hold it)
+  const { error: balErr } = await supabase.from('users')
+    .update({ balance: user.balance - amt }).eq('id', req.user.id);
+  if (balErr) return res.status(500).json({ error: balErr.message });
+
+  // Create request
+  const { data: wr, error: wrErr } = await supabase.from('withdrawal_requests').insert({
+    user_id: req.user.id,
+    user_name: sanitize(user.name),
+    user_phone: user.phone,
+    amount: amt,
+    bank_name: sanitize(bank_name),
+    account_number: sanitize(account_number),
+    account_holder: sanitize(account_holder),
+    status: 'pending',
+  }).select().single();
+  if (wrErr) {
+    // Restore balance on failure
+    await supabase.from('users').update({ balance: user.balance }).eq('id', req.user.id);
+    return res.status(500).json({ error: wrErr.message });
+  }
+
+  // Transaction log
+  await supabase.from('transactions').insert({
+    user_id: req.user.id, type: 'withdraw_pending', amount: -amt,
+    description: `Yêu cầu rút tiền về ${sanitize(bank_name)} — ${sanitize(account_number)}`
+  });
+
+  // Notify admin by email
+  if (process.env.RESEND_API_KEY && process.env.ADMIN_EMAIL) {
+    resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL,
+      subject: `💸 Yêu cầu rút tiền — ${user.name} — ${amt.toLocaleString('vi-VN')}đ`,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+        <h2 style="color:#3d8ef8;">💸 Yêu cầu rút tiền mới</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Người dùng</td><td>${user.name} (${user.phone})</td></tr>
+          <tr><td style="padding:8px 0;color:#7b8fad;">Số tiền</td><td style="color:#22d38e;font-weight:700;">${amt.toLocaleString('vi-VN')}đ</td></tr>
+          <tr><td style="padding:8px 0;color:#7b8fad;">Ngân hàng</td><td>${sanitize(bank_name)}</td></tr>
+          <tr><td style="padding:8px 0;color:#7b8fad;">Số tài khoản</td><td style="font-family:monospace;">${sanitize(account_number)}</td></tr>
+          <tr><td style="padding:8px 0;color:#7b8fad;">Chủ tài khoản</td><td>${sanitize(account_holder)}</td></tr>
+        </table>
+        <hr style="border-color:#1a2540;margin:20px 0"/>
+        <p style="color:#7b8fad;font-size:13px;">Đăng nhập Admin Panel để duyệt hoặc từ chối yêu cầu này.</p>
+      </div>`
+    }).catch(() => {});
+  }
+
+  // In-app notification
+  createNotification(req.user.id, 'withdraw', '💸 Yêu cầu rút tiền đã gửi',
+    `Yêu cầu rút ${amt.toLocaleString('vi-VN')}đ về ${sanitize(bank_name)} đang chờ admin duyệt.`, '/wallet');
+
+  res.json({ message: 'Yêu cầu rút tiền đã được gửi. Admin sẽ xử lý trong 1-2 ngày làm việc.', id: wr.id });
+});
+
+app.get('/api/wallet/withdrawals', auth, async (req, res) => {
+  const { data, error } = await supabase.from('withdrawal_requests')
+    .select('*').eq('user_id', req.user.id)
+    .order('created_at', { ascending: false }).limit(20);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.get('/api/admin/withdrawals', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { status } = req.query;
+  let query = supabase.from('withdrawal_requests').select('*').order('created_at', { ascending: false }).limit(200);
+  if (status) query = query.eq('status', status);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/admin/withdrawals/:id/approve', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { note } = req.body;
+  const { data: wr } = await supabase.from('withdrawal_requests').select('*').eq('id', req.params.id).single();
+  if (!wr) return res.status(404).json({ error: 'Không tìm thấy yêu cầu' });
+  if (wr.status !== 'pending') return res.status(400).json({ error: 'Yêu cầu đã được xử lý rồi' });
+
+  await supabase.from('withdrawal_requests').update({
+    status: 'approved', admin_note: sanitize(note || ''), processed_at: new Date().toISOString()
+  }).eq('id', req.params.id);
+
+  await supabase.from('transactions').insert({
+    user_id: wr.user_id, type: 'withdraw', amount: -wr.amount,
+    description: `Rút tiền thành công — ${wr.bank_name} ${wr.account_number}${note ? ' — ' + sanitize(note) : ''}`
+  });
+
+  createNotification(wr.user_id, 'withdraw_approved', '✅ Rút tiền thành công',
+    `${wr.amount.toLocaleString('vi-VN')}đ đã được chuyển đến ${wr.bank_name} ${wr.account_number}.`, '/wallet');
+
+  // Email user
+  if (process.env.RESEND_API_KEY) {
+    const { data: u } = await supabase.from('users').select('email').eq('id', wr.user_id).single();
+    if (u?.email) {
+      resend.emails.send({
+        from: 'SafePass <onboarding@resend.dev>',
+        to: u.email,
+        subject: `✅ Rút tiền thành công — ${wr.amount.toLocaleString('vi-VN')}đ`,
+        html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#22d38e;">✅ Yêu cầu rút tiền đã được duyệt!</h2>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Số tiền</td><td style="color:#22d38e;font-weight:700;">${wr.amount.toLocaleString('vi-VN')}đ</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Ngân hàng</td><td>${wr.bank_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Số tài khoản</td><td style="font-family:monospace;">${wr.account_number}</td></tr>
+            ${note ? `<tr><td style="padding:8px 0;color:#7b8fad;">Ghi chú</td><td>${sanitize(note)}</td></tr>` : ''}
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <p style="color:#7b8fad;font-size:13px;">Tiền sẽ vào tài khoản trong 1-3 giờ làm việc. Nếu chưa nhận được sau 24h, vui lòng liên hệ hỗ trợ.</p>
+        </div>`
+      }).catch(() => {});
+    }
+  }
+
+  res.json({ message: `Đã duyệt rút tiền ${wr.amount.toLocaleString('vi-VN')}đ` });
+});
+
+app.post('/api/admin/withdrawals/:id/reject', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { note } = req.body;
+  const { data: wr } = await supabase.from('withdrawal_requests').select('*').eq('id', req.params.id).single();
+  if (!wr) return res.status(404).json({ error: 'Không tìm thấy yêu cầu' });
+  if (wr.status !== 'pending') return res.status(400).json({ error: 'Yêu cầu đã được xử lý rồi' });
+
+  // Restore user balance
+  const { data: u } = await supabase.from('users').select('balance').eq('id', wr.user_id).single();
+  if (u) await supabase.from('users').update({ balance: u.balance + wr.amount }).eq('id', wr.user_id);
+
+  await supabase.from('withdrawal_requests').update({
+    status: 'rejected', admin_note: sanitize(note || ''), processed_at: new Date().toISOString()
+  }).eq('id', req.params.id);
+
+  await supabase.from('transactions').insert({
+    user_id: wr.user_id, type: 'withdraw_rejected', amount: wr.amount,
+    description: `Yêu cầu rút tiền bị từ chối — tiền hoàn về ví${note ? ': ' + sanitize(note) : ''}`
+  });
+
+  createNotification(wr.user_id, 'withdraw_rejected', '❌ Yêu cầu rút tiền bị từ chối',
+    `Tiền ${wr.amount.toLocaleString('vi-VN')}đ đã hoàn về ví của bạn. Lý do: ${note || 'Không đủ điều kiện.'}`, '/wallet');
+
+  res.json({ message: 'Đã từ chối yêu cầu rút tiền. Tiền đã hoàn về ví user.' });
+});
+
+// ════════════════════════════════
 //  REVIEWS
 // ════════════════════════════════
 
