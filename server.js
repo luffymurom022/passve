@@ -336,6 +336,20 @@ function adminSecret(req) {
   return req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
 }
 
+// ── MODERATOR middleware — checks JWT + is_moderator in DB ──
+async function authMod(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Chưa đăng nhập' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    const { data: u } = await supabase.from('users').select('is_moderator').eq('id', req.user.id).single();
+    if (!u?.is_moderator) return res.status(403).json({ error: 'Không có quyền Moderator' });
+    next();
+  } catch {
+    res.status(401).json({ error: 'Token không hợp lệ' });
+  }
+}
+
 // ════════════════════════════════
 //  AUTH
 // ════════════════════════════════
@@ -385,7 +399,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', auth, async (req, res) => {
   const { data } = await supabase
-    .from('users').select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_verified').eq('id', req.user.id).single();
+    .from('users').select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_verified,is_vip,vip_expires_at,is_moderator').eq('id', req.user.id).single();
   if (!data) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
   res.json({ ...data, is_admin: data.email === process.env.ADMIN_EMAIL });
 });
@@ -721,11 +735,13 @@ app.post('/api/orders', auth, async (req, res) => {
   const { data: buyer } = await supabase.from('users').select('*').eq('id', req.user.id).single();
   if (buyer.is_banned) return res.status(403).json({ error: 'Tài khoản đã bị khóa' });
 
-  const fee = Math.round(ticket.price * 0.03);
+  const isVip = buyer.is_vip && (!buyer.vip_expires_at || new Date(buyer.vip_expires_at) > new Date());
+  const feeRate = isVip ? 0.015 : 0.03;
+  const fee = Math.round(ticket.price * feeRate);
   const total = ticket.price + fee;
 
   if (buyer.balance < total)
-    return res.status(400).json({ error: `Số dư không đủ. Cần ${total.toLocaleString()}đ (gồm phí 3%), hiện có ${buyer.balance.toLocaleString()}đ` });
+    return res.status(400).json({ error: `Số dư không đủ. Cần ${total.toLocaleString()}đ (gồm phí ${isVip ? '1.5% VIP' : '3%'}), hiện có ${buyer.balance.toLocaleString()}đ` });
 
   await supabase.from('users').update({
     balance: buyer.balance - total,
@@ -836,6 +852,32 @@ app.post('/api/wallet/topup', auth, async (req, res) => {
     description: 'Nạp tiền vào ví'
   });
   res.json({ message: `Nạp ${Number(amount).toLocaleString()}đ thành công`, balance: user.balance + Number(amount) });
+});
+
+// ── Đăng ký gói VIP (phí 1.5% thay vì 3%) ──
+app.post('/api/wallet/subscribe-vip', auth, async (req, res) => {
+  const VIP_PRICE = 500000;
+  const { data: user } = await supabase.from('users').select('*').eq('id', req.user.id).single();
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy user' });
+  if (user.balance < VIP_PRICE)
+    return res.status(400).json({ error: `Số dư không đủ. Gói VIP cần 500,000đ, hiện có ${user.balance.toLocaleString()}đ` });
+
+  const vipExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  await supabase.from('users').update({
+    balance: user.balance - VIP_PRICE,
+    is_vip: true,
+    vip_expires_at: vipExpires
+  }).eq('id', req.user.id);
+
+  await supabase.from('transactions').insert({
+    user_id: req.user.id, type: 'fee', amount: -VIP_PRICE,
+    description: 'Đăng ký gói VIP 30 ngày (phí 1.5% thay vì 3%)'
+  });
+
+  createNotification(req.user.id, 'vip', '⭐ Kích hoạt VIP thành công!',
+    'Phí giao dịch của bạn giảm còn 1.5% trong 30 ngày tới.', '/wallet');
+
+  res.json({ message: 'Đã kích hoạt gói VIP 30 ngày! Phí giao dịch giảm còn 1.5%', vip_expires_at: vipExpires, balance: user.balance - VIP_PRICE });
 });
 
 app.get('/api/wallet/transactions', auth, async (req, res) => {
@@ -1324,7 +1366,7 @@ app.get('/api/admin/users', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   const { search } = req.query;
   let query = supabase.from('users')
-    .select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_banned,is_verified,created_at')
+    .select('id,phone,name,email,balance,escrow,avg_rating,review_count,is_banned,is_verified,is_moderator,is_vip,created_at')
     .order('created_at', { ascending: false });
   if (search) {
     query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);
@@ -1377,6 +1419,77 @@ app.post('/api/admin/users/:id/unban', async (req, res) => {
     description: 'Admin unbanned user'
   });
   res.json({ message: 'Đã mở khóa tài khoản' });
+});
+
+app.post('/api/admin/users/:id/set-moderator', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { is_moderator } = req.body;
+  const { error } = await supabase.from('users').update({ is_moderator: !!is_moderator }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  const action = is_moderator ? 'Cấp quyền Moderator' : 'Thu hồi quyền Moderator';
+  await supabase.from('transactions').insert({
+    user_id: req.params.id, type: 'admin_action', amount: 0,
+    description: `Admin: ${action}`
+  });
+  if (is_moderator) {
+    createNotification(req.params.id, 'system', '⚖️ Bạn đã được cấp quyền Moderator',
+      'Bạn có thể xử lý khiếu nại trong mục Mod Panel.', '/');
+  }
+  res.json({ message: action + ' thành công' });
+});
+
+// ════════════════════════════════
+//  MODERATOR ENDPOINTS
+// ════════════════════════════════
+
+app.get('/api/moderator/disputes', authMod, async (req, res) => {
+  const { data } = await supabase.from('orders').select('*')
+    .eq('status', 'disputed').order('dispute_opened_at', { ascending: true });
+  res.json(data || []);
+});
+
+app.post('/api/moderator/orders/:id/resolve', authMod, async (req, res) => {
+  const { winner, note } = req.body;
+  if (!['buyer', 'seller'].includes(winner))
+    return res.status(400).json({ error: 'winner phải là buyer hoặc seller' });
+
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.status !== 'disputed') return res.status(400).json({ error: 'Đơn không đang ở trạng thái disputed' });
+
+  const { data: buyer } = await supabase.from('users').select('*').eq('id', order.buyer_id).single();
+  const { data: seller } = await supabase.from('users').select('*').eq('id', order.seller_id).single();
+
+  if (winner === 'buyer') {
+    await supabase.from('users').update({ balance: buyer.balance + order.total, escrow: Math.max(0, buyer.escrow - order.total) }).eq('id', order.buyer_id);
+    await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+    await supabase.from('transactions').insert({ user_id: order.buyer_id, type: 'refund', amount: order.total, description: `Hoàn tiền sau khiếu nại (Mod): ${order.event_name}${note ? ' — ' + note : ''}`, order_id: order.id });
+  } else {
+    await supabase.from('users').update({ escrow: Math.max(0, buyer.escrow - order.total) }).eq('id', order.buyer_id);
+    await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
+    await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
+    await supabase.from('transactions').insert([
+      { user_id: order.seller_id, type: 'payout', amount: order.price, description: `Nhận tiền sau khiếu nại (Mod): ${order.event_name}${note ? ' — ' + note : ''}`, order_id: order.id },
+      { user_id: order.buyer_id, type: 'dispute_closed', amount: 0, description: `Khiếu nại không thành công: ${order.event_name}`, order_id: order.id }
+    ]);
+  }
+
+  await supabase.from('orders').update({
+    status: winner === 'buyer' ? 'refunded' : 'completed',
+    dispute_resolved_by: winner,
+    dispute_resolved_at: new Date().toISOString(),
+    dispute_note: sanitize(note || '')
+  }).eq('id', req.params.id);
+
+  if (winner === 'buyer') {
+    createNotification(order.buyer_id, 'dispute_win', '✅ Khiếu nại thành công', `Moderator đã xử lý: Bạn thắng khiếu nại đơn hàng ${order.event_name}.`, '/wallet');
+    createNotification(order.seller_id, 'dispute_lose', '❌ Khiếu nại không thành công', `Moderator đã xử lý khiếu nại đơn hàng ${order.event_name}. Tiền đã hoàn cho buyer.`, '/orders');
+  } else {
+    createNotification(order.seller_id, 'dispute_win', '✅ Khiếu nại thành công', `Moderator đã xử lý: Bạn thắng khiếu nại đơn hàng ${order.event_name}.`, '/wallet');
+    createNotification(order.buyer_id, 'dispute_lose', '❌ Khiếu nại không thành công', `Moderator đã xử lý khiếu nại đơn hàng ${order.event_name}.`, '/orders');
+  }
+
+  res.json({ message: `Đã giải quyết: ${winner} thắng.` });
 });
 
 // ── Seller dashboard stats ──

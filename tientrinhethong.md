@@ -101,8 +101,8 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 |-----------|---------|------------|
 | Rút tiền về ngân hàng (VNPay / Momo) | Cao | `[ ] 🔒` |
 | Nạp tiền thật qua cổng thanh toán | Cao | `[ ] 🔒` |
-| Gói VIP / Premium (phí giao dịch thấp hơn) | Trung bình | `[ ]` |
-| Moderator role (admin phụ chỉ xử lý dispute) | Thấp | `[ ]` |
+| Gói VIP / Premium (phí giao dịch thấp hơn) | Trung bình | `[x]` ✅ 2026-06-17 |
+| Moderator role (admin phụ chỉ xử lý dispute) | Thấp | `[x]` ✅ 2026-06-17 |
 | Mobile app (React Native / Expo) | Thấp | `[ ]` |
 
 ### Phase 4 — Advanced (🔮 Tương lai xa)
@@ -309,6 +309,13 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_resolved_by text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_resolved_at timestamptz;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispute_note text;
 
+-- 5. Cột VIP cho users (Gói VIP/Premium)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_vip boolean default false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS vip_expires_at timestamptz;
+
+-- 6. Cột Moderator cho users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator boolean default false;
+
 -- 4. Bảng reviews
 CREATE TABLE IF NOT EXISTS reviews (
   id uuid default gen_random_uuid() primary key,
@@ -363,4 +370,4 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, create
 
 ---
 
-*Cập nhật lần cuối: 2026-06-17 — Build tìm kiếm nâng cao (category filter) + Chat nội bộ trong đơn hàng (real API + polling)*
+*Cập nhật lần cuối: 2026-06-17 — Gói VIP/Premium (1.5% fee, 30 ngày, 500k) + Moderator role (xử lý dispute, cấp qua Admin)*

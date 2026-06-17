@@ -1164,6 +1164,7 @@ function render(){
     {id:"aichat",icon:"💬",label:"AI Chat"},
     {id:"profile",icon:"👤",label:"Hồ sơ"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
+    ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
 
   document.getElementById("root").innerHTML=`
@@ -1227,6 +1228,7 @@ function buildPlaceholderPage(page){
   if(page==="alerts") return buildAlertsPage();
   if(page==="seller_profile") return buildSellerProfilePage(state.sellerProfileId);
   if(page==="admin_verify") return buildAdminVerifyPage();
+  if(page==="moderator") return buildModeratorPage();
   return`<div style="text-align:center;padding:80px 20px;"><div style="font-size:13px;color:var(--sub);">Sắp ra mắt.</div></div>`;
 }
 
@@ -1460,6 +1462,43 @@ function buildWalletPage(){
           <div style="font-size:10px;color:var(--hint);margin-top:2px;">Hiệu quả kinh doanh</div>
         </div>
       </div>
+    </div>
+    <!-- VIP Card -->
+    <div style="padding:0 20px 14px;">
+      ${(()=>{
+        const u=currentUser;
+        const isVip=u?.is_vip&&(!u.vip_expires_at||new Date(u.vip_expires_at)>new Date());
+        const expDate=u?.vip_expires_at?new Date(u.vip_expires_at).toLocaleDateString('vi-VN'):'';
+        if(isVip) return `
+          <div style="background:linear-gradient(135deg,#1a0d2e 0%,#2d1460 50%,#1a0d2e 100%);border:1px solid rgba(155,135,245,.4);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(155,135,245,.15) 0%,transparent 70%);pointer-events:none;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">⭐ Gói VIP đang hoạt động</div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">Phí giao dịch: <span style="color:var(--purple);">1.5%</span> <span style="font-size:10px;color:var(--hint);text-decoration:line-through;">3%</span></div>
+                <div style="font-size:10px;color:var(--hint);margin-top:3px;">Hết hạn: ${expDate}</div>
+              </div>
+              <div style="font-size:32px;">👑</div>
+            </div>
+          </div>`;
+        return `
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div>
+                <div style="font-size:13px;font-weight:800;">👑 Gói VIP SafePass</div>
+                <div style="font-size:11px;color:var(--hint);margin-top:2px;">Giảm phí giao dịch từ 3% xuống còn 1.5%</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:18px;font-weight:800;color:var(--purple);">500.000đ</div>
+                <div style="font-size:10px;color:var(--hint);">/ 30 ngày</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+              ${['✅ Phí 1.5% (tiết kiệm 50%)','✅ Badge VIP trên hồ sơ','✅ Ưu tiên hỗ trợ'].map(f=>`<span style="font-size:10px;color:var(--sub);background:var(--bg2);border:1px solid var(--border);padding:3px 8px;border-radius:6px;">${f}</span>`).join('')}
+            </div>
+            <button onclick="subscribeVipAPI()" style="width:100%;padding:11px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#9b87f5);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em;">⭐ Kích hoạt VIP</button>
+          </div>`;
+      })()}
     </div>
     <!-- Payment methods -->
     <div style="padding:0 20px 20px;">
@@ -3127,6 +3166,18 @@ async function adminBanUser(userId, ban) {
   } else { showToast('Lỗi: Kiểm tra admin secret', 'var(--red)', '❌'); }
 }
 
+async function adminSetModerator(userId, isMod) {
+  const res = await fetch(API + '/admin/users/' + userId + '/set-moderator', {
+    method: 'POST', headers: adminH(), body: JSON.stringify({ is_moderator: isMod, secret: localStorage.getItem('sp_admsec') || '' })
+  });
+  if (res.ok) {
+    const u = _adminData.users.find(x => x.id === userId);
+    if (u) u.is_moderator = isMod;
+    showToast(isMod ? '⚖️ Đã cấp quyền Moderator' : '⚖️ Đã thu hồi quyền Mod', 'var(--purple)', '⚖️');
+    render();
+  } else { showToast('Lỗi: Kiểm tra admin secret', 'var(--red)', '❌'); }
+}
+
 async function adminResolveDispute(orderId, winner) {
   const noteEl = document.getElementById('adm-note-' + orderId);
   const note = noteEl ? noteEl.value.trim() : '';
@@ -3438,6 +3489,8 @@ function buildAdminVerifyPage() {
                 <span style="font-size:13px;font-weight:700;">${adminEsc(u.name)||'—'}</span>
                 ${u.is_verified?`<span style="font-size:9px;font-weight:700;color:var(--ok);background:var(--okBg);padding:1px 6px;border-radius:5px;border:1px solid rgba(52,216,158,.2);">✓ XM</span>`:''}
                 ${u.is_banned?`<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--redBg);padding:1px 6px;border-radius:5px;">🚫</span>`:''}
+                ${u.is_moderator?`<span style="font-size:9px;font-weight:700;color:var(--purple);background:var(--purpleBg);padding:1px 6px;border-radius:5px;border:1px solid rgba(155,135,245,.2);">⚖️ Mod</span>`:''}
+                ${u.is_vip?`<span style="font-size:9px;font-weight:700;color:#c4b5fd;background:rgba(124,58,237,.15);padding:1px 6px;border-radius:5px;border:1px solid rgba(124,58,237,.25);">👑 VIP</span>`:''}
               </div>
               <div style="font-size:10px;color:var(--hint);margin-top:1px;">${adminEsc(u.phone||'')} · ${adminEsc(u.email||'—')}</div>
               <div style="font-size:10px;color:var(--hint);">⭐ ${u.avg_rating||'—'} · Ví: <span style="color:var(--ok);">${adminFmtVND(u.balance)}</span> · Escrow: <span style="color:var(--purple);">${adminFmtVND(u.escrow)}</span></div>
@@ -3450,6 +3503,10 @@ function buildAdminVerifyPage() {
               ${u.is_banned
                 ? `<button onclick="adminBanUser('${u.id}',false)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);cursor:pointer;">🔓 Mở khoá</button>`
                 : `<button onclick="adminBanUser('${u.id}',true)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(240,80,104,.3);background:var(--redBg);color:var(--red);cursor:pointer;">🚫 Khoá</button>`
+              }
+              ${u.is_moderator
+                ? `<button onclick="adminSetModerator('${u.id}',false)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(155,135,245,.3);background:var(--purpleBg);color:var(--purple);cursor:pointer;">✗ Bỏ Mod</button>`
+                : `<button onclick="adminSetModerator('${u.id}',true)" style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:7px;border:1px solid rgba(155,135,245,.3);background:var(--purpleBg);color:var(--purple);cursor:pointer;">⚖️ Cấp Mod</button>`
               }
             </div>
           </div>
@@ -3470,6 +3527,99 @@ function buildAdminVerifyPage() {
     ${secretBar}
     <div style="padding:0 16px;">${tabs}</div>
     <div style="padding:14px 16px;">${tabContent}</div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   ⚖️ MODERATOR PAGE
+══════════════════════════════════════════ */
+let _modDisputes = [];
+let _modLoading = false;
+let _modLoaded = false;
+
+async function modLoadDisputes() {
+  _modLoading = true; render();
+  try {
+    const res = await fetch(API + '/moderator/disputes', { headers: { Authorization: 'Bearer ' + authToken } });
+    if (!res.ok) { showToast('Lỗi tải dữ liệu', 'var(--red)', '❌'); _modLoading = false; render(); return; }
+    _modDisputes = await res.json();
+    _modLoaded = true;
+  } catch(e) { showToast('Lỗi kết nối', 'var(--red)', '❌'); }
+  _modLoading = false; render();
+}
+
+async function modResolveDispute(orderId, winner) {
+  const noteEl = document.getElementById('mod-note-' + orderId);
+  const note = noteEl ? noteEl.value.trim() : '';
+  const btns = document.querySelectorAll('[data-mod-resolve-id="' + orderId + '"]');
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '.5'; });
+  try {
+    const res = await fetch(API + '/moderator/orders/' + orderId + '/resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+      body: JSON.stringify({ winner, note })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lỗi không xác định');
+    showToast('✅ ' + data.message, 'var(--ok)', '✅');
+    await modLoadDisputes();
+  } catch(e) {
+    showToast('❌ ' + e.message, 'var(--red)', '❌');
+    btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+  }
+}
+
+function buildModeratorPage() {
+  if (!currentUser?.is_moderator) return `<div style="text-align:center;padding:80px 20px;color:var(--hint);">Không có quyền truy cập.</div>`;
+
+  if (!_modLoaded && !_modLoading) setTimeout(() => modLoadDisputes(), 0);
+
+  const VND2 = n => (n||0).toLocaleString('vi-VN') + 'đ';
+  const statusPill = s => {
+    const m = { disputed: ['🔥 Khiếu nại', 'var(--red)', 'var(--redBg)'] }[s] || [s, 'var(--hint)', 'var(--bg2)'];
+    return `<span style="font-size:9px;font-weight:700;color:${m[1]};background:${m[2]};padding:2px 7px;border-radius:5px;">${m[0]}</span>`;
+  };
+
+  const disputeCard = (o) => `
+    <div style="background:var(--card);border:1.5px solid rgba(240,80,104,.2);border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${o.event_name||'—'}</div>
+          <div style="font-size:10px;color:var(--hint);margin-top:2px;font-family:'JetBrains Mono',monospace;">${(o.id||'').slice(0,8)}… · ${o.dispute_opened_at?new Date(o.dispute_opened_at).toLocaleDateString('vi-VN'):'—'}</div>
+          <div style="font-size:10.5px;color:var(--sub);margin-top:4px;">👤 Buyer: <b>${o.buyer_name||'—'}</b> · Seller: <b>${o.seller_name||'—'}</b></div>
+          <div style="font-size:11px;font-weight:700;color:var(--purple);margin-top:2px;">💰 Tổng: ${VND2(o.total)}</div>
+          ${o.dispute_reason?`<div style="font-size:10px;color:var(--hint);margin-top:3px;background:var(--bg2);border-radius:7px;padding:6px 9px;">📝 "${o.dispute_reason}"</div>`:''}
+        </div>
+        ${statusPill(o.status)}
+      </div>
+      <textarea id="mod-note-${o.id}" placeholder="Ghi chú quyết định..." rows="2"
+        style="width:100%;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:11px;resize:none;outline:none;box-sizing:border-box;margin-bottom:8px;font-family:'Inter',sans-serif;"
+        onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button data-mod-resolve-id="${o.id}" onclick="modResolveDispute('${o.id}','buyer')"
+          style="flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.08);color:var(--cyan);cursor:pointer;">↩️ Hoàn tiền Buyer</button>
+        <button data-mod-resolve-id="${o.id}" onclick="modResolveDispute('${o.id}','seller')"
+          style="flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(52,216,158,.3);background:var(--okBg);color:var(--ok);cursor:pointer;">💸 Trả tiền Seller</button>
+      </div>
+    </div>`;
+
+  return `<div style="padding-bottom:80px;">
+    <div style="padding:16px 16px 0;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:20px;font-weight:800;font-family:'Syne',sans-serif;">⚖️ Mod Panel</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:2px;">Xử lý khiếu nại · Moderator</div>
+      </div>
+      <button onclick="modLoadDisputes()" style="padding:7px 13px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--sub);font-size:12px;font-weight:600;cursor:pointer;">🔄 Làm mới</button>
+    </div>
+    <div style="padding:14px 16px;">
+      ${_modLoading ? `<div style="text-align:center;padding:60px 20px;color:var(--hint);">⏳ Đang tải...</div>` :
+        !_modLoaded ? `<div style="text-align:center;padding:60px 20px;color:var(--hint);"><div style="font-size:36px;margin-bottom:10px;">⚖️</div><div style="font-size:13px;">Đang kết nối dữ liệu...</div></div>` :
+        _modDisputes.length === 0 ?
+          `<div style="text-align:center;padding:60px 20px;color:var(--hint);"><div style="font-size:36px;margin-bottom:10px;">✅</div><div style="font-size:13px;font-weight:700;">Không có khiếu nại nào đang chờ</div><div style="font-size:11px;margin-top:6px;">Mọi đơn hàng đều ổn!</div></div>` :
+          `<div style="font-size:12px;color:var(--sub);margin-bottom:12px;font-weight:600;">🔥 ${_modDisputes.length} khiếu nại chờ xử lý</div>
+          ${_modDisputes.map(o => disputeCard(o)).join('')}`
+      }
+    </div>
   </div>`;
 }
 
@@ -5215,6 +5365,23 @@ async function topupWalletAPI(amount) {
     localStorage.setItem('sp_user', JSON.stringify(currentUser));
     setState({});
   } catch(e) { showToast('Lỗi nạp tiền', 'var(--red)', '❌'); }
+}
+
+async function subscribeVipAPI() {
+  if (!authToken) { showAuthModal('login'); return; }
+  if (!confirm('Kích hoạt gói VIP 30 ngày với giá 500,000đ từ ví của bạn?')) return;
+  try {
+    const res = await fetch(API + '/wallet/subscribe-vip', {
+      method: 'POST', headers: getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error, 'var(--red)', '❌'); return; }
+    showToast(data.message, 'var(--purple)', '👑');
+    const me = await (await fetch(API + '/auth/me', { headers: getHeaders() })).json();
+    currentUser = { ...currentUser, ...me };
+    localStorage.setItem('sp_user', JSON.stringify(currentUser));
+    setState({});
+  } catch(e) { showToast('Lỗi kích hoạt VIP', 'var(--red)', '❌'); }
 }
 
 // ── Đăng bán vé thật ──
