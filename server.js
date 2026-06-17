@@ -1805,6 +1805,42 @@ app.get('/api/seller/stats', auth, async (req, res) => {
     date, count, revenue: revenueByDay[date] || 0
   }));
 
+  // Orders by month (last 12 months)
+  const byMonth = {};
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - i);
+    const key = d.toISOString().slice(0, 7); // YYYY-MM
+    byMonth[key] = { revenue: 0, sold: 0, refunded: 0, totalOrders: 0, ratingSum: 0, ratingCount: 0 };
+  }
+  orders.forEach(o => {
+    const key = (o.created_at || '').slice(0, 7);
+    if (!(key in byMonth)) return;
+    byMonth[key].totalOrders++;
+    if (['completed', 'confirmed', 'qr_uploaded'].includes(o.status)) {
+      byMonth[key].sold++;
+      byMonth[key].revenue += (o.total || 0) - (o.fee || 0);
+    }
+    if (o.status === 'refunded') byMonth[key].refunded++;
+  });
+  reviews.forEach(r => {
+    const key = (r.created_at || '').slice(0, 7);
+    if (!(key in byMonth)) return;
+    byMonth[key].ratingSum += r.rating;
+    byMonth[key].ratingCount++;
+  });
+  const ordersByMonth = Object.entries(byMonth).map(([month, d]) => ({
+    month,
+    label: (() => { const [y, m] = month.split('-'); return `T${parseInt(m)}/${y.slice(2)}`; })(),
+    revenue: d.revenue,
+    sold: d.sold,
+    refunded: d.refunded,
+    total_orders: d.totalOrders,
+    refund_rate: d.totalOrders > 0 ? Math.round((d.refunded / d.totalOrders) * 100) : 0,
+    avg_rating: d.ratingCount > 0 ? Math.round((d.ratingSum / d.ratingCount) * 10) / 10 : null,
+  }));
+
   // Top listings by revenue
   const topListings = {};
   completed.forEach(o => {
@@ -1821,12 +1857,18 @@ app.get('/api/seller/stats', auth, async (req, res) => {
     total: o.total, created_at: o.created_at
   }));
 
+  // Refund rate overall
+  const refundedCount = orders.filter(o => o.status === 'refunded').length;
+  const refundRate = orders.length > 0 ? Math.round((refundedCount / orders.length) * 100) : 0;
+
   res.json({
     total_revenue: totalRevenue, total_sold: totalSold,
     avg_rating: avgRating, total_reviews: reviews.length,
     total_orders: orders.length,
-    pending: orders.filter(o => o.status === 'awaiting_seller').length,
+    pending: orders.filter(o => o.status === 'waiting_qr').length,
+    refund_rate: refundRate,
     orders_by_day: ordersByDay,
+    orders_by_month: ordersByMonth,
     top_listings: top,
     recent_orders: recent,
   });

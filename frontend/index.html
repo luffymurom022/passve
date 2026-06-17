@@ -2397,6 +2397,7 @@ function buildOrdersPage(){
    📊 SELLER STATS DASHBOARD
 ══════════════════════════════════════════ */
 let _sellerChartInstance = null;
+let _sellerChartMode = '30d'; // '30d' | '12m'
 
 function openSellerStats(){
   setState({orderTab:'stats', orderFilter:'all', activeOrder:null});
@@ -2406,69 +2407,77 @@ function openSellerStats(){
 async function loadSellerStats(){
   if(!authToken) return;
   state.sellerStatsLoading = true;
+  render();
   try {
     const res = await fetch(API+'/seller/stats', {headers: getHeaders()});
-    if(res.ok){
-      state.sellerStats = await res.json();
-    }
+    if(res.ok) state.sellerStats = await res.json();
   } catch(e){}
   state.sellerStatsLoading = false;
   render();
-  setTimeout(initSellerChart, 80);
+  setTimeout(()=>initSellerChart(_sellerChartMode), 80);
 }
 
-function initSellerChart(){
+function switchSellerChart(mode){
+  _sellerChartMode = mode;
+  const btn30 = document.getElementById('schart-btn-30d');
+  const btn12 = document.getElementById('schart-btn-12m');
+  if(btn30 && btn12){
+    btn30.style.background = mode==='30d' ? 'var(--brand)' : 'transparent';
+    btn30.style.color = mode==='30d' ? '#fff' : 'var(--sub)';
+    btn12.style.background = mode==='12m' ? 'var(--brand)' : 'transparent';
+    btn12.style.color = mode==='12m' ? '#fff' : 'var(--sub)';
+  }
+  initSellerChart(mode);
+}
+
+function initSellerChart(mode){
   const canvas = document.getElementById('seller-orders-chart');
   if(!canvas || !window.Chart) return;
   const s = state.sellerStats;
-  if(!s || !s.orders_by_day) return;
+  if(!s) return;
   if(_sellerChartInstance){ _sellerChartInstance.destroy(); _sellerChartInstance=null; }
 
-  const days = s.orders_by_day;
-  // Show only every 5th label to avoid clutter
-  const labels = days.map((d,i)=>{
-    const dt = new Date(d.date);
-    return (i%5===0||i===days.length-1) ? (dt.getMonth()+1)+'/'+(dt.getDate()) : '';
-  });
-  const counts = days.map(d=>d.count);
-  const revenues = days.map(d=>d.revenue);
+  const fmtVal = v => v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':String(v);
 
-  const ctx = canvas.getContext('2d');
-  _sellerChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Đơn hoàn thành',
-        data: counts,
-        backgroundColor: 'rgba(61,142,248,0.75)',
-        borderColor: '#3d8ef8',
-        borderWidth: 1,
-        borderRadius: 4,
-        yAxisID: 'y',
-      },{
-        label: 'Doanh thu (đ)',
-        data: revenues,
-        type: 'line',
-        borderColor: '#34d89e',
-        backgroundColor: 'rgba(52,216,158,0.08)',
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.4,
-        fill: true,
-        yAxisID: 'y2',
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{ labels:{ color:'#7b8fad', font:{size:10}, boxWidth:12 } } },
-      scales: {
-        x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380', font:{size:9}} },
-        y: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380', font:{size:9}, stepSize:1}, position:'left' },
-        y2: { grid:{display:false}, ticks:{color:'#34d89e', font:{size:9}, callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v}, position:'right' },
+  if(mode === '30d'){
+    const days = s.orders_by_day || [];
+    const labels = days.map((d,i)=>{
+      const dt = new Date(d.date);
+      return (i%5===0||i===days.length-1) ? (dt.getMonth()+1)+'/'+(dt.getDate()) : '';
+    });
+    _sellerChartInstance = new Chart(canvas.getContext('2d'), {
+      type:'bar',
+      data:{ labels, datasets:[
+        { label:'Đơn hoàn thành', data:days.map(d=>d.count), backgroundColor:'rgba(61,142,248,0.75)', borderColor:'#3d8ef8', borderWidth:1, borderRadius:4, yAxisID:'y' },
+        { label:'Doanh thu (đ)', data:days.map(d=>d.revenue), type:'line', borderColor:'#34d89e', backgroundColor:'rgba(52,216,158,0.08)', borderWidth:2, pointRadius:0, tension:0.4, fill:true, yAxisID:'y2' }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:'#7b8fad', font:{size:10}, boxWidth:12 } } },
+        scales:{
+          x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380',font:{size:9}} },
+          y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380',font:{size:9},stepSize:1}, position:'left' },
+          y2:{ grid:{display:false}, ticks:{color:'#34d89e',font:{size:9},callback:fmtVal}, position:'right' }
+        }
       }
-    }
-  });
+    });
+  } else {
+    const months = s.orders_by_month || [];
+    _sellerChartInstance = new Chart(canvas.getContext('2d'), {
+      type:'bar',
+      data:{ labels:months.map(m=>m.label), datasets:[
+        { label:'Doanh thu (đ)', data:months.map(m=>m.revenue), backgroundColor:'rgba(61,142,248,0.8)', borderColor:'#3d8ef8', borderWidth:1, borderRadius:5, yAxisID:'y' },
+        { label:'Đơn thành công', data:months.map(m=>m.sold), type:'line', borderColor:'#34d89e', backgroundColor:'rgba(52,216,158,0.1)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#34d89e', tension:0.3, fill:true, yAxisID:'y2' }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:'#7b8fad', font:{size:10}, boxWidth:12 } } },
+        scales:{
+          x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380',font:{size:9}} },
+          y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4e6380',font:{size:9},callback:fmtVal}, position:'left' },
+          y2:{ grid:{display:false}, ticks:{color:'#34d89e',font:{size:9},stepSize:1}, position:'right' }
+        }
+      }
+    });
+  }
 }
 
 function buildSellerStatsPage(){
@@ -2478,11 +2487,11 @@ function buildSellerStatsPage(){
 
   const statCards = [
     {icon:'💸', label:'Tổng doanh thu', val: s ? VND(s.total_revenue) : (loading?'⏳':'—'), col:'var(--ok)'},
-    {icon:'🎟', label:'Đã bán (hoàn thành)', val: s ? s.total_sold+' đơn' : (loading?'⏳':'—'), col:'var(--brand)'},
-    {icon:'⭐', label:'Rating trung bình', val: s ? (s.avg_rating||'—')+(s.avg_rating?'⭐':'') : (loading?'⏳':'—'), col:'var(--gold)'},
-    {icon:'💬', label:'Tổng đánh giá', val: s ? s.total_reviews+' đánh giá' : (loading?'⏳':'—'), col:'var(--purple)'},
+    {icon:'🎟', label:'Đơn thành công', val: s ? s.total_sold+' đơn' : (loading?'⏳':'—'), col:'var(--brand)'},
+    {icon:'⭐', label:'Rating trung bình', val: s ? (s.avg_rating ? s.avg_rating+'⭐' : '—') : (loading?'⏳':'—'), col:'var(--gold)'},
+    {icon:'💬', label:'Tổng đánh giá', val: s ? s.total_reviews+' đánh giá' : (loading?'⏳':'—'), col:'#a78bfa'},
     {icon:'📦', label:'Tổng đơn hàng', val: s ? s.total_orders : (loading?'⏳':'—'), col:'var(--brand)'},
-    {icon:'❗', label:'Cần xử lý', val: s ? s.pending : (loading?'⏳':'—'), col:'var(--red)'},
+    {icon:'↩️', label:'Tỷ lệ hoàn tiền', val: s ? (s.refund_rate||0)+'%' : (loading?'⏳':'—'), col: s&&s.refund_rate>20?'var(--red)':s&&s.refund_rate>5?'var(--warn)':'var(--ok)'},
   ];
 
   const cardsHTML = statCards.map(c=>`
@@ -2494,20 +2503,50 @@ function buildSellerStatsPage(){
 
   const topHTML = s && s.top_listings && s.top_listings.length > 0
     ? s.top_listings.map((t,i)=>`
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-        <div style="font-size:12px;font-weight:800;color:var(--hint);width:18px;text-align:center;">${i+1}</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<s.top_listings.length-1?'border-bottom:1px solid var(--border);':''}">
+        <div style="font-size:11px;font-weight:800;color:${i===0?'#f5a623':i===1?'#9ca3af':'var(--hint)'};width:20px;text-align:center;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.event_name}</div>
-          <div style="font-size:10px;color:var(--hint);margin-top:2px;">${t.count} đơn hoàn thành</div>
+          <div style="font-size:10px;color:var(--hint);margin-top:2px;">${t.count} đơn · ${VND(t.revenue)}</div>
         </div>
-        <div style="font-size:13px;font-weight:800;color:var(--ok);">${VND(t.revenue)}</div>
+        <div style="font-size:12px;font-weight:800;color:var(--ok);">${VND(t.revenue)}</div>
       </div>`).join('')
+    : '<div style="text-align:center;padding:20px 0;color:var(--hint);font-size:12px;">Chưa có dữ liệu</div>';
+
+  // Monthly table
+  const monthTableHTML = s && s.orders_by_month && s.orders_by_month.length > 0
+    ? `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:340px;">
+          <thead>
+            <tr style="background:var(--bg2);">
+              <th style="padding:8px 6px;text-align:left;color:var(--hint);font-weight:600;">Tháng</th>
+              <th style="padding:8px 6px;text-align:right;color:var(--hint);font-weight:600;">Doanh thu</th>
+              <th style="padding:8px 6px;text-align:right;color:var(--hint);font-weight:600;">Đơn ✅</th>
+              <th style="padding:8px 6px;text-align:right;color:var(--hint);font-weight:600;">Hoàn%</th>
+              <th style="padding:8px 6px;text-align:right;color:var(--hint);font-weight:600;">Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${[...s.orders_by_month].reverse().map((m,i)=>{
+              const refCol = m.refund_rate>20?'var(--red)':m.refund_rate>5?'var(--warn)':'var(--ok)';
+              const isCurrentMonth = i===0;
+              return `<tr style="border-bottom:1px solid var(--border);${isCurrentMonth?'background:rgba(61,142,248,0.04);':''}">
+                <td style="padding:8px 6px;font-weight:${isCurrentMonth?'700':'500'};color:${isCurrentMonth?'var(--brand)':'var(--text)'};">${m.label}${isCurrentMonth?' ●':''}</td>
+                <td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--ok);">${m.revenue>0?VND(m.revenue):'—'}</td>
+                <td style="padding:8px 6px;text-align:right;color:var(--brand);">${m.sold||'—'}</td>
+                <td style="padding:8px 6px;text-align:right;color:${refCol};">${m.total_orders>0?m.refund_rate+'%':'—'}</td>
+                <td style="padding:8px 6px;text-align:right;color:var(--gold);">${m.avg_rating?m.avg_rating+'⭐':'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`
     : '<div style="text-align:center;padding:20px 0;color:var(--hint);font-size:12px;">Chưa có dữ liệu</div>';
 
   return `<div style="padding-bottom:80px;">
     <div style="padding:20px 20px 0;">
       <div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;margin-bottom:2px;">📊 Thống kê bán hàng</div>
-      <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Hiệu suất 30 ngày gần nhất</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Tổng quan hiệu suất của bạn</div>
 
       <!-- Tab switcher -->
       <div style="display:flex;background:var(--bg2);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px;">
@@ -2522,14 +2561,28 @@ function buildSellerStatsPage(){
         <div style="font-size:12px;">Đăng nhập để xem thống kê bán hàng</div>
       </div>` : ''}
 
-      <!-- Stat cards -->
+      <!-- Stat cards 2x3 -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">${cardsHTML}</div>
 
-      <!-- Chart -->
+      <!-- Chart with toggle -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;">
-        <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">📈 Đơn hàng & doanh thu 30 ngày</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;">📈 Doanh thu & đơn hàng</div>
+          <div style="display:flex;gap:4px;background:var(--bg2);border-radius:8px;padding:3px;border:1px solid var(--border);">
+            <button id="schart-btn-30d" onclick="switchSellerChart('30d')"
+              style="font-size:10px;font-weight:700;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;transition:all .15s;background:${_sellerChartMode==='30d'?'var(--brand)':'transparent'};color:${_sellerChartMode==='30d'?'#fff':'var(--sub)'};">30 ngày</button>
+            <button id="schart-btn-12m" onclick="switchSellerChart('12m')"
+              style="font-size:10px;font-weight:700;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;transition:all .15s;background:${_sellerChartMode==='12m'?'var(--brand)':'transparent'};color:${_sellerChartMode==='12m'?'#fff':'var(--sub)'};">12 tháng</button>
+          </div>
+        </div>
         ${loading ? `<div style="text-align:center;padding:40px;color:var(--hint);font-size:12px;">⏳ Đang tải...</div>`
-          : `<div style="position:relative;height:180px;"><canvas id="seller-orders-chart"></canvas></div>`}
+          : `<div style="position:relative;height:200px;"><canvas id="seller-orders-chart"></canvas></div>`}
+      </div>
+
+      <!-- Monthly table -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">📅 Chi tiết theo tháng</div>
+        ${loading ? '<div style="text-align:center;padding:20px;color:var(--hint);font-size:12px;">⏳ Đang tải...</div>' : monthTableHTML}
       </div>
 
       <!-- Top listings -->
