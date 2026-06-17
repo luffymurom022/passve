@@ -1691,19 +1691,15 @@ async function sendAIMessage(text){
   setTimeout(()=>{const el=document.getElementById("ai-msgs");if(el)el.scrollTop=el.scrollHeight;},50);
 
   try{
-    const sysPrompt=`Bạn là trợ lý AI của SafePass — nền tảng mua bán vé sự kiện uy tín tại Việt Nam. SafePass dùng cơ chế Escrow: tiền được giữ an toàn cho đến khi người mua xác nhận nhận được vé QR hợp lệ. Phí 3% trên mỗi giao dịch thành công. Trả lời ngắn gọn, thân thiện, bằng tiếng Việt. Tập trung vào hỗ trợ người dùng mua/bán vé an toàn.`;
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch(API+"/ai/chat",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json",...getHeaders()},
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
-        system:sysPrompt,
         messages:state.aiMessages.map(m=>({role:m.role,content:m.content})),
       })
     });
     const data=await res.json();
-    const reply=data.content?.map(b=>b.text||"").join("")||"Xin lỗi, mình gặp lỗi. Thử lại nhé!";
+    const reply=data.reply||"Xin lỗi, mình gặp lỗi. Thử lại nhé!";
     state.aiMessages=[...state.aiMessages,{role:"assistant",content:reply}];
   }catch(e){
     state.aiMessages=[...state.aiMessages,{role:"assistant",content:"Xin lỗi, mình đang gặp sự cố kết nối. Vui lòng thử lại sau nhé! 🙏"}];

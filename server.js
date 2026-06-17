@@ -1638,6 +1638,44 @@ app.post('/api/notifications/:id/read', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ════════════════════════════════
+//  AI CHAT PROXY (server-side — keys never exposed to browser)
+// ════════════════════════════════
+
+app.post('/api/ai/chat', auth, async (req, res) => {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'AI chat chưa được cấu hình.' });
+  }
+  const { messages } = req.body;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'Thiếu tin nhắn' });
+  }
+  const sysPrompt = `Bạn là trợ lý AI của SafePass — nền tảng mua bán vé sự kiện uy tín tại Việt Nam. SafePass dùng cơ chế Escrow: tiền được giữ an toàn cho đến khi người mua xác nhận nhận được vé QR hợp lệ. Phí 3% trên mỗi giao dịch thành công. Trả lời ngắn gọn, thân thiện, bằng tiếng Việt. Tập trung vào hỗ trợ người dùng mua/bán vé an toàn.`;
+  try {
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: sysPrompt,
+        messages: messages.map(m => ({ role: m.role, content: m.content })),
+      }),
+    });
+    const data = await upstream.json();
+    if (!upstream.ok) return res.status(upstream.status).json({ error: data.error?.message || 'Lỗi AI' });
+    const reply = (data.content || []).map(b => b.text || '').join('') || 'Xin lỗi, mình gặp lỗi. Thử lại nhé!';
+    res.json({ reply });
+  } catch (e) {
+    console.error('[AI] Lỗi:', e.message);
+    res.status(500).json({ error: 'Lỗi kết nối AI' });
+  }
+});
+
 // ── SERVE FRONTEND STATIC FILES ──
 app.use(express.static(join(__dirname, 'frontend')));
 app.get('*', (req, res) => {
