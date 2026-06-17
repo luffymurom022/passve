@@ -2778,6 +2778,15 @@ function buildOrderDetail(o){
   else if(o.status==="completed")
     bottomAction='<div style="display:flex;gap:8px;"><button class="btn btn-outline" style="flex:1;" onclick="openReviewModal(\''+o.id+'\')">⭐ Đánh giá</button><button class="btn btn-ghost" style="flex:1;" onclick="setState({page:\'chat\',activeChat:\''+o.id+'\',chatBack:\'orders\'})">💬 Xem chat</button></div>';
 
+  var verifyQrHTML='<div style="margin:16px 20px 0;background:var(--card);border:1px solid rgba(61,142,248,.2);border-radius:14px;padding:16px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+    +'<div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">🔐 SafePass QR Xác minh</div>'
+    +'<button onclick="showVerifyQr(\''+o.id+'\')" style="font-size:11px;padding:5px 12px;border-radius:8px;border:none;background:var(--brandM);color:var(--brand);cursor:pointer;font-weight:700;font-family:\'Inter\',sans-serif;">Xem QR</button>'
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--hint);">Trình QR này tại cổng sự kiện để nhân viên xác minh vé SafePass của bạn.</div>'
+    +'<div id="verify-qr-box-'+o.id+'" style="display:none;margin-top:14px;text-align:center;"></div>'
+    +'</div>';
+
   return '<div style="padding-bottom:80px;">'
     +'<div style="padding:16px 20px 0;display:flex;align-items:center;gap:10px;">'
     +'<button onclick="setState({activeOrder:null})" style="background:var(--card);border:1px solid var(--border);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;">←</button>'
@@ -2787,6 +2796,7 @@ function buildOrderDetail(o){
     +stepperHTML
     +disputeHTML
     +qrHTML
+    +verifyQrHTML
     +countdownHTML
     +escrowHTML
     +'<div style="margin:16px 20px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">'
@@ -5169,6 +5179,39 @@ function buildProfilePage(){
       <button onclick="logout()" style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(240,80,104,.3);background:var(--redBg);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;">🚪 Đăng xuất</button>
     </div>
   </div>`;
+}
+
+// ── VERIFY QR ──
+async function showVerifyQr(orderId){
+  const box=document.getElementById('verify-qr-box-'+orderId);
+  if(!box) return;
+  const isVisible=box.style.display!=='none';
+  if(isVisible){box.style.display='none';return;}
+  box.style.display='block';
+  box.innerHTML='<div style="padding:16px;color:var(--hint);font-size:13px;">⏳ Đang tạo QR...</div>';
+  try{
+    const res=await fetch(API+'/orders/'+orderId+'/verify-qr',{headers:getHeaders()});
+    const data=await res.json();
+    if(!res.ok){box.innerHTML='<div style="color:var(--red);font-size:12px;">❌ '+( data.error||'Lỗi')+'</div>';return;}
+    box.innerHTML=`
+      <img src="${data.qr}" style="width:200px;height:200px;border-radius:12px;border:3px solid #fff;" alt="QR Xác minh">
+      <div style="margin-top:10px;font-size:11px;color:var(--hint);">📌 Xuất trình QR này cho nhân viên tại cổng vào sự kiện.</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--hint);font-family:'DM Mono',monospace;word-break:break-all;background:rgba(255,255,255,.03);padding:8px;border-radius:8px;max-height:60px;overflow:hidden;">${data.token ? data.token.slice(0,80)+'...' : ''}</div>
+      <button onclick="downloadVerifyQr('${orderId}')" style="margin-top:10px;padding:8px 16px;border-radius:8px;border:none;background:var(--brandM);color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">📥 Lưu QR</button>`;
+    box._qrData=data.qr;
+    box._eventName=data.event_name||'ticket';
+  }catch(e){
+    box.innerHTML='<div style="color:var(--red);font-size:12px;">❌ Không kết nối được server</div>';
+  }
+}
+
+function downloadVerifyQr(orderId){
+  const box=document.getElementById('verify-qr-box-'+orderId);
+  if(!box||!box._qrData) return;
+  const a=document.createElement('a');
+  a.href=box._qrData;
+  a.download='safepass-qr-'+(box._eventName||orderId).replace(/\s+/g,'-')+'.png';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 // ── KYC ──

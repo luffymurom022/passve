@@ -374,6 +374,72 @@ CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawal_requests(status,
 
 ---
 
+## ✅ KYC — Xác Minh Danh Tính (Phase 2)
+
+- [x] Bảng `kyc_requests` Supabase (user_id, status, front/back/selfie URL, reviewed_by, note) *(2026-06-17)*
+- [x] Supabase Storage bucket `kyc-documents` (private) *(2026-06-17)*
+- [x] `POST /api/kyc/submit` — upload 3 ảnh (CCCD mặt trước/sau + selfie) *(2026-06-17)*
+- [x] `GET /api/kyc/status` — user kiểm tra trạng thái KYC của mình *(2026-06-17)*
+- [x] `GET /api/admin/kyc` — admin xem danh sách KYC pending *(2026-06-17)*
+- [x] `POST /api/admin/kyc/:id/approve` — duyệt KYC, set is_verified=true *(2026-06-17)*
+- [x] `POST /api/admin/kyc/:id/reject` — từ chối KYC, ghi note *(2026-06-17)*
+- [x] Tab KYC trong admin.html — xem danh sách, modal viewer ảnh signed URL, approve/reject *(2026-06-17)*
+- [x] Section KYC trong trang Profile người dùng — upload 3 ảnh, trạng thái pending/approved/rejected *(2026-06-17)*
+
+---
+
+## ✅ QR Xác Minh Vé (Phase 2)
+
+- [x] Bảng `ticket_scans` Supabase (order_id, scanned_by, scanner_type, scanned_at, scan_count) *(2026-06-17)*
+- [x] Package `qrcode` (npm) — tạo QR PNG dạng data URL *(2026-06-17)*
+- [x] `GET /api/orders/:id/verify-qr` — tạo JWT QR token (payload: oid, p:'tv'), trả về data URL QR + metadata *(2026-06-17)*
+- [x] `POST /api/scan/auth` — xác thực scanner (ADMIN_SECRET → admin | SCANNER_CODE env → organizer) *(2026-06-17)*
+- [x] `POST /api/scan/verify` — giải mã JWT, check order hợp lệ, chống dùng lại (ticket_scans table), ghi log *(2026-06-17)*
+- [x] `GET /api/scan/history` — admin xem lịch sử quét (yêu cầu ADMIN_SECRET) *(2026-06-17)*
+- [x] `frontend/scanner.html` — trang quét độc lập: login (mã truy cập + tên), camera QR (html5-qrcode), nhập thủ công, kết quả overlay (VALID/USED/INVALID), lịch sử phiên *(2026-06-17)*
+- [x] Admin tab "📷 QR Scanner" — link mở scanner.html, 2 info cards, bảng lịch sử scan từ DB *(2026-06-17)*
+- [x] "🔐 SafePass QR Xác minh" section trong chi tiết đơn (index.html) — nút "Xem QR", show/hide QR img, nút "Lưu QR" download PNG *(2026-06-17)*
+
+> ⚠️ Cần chạy migration SQL (xem bên dưới) trước khi dùng KYC và QR Scanner
+
+---
+
+## ⚠️ Migration Mới Cần Chạy (KYC + QR Scanner)
+
+```sql
+-- Bảng KYC
+CREATE TABLE IF NOT EXISTS kyc_requests (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  status text default 'pending',
+  front_url text,
+  back_url text,
+  selfie_url text,
+  submitted_at timestamptz default now(),
+  reviewed_at timestamptz,
+  reviewed_by text,
+  note text
+);
+ALTER TABLE kyc_requests DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_kyc_user ON kyc_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_kyc_status ON kyc_requests(status, submitted_at DESC);
+
+-- Bảng Ticket Scans
+CREATE TABLE IF NOT EXISTS ticket_scans (
+  id uuid default gen_random_uuid() primary key,
+  order_id uuid references orders(id) on delete cascade,
+  scanned_by text,
+  scanner_type text default 'organizer',
+  scanned_at timestamptz default now(),
+  scan_count int default 1
+);
+ALTER TABLE ticket_scans DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_ticket_scans_order ON ticket_scans(order_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC);
+```
+
+---
+
 ## 📌 Ghi Chú Kỹ Thuật
 
 | Mục | Chi tiết |

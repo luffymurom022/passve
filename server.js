@@ -11,6 +11,7 @@ import { dirname, join } from 'path';
 import ws from 'ws';
 import { Resend } from 'resend';
 import multer from 'multer';
+import QRCode from 'qrcode';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -2078,6 +2079,136 @@ app.post('/api/notifications/:id/read', auth, async (req, res) => {
       .eq('user_id', req.user.id);
   } catch (e) {}
   res.json({ ok: true });
+});
+
+// ════════════════════════════════
+//  QR TICKET VERIFICATION
+// ════════════════════════════════
+
+// GET /api/orders/:id/verify-qr — generate ownership QR for an order
+app.get('/api/orders/:id/verify-qr', auth, async (req, res) => {
+  try {
+    const { data: order, error } = await supabase
+      .from('orders').select('*').eq('id', req.params.id).single();
+    if (error || !order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id) {
+      return res.status(403).json({ error: 'Không có quyền truy cập' });
+    }
+    // Signed token — no expiry so it works on event day
+    const token = jwt.sign({ oid: order.id, p: 'tv' }, JWT_SECRET);
+    const qrDataUrl = await QRCode.toDataURL(token, {
+      width: 400, margin: 2,
+      color: { dark: '#000000', light: '#ffffff' },
+      errorCorrectionLevel: 'H',
+    });
+    res.json({
+      qr: qrDataUrl,
+      token,
+      order_id: order.id,
+      event_name: order.event_name,
+      buyer_name: order.buyer_name,
+    });
+  } catch (e) {
+    console.error('[QR] generate:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/scan/auth — verify scanner access code
+app.post('/api/scan/auth', async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Thiếu mã truy cập' });
+  const adminCode = process.env.ADMIN_SECRET;
+  const scannerCode = process.env.SCANNER_CODE;
+  if (code === adminCode) return res.json({ success: true, type: 'admin' });
+  if (scannerCode && code === scannerCode) return res.json({ success: true, type: 'organizer' });
+  return res.status(401).json({ error: 'Mã không đúng. Liên hệ SafePass để lấy mã.' });
+});
+
+// POST /api/scan/verify — verify QR token, mark as used, record history
+app.post('/api/scan/verify', async (req, res) => {
+  try {
+    const { token, scanner_name, scanner_type } = req.body;
+    if (!token) return res.status(400).json({ error: 'Thiếu QR token', status: 'INVALID' });
+
+    let payload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+      return res.status(400).json({ error: 'QR không hợp lệ hoặc đã bị làm giả', status: 'INVALID' });
+    }
+    if (payload.p !== 'tv') {
+      return res.status(400).json({ error: 'Loại QR không đúng', status: 'INVALID' });
+    }
+
+    const order_id = payload.oid;
+    const { data: order, error: orderErr } = await supabase
+      .from('orders').select('*').eq('id', order_id).single();
+    if (orderErr || !order) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng', status: 'INVALID' });
+    }
+
+    const ticketInfo = {
+      order_id: order.id,
+      event_name: order.event_name,
+      buyer_name: order.buyer_name,
+      seller_name: order.seller_name,
+      price: order.price,
+      total: order.total,
+      order_status: order.status,
+      created_at: order.created_at,
+    };
+
+    // Check scan history
+    const { data: scans } = await supabase
+      .from('ticket_scans')
+      .select('*')
+      .eq('order_id', order_id)
+      .order('scanned_at', { ascending: true });
+
+    if (scans && scans.length > 0) {
+      return res.json({
+        status: 'USED',
+        ticket: ticketInfo,
+        first_scanned_at: scans[0].scanned_at,
+        first_scanned_by: scans[0].scanned_by,
+        scan_count: scans.length,
+      });
+    }
+
+    // First time — record scan
+    await supabase.from('ticket_scans').insert({
+      order_id,
+      scanned_by: sanitize(scanner_name || 'Không rõ'),
+      scanner_type: scanner_type || 'organizer',
+    });
+
+    res.json({
+      status: 'VALID',
+      ticket: ticketInfo,
+      scanned_at: new Date().toISOString(),
+      scanner_name: scanner_name || 'Không rõ',
+    });
+  } catch (e) {
+    console.error('[Scan] verify:', e.message);
+    res.status(500).json({ error: e.message, status: 'ERROR' });
+  }
+});
+
+// GET /api/scan/history — scan history (admin only)
+app.get('/api/scan/history', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const { data, error } = await supabase
+      .from('ticket_scans')
+      .select('*')
+      .order('scanned_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    res.json(data || []);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ════════════════════════════════

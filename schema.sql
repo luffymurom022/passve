@@ -136,6 +136,19 @@ alter table reviews disable row level security;
 -- ALTER TABLE kyc_requests DISABLE ROW LEVEL SECURITY;
 -- CREATE INDEX IF NOT EXISTS idx_kyc_user ON kyc_requests(user_id, created_at DESC);
 
+-- ═══════════════════════════════════════════════
+-- TICKET SCANS TABLE (QR Verification history)
+-- ═══════════════════════════════════════════════
+-- CREATE TABLE IF NOT EXISTS ticket_scans (
+--   id uuid default gen_random_uuid() primary key,
+--   order_id uuid references orders(id) on delete cascade,
+--   scanned_by text,
+--   scanner_type text,  -- admin | organizer
+--   scanned_at timestamptz default now()
+-- );
+-- ALTER TABLE ticket_scans DISABLE ROW LEVEL SECURITY;
+-- CREATE INDEX IF NOT EXISTS idx_scans_order ON ticket_scans(order_id, scanned_at DESC);
+
 -- Index tối ưu query
 -- CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 -- CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
