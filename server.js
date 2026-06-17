@@ -586,12 +586,13 @@ app.post('/api/upload/ticket-image', auth, async (req, res) => {
 });
 
 app.post('/api/tickets', auth, async (req, res) => {
-  const { event_name, event_date, location, section, price, quantity, description, image_url } = req.body;
+  const { event_name, event_date, location, section, price, quantity, description, image_url, category } = req.body;
   if (!event_name || !price || !quantity)
     return res.status(400).json({ error: 'Thiếu thông tin vé' });
   if (isNaN(Number(price)) || Number(price) <= 0)
     return res.status(400).json({ error: 'Giá không hợp lệ' });
 
+  const validCategories = ['concerts', 'kpop', 'sports', 'festivals', 'other'];
   const insertData = {
     seller_id: req.user.id,
     seller_name: req.user.name,
@@ -604,6 +605,7 @@ app.post('/api/tickets', auth, async (req, res) => {
     status: 'available'
   };
   if (image_url) insertData.image_url = image_url;
+  if (category && validCategories.includes(category)) insertData.category = category;
 
   let { data, error } = await supabase.from('tickets').insert(insertData).select().single();
   // Nếu cột image_url chưa được migration, thử lại không có image_url
@@ -611,12 +613,17 @@ app.post('/api/tickets', auth, async (req, res) => {
     delete insertData.image_url;
     ({ data, error } = await supabase.from('tickets').insert(insertData).select().single());
   }
+  // Nếu cột category chưa được migration, thử lại không có category
+  if (error && insertData.category) {
+    delete insertData.category;
+    ({ data, error } = await supabase.from('tickets').insert(insertData).select().single());
+  }
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
 app.get('/api/tickets', async (req, res) => {
-  const { search, min_price, max_price, location, date_from, date_to, page, limit } = req.query;
+  const { search, min_price, max_price, location, date_from, date_to, page, limit, category } = req.query;
   const pageNum = Math.max(1, parseInt(page) || 1);
   const limitNum = Math.min(100, parseInt(limit) || 50);
   const offset = (pageNum - 1) * limitNum;
@@ -631,6 +638,7 @@ app.get('/api/tickets', async (req, res) => {
   if (location) query = query.ilike('location', `%${location}%`);
   if (date_from) query = query.gte('event_date', date_from);
   if (date_to) query = query.lte('event_date', date_to);
+  if (category && category !== 'all') query = query.eq('category', category);
 
   const { data, error, count } = await query;
   if (error) return res.status(500).json({ error: error.message });
@@ -669,7 +677,8 @@ app.patch('/api/tickets/:id', auth, async (req, res) => {
   if (ticket.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
   if (ticket.status !== 'available') return res.status(400).json({ error: 'Chỉ chỉnh sửa được vé chưa có đơn đặt' });
 
-  const { event_name, event_date, location, section, price, quantity, description } = req.body;
+  const { event_name, event_date, location, section, price, quantity, description, category } = req.body;
+  const validCategories = ['concerts', 'kpop', 'sports', 'festivals', 'other'];
   const updates = {};
   if (event_name) updates.event_name = sanitize(event_name);
   if (event_date !== undefined) updates.event_date = event_date;
@@ -682,6 +691,7 @@ app.patch('/api/tickets/:id', auth, async (req, res) => {
   }
   if (quantity !== undefined) updates.quantity = Number(quantity);
   if (description !== undefined) updates.description = sanitize(description);
+  if (category !== undefined && validCategories.includes(category)) updates.category = category;
 
   const { data, error } = await supabase.from('tickets').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: error.message });
@@ -1094,6 +1104,49 @@ app.post('/api/orders/:id/dispute', auth, async (req, res) => {
     `${notifyName} vừa mở khiếu nại cho đơn hàng ${order.event_name}: ${reasonText}`, '/orders');
 
   res.json({ message: 'Khiếu nại đã được gửi. Đội hỗ trợ sẽ phản hồi trong 24h.' });
+});
+
+// ════════════════════════════════
+//  CHAT NỘI BỘ TRONG ĐƠN HÀNG
+// ════════════════════════════════
+
+app.get('/api/orders/:id/messages', auth, async (req, res) => {
+  const orderId = req.params.id;
+  const { data: order } = await supabase.from('orders').select('buyer_id,seller_id').eq('id', orderId).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Không có quyền' });
+
+  const { data, error } = await supabase.from('order_messages')
+    .select('*').eq('order_id', orderId).order('created_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/orders/:id/messages', auth, async (req, res) => {
+  const orderId = req.params.id;
+  const { text } = req.body;
+  if (!text || !String(text).trim()) return res.status(400).json({ error: 'Tin nhắn không được trống' });
+
+  const { data: order } = await supabase.from('orders').select('buyer_id,seller_id,event_name').eq('id', orderId).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Không có quyền' });
+
+  const { data, error } = await supabase.from('order_messages').insert({
+    order_id: orderId,
+    sender_id: req.user.id,
+    sender_name: req.user.name,
+    text: sanitize(String(text).trim()),
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Notify the other party
+  const otherId = order.buyer_id === req.user.id ? order.seller_id : order.buyer_id;
+  createNotification(otherId, 'chat', '💬 Tin nhắn mới',
+    `${req.user.name}: ${String(text).trim().slice(0, 60)}`, '/orders');
+
+  res.json(data);
 });
 
 app.post('/api/admin/orders/:id/resolve', async (req, res) => {

@@ -104,9 +104,25 @@ alter table reviews disable row level security;
 -- ALTER TABLE reviews ADD COLUMN IF NOT EXISTS seller_reply text;
 -- ALTER TABLE reviews ADD COLUMN IF NOT EXISTS seller_reply_at timestamptz;
 
+-- Thêm cột category vào tickets (tìm kiếm nâng cao)
+-- ALTER TABLE tickets ADD COLUMN IF NOT EXISTS category text default 'concerts';
+
+-- Bảng order_messages (chat nội bộ trong đơn hàng)
+-- CREATE TABLE IF NOT EXISTS order_messages (
+--   id uuid default gen_random_uuid() primary key,
+--   order_id uuid references orders(id) on delete cascade,
+--   sender_id uuid references users(id),
+--   sender_name text,
+--   text text not null,
+--   created_at timestamptz default now()
+-- );
+-- ALTER TABLE order_messages DISABLE ROW LEVEL SECURITY;
+-- CREATE INDEX IF NOT EXISTS idx_order_messages_order ON order_messages(order_id, created_at ASC);
+
 -- Index tối ưu query
 -- CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 -- CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
 -- CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id);
 -- CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, created_at DESC);
 -- CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
+-- CREATE INDEX IF NOT EXISTS idx_tickets_category ON tickets(category);

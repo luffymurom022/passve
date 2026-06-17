@@ -1011,7 +1011,7 @@ function renderFilterPanel(){
       <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">📂 Danh mục</div>
       <div class="cat-pills">
         ${CATEGORIES.map(c=>`
-        <button class="cat-pill ${state.category===c.id?"selected":""}" onclick="setState({category:'${c.id}'})">
+        <button class="cat-pill ${state.category===c.id?"selected":""}" onclick="selectCategory('${c.id}')">
           ${c.icon} ${c.label}
         </button>`).join("")}
       </div>
@@ -2008,7 +2008,7 @@ function buildSearchPage(results,activeCount,hasQuery,listView){return`
       ${!state.filterOpen?`
       <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:12px;margin-bottom:4px;">
         ${CATEGORIES.map(c=>`
-        <button class="cat-pill ${state.category===c.id?"selected":""}" onclick="setState({category:'${c.id}',showSuggestions:false})">
+        <button class="cat-pill ${state.category===c.id?"selected":""}" onclick="selectCategory('${c.id}',true)">
           ${c.icon} ${c.label}
           <span style="font-size:9px;color:${state.category===c.id?"var(--brand)":"var(--hint)"};">
             (${ALL_LISTINGS.filter(l=>c.id==="all"||l.category===c.id).length})
@@ -3670,6 +3670,45 @@ function getChatThread(orderId){
 
 let chatOrderTyping=false;
 let chatOrderTimer=null;
+let _chatPollInterval=null;
+
+function stopChatPolling(){
+  if(_chatPollInterval){clearInterval(_chatPollInterval);_chatPollInterval=null;}
+}
+
+function startChatPolling(orderId){
+  stopChatPolling();
+  if(!authToken||!currentUser||currentUser.id==='demo'||!orderId.includes('-')) return;
+  _chatPollInterval=setInterval(async()=>{
+    if(state.page!=='chat'||state.activeChat!==orderId){stopChatPolling();return;}
+    await loadChatMessages(orderId,false);
+  },5000);
+}
+
+async function loadChatMessages(orderId,scroll=true){
+  if(!authToken||!currentUser||currentUser.id==='demo'||!orderId.includes('-')) return false;
+  try{
+    const res=await fetch(API+'/orders/'+orderId+'/messages',{headers:getHeaders()});
+    if(!res.ok) return false;
+    const msgs=await res.json();
+    if(!Array.isArray(msgs)) return false;
+    const mapped=msgs.map(m=>({
+      role:m.sender_id===currentUser?.id?'me':'them',
+      text:m.text,
+      time:new Date(m.created_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+      sender_name:m.sender_name
+    }));
+    CHAT_THREADS[orderId]=mapped;
+    if(state.page==='chat'&&state.activeChat===orderId){
+      const msgsEl=document.getElementById('order-chat-msgs');
+      if(msgsEl){
+        setState({});
+        if(scroll) scrollOrderChatBottom();
+      }
+    }
+    return true;
+  }catch(e){return false;}
+}
 
 function buildChatPage(){
   const orderId=state.activeChat;
@@ -3679,6 +3718,10 @@ function buildChatPage(){
   const isBuyer=o.role==="buyer";
   const other=isBuyer?o.seller:o.buyer;
   const thread=getChatThread(orderId);
+  // Async load from API for real orders (UUID-based)
+  if(authToken&&currentUser&&currentUser.id!=='demo'&&orderId.includes('-')){
+    setTimeout(()=>{loadChatMessages(orderId,true);startChatPolling(orderId);},50);
+  }
   const tc=other.trust>=80?"var(--ok)":other.trust>=60?"var(--warn)":"var(--red)";
 
   const msgsHTML=thread.map((m,i)=>{
@@ -3758,16 +3801,37 @@ function buildChatPage(){
   </div>`;
 }
 
-function sendOrderChat(orderId,text){
+async function sendOrderChat(orderId,text){
   if(!text||!text.trim()) return;
   const t=text.trim();
   const now=new Date().toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
-  const thread=getChatThread(orderId);
-  thread.push({role:"me",text:t,time:now});
   if(document.getElementById("order-chat-input")){
     document.getElementById("order-chat-input").value="";
     document.getElementById("order-chat-input").style.height="38px";
   }
+
+  // Real order (UUID) with authenticated user → use API
+  if(authToken&&currentUser&&currentUser.id!=='demo'&&orderId.includes('-')){
+    const thread=getChatThread(orderId);
+    thread.push({role:"me",text:t,time:now});
+    setState({});
+    scrollOrderChatBottom();
+    try{
+      const res=await fetch(API+'/orders/'+orderId+'/messages',{
+        method:'POST',headers:getHeaders(),body:JSON.stringify({text:t})
+      });
+      if(res.ok){
+        await loadChatMessages(orderId,false);
+      } else {
+        showToast('Lỗi gửi tin nhắn','var(--red)','❌');
+      }
+    }catch(e){showToast('Lỗi kết nối','var(--red)','❌');}
+    return;
+  }
+
+  // Demo order → local simulation
+  const thread=getChatThread(orderId);
+  thread.push({role:"me",text:t,time:now});
   chatOrderTyping=true;
   setState({});
   scrollOrderChatBottom();
@@ -4087,7 +4151,8 @@ async function submitSellForm(){
     location: sellForm.location,
     section: sellForm.section,
     description: sellForm.description,
-    image_url: sellPhotos[0]?.url || null
+    image_url: sellPhotos[0]?.url || null,
+    category: sellForm.category || 'concerts'
   };
   const ok = await submitSellAPI(payload);
   if (!ok) return;
@@ -4996,7 +5061,7 @@ function mapTicket(t) {
     id: t.id,
     seller_id: t.seller_id,
     title: t.event_name,
-    category: 'concerts',
+    category: t.category || 'concerts',
     price: t.price,
     original_price: Math.round(t.price * 1.1),
     date: t.event_date || '',
@@ -5014,21 +5079,42 @@ function mapTicket(t) {
   };
 }
 
-async function loadTicketsFromAPI() {
+async function loadTicketsFromAPI(catOverride) {
   if (!authToken) return;
   try {
-    const res = await fetch(API + '/tickets?limit=100', { headers: getHeaders() });
+    const params = new URLSearchParams({ limit: '100' });
+    const cat = catOverride !== undefined ? catOverride : state.category;
+    if (cat && cat !== 'all') params.set('category', cat);
+    const res = await fetch(API + '/tickets?' + params.toString(), { headers: getHeaders() });
     const resp = await res.json();
     // API returns {tickets: [], total, page, limit} OR array (backwards compat)
     const data = Array.isArray(resp) ? resp : (resp.tickets || []);
+    // When filtering by category, refresh only that category's listings
+    if (cat && cat !== 'all') {
+      const apiIds = new Set(data.map(t => t.id));
+      // Remove stale listings for this category that are no longer available
+      for (let i = ALL_LISTINGS.length - 1; i >= 0; i--) {
+        if (ALL_LISTINGS[i].category === cat && !apiIds.has(ALL_LISTINGS[i].id)) {
+          ALL_LISTINGS.splice(i, 1);
+        }
+      }
+    }
     if (data.length > 0) {
       const mapped = data.map(t => mapTicket(t));
       mapped.forEach(t => {
-        if (!ALL_LISTINGS.find(l => l.id === t.id)) ALL_LISTINGS.unshift(t);
+        const idx = ALL_LISTINGS.findIndex(l => l.id === t.id);
+        if (idx >= 0) ALL_LISTINGS[idx] = t; else ALL_LISTINGS.unshift(t);
       });
-      render();
     }
+    render();
   } catch(e) { console.log('Không tải được vé từ API:', e); }
+}
+
+function selectCategory(id, hidesugg) {
+  const newState = { category: id };
+  if (hidesugg) newState.showSuggestions = false;
+  setState(newState);
+  loadTicketsFromAPI(id);
 }
 
 // ── Load orders từ API ──

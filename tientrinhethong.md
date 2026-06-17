@@ -261,8 +261,8 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 - [x] ⚡ Trang profile công khai seller — `GET /api/users/:id` + `GET /api/users/:id/listings`, trang `seller_profile` với avatar holographic, trust score, stats, vé đang bán, reviews + rating bars *(2026-06-15)*
 - [x] Seller dashboard analytics — tab "📊 Thống kê" trong Orders: `GET /api/seller/stats`, 6 stat cards, biểu đồ bar+line Chart.js 30 ngày, top sự kiện doanh thu cao nhất *(2026-06-15)*
 - [x] Xác minh seller (verified badge) — admin có thể mark seller là verified, hiển thị ✓ badge xanh trên listing vé và profile _(Hoàn thành 16/06/2026 — backend verify/unverify API, admin page trong SPA với secret input, badge trên grid/list card, is_admin từ /api/auth/me)_
-- [ ] Tìm kiếm nâng cao — dropdown chọn danh mục sự kiện (Âm nhạc, Thể thao, Hội nghị, Khác), filter kết hợp với search hiện tại
-- [ ] Chat nội bộ trong đơn hàng — buyer và seller nhắn tin trong context của 1 đơn, `POST /api/orders/:id/messages`, `GET /api/orders/:id/messages`, hiển thị trong modal chi tiết đơn
+- [x] Tìm kiếm nâng cao — cột `category` trên tickets, filter dropdown danh mục (concerts/kpop/sports/festivals/other), API `GET /api/tickets?category=...`, sell form lưu category, `selectCategory()` reload API khi đổi tab *(2026-06-17)*
+- [x] Chat nội bộ trong đơn hàng — `GET /api/orders/:id/messages`, `POST /api/orders/:id/messages`, bảng `order_messages` Supabase, polling 5s, real orders dùng API thật, demo orders dùng local simulation, stop polling khi rời trang *(2026-06-17)*
 
 ---
 
@@ -271,6 +271,22 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 ```sql
 -- 0. Cột image_url cho tickets
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS image_url text;
+
+-- 0c. Cột category cho tickets (tìm kiếm nâng cao)
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS category text default 'concerts';
+CREATE INDEX IF NOT EXISTS idx_tickets_category ON tickets(category);
+
+-- 7. Bảng order_messages (chat nội bộ trong đơn hàng)
+CREATE TABLE IF NOT EXISTS order_messages (
+  id uuid default gen_random_uuid() primary key,
+  order_id uuid references orders(id) on delete cascade,
+  sender_id uuid references users(id),
+  sender_name text,
+  text text not null,
+  created_at timestamptz default now()
+);
+ALTER TABLE order_messages DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_order_messages_order ON order_messages(order_id, created_at ASC);
 
 -- 0b. Cột report cho reviews
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reported boolean default false;
@@ -347,4 +363,4 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, create
 
 ---
 
-*Cập nhật lần cuối: 2026-06-15 — Thêm hướng dẫn AI Agent tự động đọc & build + Roadmap Phase 1–4*
+*Cập nhật lần cuối: 2026-06-17 — Build tìm kiếm nâng cao (category filter) + Chat nội bộ trong đơn hàng (real API + polling)*
