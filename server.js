@@ -67,6 +67,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // ── IN-MEMORY TOKEN STORES ──
 const emailOtpStore = new Map(); // key: email → { otp, userId, expires }
 const resetTokenStore = new Map(); // key: token → { userId, expires }
+const qrReminderSentSet = new Set(); // key: orderId — tránh gửi nhắc nhở trùng lặp
 function genOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 function genToken() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
@@ -277,6 +278,41 @@ async function sendEscrowTimeoutBuyerNotification(order) {
         </div>`,
     });
   } catch (e) { console.error(`[Email] Lỗi gửi email hoàn tiền cho buyer ${order.buyer_name}:`, e.message); }
+}
+
+async function sendQRReminderSellerNotification(order) {
+  if (!process.env.RESEND_API_KEY) return;
+  const { data: seller } = await supabase.from('users').select('email').eq('id', order.seller_id).single();
+  if (!seller?.email) return;
+  const deadline = new Date(new Date(order.created_at).getTime() + 48 * 60 * 60 * 1000);
+  const deadlineStr = deadline.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  try {
+    await resend.emails.send({
+      from: 'SafePass <onboarding@resend.dev>',
+      to: seller.email,
+      subject: `⚠️ Còn 12 giờ để upload QR — ${order.event_name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#06090f;color:#e8edf8;padding:32px;border-radius:12px;">
+          <h2 style="color:#f5a623;margin-bottom:4px;">⚠️ Nhắc nhở: Còn ~12 giờ để upload QR code!</h2>
+          <p style="color:#7b8fad;margin-top:0;">Bạn có một đơn hàng sắp hết hạn. Nếu không upload QR trước deadline, đơn sẽ tự động bị hủy và tiền hoàn về buyer.</p>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;color:#7b8fad;width:140px;">Sự kiện</td><td style="color:#e8edf8;">${order.event_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Người mua</td><td style="color:#e8edf8;">${order.buyer_name}</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Số tiền</td><td style="color:#3d8ef8;font-weight:600;">${order.price?.toLocaleString('vi-VN')}đ</td></tr>
+            <tr><td style="padding:8px 0;color:#7b8fad;">Deadline</td><td style="color:#f05068;font-weight:600;">${deadlineStr}</td></tr>
+          </table>
+          <hr style="border-color:#1a2540;margin:20px 0"/>
+          <div style="background:#1a1a2e;border:1px solid #f5a623;border-radius:8px;padding:16px;margin-bottom:20px;">
+            <p style="margin:0;color:#f5a623;font-weight:600;font-size:14px;">🚨 Hành động cần thiết ngay!</p>
+            <p style="margin:8px 0 0;color:#7b8fad;font-size:14px;">Đăng nhập SafePass → Đơn hàng của tôi → Upload QR code vé ngay bây giờ.</p>
+          </div>
+          <a href="${process.env.APP_URL || ''}" style="display:inline-block;background:#f5a623;color:#06090f;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Upload QR Ngay →</a>
+          <p style="color:#7b8fad;font-size:12px;margin-top:20px;">Nếu đã upload rồi, vui lòng bỏ qua email này.</p>
+        </div>`,
+    });
+    console.log(`[Email] Đã gửi nhắc nhở 12h QR cho seller ${order.seller_name} — đơn ${order.id}`);
+  } catch (e) { console.error(`[Email] Lỗi gửi nhắc nhở 12h QR cho seller ${order.seller_name}:`, e.message); }
 }
 
 async function sendDisputeNotification(order, reasonText, openedBy, description) {
@@ -1437,6 +1473,23 @@ app.post('/api/admin/orders/:id/resolve', async (req, res) => {
 async function processExpiredEscrows() {
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   const cutoff3d = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  // 0. Nhắc nhở seller còn ~12 giờ (đơn từ 36-37h trước)
+  const cutoff36h = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
+  const cutoff37h = new Date(Date.now() - 37 * 60 * 60 * 1000).toISOString();
+  const { data: reminderOrders } = await supabase
+    .from('orders').select('*').eq('status', 'waiting_qr')
+    .lt('created_at', cutoff36h).gt('created_at', cutoff37h);
+  if (reminderOrders && reminderOrders.length > 0) {
+    for (const order of reminderOrders) {
+      if (qrReminderSentSet.has(order.id)) continue;
+      qrReminderSentSet.add(order.id);
+      sendQRReminderSellerNotification(order);
+      createNotification(order.seller_id, 'warning', '⚠️ Còn 12 giờ upload QR!',
+        `Đơn hàng ${order.event_name} sắp hết hạn. Upload QR ngay để không bị hủy.`, '/orders');
+      console.log(`[QR Reminder] Đã nhắc seller ${order.seller_name} — đơn ${order.id}`);
+    }
+  }
 
   // 1. Hoàn tiền waiting_qr quá 48h
   const { data: expiredOrders } = await supabase
