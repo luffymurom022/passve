@@ -557,11 +557,20 @@ async function logAdminAction(adminId, adminEmail, action, targetType, targetId,
 //  AUTH
 // ════════════════════════════════
 
+function normalizePhone(raw) {
+  if (!raw) return '';
+  let p = String(raw).replace(/[\s\-\.\(\)]/g, ''); // strip spaces, dashes, dots, parens
+  if (p.startsWith('+84')) p = '0' + p.slice(3);    // +84xxx → 0xxx
+  if (p.startsWith('84') && p.length === 11) p = '0' + p.slice(2); // 84xxx (11 digits) → 0xxx
+  return p;
+}
+
 app.post('/api/auth/register', async (req, res) => {
-  const { phone, password, name, email, referral_code } = req.body;
+  const { password, name, email, referral_code } = req.body;
+  const phone = normalizePhone(req.body.phone);
   if (!phone || !password || !name)
     return res.status(400).json({ error: 'Thiếu thông tin' });
-  if (typeof phone !== 'string' || phone.length > 20)
+  if (phone.length < 9 || phone.length > 15)
     return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
   if (typeof password !== 'string' || password.length < 6)
     return res.status(400).json({ error: 'Mật khẩu phải ít nhất 6 ký tự' });
@@ -618,7 +627,8 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const { phone, password } = req.body;
+  const phone = normalizePhone(req.body.phone);
+  const { password } = req.body;
   if (!phone || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
   const { data: user } = await supabase.from('users').select('*').eq('phone', phone).single();
   if (!user) return res.status(400).json({ error: 'Số điện thoại không tồn tại' });

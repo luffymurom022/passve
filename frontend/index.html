@@ -5766,8 +5766,16 @@ function showAuthModal(tab = 'login') {
     </div>`;
 }
 
+function normalizePhoneFE(raw) {
+  if (!raw) return '';
+  let p = String(raw).replace(/[\s\-\.\(\)]/g, '');
+  if (p.startsWith('+84')) p = '0' + p.slice(3);
+  if (p.startsWith('84') && p.length === 11) p = '0' + p.slice(2);
+  return p;
+}
+
 async function submitAuth(tab) {
-  const phone = document.getElementById('auth-phone')?.value?.trim();
+  const phone = normalizePhoneFE(document.getElementById('auth-phone')?.value);
   const pass = document.getElementById('auth-pass')?.value;
   const name = document.getElementById('auth-name')?.value?.trim();
   const email = document.getElementById('auth-email')?.value?.trim();
