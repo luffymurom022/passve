@@ -641,10 +641,12 @@ let ALL_LISTINGS = [];
 
 const CATEGORIES=[
   {id:"all",label:"Tất cả",icon:"🎯"},
-  {id:"concerts",label:"Concert",icon:"🎵"},
-  {id:"kpop",label:"K-Pop",icon:"⭐"},
-  {id:"sports",label:"Thể thao",icon:"⚽"},
-  {id:"festivals",label:"Festival",icon:"🎪"},
+  {id:"ticket",label:"Pass Vé",icon:"🎟"},
+  {id:"product",label:"Pass Đồ",icon:"📦"},
+  {id:"account",label:"Pass Tài Khoản",icon:"🔑"},
+  {id:"course",label:"Pass Khóa Học",icon:"📚"},
+  {id:"service",label:"Pass Dịch Vụ",icon:"🛠"},
+  {id:"booking",label:"Pass Booking",icon:"📅"},
 ];
 
 const LOCATIONS=["Tất cả","Hà Nội","TP.HCM","Đà Nẵng","Đà Lạt","Phú Quốc","Online"];
@@ -885,8 +887,8 @@ function highlight(text,query){
 }
 
 /* ── CAT EMOJI & GRAD ── */
-const catEmoji=c=>c==="concerts"?"🎵":c==="sports"?"⚽":c==="festivals"?"🎪":c==="kpop"?"⭐":"🎯";
-const catGrad=c=>c==="concerts"?"background:linear-gradient(135deg,#0d1b3e,#1a2f6b)":c==="sports"?"background:linear-gradient(135deg,#0d2010,#173525)":c==="festivals"?"background:linear-gradient(135deg,#1e0d38,#321560)":c==="kpop"?"background:linear-gradient(135deg,#240b36,#3c1058)":"background:linear-gradient(135deg,#111827,#1f2d42)";
+const catEmoji=c=>c==="ticket"?"🎟":c==="product"?"📦":c==="account"?"🔑":c==="course"?"📚":c==="service"?"🛠":c==="booking"?"📅":c==="concerts"?"🎵":c==="sports"?"⚽":c==="festivals"?"🎪":c==="kpop"?"⭐":"🎯";
+const catGrad=c=>(c==="ticket"||c==="concerts"||c==="kpop")?"background:linear-gradient(135deg,#0d1b3e,#1a2f6b)":(c==="product"||c==="sports")?"background:linear-gradient(135deg,#0d2010,#173525)":c==="account"?"background:linear-gradient(135deg,#1e0d38,#321560)":c==="course"?"background:linear-gradient(135deg,#1a1206,#2e1e08)":c==="service"?"background:linear-gradient(135deg,#060d1e,#0a1830)":c==="booking"?"background:linear-gradient(135deg,#0d1a20,#152835)":c==="festivals"?"background:linear-gradient(135deg,#1e0d38,#321560)":"background:linear-gradient(135deg,#111827,#1f2d42)";
 
 /* ── RENDER LISTING CARD ── */
 function renderCard(l,idx,listView){
@@ -4594,15 +4596,25 @@ async function checkReferralCode(el) {
    ➕ SELL / CREATE LISTING PAGE
 ══════════════════════════════════════════ */
 let sellForm={
-  title:"",category:"concerts",location:"TP.HCM",date:"",section:"",
+  type:"ticket",title:"",location:"TP.HCM",date:"",section:"",
   price:"",original_price:"",quantity:1,description:"",
   step:0
 };
 
-const SELL_STEPS=["Thông tin sự kiện","Chi tiết vé & Giá","Xem lại & Đăng"];
+const SELL_STEPS=["Loại & Thông tin","Giá & Chi tiết","Xem lại & Đăng"];
+
+const TYPE_HINTS={
+  ticket:{titleLabel:"🎟 Tên sự kiện *",titlePlaceholder:"VD: Coldplay Music of the Spheres",sectionLabel:"🎟 Khu vực / Loại vé",sectionPlaceholder:"VD: GA Standing, Block A, VIP...",checklist:["QR vé chính hãng, chưa qua sử dụng","Đúng sự kiện, đúng khu vực như mô tả","Upload QR trong vòng 24h sau khi có đơn","Hỗ trợ người mua khi cần thiết"]},
+  product:{titleLabel:"📦 Tên sản phẩm *",titlePlaceholder:"VD: Balo Nike chính hãng size L...",sectionLabel:"📋 Tình trạng / Phân loại",sectionPlaceholder:"VD: Mới 100%, còn hộp, màu đen",checklist:["Sản phẩm chính hãng đúng mô tả","Giao hàng trong vòng 48h sau khi có đơn","Đóng gói cẩn thận, an toàn","Hỗ trợ đổi trả nếu sai mô tả"]},
+  account:{titleLabel:"🔑 Tên tài khoản *",titlePlaceholder:"VD: Netflix Premium 1 tháng...",sectionLabel:"📋 Thông tin gói / Nền tảng",sectionPlaceholder:"VD: 1 màn hình, 30 ngày, email riêng",checklist:["Tài khoản chính chủ, hoạt động bình thường","Giao thông tin trong 1h sau khi có đơn","Hỗ trợ nếu tài khoản gặp sự cố trong thời hạn","Bảo mật thông tin khách hàng"]},
+  course:{titleLabel:"📚 Tên khóa học *",titlePlaceholder:"VD: Khóa học Lập trình Python cơ bản...",sectionLabel:"📋 Hình thức / Nền tảng",sectionPlaceholder:"VD: Video pre-recorded, Udemy, trọn đời",checklist:["Tài khoản khóa học hoạt động đúng mô tả","Giao quyền truy cập trong 1h sau khi có đơn","Hỗ trợ nếu không truy cập được","Đúng nội dung như mô tả"]},
+  service:{titleLabel:"🛠 Tên dịch vụ *",titlePlaceholder:"VD: Thiết kế logo chuyên nghiệp...",sectionLabel:"📋 Phạm vi / Thời gian hoàn thành",sectionPlaceholder:"VD: 3 concept logo + file gốc, trong 3 ngày",checklist:["Thực hiện đúng yêu cầu đã mô tả","Hoàn thành trong thời gian cam kết","Hỗ trợ chỉnh sửa hợp lý sau khi giao","Bảo mật thông tin khách hàng"]},
+  booking:{titleLabel:"📅 Tên booking *",titlePlaceholder:"VD: Bàn ăn tối nhà hàng Vista...",sectionLabel:"📋 Số người / Chi tiết slot",sectionPlaceholder:"VD: Bàn 4 người, tầng 3, view biển",checklist:["Slot booking còn hiệu lực đúng ngày mô tả","Cung cấp xác nhận booking trong 1h sau khi có đơn","Hỗ trợ liên hệ nhà hàng/cơ sở nếu cần","Hoàn tiền nếu slot đã bị hủy trước"]},
+};
 
 function buildSellPage(){
   const step=sellForm.step||0;
+  const th=TYPE_HINTS[sellForm.type]||TYPE_HINTS.ticket;
 
   const progressHTML=SELL_STEPS.map((s,i)=>`
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;">
@@ -4616,37 +4628,50 @@ function buildSellPage(){
   if(step===0){
     stepContent=`
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <!-- Event name -->
+        <!-- Listing type selector -->
         <div>
-          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">🎟 Tên sự kiện *</label>
-          <input id="sf-title" type="text" placeholder="VD: Coldplay Music of the Spheres"
+          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">🏷 Loại listing *</label>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            ${CATEGORIES.filter(c=>c.id!=="all").map(c=>`
+            <button onclick="sellForm.type='${c.id}';renderSellInPlace()" style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;border-radius:12px;border:1.5px solid ${sellForm.type===c.id?"var(--brand)":"var(--border2)"};background:${sellForm.type===c.id?"var(--brandM)":"var(--bg2)"};cursor:pointer;transition:all .15s;">
+              <span style="font-size:22px;">${c.icon}</span>
+              <span style="font-size:10px;font-weight:700;color:${sellForm.type===c.id?"var(--brand)":"var(--sub)"};">${c.label}</span>
+            </button>`).join("")}
+          </div>
+        </div>
+        <!-- Title (type-adapted) -->
+        <div>
+          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">${th.titleLabel}</label>
+          <input id="sf-title" type="text" placeholder="${th.titlePlaceholder}"
             value="${sellForm.title}"
             oninput="sellForm.title=this.value"
             style="width:100%;height:44px;border:1.5px solid var(--border2);border-radius:12px;padding:0 14px;font-size:13px;color:var(--text);background:var(--bg2);outline:none;font-family:'Inter',sans-serif;transition:border-color .2s;"
             onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
         </div>
-        <!-- Category -->
+        ${(sellForm.type==="ticket"||sellForm.type==="booking")?`
+        <!-- Date -->
         <div>
-          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📂 Danh mục *</label>
-          <div style="display:flex;gap:7px;flex-wrap:wrap;">
-            ${CATEGORIES.filter(c=>c.id!=="all").map(c=>`
-            <button onclick="sellForm.category='${c.id}';renderSellInPlace()" class="cat-pill ${sellForm.category===c.id?"selected":""}">${c.icon} ${c.label}</button>`).join("")}
-          </div>
+          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📅 Ngày ${sellForm.type==="ticket"?"sự kiện":"đặt chỗ"} *</label>
+          <input id="sf-date" type="date" value="${sellForm.date}"
+            oninput="sellForm.date=this.value"
+            style="width:100%;height:44px;border:1.5px solid var(--border2);border-radius:12px;padding:0 14px;font-size:13px;color:var(--text);background:var(--bg2);outline:none;font-family:'JetBrains Mono',monospace;transition:border-color .2s;"
+            onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
         </div>
         <!-- Location -->
         <div>
-          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📍 Địa điểm *</label>
+          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📍 Địa điểm</label>
           <div style="display:flex;gap:7px;flex-wrap:wrap;">
             ${LOCATIONS.filter(l=>l!=="Tất cả").map(l=>`
             <button onclick="sellForm.location='${l}';renderSellInPlace()" class="cat-pill ${sellForm.location===l?"selected":""}">${l}</button>`).join("")}
           </div>
-        </div>
-        <!-- Date -->
+        </div>`:""}
+        <!-- Section / detail hint -->
         <div>
-          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📅 Ngày sự kiện *</label>
-          <input id="sf-date" type="date" value="${sellForm.date}"
-            oninput="sellForm.date=this.value"
-            style="width:100%;height:44px;border:1.5px solid var(--border2);border-radius:12px;padding:0 14px;font-size:13px;color:var(--text);background:var(--bg2);outline:none;font-family:'JetBrains Mono',monospace;transition:border-color .2s;"
+          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">${th.sectionLabel} (tuỳ chọn)</label>
+          <input id="sf-section" type="text" placeholder="${th.sectionPlaceholder}"
+            value="${sellForm.section}"
+            oninput="sellForm.section=this.value"
+            style="width:100%;height:44px;border:1.5px solid var(--border2);border-radius:12px;padding:0 14px;font-size:13px;color:var(--text);background:var(--bg2);outline:none;font-family:'Inter',sans-serif;transition:border-color .2s;"
             onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
         </div>
       </div>`;
@@ -4659,15 +4684,6 @@ function buildSellPage(){
 
     stepContent=`
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <!-- Section -->
-        <div>
-          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">🎟 Khu vực / Loại vé *</label>
-          <input id="sf-section" type="text" placeholder="VD: GA Standing, Block A, VIP..."
-            value="${sellForm.section}"
-            oninput="sellForm.section=this.value"
-            style="width:100%;height:44px;border:1.5px solid var(--border2);border-radius:12px;padding:0 14px;font-size:13px;color:var(--text);background:var(--bg2);outline:none;font-family:'Inter',sans-serif;transition:border-color .2s;"
-            onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'">
-        </div>
         <!-- Price row -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
@@ -4691,7 +4707,7 @@ function buildSellPage(){
         <div id="preview-disc" style="${disc>0?'display:block':'display:none'};background:var(--okBg);border:1px solid rgba(52,216,158,.2);border-radius:10px;padding:10px 14px;font-size:11.5px;color:var(--ok);font-weight:700;">🏷 Giảm <span id="preview-disc-pct">${disc}</span>% so với giá gốc</div>
         <!-- Quantity -->
         <div>
-          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📦 Số lượng vé *</label>
+          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📦 Số lượng *</label>
           <div style="display:flex;align-items:center;gap:12px;">
             <button onclick="if(sellForm.quantity>1){sellForm.quantity--;renderSellInPlace();}" style="width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border2);background:var(--card);cursor:pointer;font-size:18px;color:var(--text);display:flex;align-items:center;justify-content:center;">−</button>
             <span id="sf-qty-display" style="font-size:18px;font-weight:800;font-family:'Inter',sans-serif;min-width:32px;text-align:center;">${sellForm.quantity}</span>
@@ -4717,7 +4733,7 @@ function buildSellPage(){
         </div>
         <!-- Photo upload -->
         <div>
-          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📸 Ảnh vé (tuỳ chọn · tối đa 4 ảnh)</label>
+          <label style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px;">📸 Ảnh minh hoạ (tuỳ chọn · tối đa 4 ảnh)</label>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             ${sellPhotos.map(p=>`
             <div style="position:relative;width:72px;height:72px;border-radius:10px;border:2px solid var(--border2);overflow:hidden;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border2)'">
@@ -4730,25 +4746,27 @@ function buildSellPage(){
               <span style="font-size:9px;font-weight:700;color:var(--hint);">Thêm ảnh</span>
             </div>`:""}
           </div>
-          <div style="font-size:10px;color:var(--hint);margin-top:7px;">Đăng ảnh vé giúp tăng độ tin cậy và tỷ lệ bán thành công</div>
+          <div style="font-size:10px;color:var(--hint);margin-top:7px;">Đăng ảnh giúp tăng độ tin cậy và tỷ lệ bán thành công</div>
         </div>
       </div>`;
   } else if(step===2){
     const priceNum=parseInt(sellForm.price)||0;
     const origNum=parseInt(sellForm.original_price)||0;
     const disc=origNum>0&&priceNum>0?Math.round((1-priceNum/origNum)*100):0;
+    const typeLabel=CATEGORIES.find(c=>c.id===sellForm.type)||{icon:"🎯",label:""};
 
     stepContent=`
       <div style="display:flex;flex-direction:column;gap:14px;">
         <!-- Preview card -->
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:16px;overflow:hidden;">
-          <div style="${catGrad(sellForm.category)};height:120px;display:flex;align-items:center;justify-content:center;font-size:52px;position:relative;">
+          <div style="${catGrad(sellForm.type)};height:120px;display:flex;align-items:center;justify-content:center;font-size:52px;position:relative;">
             ${disc>0?`<div style="position:absolute;top:10px;left:10px;background:rgba(240,86,106,.9);color:#fff;font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;">-${disc}%</div>`:""}
-            ${catEmoji(sellForm.category)}
+            <div style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.4);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:6px;">${typeLabel.icon} ${typeLabel.label}</div>
+            ${catEmoji(sellForm.type)}
           </div>
           <div style="padding:14px;">
-            <div style="font-size:15px;font-weight:800;margin-bottom:4px;">${sellForm.title||"Tên sự kiện"}</div>
-            <div style="font-size:11px;color:var(--hint);margin-bottom:8px;">🎟 ${sellForm.section||"Khu vực"} · 📍 ${sellForm.location} · 📅 ${sellForm.date||"Ngày"}</div>
+            <div style="font-size:15px;font-weight:800;margin-bottom:4px;">${sellForm.title||"Tiêu đề"}</div>
+            <div style="font-size:11px;color:var(--hint);margin-bottom:8px;">${sellForm.section?catEmoji(sellForm.type)+' '+sellForm.section+' · ':""}${sellForm.location?'📍 '+sellForm.location+(sellForm.date?' · ':''):""}${sellForm.date?'📅 '+sellForm.date:""}</div>
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="font-size:18px;font-weight:800;color:var(--brand);font-family:'Inter',sans-serif;">${priceNum>0?VND(priceNum):"Giá bán"}</span>
               ${origNum>0?`<span style="font-size:11px;color:var(--hint);text-decoration:line-through;">${VND(origNum)}</span>`:""}
@@ -4756,7 +4774,7 @@ function buildSellPage(){
             </div>
             ${sellPhotos.length>0?`
             <div style="margin-top:12px;">
-              <div style="font-size:10px;font-weight:700;color:var(--hint);margin-bottom:7px;">📸 Ảnh vé đính kèm (${sellPhotos.length})</div>
+              <div style="font-size:10px;font-weight:700;color:var(--hint);margin-bottom:7px;">📸 Ảnh đính kèm (${sellPhotos.length})</div>
               <div style="display:flex;gap:8px;">
                 ${sellPhotos.map(p=>`<div style="width:56px;height:56px;border-radius:8px;border:1px solid var(--border2);overflow:hidden;"><img src="${p.url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.display='none'"></div>`).join("")}
               </div>
@@ -4764,10 +4782,10 @@ function buildSellPage(){
           </div>
         </div>
 
-        <!-- Checklist -->
+        <!-- Checklist (type-specific) -->
         <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">
           <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">✅ Cam kết người bán</div>
-          ${["QR vé chính hãng, chưa qua sử dụng","Đúng sự kiện, đúng khu vực như mô tả","Upload QR trong vòng 24h sau khi có đơn","Hỗ trợ người mua khi cần thiết"].map(c=>`
+          ${(th.checklist||[]).map(c=>`
           <div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);">
             <div style="width:18px;height:18px;border-radius:5px;background:var(--ok);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0;">✓</div>
             <span style="font-size:12px;">${c}</span>
@@ -4784,8 +4802,8 @@ function buildSellPage(){
   return`<div style="padding-bottom:80px;">
     <!-- Header -->
     <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
-      <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:2px;">➕ Đăng bán vé</div>
-      <div style="font-size:12px;color:var(--sub);">Tạo listing — an toàn qua Escrow SafePass</div>
+      <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:2px;">➕ Đăng bán</div>
+      <div style="font-size:12px;color:var(--sub);">6 loại listing — an toàn qua Escrow SafePass</div>
     </div>
 
     <!-- Progress stepper -->
@@ -4854,12 +4872,11 @@ function renderSellInPlace(){
 function advanceSellStep(){
   const step=sellForm.step||0;
   if(step===0){
-    if(!sellForm.title.trim()){showToast("Vui lòng nhập tên sự kiện","var(--red)","⚠️");return;}
-    if(!sellForm.date){showToast("Vui lòng chọn ngày sự kiện","var(--red)","⚠️");return;}
+    if(!sellForm.title.trim()){showToast("Vui lòng nhập tiêu đề","var(--red)","⚠️");return;}
+    if((sellForm.type==="ticket"||sellForm.type==="booking")&&!sellForm.date){showToast("Vui lòng chọn ngày","var(--red)","⚠️");return;}
   }
   if(step===1){
-    if(!sellForm.section.trim()){showToast("Vui lòng nhập khu vực / loại vé","var(--red)","⚠️");return;}
-    if(!sellForm.price||parseInt(sellForm.price)<100000){showToast("Giá bán phải từ 100,000đ trở lên","var(--red)","⚠️");return;}
+    if(!sellForm.price||parseInt(sellForm.price)<1000){showToast("Giá bán phải từ 1,000đ trở lên","var(--red)","⚠️");return;}
   }
   sellForm.step=step+1;
   setState({});
@@ -4869,22 +4886,21 @@ function advanceSellStep(){
 async function submitSellForm(){
   if (!authToken) { showAuthModal('login'); return; }
   const payload = {
-    event_name: sellForm.title,
+    type: sellForm.type || 'ticket',
+    title: sellForm.title,
     price: parseInt(sellForm.price),
     quantity: sellForm.quantity,
-    event_date: sellForm.date,
-    location: sellForm.location,
-    section: sellForm.section,
     description: sellForm.description,
-    image_url: sellPhotos[0]?.url || null,
-    category: sellForm.category || 'concerts'
+    images: sellPhotos.map(p => p.url),
+    location: sellForm.location || '',
+    section: sellForm.section || '',
+    event_date: sellForm.date || null,
   };
   const ok = await submitSellAPI(payload);
   if (!ok) return;
-  // Reset form + photos
-  sellForm={title:"",category:"concerts",location:"TP.HCM",date:"",section:"",price:"",original_price:"",quantity:1,description:"",step:0};
+  sellForm={type:"ticket",title:"",location:"TP.HCM",date:"",section:"",price:"",original_price:"",quantity:1,description:"",step:0};
   sellPhotos=[];
-  await loadMyTicketsFromAPI();
+  await loadListingsFromAPI();
   setState({sellTab:'listings'});
 }
 
@@ -5965,12 +5981,40 @@ async function submitOtpVerify() {
 }
 
 // ── Load tickets từ API ──
+function mapListing(l) {
+  return {
+    id: l.id,
+    _source: 'listing',
+    seller_id: l.seller_id,
+    type: l.type,
+    title: l.title,
+    category: l.type,
+    price: l.price,
+    original_price: Math.round(l.price * 1.15),
+    date: l.event_date || '',
+    location: l.location || '',
+    section: l.section || '',
+    quantity: l.quantity || 1,
+    views: 60,
+    saved: 8,
+    sold: 0,
+    active: l.status === 'available',
+    trust: l.seller_rating ? Math.min(99, Math.round(l.seller_rating * 20)) : 75,
+    description: l.description || '',
+    images: l.images || [],
+    sellerVerified: l.seller_verified || false,
+    seller_name: l.seller_name || '',
+  };
+}
+
 function mapTicket(t) {
   return {
     id: t.id,
+    _source: 'ticket',
     seller_id: t.seller_id,
+    type: 'ticket',
     title: t.event_name,
-    category: t.category || 'concerts',
+    category: 'ticket',
     price: t.price,
     original_price: Math.round(t.price * 1.1),
     date: t.event_date || '',
@@ -5988,7 +6032,38 @@ function mapTicket(t) {
   };
 }
 
+async function loadListingsFromAPI(typeOverride) {
+  if (!authToken) return;
+  try {
+    const cat = typeOverride !== undefined ? typeOverride : state.category;
+    // Load new listings (all types)
+    const params = new URLSearchParams({ limit: '100' });
+    if (cat && cat !== 'all') params.set('type', cat);
+    const res = await fetch(API + '/listings?' + params.toString(), { headers: getHeaders() });
+    const resp = await res.json();
+    const listingsData = Array.isArray(resp) ? resp : (resp.listings || []);
+    const mappedListings = listingsData.map(l => mapListing(l));
+
+    // Also load legacy tickets when browsing all or ticket type
+    if (!cat || cat === 'all' || cat === 'ticket') {
+      const tRes = await fetch(API + '/tickets?limit=100', { headers: getHeaders() });
+      const tResp = await tRes.json();
+      const ticketsData = Array.isArray(tResp) ? tResp : (tResp.tickets || []);
+      const mappedTickets = ticketsData.map(t => mapTicket(t));
+      const listingIds = new Set(mappedListings.map(l => l.id));
+      ALL_LISTINGS = [...mappedListings, ...mappedTickets.filter(t => !listingIds.has(t.id))];
+    } else {
+      ALL_LISTINGS = mappedListings;
+    }
+    render();
+  } catch(e) { console.log('Lỗi tải listings:', e); }
+}
+
 async function loadTicketsFromAPI(catOverride) {
+  return loadListingsFromAPI(catOverride);
+}
+
+async function _legacyLoadTickets(catOverride) {
   if (!authToken) return;
   try {
     const params = new URLSearchParams({ limit: '100' });
@@ -6023,7 +6098,7 @@ function selectCategory(id, hidesugg) {
   const newState = { category: id };
   if (hidesugg) newState.showSuggestions = false;
   setState(newState);
-  loadTicketsFromAPI(id);
+  loadListingsFromAPI(id);
 }
 
 // ── Load orders từ API ──
@@ -6072,24 +6147,28 @@ async function loadOrdersFromAPI() {
   } catch(e) { console.log('Không tải được đơn hàng:', e); }
 }
 
-// ── Mua vé thật ──
-async function buyTicketAPI(ticketId) {
+// ── Mua listing/vé thật ──
+async function buyTicketAPI(itemId) {
   if (!authToken) { showAuthModal('login'); return; }
-  if (!currentUser || currentUser.id === 'demo') { showToast('Tính năng mua vé cần tài khoản thật', 'var(--warn)', '⚠️'); return; }
+  if (!currentUser || currentUser.id === 'demo') { showToast('Tính năng mua cần tài khoản thật', 'var(--warn)', '⚠️'); return; }
+
+  const item = ALL_LISTINGS.find(x => x.id === itemId);
+  const isLegacyTicket = !item || item._source !== 'listing';
 
   try {
     showToast('Đang xử lý...', 'var(--brand)', '⏳');
+    const body = isLegacyTicket ? { ticket_id: itemId } : { listing_id: itemId };
     const res = await fetch(API + '/orders', {
       method: 'POST', headers: getHeaders(),
-      body: JSON.stringify({ ticket_id: ticketId })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Lỗi mua vé', 'var(--red)', '❌'); return; }
+    if (!res.ok) { showToast(data.error || 'Lỗi đặt mua', 'var(--red)', '❌'); return; }
 
     showToast('Đặt mua thành công! Tiền đang được giữ escrow 🔒', 'var(--ok)', '✅');
     await refreshBalance();
     await loadOrdersFromAPI();
-    await loadTicketsFromAPI();
+    await loadListingsFromAPI();
     setState({ page: 'orders' });
   } catch(e) { showToast('Lỗi kết nối server', 'var(--red)', '❌'); }
 }
@@ -6180,18 +6259,18 @@ async function subscribeVipAPI() {
   } catch(e) { showToast('Lỗi kích hoạt VIP', 'var(--red)', '❌'); }
 }
 
-// ── Đăng bán vé thật ──
+// ── Đăng bán listing thật ──
 async function submitSellAPI(formData) {
-  if (!authToken) { showAuthModal('login'); return; }
+  if (!authToken) { showAuthModal('login'); return false; }
   try {
-    const res = await fetch(API + '/tickets', {
+    const res = await fetch(API + '/listings', {
       method: 'POST', headers: getHeaders(),
       body: JSON.stringify(formData)
     });
     const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Lỗi đăng vé', 'var(--red)', '❌'); return false; }
-    showToast('Đã đăng bán vé thành công! 🎟', 'var(--ok)', '✅');
-    await loadTicketsFromAPI();
+    if (!res.ok) { showToast(data.error || 'Lỗi đăng listing', 'var(--red)', '❌'); return false; }
+    showToast('Đã đăng bán thành công! 🎉', 'var(--ok)', '✅');
+    await loadListingsFromAPI();
     return true;
   } catch(e) { showToast('Lỗi kết nối server', 'var(--red)', '❌'); return false; }
 }

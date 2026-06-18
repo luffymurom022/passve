@@ -449,10 +449,13 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 - [x] Xác minh seller (verified badge) — admin có thể mark seller là verified, hiển thị ✓ badge xanh trên listing vé và profile _(Hoàn thành 16/06/2026 — backend verify/unverify API, admin page trong SPA với secret input, badge trên grid/list card, is_admin từ /api/auth/me)_
 - [x] Tìm kiếm nâng cao — cột `category` trên tickets, filter dropdown danh mục (concerts/kpop/sports/festivals/other), API `GET /api/tickets?category=...`, sell form lưu category, `selectCategory()` reload API khi đổi tab *(2026-06-17)*
 - [x] Chat nội bộ trong đơn hàng — `GET /api/orders/:id/messages`, `POST /api/orders/:id/messages`, bảng `order_messages` Supabase, polling 5s, real orders dùng API thật, demo orders dùng local simulation, stop polling khi rời trang *(2026-06-17)*
+- [x] ⚡ Multi-category marketplace — nâng cấp từ ticket-only lên 6 loại listing: ticket/product/account/course/service/booking. Bảng `listings` mới (backward compatible với tickets), API CRUD `/api/listings`, sell form 3 bước với type selector 6 loại + type-adaptive fields + checklist riêng cho từng loại, frontend merge cả tickets lẫn listings, admin panel tab Listings mới với filter theo type/status, hide/delete actions *(2026-06-18)*
 
 ---
 
 ## ⚠️ Cần Chạy Migration trong Supabase SQL Editor
+
+> **Multi-category marketplace (2026-06-18):** Chạy toàn bộ file `listings_migration.sql` trước khi test tạo listing mới.
 
 ```sql
 -- 0. Cột image_url cho tickets

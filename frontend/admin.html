@@ -350,6 +350,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item active" onclick="switchTab('overview')" data-tab="overview">📊 Dashboard</div>
     <div class="mob-nav-item" onclick="switchTab('users')" data-tab="users">👥 Users</div>
     <div class="mob-nav-item" onclick="switchTab('tickets')" data-tab="tickets">🎟️ Vé</div>
+    <div class="mob-nav-item" onclick="switchTab('listings')" data-tab="listings">🏷️ Listings</div>
     <div class="mob-nav-item" onclick="switchTab('orders')" data-tab="orders">📋 Đơn hàng</div>
     <div class="mob-nav-item" onclick="switchTab('disputes')" data-tab="disputes">🔥 Khiếu nại <span class="mob-badge" id="mob-dispute-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('transactions')" data-tab="transactions">💳 Giao dịch</div>
@@ -367,7 +368,8 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
       <div class="sidebar-section">Quản lý</div>
       <div class="nav-item" onclick="switchTab('users')" data-tab="users"><span class="nav-icon">👥</span> Người dùng</div>
-      <div class="nav-item" onclick="switchTab('tickets')" data-tab="tickets"><span class="nav-icon">🎟️</span> Vé</div>
+      <div class="nav-item" onclick="switchTab('tickets')" data-tab="tickets"><span class="nav-icon">🎟️</span> Vé (legacy)</div>
+      <div class="nav-item" onclick="switchTab('listings')" data-tab="listings"><span class="nav-icon">🏷️</span> Listings</div>
       <div class="nav-item" onclick="switchTab('orders')" data-tab="orders"><span class="nav-icon">📋</span> Đơn hàng</div>
       <div class="nav-item" onclick="switchTab('disputes')" data-tab="disputes"><span class="nav-icon">🔥</span> Khiếu nại <span class="nav-badge" id="dispute-badge" style="display:none">0</span></div>
 
@@ -468,6 +470,42 @@ tr:hover td{background:rgba(255,255,255,.015);}
                 <th>ID</th><th>Sự kiện</th><th>Seller</th><th>Giá</th><th>Loại vé</th><th>Trạng thái</th><th>Hành động</th>
               </tr></thead>
               <tbody id="ticket-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: LISTINGS ════ -->
+      <div class="page" id="page-listings">
+        <div class="page-title">🏷️ Listings (Multi-category)</div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" id="listing-search" placeholder="🔍 Tìm tiêu đề, seller..." oninput="filterListings()">
+          </div>
+          <select class="filter-select" id="listing-type-filter" onchange="filterListings()">
+            <option value="">Tất cả loại</option>
+            <option value="ticket">🎟 Vé</option>
+            <option value="product">📦 Sản phẩm</option>
+            <option value="account">🔑 Tài khoản</option>
+            <option value="course">📚 Khóa học</option>
+            <option value="service">🛠 Dịch vụ</option>
+            <option value="booking">📅 Booking</option>
+          </select>
+          <select class="filter-select" id="listing-status-filter" onchange="filterListings()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="available">Available</option>
+            <option value="sold">Sold</option>
+            <option value="hidden">Hidden</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadListings()">🔄 Tải lại</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Loại</th><th>Tiêu đề</th><th>Seller</th><th>Giá</th><th>SL</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hành động</th>
+              </tr></thead>
+              <tbody id="listing-tbody"></tbody>
             </table>
           </div>
         </div>
@@ -745,7 +783,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
 // ══════════════════════════════════
 let adminToken = localStorage.getItem('adminToken');
 let adminInfo = JSON.parse(localStorage.getItem('adminInfo') || 'null');
-let allUsers = [], allTickets = [], allOrders = [], allTx = [];
+let allUsers = [], allTickets = [], allListings = [], allOrders = [], allTx = [];
 let currentTab = 'overview';
 
 function fmt(n) {
@@ -883,6 +921,7 @@ function doRefresh() {
     case 'overview': loadOverview(); break;
     case 'users': loadUsers(); break;
     case 'tickets': loadTickets(); break;
+    case 'listings': loadListings(); break;
     case 'orders': loadOrders(); break;
     case 'disputes': loadDisputes(); break;
     case 'transactions': loadTransactions(); break;
@@ -905,6 +944,7 @@ function switchTab(tab) {
     case 'overview': loadOverview(); break;
     case 'users': if (!allUsers.length) loadUsers(); break;
     case 'tickets': if (!allTickets.length) loadTickets(); break;
+    case 'listings': if (!allListings.length) loadListings(); break;
     case 'orders': if (!allOrders.length) loadOrders(); break;
     case 'disputes': loadDisputes(); break;
     case 'transactions': if (!allTx.length) loadTransactions(); break;
@@ -1140,6 +1180,75 @@ function viewSeller(sellerId) {
   const u = allUsers.find(x => x.id === sellerId);
   if (u) viewUser(sellerId);
   else { switchTab('users'); setTimeout(() => { document.getElementById('user-search').value = sellerId; filterUsers(); }, 300); }
+}
+
+// ══════════════════════════════════
+//  LISTINGS
+// ══════════════════════════════════
+const TYPE_ICON = { ticket:'🎟', product:'📦', account:'🔑', course:'📚', service:'🛠', booking:'📅' };
+
+async function loadListings() {
+  document.getElementById('listing-tbody').innerHTML = '<tr><td colspan="9"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
+  try {
+    const data = await api('GET', '/admin/listings');
+    allListings = Array.isArray(data) ? data : (data.listings || []);
+    renderListings(allListings);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function filterListings() {
+  const q = document.getElementById('listing-search').value.toLowerCase();
+  const type = document.getElementById('listing-type-filter').value;
+  const status = document.getElementById('listing-status-filter').value;
+  let list = allListings;
+  if (q) list = list.filter(l => `${l.title} ${l.seller_name||''}`.toLowerCase().includes(q));
+  if (type) list = list.filter(l => l.type === type);
+  if (status) list = list.filter(l => l.status === status);
+  renderListings(list);
+}
+
+function renderListings(list) {
+  const tbody = document.getElementById('listing-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">🏷️</div><div class="empty-title">Không có listing nào</div></div></td></tr>'; return; }
+  tbody.innerHTML = list.map(l => `
+    <tr>
+      <td class="mono">${shortId(l.id)}</td>
+      <td><span style="font-size:18px">${TYPE_ICON[l.type]||'📋'}</span> <span style="font-size:11px;color:var(--sub)">${l.type}</span></td>
+      <td style="max-width:200px"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.title||'—'}</div>
+        ${l.section?`<div style="font-size:11px;color:var(--sub)">${l.section}</div>`:''}
+      </td>
+      <td>${l.seller_name||'—'}</td>
+      <td class="mono">${fmt(l.price)}</td>
+      <td style="text-align:center">${l.quantity||1}</td>
+      <td>${statusPill(l.status)}</td>
+      <td style="font-size:11px;color:var(--sub)">${fmtDateShort(l.created_at)}</td>
+      <td>
+        <div class="row-actions">
+          ${l.status === 'hidden'
+            ? `<button class="btn btn-ok btn-xs" onclick="hideListing('${l.id}', false)">👁 Hiện</button>`
+            : `<button class="btn btn-warn btn-xs" onclick="hideListing('${l.id}', true)">🙈 Ẩn</button>`}
+          <button class="btn btn-red btn-xs" onclick="deleteListing('${l.id}')">🗑 Xóa</button>
+          <button class="btn btn-ghost btn-xs" onclick="viewSeller('${l.seller_id}')">👤 Seller</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function hideListing(id, hidden) {
+  try {
+    await api('PATCH', `/admin/listings/${id}/hide`, { hidden });
+    toast(hidden ? '✅ Đã ẩn listing' : '✅ Đã hiện lại listing', 'ok');
+    loadListings();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function deleteListing(id) {
+  if (!confirm('Xóa vĩnh viễn listing này?')) return;
+  try {
+    await api('DELETE', `/admin/listings/${id}`);
+    toast('✅ Đã xóa listing', 'ok');
+    loadListings();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 // ══════════════════════════════════

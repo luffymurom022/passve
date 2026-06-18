@@ -966,61 +966,195 @@ app.delete('/api/tickets/:id', auth, async (req, res) => {
 });
 
 // ════════════════════════════════
+//  LISTINGS (MULTI-CATEGORY MARKETPLACE)
+// ════════════════════════════════
+
+const LISTING_TYPES = ['ticket', 'product', 'account', 'course', 'service', 'booking'];
+
+// POST /api/listings — create listing
+app.post('/api/listings', auth, async (req, res) => {
+  const { type, title, description, price, quantity, images, event_date, location, section, category } = req.body;
+  if (!type || !LISTING_TYPES.includes(type))
+    return res.status(400).json({ error: 'Loại listing không hợp lệ' });
+  if (!title || !title.trim())
+    return res.status(400).json({ error: 'Thiếu tiêu đề' });
+  if (!price || isNaN(Number(price)) || Number(price) <= 0)
+    return res.status(400).json({ error: 'Giá không hợp lệ' });
+  const { data: seller } = await supabase.from('users').select('is_banned').eq('id', req.user.id).single();
+  if (seller?.is_banned) return res.status(403).json({ error: 'Tài khoản bị khóa' });
+  const insertData = {
+    seller_id: req.user.id,
+    seller_name: req.user.name,
+    type,
+    title: sanitize(title.trim()),
+    description: sanitize(description || ''),
+    price: Number(price),
+    quantity: Math.max(1, Number(quantity) || 1),
+    images: Array.isArray(images) ? images : [],
+    status: 'available',
+    location: location ? sanitize(location) : '',
+    section: section ? sanitize(section) : '',
+    category: category || '',
+    event_date: event_date || null,
+  };
+  const { data, error } = await supabase.from('listings').insert(insertData).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// GET /api/listings — browse listings
+app.get('/api/listings', async (req, res) => {
+  const { search, type, min_price, max_price, page, limit: limitQ, sort } = req.query;
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, parseInt(limitQ) || 50);
+  const offset = (pageNum - 1) * limitNum;
+  let query = supabase.from('listings').select('*', { count: 'exact' })
+    .eq('status', 'available')
+    .range(offset, offset + limitNum - 1);
+  if (type && type !== 'all') query = query.eq('type', type);
+  if (search) query = query.ilike('title', `%${search}%`);
+  if (min_price) query = query.gte('price', Number(min_price));
+  if (max_price) query = query.lte('price', Number(max_price));
+  if (sort === 'price_asc') query = query.order('price', { ascending: true });
+  else if (sort === 'price_desc') query = query.order('price', { ascending: false });
+  else query = query.order('created_at', { ascending: false });
+  const { data, error, count } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  let enriched = data || [];
+  if (enriched.length > 0) {
+    const sellerIds = [...new Set(enriched.map(l => l.seller_id).filter(Boolean))];
+    if (sellerIds.length > 0) {
+      const { data: sellers } = await supabase.from('users').select('id,is_verified,avg_rating').in('id', sellerIds);
+      const sm = {};
+      (sellers || []).forEach(s => { sm[s.id] = s; });
+      enriched = enriched.map(l => ({ ...l, seller_verified: sm[l.seller_id]?.is_verified || false, seller_rating: sm[l.seller_id]?.avg_rating || 0 }));
+    }
+  }
+  res.json({ listings: enriched, total: count, page: pageNum, limit: limitNum });
+});
+
+// GET /api/listings/:id — single listing
+app.get('/api/listings/:id', async (req, res) => {
+  const { data, error } = await supabase.from('listings').select('*').eq('id', req.params.id).single();
+  if (error || !data) return res.status(404).json({ error: 'Không tìm thấy listing' });
+  res.json(data);
+});
+
+// GET /api/my-listings — seller's own listings
+app.get('/api/my-listings', auth, async (req, res) => {
+  const { data } = await supabase.from('listings').select('*').eq('seller_id', req.user.id).order('created_at', { ascending: false });
+  res.json(data || []);
+});
+
+// PATCH /api/listings/:id — edit listing
+app.patch('/api/listings/:id', auth, async (req, res) => {
+  const { data: listing } = await supabase.from('listings').select('*').eq('id', req.params.id).single();
+  if (!listing) return res.status(404).json({ error: 'Không tìm thấy listing' });
+  if (listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['available', 'hidden'].includes(listing.status))
+    return res.status(400).json({ error: 'Không thể chỉnh sửa listing này' });
+  const { title, description, price, quantity, images, event_date, location, section, category } = req.body;
+  const updates = { updated_at: new Date().toISOString() };
+  if (title) updates.title = sanitize(title.trim());
+  if (description !== undefined) updates.description = sanitize(description);
+  if (price !== undefined) {
+    if (isNaN(Number(price)) || Number(price) <= 0) return res.status(400).json({ error: 'Giá không hợp lệ' });
+    updates.price = Number(price);
+  }
+  if (quantity !== undefined) updates.quantity = Number(quantity);
+  if (images !== undefined) updates.images = images;
+  if (event_date !== undefined) updates.event_date = event_date;
+  if (location !== undefined) updates.location = sanitize(location);
+  if (section !== undefined) updates.section = sanitize(section);
+  if (category !== undefined) updates.category = category;
+  const { data, error } = await supabase.from('listings').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// DELETE /api/listings/:id — delete listing
+app.delete('/api/listings/:id', auth, async (req, res) => {
+  const { data: listing } = await supabase.from('listings').select('*').eq('id', req.params.id).single();
+  if (!listing) return res.status(404).json({ error: 'Không tìm thấy listing' });
+  if (listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['available', 'hidden'].includes(listing.status))
+    return res.status(400).json({ error: 'Chỉ xóa được listing chưa có đơn' });
+  await supabase.from('listings').delete().eq('id', req.params.id);
+  res.json({ message: 'Đã xóa listing' });
+});
+
+// PATCH /api/listings/:id/visibility — seller toggle hide/show
+app.patch('/api/listings/:id/visibility', auth, async (req, res) => {
+  const { hidden } = req.body;
+  const { data: listing } = await supabase.from('listings').select('seller_id,status').eq('id', req.params.id).single();
+  if (!listing) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('listings').update({ status: hidden ? 'hidden' : 'available' }).eq('id', req.params.id);
+  res.json({ message: hidden ? 'Đã ẩn listing' : 'Đã hiện listing' });
+});
+
+// ════════════════════════════════
 //  ĐƠN HÀNG / ESCROW
 // ════════════════════════════════
 
 app.post('/api/orders', auth, async (req, res) => {
-  const { ticket_id } = req.body;
-  const { data: ticket } = await supabase.from('tickets').select('*').eq('id', ticket_id).single();
-  if (!ticket) return res.status(404).json({ error: 'Không tìm thấy vé' });
-  if (ticket.status !== 'available') return res.status(400).json({ error: 'Vé không còn available' });
-  if (ticket.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể mua vé của chính mình' });
+  const { ticket_id, listing_id } = req.body;
+  if (!ticket_id && !listing_id)
+    return res.status(400).json({ error: 'Thiếu ticket_id hoặc listing_id' });
+
+  let itemId, itemTitle, itemPrice, itemSellerId, itemSellerName, itemType, itemTable;
+
+  if (listing_id) {
+    const { data: listing } = await supabase.from('listings').select('*').eq('id', listing_id).single();
+    if (!listing) return res.status(404).json({ error: 'Không tìm thấy listing' });
+    if (listing.status !== 'available') return res.status(400).json({ error: 'Listing không còn available' });
+    if (listing.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể mua listing của chính mình' });
+    itemId = listing_id; itemTitle = listing.title; itemPrice = listing.price;
+    itemSellerId = listing.seller_id; itemSellerName = listing.seller_name;
+    itemType = listing.type; itemTable = 'listings';
+  } else {
+    const { data: ticket } = await supabase.from('tickets').select('*').eq('id', ticket_id).single();
+    if (!ticket) return res.status(404).json({ error: 'Không tìm thấy vé' });
+    if (ticket.status !== 'available') return res.status(400).json({ error: 'Vé không còn available' });
+    if (ticket.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể mua vé của chính mình' });
+    itemId = ticket_id; itemTitle = ticket.event_name; itemPrice = ticket.price;
+    itemSellerId = ticket.seller_id; itemSellerName = ticket.seller_name;
+    itemType = 'ticket'; itemTable = 'tickets';
+  }
 
   const { data: buyer } = await supabase.from('users').select('*').eq('id', req.user.id).single();
   if (buyer.is_banned) return res.status(403).json({ error: 'Tài khoản đã bị khóa' });
 
   const isVip = buyer.is_vip && (!buyer.vip_expires_at || new Date(buyer.vip_expires_at) > new Date());
   const feeRate = isVip ? 0.015 : 0.03;
-  const fee = Math.round(ticket.price * feeRate);
-  const total = ticket.price + fee;
+  const fee = Math.round(itemPrice * feeRate);
+  const total = itemPrice + fee;
 
   if (buyer.balance < total)
     return res.status(400).json({ error: `Số dư không đủ. Cần ${total.toLocaleString()}đ (gồm phí ${isVip ? '1.5% VIP' : '3%'}), hiện có ${buyer.balance.toLocaleString()}đ` });
 
-  await supabase.from('users').update({
-    balance: buyer.balance - total,
-    escrow: buyer.escrow + total
-  }).eq('id', req.user.id);
+  await supabase.from('users').update({ balance: buyer.balance - total, escrow: buyer.escrow + total }).eq('id', req.user.id);
+  await supabase.from(itemTable).update({ status: 'pending' }).eq('id', itemId);
 
-  await supabase.from('tickets').update({ status: 'pending' }).eq('id', ticket_id);
+  const orderData = {
+    buyer_id: req.user.id, buyer_name: req.user.name,
+    seller_id: itemSellerId, seller_name: itemSellerName,
+    event_name: itemTitle, price: itemPrice, fee, total, status: 'waiting_qr'
+  };
+  if (listing_id) { orderData.listing_id = listing_id; orderData.listing_type = itemType; }
+  else { orderData.ticket_id = ticket_id; }
 
-  const { data: order, error } = await supabase.from('orders').insert({
-    ticket_id,
-    buyer_id: req.user.id,
-    buyer_name: req.user.name,
-    seller_id: ticket.seller_id,
-    seller_name: ticket.seller_name,
-    event_name: ticket.event_name,
-    price: ticket.price,
-    fee,
-    total,
-    status: 'waiting_qr'
-  }).select().single();
+  const { data: order, error } = await supabase.from('orders').insert(orderData).select().single();
   if (error) return res.status(500).json({ error: error.message });
 
   await supabase.from('transactions').insert({
-    user_id: req.user.id,
-    type: 'escrow_lock',
-    amount: -total,
-    description: `Đặt cọc mua vé: ${ticket.event_name}`,
-    order_id: order.id
+    user_id: req.user.id, type: 'escrow_lock', amount: -total,
+    description: `Đặt cọc mua: ${itemTitle}`, order_id: order.id
   });
 
-  // Email + in-app notification cho seller
   sendNewOrderSellerNotification(order);
-  createNotification(ticket.seller_id, 'order', '🛒 Đơn hàng mới!',
-    `${req.user.name} vừa đặt mua vé ${ticket.event_name}`, '/orders');
-
+  createNotification(itemSellerId, 'order', '🛒 Đơn hàng mới!',
+    `${req.user.name} vừa đặt mua: ${itemTitle}`, '/orders');
   res.json(order);
 });
 
@@ -1063,7 +1197,11 @@ app.post('/api/orders/:id/confirm', auth, async (req, res) => {
   await supabase.from('users').update({ escrow: buyer.escrow - order.total }).eq('id', order.buyer_id);
   await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
   await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
-  await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
+  if (order.listing_id) {
+    await supabase.from('listings').update({ status: 'sold' }).eq('id', order.listing_id);
+  } else if (order.ticket_id) {
+    await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
+  }
 
   await supabase.from('transactions').insert([
     { user_id: order.seller_id, type: 'payout', amount: order.price, description: `Nhận tiền bán vé: ${order.event_name}`, order_id: order.id },
@@ -2014,7 +2152,11 @@ async function processExpiredEscrows() {
           balance: buyer.balance + order.total,
           escrow: Math.max(0, buyer.escrow - order.total)
         }).eq('id', order.buyer_id);
-        await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+        if (order.listing_id) {
+          await supabase.from('listings').update({ status: 'available' }).eq('id', order.listing_id);
+        } else if (order.ticket_id) {
+          await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+        }
         await supabase.from('orders').update({ status: 'refunded' }).eq('id', order.id);
         await supabase.from('transactions').insert({
           user_id: order.buyer_id, type: 'refund', amount: order.total,
@@ -2046,7 +2188,11 @@ async function processExpiredEscrows() {
           balance: buyer.balance + order.total,
           escrow: Math.max(0, buyer.escrow - order.total)
         }).eq('id', order.buyer_id);
-        await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+        if (order.listing_id) {
+          await supabase.from('listings').update({ status: 'available' }).eq('id', order.listing_id);
+        } else if (order.ticket_id) {
+          await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+        }
         await supabase.from('orders').update({
           status: 'refunded',
           dispute_resolved_by: 'auto',
@@ -2341,10 +2487,11 @@ app.get('/api/seller/stats', auth, async (req, res) => {
 // Thống kê doanh thu
 app.get('/api/admin/stats', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
-  const [{ data: orders }, { data: users }, { data: tickets }] = await Promise.all([
+  const [{ data: orders }, { data: users }, { data: tickets }, { data: listings }] = await Promise.all([
     supabase.from('orders').select('status,fee,total,price,created_at'),
     supabase.from('users').select('id,balance,escrow,is_banned'),
     supabase.from('tickets').select('status'),
+    supabase.from('listings').select('status,type'),
   ]);
 
   const completed = (orders || []).filter(o => o.status === 'completed');
@@ -2358,10 +2505,13 @@ app.get('/api/admin/stats', async (req, res) => {
   const bannedUsers = (users || []).filter(u => u.is_banned).length;
   const totalEscrowLocked = (users || []).reduce((s, u) => s + (u.escrow || 0), 0);
   const availableTickets = (tickets || []).filter(t => t.status === 'available').length;
+  const availableListings = (listings || []).filter(l => l.status === 'available').length;
+  const listingsByType = {};
+  (listings || []).forEach(l => { listingsByType[l.type] = (listingsByType[l.type] || 0) + 1; });
 
   res.json({
     totalRevenue, totalGMV, totalOrders, completedOrders, disputedOrders, refundedOrders,
-    totalUsers, bannedUsers, totalEscrowLocked, availableTickets,
+    totalUsers, bannedUsers, totalEscrowLocked, availableTickets, availableListings, listingsByType,
   });
 });
 
@@ -2407,7 +2557,11 @@ app.post('/api/admin/orders/:id/force-cancel', async (req, res) => {
     escrow: Math.max(0, buyer.escrow - order.total),
   }).eq('id', order.buyer_id);
 
-  await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+  if (order.listing_id) {
+    await supabase.from('listings').update({ status: 'available' }).eq('id', order.listing_id);
+  } else if (order.ticket_id) {
+    await supabase.from('tickets').update({ status: 'available' }).eq('id', order.ticket_id);
+  }
   await supabase.from('orders').update({
     status: 'refunded',
     dispute_note: sanitize(note || 'Admin force cancelled'),
@@ -2442,7 +2596,11 @@ app.post('/api/admin/orders/:id/force-release', async (req, res) => {
 
   await supabase.from('users').update({ escrow: Math.max(0, buyer.escrow - order.total) }).eq('id', order.buyer_id);
   await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
-  await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
+  if (order.listing_id) {
+    await supabase.from('listings').update({ status: 'sold' }).eq('id', order.listing_id);
+  } else if (order.ticket_id) {
+    await supabase.from('tickets').update({ status: 'sold' }).eq('id', order.ticket_id);
+  }
   await supabase.from('orders').update({
     status: 'completed',
     dispute_note: sanitize(note || 'Admin force released'),
@@ -2479,6 +2637,34 @@ app.patch('/api/admin/tickets/:id/hide', adminAuth, async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   logAdminAction(req.admin.id, req.admin.email, hidden ? 'hide_ticket' : 'unhide_ticket', 'ticket', req.params.id);
   res.json({ message: hidden ? 'Đã ẩn vé' : 'Đã hiển thị lại vé' });
+});
+
+// ── ADMIN LISTINGS ──
+
+app.get('/api/admin/listings', adminAuth, async (req, res) => {
+  const { type, status, search } = req.query;
+  let query = supabase.from('listings').select('*').order('created_at', { ascending: false }).limit(300);
+  if (type) query = query.eq('type', type);
+  if (status) query = query.eq('status', status);
+  if (search) query = query.or(`title.ilike.%${search}%,seller_name.ilike.%${search}%`);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.delete('/api/admin/listings/:id', adminAuth, async (req, res) => {
+  const { error } = await supabase.from('listings').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  logAdminAction(req.admin.id, req.admin.email, 'delete_listing', 'listing', req.params.id);
+  res.json({ message: 'Đã xóa listing.' });
+});
+
+app.patch('/api/admin/listings/:id/hide', adminAuth, async (req, res) => {
+  const { hidden } = req.body;
+  const { error } = await supabase.from('listings').update({ status: hidden ? 'hidden' : 'available' }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  logAdminAction(req.admin.id, req.admin.email, hidden ? 'hide_listing' : 'unhide_listing', 'listing', req.params.id);
+  res.json({ message: hidden ? 'Đã ẩn listing' : 'Đã hiện listing' });
 });
 
 // Export orders CSV
