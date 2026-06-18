@@ -3045,8 +3045,36 @@ app.get('*', (req, res) => {
   }
 });
 
+// ── Chuẩn hóa số điện thoại cũ khi khởi động ──
+async function migratePhoneNumbers() {
+  try {
+    const { data: users, error } = await supabase.from('users').select('id,phone');
+    if (error) { console.error('[PhoneMigrate] Lỗi đọc users:', error.message); return; }
+    let fixed = 0;
+    for (const u of users || []) {
+      const norm = normalizePhone(u.phone);
+      if (norm !== u.phone) {
+        // Kiểm tra xem số chuẩn hóa đã tồn tại chưa
+        const { data: dup } = await supabase.from('users').select('id').eq('phone', norm).neq('id', u.id).maybeSingle();
+        if (!dup) {
+          await supabase.from('users').update({ phone: norm }).eq('id', u.id);
+          console.log(`[PhoneMigrate] ${u.phone} → ${norm}`);
+          fixed++;
+        } else {
+          console.warn(`[PhoneMigrate] Bỏ qua ${u.phone} → ${norm} (đã tồn tại)`);
+        }
+      }
+    }
+    if (fixed > 0) console.log(`[PhoneMigrate] Đã chuẩn hóa ${fixed} số điện thoại.`);
+    else console.log('[PhoneMigrate] Tất cả số điện thoại đã chuẩn.');
+  } catch(e) { console.error('[PhoneMigrate] Lỗi:', e.message); }
+}
+
 const PORT = process.env.PORT || 5000;
-const httpServer = app.listen(PORT, '0.0.0.0', () => console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`));
+const httpServer = app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
+  await migratePhoneNumbers();
+});
 
 // ── WEBSOCKET SERVER (noServer — attaches to existing HTTP server) ──
 const wss = new WebSocketServer({ noServer: true });
