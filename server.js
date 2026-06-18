@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
@@ -89,6 +90,26 @@ const kycUpload = multer({
 // ── IN-MEMORY TOKEN STORES ──
 const emailOtpStore = new Map(); // key: email → { otp, userId, expires }
 const resetTokenStore = new Map(); // key: token → { userId, expires }
+const vnpayPendingStore = new Map(); // key: txnRef → { userId, amount, createdAt, processed }
+
+// ── VNPay config ──
+const VNPAY_TMN_CODE   = process.env.VNPAY_TMN_CODE;
+const VNPAY_HASH_SECRET = process.env.VNPAY_HASH_SECRET;
+const VNPAY_URL        = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+const VNPAY_API_URL    = process.env.VNPAY_API_URL || 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction';
+
+function vnpSortObject(obj) {
+  return Object.keys(obj).sort().reduce((acc, k) => { acc[k] = obj[k]; return acc; }, {});
+}
+function vnpCreateHash(params, secret) {
+  const sorted = vnpSortObject(params);
+  const signStr = Object.entries(sorted).map(([k, v]) => `${k}=${v}`).join('&');
+  return crypto.createHmac('sha512', secret).update(Buffer.from(signStr, 'utf-8')).digest('hex');
+}
+function vnpDate(d = new Date()) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
 const qrReminderSentSet = new Set(); // key: orderId — tránh gửi nhắc nhở seller trùng lặp
 const buyerReminderSentSet = new Set(); // key: orderId — tránh gửi nhắc nhở buyer trùng lặp
 function genOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
@@ -1100,6 +1121,186 @@ app.get('/api/wallet/withdrawals', auth, async (req, res) => {
     .order('created_at', { ascending: false }).limit(20);
   if (error) return res.status(500).json({ error: error.message });
   res.json(data || []);
+});
+
+// ════════════════════════════════
+//  VNPAY PAYMENT GATEWAY
+// ════════════════════════════════
+
+// POST /api/wallet/vnpay/create-payment — tạo URL thanh toán VNPay
+app.post('/api/wallet/vnpay/create-payment', auth, async (req, res) => {
+  if (!VNPAY_TMN_CODE || !VNPAY_HASH_SECRET)
+    return res.status(503).json({ error: 'Cổng thanh toán VNPay chưa được cấu hình.' });
+
+  const { amount } = req.body;
+  const amt = parseInt(amount);
+  if (!amt || isNaN(amt) || amt < 10000)
+    return res.status(400).json({ error: 'Số tiền tối thiểu 10,000đ' });
+  if (amt > 500000000)
+    return res.status(400).json({ error: 'Số tiền tối đa 500,000,000đ mỗi lần' });
+
+  const txnRef = `SP${Date.now()}${req.user.id.toString().slice(-4)}`;
+  const now = new Date();
+  const createDate = vnpDate(now);
+  const expireDate = vnpDate(new Date(now.getTime() + 15 * 60 * 1000));
+
+  const ipAddr = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || '127.0.0.1';
+  const appBase = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  const returnUrl = `${appBase}/api/wallet/vnpay/callback`;
+
+  const params = {
+    vnp_Version:    '2.1.0',
+    vnp_Command:    'pay',
+    vnp_TmnCode:    VNPAY_TMN_CODE,
+    vnp_Locale:     'vn',
+    vnp_CurrCode:   'VND',
+    vnp_TxnRef:     txnRef,
+    vnp_OrderInfo:  `SafePass nap tien ${txnRef}`,
+    vnp_OrderType:  'other',
+    vnp_Amount:     amt * 100,
+    vnp_ReturnUrl:  returnUrl,
+    vnp_IpAddr:     ipAddr,
+    vnp_CreateDate: createDate,
+    vnp_ExpireDate: expireDate,
+  };
+
+  const secureHash = vnpCreateHash(params, VNPAY_HASH_SECRET);
+  const query = new URLSearchParams({ ...vnpSortObject(params), vnp_SecureHash: secureHash });
+  const paymentUrl = `${VNPAY_URL}?${query.toString()}`;
+
+  // Lưu pending để xác minh khi callback
+  vnpayPendingStore.set(txnRef, { userId: req.user.id, amount: amt, createdAt: Date.now(), processed: false });
+  setTimeout(() => vnpayPendingStore.delete(txnRef), 20 * 60 * 1000); // tự xoá sau 20 phút
+
+  res.json({ paymentUrl, txnRef });
+});
+
+// GET /api/wallet/vnpay/callback — VNPay redirect người dùng về đây sau khi thanh toán
+app.get('/api/wallet/vnpay/callback', async (req, res) => {
+  const params = { ...req.query };
+  const secureHash = params.vnp_SecureHash;
+  delete params.vnp_SecureHash;
+  delete params.vnp_SecureHashType;
+
+  const appBase = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
+
+  if (!secureHash || !VNPAY_HASH_SECRET)
+    return res.redirect(`${appBase}/?page=wallet&vnpay=failed&msg=config`);
+
+  const expectedHash = vnpCreateHash(params, VNPAY_HASH_SECRET);
+  if (secureHash.toLowerCase() !== expectedHash.toLowerCase())
+    return res.redirect(`${appBase}/?page=wallet&vnpay=failed&msg=hash`);
+
+  const txnRef = params.vnp_TxnRef;
+  const responseCode = params.vnp_ResponseCode;
+  const amount = Math.round(parseInt(params.vnp_Amount) / 100);
+
+  if (responseCode === '00') {
+    const pending = vnpayPendingStore.get(txnRef);
+    if (pending && !pending.processed) {
+      pending.processed = true;
+      const { data: user } = await supabase.from('users').select('balance').eq('id', pending.userId).single();
+      if (user) {
+        await supabase.from('users').update({ balance: user.balance + pending.amount }).eq('id', pending.userId);
+        await supabase.from('transactions').insert({
+          user_id: pending.userId,
+          type: 'topup',
+          amount: pending.amount,
+          description: `Nạp tiền qua VNPay — Mã GD: ${txnRef}`,
+        });
+        createNotification(pending.userId, 'topup', '💰 Nạp tiền thành công',
+          `Đã nạp ${pending.amount.toLocaleString('vi-VN')}đ vào ví SafePass.`, '/wallet');
+      }
+    }
+    return res.redirect(`${appBase}/?page=wallet&vnpay=success&amount=${amount}`);
+  } else {
+    // Ghi log thất bại nếu biết user
+    const pending = vnpayPendingStore.get(txnRef);
+    if (pending && !pending.processed) {
+      pending.processed = true;
+      await supabase.from('transactions').insert({
+        user_id: pending.userId,
+        type: 'topup_failed',
+        amount: 0,
+        description: `Nạp tiền thất bại qua VNPay — Mã GD: ${txnRef} — Mã lỗi: ${responseCode}`,
+      });
+    }
+    return res.redirect(`${appBase}/?page=wallet&vnpay=failed&code=${responseCode}`);
+  }
+});
+
+// GET /api/wallet/vnpay/ipn — VNPay server-to-server notification (đáng tin cậy hơn callback)
+app.get('/api/wallet/vnpay/ipn', async (req, res) => {
+  const params = { ...req.query };
+  const secureHash = params.vnp_SecureHash;
+  delete params.vnp_SecureHash;
+  delete params.vnp_SecureHashType;
+
+  if (!secureHash || !VNPAY_HASH_SECRET)
+    return res.json({ RspCode: '97', Message: 'Fail checksum' });
+
+  const expectedHash = vnpCreateHash(params, VNPAY_HASH_SECRET);
+  if (secureHash.toLowerCase() !== expectedHash.toLowerCase())
+    return res.json({ RspCode: '97', Message: 'Fail checksum' });
+
+  const txnRef = params.vnp_TxnRef;
+  const responseCode = params.vnp_ResponseCode;
+  const amount = Math.round(parseInt(params.vnp_Amount) / 100);
+
+  const pending = vnpayPendingStore.get(txnRef);
+  if (!pending) return res.json({ RspCode: '01', Message: 'Order not found' });
+  if (pending.amount !== amount) return res.json({ RspCode: '04', Message: 'Invalid amount' });
+  if (pending.processed) return res.json({ RspCode: '02', Message: 'Order already confirmed' });
+
+  pending.processed = true;
+
+  if (responseCode === '00') {
+    const { data: user } = await supabase.from('users').select('balance').eq('id', pending.userId).single();
+    if (user) {
+      await supabase.from('users').update({ balance: user.balance + amount }).eq('id', pending.userId);
+      await supabase.from('transactions').insert({
+        user_id: pending.userId,
+        type: 'topup',
+        amount,
+        description: `Nạp tiền qua VNPay (IPN) — Mã GD: ${txnRef}`,
+      });
+      createNotification(pending.userId, 'topup', '💰 Nạp tiền thành công',
+        `Đã nạp ${amount.toLocaleString('vi-VN')}đ vào ví SafePass.`, '/wallet');
+    }
+  } else {
+    await supabase.from('transactions').insert({
+      user_id: pending.userId,
+      type: 'topup_failed',
+      amount: 0,
+      description: `Nạp tiền thất bại qua VNPay (IPN) — Mã GD: ${txnRef} — Mã lỗi: ${responseCode}`,
+    });
+  }
+
+  res.json({ RspCode: '00', Message: 'Confirm Success' });
+});
+
+// POST /api/admin/vnpay/refund — admin hoàn tiền thủ công vào ví người dùng
+app.post('/api/admin/vnpay/refund', async (req, res) => {
+  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const { user_id, amount, reason } = req.body;
+  if (!user_id || !amount) return res.status(400).json({ error: 'Thiếu user_id hoặc amount' });
+  const amt = parseInt(amount);
+  if (isNaN(amt) || amt < 1000) return res.status(400).json({ error: 'Số tiền không hợp lệ (tối thiểu 1,000đ)' });
+
+  const { data: user } = await supabase.from('users').select('*').eq('id', user_id).single();
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+
+  await supabase.from('users').update({ balance: user.balance + amt }).eq('id', user_id);
+  await supabase.from('transactions').insert({
+    user_id,
+    type: 'refund',
+    amount: amt,
+    description: `Hoàn tiền VNPay — ${sanitize(reason || 'Admin xử lý')}`,
+  });
+  createNotification(user_id, 'refund', '↩️ Hoàn tiền thành công',
+    `Đã hoàn ${amt.toLocaleString('vi-VN')}đ vào ví của bạn.`, '/wallet');
+
+  res.json({ message: `Đã hoàn ${amt.toLocaleString('vi-VN')}đ vào ví người dùng ${user.name}` });
 });
 
 app.get('/api/admin/withdrawals', async (req, res) => {

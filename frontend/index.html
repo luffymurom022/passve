@@ -1498,6 +1498,7 @@ function buildWalletPage(){
 
   const txTypes={
     topup:{label:"Nạp tiền",col:"var(--brand)",icon:"💰"},
+    topup_failed:{label:"Nạp tiền thất bại",col:"var(--red)",icon:"❌"},
     escrow_lock:{label:"Escrow giữ",col:"var(--purple)",icon:"🔒"},
     escrow_release:{label:"Giải ngân",col:"var(--ok)",icon:"✅"},
     payout:{label:"Nhận tiền",col:"var(--ok)",icon:"💸"},
@@ -1541,7 +1542,7 @@ function buildWalletPage(){
         <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">💳 Số dư khả dụng</div>
         <div data-balance style="font-size:34px;font-weight:800;font-family:'Inter',sans-serif;color:var(--brand);margin-bottom:16px;">${VND(currentUser?.balance ?? WALLET.balance)}</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="(function(){var a=prompt('Số tiền muốn nạp (VND):','100000');if(a)topupWalletAPI(parseInt(a));})()" class="btn btn-primary btn-sm" style="flex:1;">⬆️ Nạp tiền</button>
+          <button onclick="showVNPayModal()" class="btn btn-primary btn-sm" style="flex:1;">⬆️ Nạp tiền</button>
           <button onclick="showWithdrawModal()" class="btn btn-ghost btn-sm" style="flex:1;border-color:var(--border2);">💳 Rút tiền</button>
         </div>
       </div>
@@ -5738,21 +5739,58 @@ async function confirmOrderAPI(orderId) {
 }
 
 // ── Nạp tiền ──
-async function topupWalletAPI(amount) {
-  if (!authToken) return;
+function showVNPayModal() {
+  if (!authToken) { showAuthModal('login'); return; }
+  let el = document.getElementById('vnpay-modal');
+  if (!el) { el = document.createElement('div'); el.id = 'vnpay-modal'; document.body.appendChild(el); }
+  const presets = [50000, 100000, 200000, 500000, 1000000, 2000000];
+  el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:16px;';
+  el.innerHTML = `
+    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:400px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;">💰 Nạp tiền qua VNPay</div>
+        <button onclick="document.getElementById('vnpay-modal').style.display='none'" style="background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;padding:4px;">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:12px;font-weight:600;">Chọn số tiền</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+        ${presets.map(p=>`<button onclick="document.getElementById('vnpay-amount').value='${p}';document.querySelectorAll('.vnpay-preset').forEach(b=>b.style.background='var(--card)');this.style.background='var(--brandM)';" class="vnpay-preset" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;">${p>=1000000?(p/1000000)+'M':(p/1000)+'k'}đ</button>`).join('')}
+      </div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:6px;font-weight:600;">Hoặc nhập số tiền khác</div>
+      <input id="vnpay-amount" type="number" min="10000" max="500000000" step="1000" placeholder="Nhập số tiền (VND)" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;font-weight:700;box-sizing:border-box;margin-bottom:6px;outline:none;font-family:'Inter',sans-serif;">
+      <div style="font-size:10px;color:var(--hint);margin-bottom:18px;">Tối thiểu 10,000đ · Tối đa 500,000,000đ</div>
+      <div style="background:rgba(61,142,248,.07);border:1px solid rgba(61,142,248,.15);border-radius:12px;padding:12px 14px;margin-bottom:18px;">
+        <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:4px;">🔒 Thanh toán bảo mật qua VNPay</div>
+        <div style="font-size:11px;color:var(--hint);">Hỗ trợ ATM, Visa/Master, QR Pay, Ví điện tử. Tiền về ví ngay sau khi thanh toán.</div>
+      </div>
+      <button onclick="submitVNPay()" style="width:100%;padding:14px;border-radius:13px;border:none;background:linear-gradient(135deg,#3d8ef8,#1a6fd8);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;" id="vnpay-submit-btn">
+        <span>Thanh toán ngay</span><span style="font-size:18px;">→</span>
+      </button>
+    </div>`;
+}
+
+async function submitVNPay() {
+  const amtInput = document.getElementById('vnpay-amount');
+  const amount = parseInt(amtInput?.value);
+  if (!amount || amount < 10000) { showToast('Số tiền tối thiểu 10,000đ', 'var(--red)', '❌'); return; }
+  const btn = document.getElementById('vnpay-submit-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span>Đang tạo thanh toán...</span>'; }
   try {
-    const res = await fetch(API + '/wallet/topup', {
+    const res = await fetch(API + '/wallet/vnpay/create-payment', {
       method: 'POST', headers: getHeaders(),
       body: JSON.stringify({ amount })
     });
     const data = await res.json();
-    if (!res.ok) { showToast(data.error, 'var(--red)', '❌'); return; }
-    showToast(data.message, 'var(--ok)', '💰');
-    const me = await (await fetch(API + '/auth/me', { headers: getHeaders() })).json();
-    currentUser = { ...currentUser, ...me };
-    localStorage.setItem('sp_user', JSON.stringify(currentUser));
-    setState({});
-  } catch(e) { showToast('Lỗi nạp tiền', 'var(--red)', '❌'); }
+    if (!res.ok) {
+      showToast(data.error || 'Lỗi tạo thanh toán', 'var(--red)', '❌');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span>Thanh toán ngay</span><span style="font-size:18px;">→</span>'; }
+      return;
+    }
+    // Redirect đến trang thanh toán VNPay
+    window.location.href = data.paymentUrl;
+  } catch(e) {
+    showToast('Lỗi kết nối, vui lòng thử lại', 'var(--red)', '❌');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span>Thanh toán ngay</span><span style="font-size:18px;">→</span>'; }
+  }
 }
 
 async function subscribeVipAPI() {
@@ -5850,12 +5888,55 @@ function startPolling() {
 
 // ── Boot: kiểm tra đăng nhập ──
 (async function bootAPI() {
-  // Kiểm tra reset_token trong URL trước
   const urlParams = new URLSearchParams(window.location.search);
+
+  // Kiểm tra reset_token trong URL trước
   const resetToken = urlParams.get('reset_token');
   if (resetToken) {
     setTimeout(() => showResetPasswordModal(resetToken), 400);
     return;
+  }
+
+  // Xử lý VNPay callback
+  const vnpayStatus = urlParams.get('vnpay');
+  const vnpayPage   = urlParams.get('page');
+  if (vnpayStatus) {
+    // Xoá query params khỏi URL (sạch thanh địa chỉ)
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+
+    if (authToken) {
+      try {
+        const res = await fetch(API + '/auth/me', { headers: getHeaders() });
+        if (res.ok) {
+          currentUser = await res.json();
+          localStorage.setItem('sp_user', JSON.stringify(currentUser));
+        }
+      } catch(e) {}
+      await loadTicketsFromAPI();
+      await loadOrdersFromAPI();
+      await loadNotificationsFromAPI();
+      setState({ page: 'wallet' });
+      startPolling();
+
+      if (vnpayStatus === 'success') {
+        const amount = parseInt(urlParams.get('amount')) || 0;
+        const fmtAmt = amount > 0 ? ` ${amount.toLocaleString('vi-VN')}đ` : '';
+        setTimeout(() => showToast(`💰 Nạp tiền${fmtAmt} thành công!`, 'var(--ok)', '✅'), 300);
+        setTimeout(() => loadTransactions(1), 600);
+      } else {
+        const code = urlParams.get('code') || '';
+        const msgMap = {
+          '24': 'Bạn đã huỷ giao dịch.',
+          '51': 'Tài khoản không đủ số dư.',
+          '65': 'Vượt hạn mức giao dịch trong ngày.',
+          '75': 'Ngân hàng đang bảo trì.',
+        };
+        const msg = msgMap[code] || 'Thanh toán thất bại, vui lòng thử lại.';
+        setTimeout(() => showToast(`❌ ${msg}`, 'var(--red)', '❌'), 300);
+      }
+      return;
+    }
   }
 
   if (authToken) {
