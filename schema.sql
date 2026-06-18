@@ -157,6 +157,26 @@ alter table reviews disable row level security;
 -- ALTER TABLE ticket_scans DISABLE ROW LEVEL SECURITY;
 -- CREATE INDEX IF NOT EXISTS idx_scans_order ON ticket_scans(order_id, scanned_at DESC);
 
+-- ═══════════════════════════════════════════════
+-- REFERRAL SYSTEM
+-- ═══════════════════════════════════════════════
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code text UNIQUE;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by uuid REFERENCES users(id);
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_earnings bigint DEFAULT 0;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_count int DEFAULT 0;
+
+-- CREATE TABLE IF NOT EXISTS referrals (
+--   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+--   referrer_id uuid REFERENCES users(id) ON DELETE CASCADE,
+--   referred_id uuid REFERENCES users(id) ON DELETE CASCADE,
+--   referred_name text,
+--   referred_phone text,
+--   total_commission bigint DEFAULT 0,
+--   created_at timestamptz DEFAULT now()
+-- );
+-- ALTER TABLE referrals DISABLE ROW LEVEL SECURITY;
+-- CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id, created_at DESC);
+
 -- Index tối ưu query
 -- CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 -- CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);

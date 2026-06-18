@@ -127,6 +127,13 @@ function sendToUser(userId, data) {
   }
 }
 
+function generateReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'SP';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
 // ── VNPay config ──
 const VNPAY_TMN_CODE   = process.env.VNPAY_TMN_CODE;
 const VNPAY_HASH_SECRET = process.env.VNPAY_HASH_SECRET;
@@ -504,7 +511,7 @@ async function authMod(req, res, next) {
 // ════════════════════════════════
 
 app.post('/api/auth/register', async (req, res) => {
-  const { phone, password, name, email } = req.body;
+  const { phone, password, name, email, referral_code } = req.body;
   if (!phone || !password || !name)
     return res.status(400).json({ error: 'Thiếu thông tin' });
   if (typeof phone !== 'string' || phone.length > 20)
@@ -517,19 +524,50 @@ app.post('/api/auth/register', async (req, res) => {
   const { data: existing } = await supabase.from('users').select('id').eq('phone', phone).single();
   if (existing) return res.status(400).json({ error: 'Số điện thoại đã tồn tại' });
 
+  // Generate unique referral code for new user
+  let newCode = generateReferralCode();
+  for (let i = 0; i < 5; i++) {
+    const { data: codeExists } = await supabase.from('users').select('id').eq('referral_code', newCode).maybeSingle();
+    if (!codeExists) break;
+    newCode = generateReferralCode();
+  }
+
   const hashed = await bcrypt.hash(password, 10);
-  const insertData = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0 };
+  const insertData = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0, referral_code: newCode };
   if (email) insertData.email = email.toLowerCase().trim();
 
   let { data, error } = await supabase.from('users').insert(insertData).select().single();
   if (error && error.message?.includes('email') && email) {
-    const fallback = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0 };
+    const fallback = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0, referral_code: newCode };
     ({ data, error } = await supabase.from('users').insert(fallback).select().single());
   }
   if (error) return res.status(500).json({ error: error.message });
 
+  // Apply referral code from inviter
+  let welcomeBonus = 0;
+  if (referral_code && String(referral_code).trim()) {
+    const code = String(referral_code).trim().toUpperCase();
+    const { data: referrer } = await supabase.from('users')
+      .select('id,name,referral_count').eq('referral_code', code).maybeSingle();
+    if (referrer && referrer.id !== data.id) {
+      welcomeBonus = 50000;
+      await supabase.from('users').update({ referred_by: referrer.id, balance: welcomeBonus }).eq('id', data.id);
+      await supabase.from('users').update({ referral_count: (referrer.referral_count || 0) + 1 }).eq('id', referrer.id);
+      await supabase.from('referrals').insert({
+        referrer_id: referrer.id, referred_id: data.id,
+        referred_name: sanitize(name), referred_phone: phone,
+      }).catch(() => {});
+      await supabase.from('transactions').insert({
+        user_id: data.id, type: 'referral_bonus', amount: welcomeBonus,
+        description: `Thưởng chào mừng — được giới thiệu bởi ${referrer.name}`,
+      }).catch(() => {});
+      createNotification(referrer.id, 'referral', '🎁 Bạn bè tham gia!',
+        `${sanitize(name)} đã đăng ký qua mã giới thiệu của bạn!`, '/referral');
+    }
+  }
+
   const token = jwt.sign({ id: data.id, phone, name: data.name }, JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token, user: { id: data.id, phone, name: data.name, balance: 0, escrow: 0 } });
+  res.json({ token, user: { id: data.id, phone, name: data.name, balance: welcomeBonus, escrow: 0 } });
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -979,6 +1017,32 @@ app.post('/api/orders/:id/confirm', auth, async (req, res) => {
   sendPayoutSellerNotification(order);
   createNotification(order.seller_id, 'payout', '💸 Tiền đã giải ngân!',
     `${order.buyer_name} xác nhận nhận vé ${order.event_name}. ${order.price.toLocaleString('vi-VN')}đ đã vào ví.`, '/wallet');
+
+  // Referral commission: 2% of order total to buyer's referrer
+  try {
+    const { data: buyerRef } = await supabase.from('users').select('referred_by').eq('id', order.buyer_id).maybeSingle();
+    if (buyerRef?.referred_by) {
+      const commission = Math.floor(order.total * 0.02);
+      if (commission > 0) {
+        const { data: ref } = await supabase.from('users').select('balance,referral_earnings').eq('id', buyerRef.referred_by).maybeSingle();
+        if (ref) {
+          await supabase.from('users').update({
+            balance: ref.balance + commission,
+            referral_earnings: (ref.referral_earnings || 0) + commission,
+          }).eq('id', buyerRef.referred_by);
+          await supabase.from('transactions').insert({
+            user_id: buyerRef.referred_by, type: 'referral_reward', amount: commission,
+            description: `Hoa hồng 2% — ${order.buyer_name}: ${order.event_name}`,
+            order_id: order.id,
+          });
+          const { data: rr } = await supabase.from('referrals').select('id,total_commission').eq('referrer_id', buyerRef.referred_by).eq('referred_id', order.buyer_id).maybeSingle();
+          if (rr) await supabase.from('referrals').update({ total_commission: (rr.total_commission || 0) + commission }).eq('id', rr.id);
+          createNotification(buyerRef.referred_by, 'referral', '💰 Hoa hồng giới thiệu!',
+            `+${commission.toLocaleString('vi-VN')}đ từ giao dịch của ${order.buyer_name}`, '/referral');
+        }
+      }
+    }
+  } catch(e) {}
 
   res.json({ message: 'Xác nhận thành công! Tiền đã được giải ngân cho người bán.' });
 });
@@ -2704,6 +2768,39 @@ app.post('/api/ai/chat', auth, async (req, res) => {
     console.error('[AI] Lỗi:', e.message);
     res.status(500).json({ error: 'Lỗi kết nối AI' });
   }
+});
+
+// ════════════════════════════════
+//  REFERRAL SYSTEM
+// ════════════════════════════════
+
+app.get('/api/referral/me', auth, async (req, res) => {
+  const { data: user } = await supabase.from('users')
+    .select('referral_code,referral_earnings,referral_count').eq('id', req.user.id).maybeSingle();
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy' });
+
+  const { data: referrals } = await supabase.from('referrals')
+    .select('id,referred_name,total_commission,created_at')
+    .eq('referrer_id', req.user.id).order('created_at', { ascending: false }).limit(50);
+
+  const { data: recentRewards } = await supabase.from('transactions')
+    .select('*').eq('user_id', req.user.id).eq('type', 'referral_reward')
+    .order('created_at', { ascending: false }).limit(20);
+
+  res.json({
+    code: user.referral_code || null,
+    earnings: user.referral_earnings || 0,
+    count: user.referral_count || 0,
+    referrals: referrals || [],
+    recent_rewards: recentRewards || [],
+  });
+});
+
+app.get('/api/referral/check/:code', async (req, res) => {
+  const code = String(req.params.code).trim().toUpperCase();
+  const { data } = await supabase.from('users').select('id,name').eq('referral_code', code).maybeSingle();
+  if (!data) return res.status(404).json({ error: 'Mã không hợp lệ' });
+  res.json({ valid: true, name: data.name });
 });
 
 // ── SERVE FRONTEND STATIC FILES ──

@@ -109,7 +109,7 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 | Tính năng | Mô tả |
 |-----------|-------|
 | AI phát hiện gian lận | Tự động flag đơn hàng có dấu hiệu lừa đảo |
-| Hệ thống affiliate | Seller giới thiệu seller mới được hoa hồng |
+| Hệ thống affiliate / Referral | Giới thiệu bạn bè — mã giới thiệu duy nhất, mới đăng ký +50K, referrer nhận 2% hoa hồng mỗi đơn | `[x]` ✅ 2026-06-18 |
 | API công khai | Cho phép bên thứ 3 tích hợp SafePass |
 | Multi-currency | Hỗ trợ USD, VND, v.v. |
 
