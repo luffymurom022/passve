@@ -3,7 +3,31 @@
 ---
 
 ## ✅ TỔNG KẾT CHỨC NĂNG ĐÃ BUILD XONG
-> Cập nhật lần cuối: **2026-06-18 16:30** — Tự động cập nhật sau mỗi lần build xong
+> Cập nhật lần cuối: **2026-06-18 20:00** — Tự động cập nhật sau mỗi lần build xong
+
+### 🛒 Escrow Marketplace Đa Danh Mục *(HOÀN THÀNH)*
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| **NÂNG CẤP**: Bảng `listings` mới — 6 loại: ticket/product/account/course/service/booking | 2026-06-18 |
+| `POST /api/listings` — tạo listing đa danh mục | 2026-06-18 |
+| `GET /api/listings` — browse listings (filter type, search, pagination) | 2026-06-18 |
+| `GET /api/listings/:id` — chi tiết 1 listing | 2026-06-18 |
+| `GET /api/my-listings` — seller xem listing của mình | 2026-06-18 |
+| `PATCH /api/listings/:id` — seller chỉnh sửa listing | 2026-06-18 |
+| `DELETE /api/listings/:id` — xóa listing | 2026-06-18 |
+| `PATCH /api/listings/:id/visibility` — toggle ẩn/hiện listing | 2026-06-18 |
+| `POST /api/orders` — mua listing bất kỳ (ticket_id hoặc listing_id) | 2026-06-18 |
+| Admin: `GET /api/admin/listings` — quản lý tất cả listings | 2026-06-18 |
+| Frontend: Sell form 3 bước với type selector 6 loại + adaptive fields | 2026-06-18 |
+| Frontend: Marketplace hiển thị cả tickets lẫn listings | 2026-06-18 |
+| Frontend: Admin tab "Listings" với filter type/status, hide/delete | 2026-06-18 |
+
+### 🤝 Referral & Hoa Hồng *(HOÀN THÀNH)*
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Mã giới thiệu duy nhất (referral code) cho mỗi user | 2026-06-18 |
+| User mới đăng ký qua mã giới thiệu nhận +50,000đ | 2026-06-18 |
+| Referrer nhận 2% hoa hồng mỗi đơn hàng thành công | 2026-06-18 |
 
 ### 🏗️ Hạ Tầng & Cấu Hình
 | Chức năng | Ngày hoàn thành |
