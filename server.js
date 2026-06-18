@@ -2710,6 +2710,8 @@ app.post('/api/kyc/submit', auth, kycUpload.fields([
       back_image: backPath,
       selfie_image: selfiePath,
       status: 'pending',
+      full_name: req.body?.full_name || null,
+      id_type: req.body?.id_type || null,
     });
     if (dbErr) throw new Error(dbErr.message);
 
@@ -2737,13 +2739,17 @@ app.get('/api/kyc/status', auth, async (req, res) => {
 });
 
 // GET /api/admin/kyc — admin lists all KYC requests
-app.get('/api/admin/kyc', async (req, res) => {
-  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+app.get('/api/admin/kyc', adminAuth, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { status } = req.query;
+    let query = supabase
       .from('kyc_requests')
       .select('*, users(name, phone, email)')
       .order('created_at', { ascending: false });
+    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      query = query.eq('status', status);
+    }
+    const { data, error } = await query;
     if (error) throw error;
 
     const withUrls = await Promise.all((data || []).map(async (kyc) => {
@@ -2768,20 +2774,25 @@ app.get('/api/admin/kyc', async (req, res) => {
 });
 
 // POST /api/admin/kyc/:id/approve
-app.post('/api/admin/kyc/:id/approve', async (req, res) => {
-  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+app.post('/api/admin/kyc/:id/approve', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    const { review_notes } = req.body;
     const { data: kyc, error: fetchErr } = await supabase
       .from('kyc_requests').select('user_id, status').eq('id', id).single();
     if (fetchErr || !kyc) return res.status(404).json({ error: 'Không tìm thấy yêu cầu KYC' });
     if (kyc.status === 'approved') return res.status(400).json({ error: 'Đã duyệt rồi' });
 
-    await supabase.from('kyc_requests').update({ status: 'approved' }).eq('id', id);
+    const admin = req.admin || { id: null, email: 'legacy' };
+    await supabase.from('kyc_requests').update({
+      status: 'approved',
+      review_notes: review_notes || null,
+      reviewed_by: admin.email,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', id);
     await supabase.from('users').update({ is_verified: true }).eq('id', kyc.user_id);
 
-    const ka = req.admin || { id: null, email: 'legacy' };
-    logAdminAction(ka.id, ka.email, 'approve_kyc', 'kyc_request', id, { user_id: kyc.user_id });
+    logAdminAction(admin.id, admin.email, 'approve_kyc', 'kyc_request', id, { user_id: kyc.user_id });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -2789,21 +2800,25 @@ app.post('/api/admin/kyc/:id/approve', async (req, res) => {
 });
 
 // POST /api/admin/kyc/:id/reject
-app.post('/api/admin/kyc/:id/reject', async (req, res) => {
-  if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+app.post('/api/admin/kyc/:id/reject', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const { reason, review_notes } = req.body;
     const { data: kyc, error: fetchErr } = await supabase
       .from('kyc_requests').select('status,user_id').eq('id', id).single();
     if (fetchErr || !kyc) return res.status(404).json({ error: 'Không tìm thấy yêu cầu KYC' });
 
-    await supabase.from('kyc_requests')
-      .update({ status: 'rejected', reject_reason: reason || null })
-      .eq('id', id);
+    const admin = req.admin || { id: null, email: 'legacy' };
+    const note = review_notes || reason || null;
+    await supabase.from('kyc_requests').update({
+      status: 'rejected',
+      reject_reason: reason || null,
+      review_notes: note,
+      reviewed_by: admin.email,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', id);
 
-    const kr = req.admin || { id: null, email: 'legacy' };
-    logAdminAction(kr.id, kr.email, 'reject_kyc', 'kyc_request', id, { user_id: kyc.user_id, reason: reason || '' });
+    logAdminAction(admin.id, admin.email, 'reject_kyc', 'kyc_request', id, { user_id: kyc.user_id, reason: reason || '' });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -563,8 +563,53 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
       <!-- ════ PAGE: KYC ════ -->
       <div class="page" id="page-kyc">
-        <div class="page-title">🪪 KYC</div>
+        <div class="page-title">🪪 KYC Verification</div>
+        <div class="toolbar" style="margin-bottom:16px;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-sm-btn kyc-filter-btn active" data-status="" onclick="setKycFilter(this,'')">Tất cả</button>
+            <button class="btn btn-sm-btn kyc-filter-btn" data-status="pending" onclick="setKycFilter(this,'pending')" style="color:#f5a623;border-color:#f5a623;">⏳ Chờ duyệt</button>
+            <button class="btn btn-sm-btn kyc-filter-btn" data-status="approved" onclick="setKycFilter(this,'approved')" style="color:var(--ok);border-color:var(--ok);">✅ Đã duyệt</button>
+            <button class="btn btn-sm-btn kyc-filter-btn" data-status="rejected" onclick="setKycFilter(this,'rejected')" style="color:var(--red);border-color:var(--red);">❌ Từ chối</button>
+          </div>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadKyc()" style="margin-left:auto;">🔄 Tải lại</button>
+        </div>
         <div id="kyc-list"><div class="loading"><div class="spin"></div> Đang tải...</div></div>
+      </div>
+
+      <!-- ════ KYC REJECT MODAL ════ -->
+      <div id="kyc-reject-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.65);align-items:center;justify-content:center;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;width:100%;max-width:420px;margin:20px;">
+          <div style="font-size:16px;font-weight:800;margin-bottom:6px;">❌ Từ chối KYC</div>
+          <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Nhập lý do từ chối. Người dùng sẽ thấy thông tin này.</div>
+          <textarea id="kyc-reject-reason" rows="3" placeholder="VD: Ảnh CCCD bị mờ, không nhìn rõ số..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--card2);color:var(--fg);font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+          <div style="font-size:12px;color:var(--sub);margin:10px 0 4px;">Ghi chú nội bộ (không hiển thị cho user)</div>
+          <textarea id="kyc-reject-notes" rows="2" placeholder="Tùy chọn — ghi chú cho admin team..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--card2);color:var(--fg);font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+          <div style="display:flex;gap:10px;margin-top:18px;">
+            <button class="btn btn-ghost" onclick="closeKycRejectModal()" style="flex:1;">Hủy</button>
+            <button class="btn btn-red" onclick="confirmKycReject()" style="flex:1;">❌ Xác nhận từ chối</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ KYC APPROVE NOTES MODAL ════ -->
+      <div id="kyc-approve-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.65);align-items:center;justify-content:center;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;width:100%;max-width:420px;margin:20px;">
+          <div style="font-size:16px;font-weight:800;margin-bottom:6px;">✅ Duyệt KYC</div>
+          <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Xác nhận duyệt KYC cho người dùng này? Họ sẽ nhận badge <b>✓ Xác minh</b>.</div>
+          <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">Ghi chú nội bộ (tùy chọn)</div>
+          <textarea id="kyc-approve-notes" rows="2" placeholder="VD: Đã kiểm tra CCCD khớp với tên tài khoản..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--card2);color:var(--fg);font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+          <div style="display:flex;gap:10px;margin-top:18px;">
+            <button class="btn btn-ghost" onclick="closeKycApproveModal()" style="flex:1;">Hủy</button>
+            <button class="btn btn-ok" onclick="confirmKycApprove()" style="flex:1;">✅ Xác nhận duyệt</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ KYC IMAGE LIGHTBOX ════ -->
+      <div id="kyc-lightbox" onclick="closeLightbox()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;cursor:zoom-out;">
+        <img id="kyc-lightbox-img" src="" style="max-width:92vw;max-height:88vh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6);">
+        <div style="position:absolute;top:18px;right:22px;font-size:28px;color:#fff;cursor:pointer;" onclick="closeLightbox()">✕</div>
+        <div id="kyc-lightbox-label" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;"></div>
       </div>
 
       <!-- ════ PAGE: SCANNER ════ -->
@@ -1412,57 +1457,146 @@ async function rejectWd(id) {
 // ══════════════════════════════════
 //  KYC
 // ══════════════════════════════════
+let _kycFilter = '';
+let _kycPendingId = null;
+
+function setKycFilter(btn, status) {
+  _kycFilter = status;
+  document.querySelectorAll('.kyc-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadKyc();
+}
+
 async function loadKyc() {
   const container = document.getElementById('kyc-list');
   container.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải...</div>';
   try {
-    const list = await api('GET', '/admin/kyc');
-    if (!list.length) { container.innerHTML = '<div class="empty"><div class="empty-icon">🪪</div><div class="empty-title">Không có yêu cầu KYC</div></div>'; return; }
+    const qs = _kycFilter ? `?status=${_kycFilter}` : '';
+    const list = await api('GET', `/admin/kyc${qs}`);
 
     const pending = list.filter(k => k.status === 'pending');
     ['kyc-badge', 'mob-kyc-badge'].forEach(id => {
       const el = document.getElementById(id);
+      if (!el) return;
       el.textContent = pending.length; el.style.display = pending.length > 0 ? 'flex' : 'none';
     });
 
+    if (!list.length) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">🪪</div><div class="empty-title">Không có yêu cầu KYC nào</div></div>';
+      return;
+    }
+
     container.innerHTML = `<div class="card"><div class="tbl-wrap"><table>
-      <thead><tr><th>User</th><th>Tên KH</th><th>Loại GT</th><th>Ảnh</th><th>Trạng thái</th><th>Ngày</th><th>Hành động</th></tr></thead>
+      <thead><tr>
+        <th>Người dùng</th><th>Họ tên / Loại GT</th><th>Ảnh tài liệu</th>
+        <th>Trạng thái</th><th>Ngày gửi</th><th>Duyệt bởi</th><th>Hành động</th>
+      </tr></thead>
       <tbody>
-      ${list.map(k => `<tr>
-        <td>${(k.users?.name || shortId(k.user_id))}</td>
-        <td>${k.full_name || '—'}</td>
-        <td>${k.id_type || '—'}</td>
-        <td><div style="display:flex;gap:4px">
-          ${k.front_url ? `<a href="${k.front_url}" target="_blank"><img src="${k.front_url}" style="height:40px;border-radius:4px;border:1px solid var(--border)"></a>` : '—'}
-          ${k.back_url ? `<a href="${k.back_url}" target="_blank"><img src="${k.back_url}" style="height:40px;border-radius:4px;border:1px solid var(--border)"></a>` : ''}
-          ${k.selfie_url ? `<a href="${k.selfie_url}" target="_blank"><img src="${k.selfie_url}" style="height:40px;border-radius:4px;border:1px solid var(--border)"></a>` : ''}
-        </div></td>
-        <td><span class="pill ${k.status === 'approved' ? 'pill-ok' : k.status === 'rejected' ? 'pill-red' : 'pill-warn'}">${k.status}</span></td>
-        <td style="font-size:12px;color:var(--sub)">${fmtDate(k.created_at)}</td>
-        <td>${k.status === 'pending' ? `
-          <div class="row-actions">
-            <button class="btn btn-ok btn-xs" onclick="approveKyc('${k.id}')">✅ Duyệt</button>
-            <button class="btn btn-red btn-xs" onclick="rejectKyc('${k.id}')">❌ Từ chối</button>
-          </div>` : `<span style="color:var(--hint);font-size:12px">${k.reject_reason || '—'}</span>`}
-        </td>
-      </tr>`).join('')}
+      ${list.map(k => {
+        const statusPill = k.status === 'approved'
+          ? '<span class="pill pill-ok">✅ Approved</span>'
+          : k.status === 'rejected'
+          ? '<span class="pill pill-red">❌ Rejected</span>'
+          : '<span class="pill pill-warn">⏳ Pending</span>';
+
+        const thumbStyle = 'height:44px;width:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:zoom-in;transition:opacity .15s;';
+        const thumbs = [
+          k.front_url  ? `<img src="${k.front_url}"  style="${thumbStyle}" onclick="openLightbox('${k.front_url}','Mặt trước')"  title="Mặt trước">` : '',
+          k.back_url   ? `<img src="${k.back_url}"   style="${thumbStyle}" onclick="openLightbox('${k.back_url}','Mặt sau')"     title="Mặt sau">` : '',
+          k.selfie_url ? `<img src="${k.selfie_url}" style="${thumbStyle}" onclick="openLightbox('${k.selfie_url}','Selfie')"    title="Selfie">` : '',
+        ].join('');
+
+        const reviewNote = k.review_notes
+          ? `<div style="font-size:11px;color:var(--sub);margin-top:3px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${k.review_notes}">📝 ${k.review_notes}</div>`
+          : k.reject_reason
+          ? `<div style="font-size:11px;color:var(--red);margin-top:3px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${k.reject_reason}">⚠️ ${k.reject_reason}</div>`
+          : '';
+
+        const reviewedBy = k.reviewed_by
+          ? `<div style="font-size:11px;color:var(--sub);">${k.reviewed_by}</div><div style="font-size:10px;color:var(--hint);">${k.reviewed_at ? fmtDate(k.reviewed_at) : ''}</div>`
+          : '<span style="color:var(--hint);font-size:12px">—</span>';
+
+        const actions = k.status === 'pending'
+          ? `<div class="row-actions">
+               <button class="btn btn-ok btn-xs" onclick="approveKyc('${k.id}')">✅ Duyệt</button>
+               <button class="btn btn-red btn-xs" onclick="rejectKyc('${k.id}')">❌ Từ chối</button>
+             </div>`
+          : '<span style="color:var(--hint);font-size:12px">—</span>';
+
+        return `<tr>
+          <td>
+            <div style="font-weight:600;font-size:13px;">${k.users?.name || shortId(k.user_id)}</div>
+            <div style="font-size:11px;color:var(--sub);">${k.users?.phone || ''}</div>
+          </td>
+          <td>
+            <div style="font-size:13px;font-weight:600;">${k.full_name || '—'}</div>
+            <div style="font-size:11px;color:var(--sub);">${k.id_type || '—'}</div>
+          </td>
+          <td><div style="display:flex;gap:5px;align-items:center;">${thumbs || '—'}</div></td>
+          <td>${statusPill}${reviewNote}</td>
+          <td style="font-size:12px;color:var(--sub);white-space:nowrap;">${fmtDate(k.created_at)}</td>
+          <td>${reviewedBy}</td>
+          <td>${actions}</td>
+        </tr>`;
+      }).join('')}
       </tbody></table></div></div>`;
-  } catch (e) { container.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
+  } catch (e) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
 }
 
-async function approveKyc(id) {
-  if (!confirm('Duyệt KYC và verify seller này?')) return;
+function openLightbox(url, label) {
+  const lb = document.getElementById('kyc-lightbox');
+  document.getElementById('kyc-lightbox-img').src = url;
+  document.getElementById('kyc-lightbox-label').textContent = label || '';
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('kyc-lightbox').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function approveKyc(id) {
+  _kycPendingId = id;
+  document.getElementById('kyc-approve-notes').value = '';
+  const m = document.getElementById('kyc-approve-modal');
+  m.style.display = 'flex';
+}
+function closeKycApproveModal() {
+  document.getElementById('kyc-approve-modal').style.display = 'none';
+  _kycPendingId = null;
+}
+async function confirmKycApprove() {
+  if (!_kycPendingId) return;
+  const notes = document.getElementById('kyc-approve-notes').value.trim();
   try {
-    await api('POST', `/admin/kyc/${id}/approve`);
-    toast('✅ Đã duyệt KYC', 'ok');
+    await api('POST', `/admin/kyc/${_kycPendingId}/approve`, { review_notes: notes || undefined });
+    closeKycApproveModal();
+    toast('✅ Đã duyệt KYC — người dùng đã được xác minh', 'ok');
     loadKyc();
   } catch (e) { toast(e.message, 'err'); }
 }
-async function rejectKyc(id) {
-  const reason = prompt('Lý do từ chối KYC:');
-  if (reason === null) return;
+
+function rejectKyc(id) {
+  _kycPendingId = id;
+  document.getElementById('kyc-reject-reason').value = '';
+  document.getElementById('kyc-reject-notes').value = '';
+  const m = document.getElementById('kyc-reject-modal');
+  m.style.display = 'flex';
+}
+function closeKycRejectModal() {
+  document.getElementById('kyc-reject-modal').style.display = 'none';
+  _kycPendingId = null;
+}
+async function confirmKycReject() {
+  if (!_kycPendingId) return;
+  const reason = document.getElementById('kyc-reject-reason').value.trim();
+  const notes  = document.getElementById('kyc-reject-notes').value.trim();
+  if (!reason) { toast('Vui lòng nhập lý do từ chối', 'err'); return; }
   try {
-    await api('POST', `/admin/kyc/${id}/reject`, { reason });
+    await api('POST', `/admin/kyc/${_kycPendingId}/reject`, { reason, review_notes: notes || undefined });
+    closeKycRejectModal();
     toast('✅ Đã từ chối KYC', 'ok');
     loadKyc();
   } catch (e) { toast(e.message, 'err'); }

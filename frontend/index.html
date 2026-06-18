@@ -5588,6 +5588,20 @@ function renderKycBox(box,d){
 
   box.innerHTML=`${rejHtml}
   <div style="display:grid;gap:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <label style="display:block;font-size:12px;color:var(--sub);margin-bottom:5px;">👤 Họ và tên (theo CCCD)</label>
+        <input id="kyc-fullname" type="text" placeholder="Nguyễn Văn A" style="width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--border2);background:var(--card2);color:var(--fg);font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;color:var(--sub);margin-bottom:5px;">📋 Loại giấy tờ</label>
+        <select id="kyc-idtype" style="width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--border2);background:var(--card2);color:var(--fg);font-size:13px;box-sizing:border-box;">
+          <option value="CCCD">CCCD (Căn cước công dân)</option>
+          <option value="CMND">CMND (Chứng minh nhân dân)</option>
+          <option value="Passport">Hộ chiếu / Passport</option>
+        </select>
+      </div>
+    </div>
     <div>
       <label style="display:block;font-size:12px;color:var(--sub);margin-bottom:6px;">📄 Mặt trước CCCD / Passport</label>
       <div id="kyc-front-preview" onclick="document.getElementById('kyc-front').click()" style="border:2px dashed var(--border2);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:border-color .2s;font-size:12px;color:var(--hint);">
@@ -5627,8 +5641,13 @@ async function submitKyc(){
   const front=document.getElementById('kyc-front')?.files?.[0];
   const back=document.getElementById('kyc-back')?.files?.[0];
   const selfie=document.getElementById('kyc-selfie')?.files?.[0];
+  const fullName=(document.getElementById('kyc-fullname')?.value||'').trim();
+  const idType=document.getElementById('kyc-idtype')?.value||'CCCD';
   const msgEl=document.getElementById('kyc-msg');
   const btn=document.getElementById('kyc-submit-btn');
+  if(!fullName){
+    msgEl.textContent='Vui lòng nhập họ và tên theo giấy tờ.';msgEl.style.color='var(--red)';msgEl.style.display='block';return;
+  }
   if(!front||!back||!selfie){
     msgEl.textContent='Vui lòng chọn đủ 3 ảnh.';msgEl.style.color='var(--red)';msgEl.style.display='block';return;
   }
@@ -5637,6 +5656,8 @@ async function submitKyc(){
   fd.append('front_image',front);
   fd.append('back_image',back);
   fd.append('selfie_image',selfie);
+  fd.append('full_name',fullName);
+  fd.append('id_type',idType);
   try{
     const res=await fetch(API+'/kyc/submit',{
       method:'POST',
