@@ -2,6 +2,186 @@
 
 ---
 
+## ✅ TỔNG KẾT CHỨC NĂNG ĐÃ BUILD XONG
+> Cập nhật lần cuối: **2026-06-18 16:30** — Tự động cập nhật sau mỗi lần build xong
+
+### 🏗️ Hạ Tầng & Cấu Hình
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Express.js server port 5000, host 0.0.0.0 | 2025-06-15 |
+| Kết nối Supabase (PostgreSQL) service role key | 2025-06-15 |
+| Serve static frontend từ `frontend/` | 2025-06-15 |
+| WebSocket transport (`ws` package) Node.js 20 | 2025-06-15 |
+| CORS cho phép mọi origin | 2025-06-15 |
+| Rate limiting: auth/orders/topup/general | 2025-06-15 |
+| Workflow Replit cấu hình đúng port 5000 | 2025-06-15 |
+| Deployment config (autoscale) | 2025-06-15 |
+| Tất cả secrets lưu trong Replit Secrets | 2026-06-15 |
+
+### 👤 Auth & Người Dùng
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Đăng ký tài khoản (phone + password + name + email) | 2025-06-15 |
+| Đăng nhập → JWT token (30 ngày) | 2025-06-15 |
+| Middleware `auth` xác thực Bearer token | 2025-06-15 |
+| `GET /api/auth/me` — thông tin user hiện tại | 2025-06-15 |
+| `PATCH /api/auth/profile` — cập nhật tên & email | 2025-06-16 |
+| Trang Hồ sơ (Profile page) với avatar, form cập nhật | 2025-06-16 |
+| `PATCH /api/auth/password` — đổi mật khẩu | 2026-06-15 |
+| Form đổi mật khẩu trong Hồ sơ | 2026-06-15 |
+| Xác minh email — OTP 6 số gửi qua Resend | 2026-06-15 |
+| Quên mật khẩu — link reset gửi qua email | 2026-06-15 |
+| Refresh token — `POST /api/auth/refresh` | 2026-06-15 |
+
+### 🎟️ Vé (Tickets)
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| `POST /api/tickets` — đăng bán vé | 2025-06-15 |
+| `GET /api/tickets` — danh sách (search, filter giá, pagination) | 2026-06-15 |
+| `GET /api/tickets/:id` — chi tiết 1 vé | 2025-06-15 |
+| `GET /api/my-tickets` — vé của seller | 2025-06-15 |
+| `DELETE /api/tickets/:id` — xoá listing | 2025-06-15 |
+| `PATCH /api/tickets/:id` — seller chỉnh sửa vé | 2026-06-15 |
+| Phân trang (pagination) danh sách vé | 2026-06-15 |
+| Upload ảnh vé — Supabase Storage `ticket-images` | 2026-06-15 |
+| Filter theo ngày sự kiện, địa điểm | 2026-06-15 |
+| Filter theo danh mục (category) — concerts/kpop/sports/festivals/other | 2026-06-17 |
+
+### 📦 Đơn Hàng & Escrow
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| `POST /api/orders` — tạo đơn, giữ tiền escrow (+3% phí) | 2025-06-15 |
+| `GET /api/orders` — danh sách đơn (buyer/seller) | 2025-06-15 |
+| `POST /api/orders/:id/upload-qr` — seller upload QR code | 2025-06-15 |
+| `POST /api/orders/:id/confirm` — buyer xác nhận → giải ngân | 2025-06-15 |
+| Escrow timeout tự động 48h → hoàn tiền buyer | 2025-06-15 |
+| Kiểm tra timeout mỗi 1 giờ (cron) | 2025-06-15 |
+| Email seller khi có đơn mua mới | 2026-06-15 |
+| Email buyer khi seller upload QR | 2026-06-15 |
+| Email seller khi buyer xác nhận (giải ngân) | 2026-06-15 |
+| Đếm ngược 48h trên giao diện buyer | 2026-06-15 |
+| Chat nội bộ buyer↔seller trong đơn hàng | 2026-06-17 |
+
+### ⚠️ Khiếu Nại (Dispute)
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| `POST /api/orders/:id/dispute` — mở khiếu nại | 2025-06-15 |
+| 5 lý do khiếu nại có sẵn | 2025-06-15 |
+| `POST /api/admin/orders/:id/resolve` — admin giải quyết | 2025-06-15 |
+| Email thông báo admin khi có khiếu nại mới | 2025-06-15 |
+| Email thông báo kết quả giải quyết cho buyer & seller | 2026-06-15 |
+| Thời hạn tự động đóng khiếu nại sau 3 ngày | 2026-06-15 |
+
+### 💰 Ví & Giao Dịch
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| `POST /api/wallet/topup` — nạp tiền (giả lập) | 2025-06-15 |
+| `GET /api/wallet/transactions` — lịch sử giao dịch phân trang | 2026-06-15 |
+| `GET /api/wallet/transactions/export` — export CSV | 2026-06-15 |
+| Ghi log transaction cho mọi sự kiện tài chính | 2025-06-15 |
+| Rút tiền về ngân hàng (manual — admin duyệt) | 2026-06-17 |
+| Gói VIP/Premium (phí giao dịch 0% thay vì 3%) | 2026-06-17 |
+
+### ⭐ Đánh Giá (Reviews)
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| `POST /api/orders/:id/review` — buyer gửi đánh giá | 2025-06-15 |
+| `GET /api/users/:id/reviews` — reviews của seller | 2025-06-15 |
+| Tự động tính avg_rating và review_count | 2025-06-15 |
+| `POST /api/reviews/:id/reply` — seller phản hồi review | 2026-06-15 |
+| Email seller khi nhận đánh giá mới | 2026-06-15 |
+| Report review vi phạm | 2026-06-15 |
+
+### 🛡️ Admin Dashboard
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Admin auth email+password → JWT 12h (bảng `admins` Supabase) | 2026-06-18 |
+| `POST /api/admin/auth/setup` — tạo super_admin đầu tiên | 2026-06-18 |
+| `POST /api/admin/auth/login` — đăng nhập email+password | 2026-06-18 |
+| `POST /api/admin/auth/create` — super_admin tạo thêm admin | 2026-06-18 |
+| `adminAuth` middleware (Bearer JWT hoặc legacy secret) | 2026-06-18 |
+| Audit Log — bảng `admin_logs`, `logAdminAction()` helper | 2026-06-18 |
+| `GET /api/admin/logs` — xem log (filter theo action) | 2026-06-18 |
+| `GET /api/admin/disputes` — queue dispute chờ xử lý | 2026-06-18 |
+| `PATCH /api/admin/tickets/:id/hide` — ẩn/hiện vé | 2026-06-18 |
+| `GET/POST /api/admin/orders/:id/messages` — admin đọc/gửi chat | 2026-06-18 |
+| `GET /api/admin/orders` — danh sách tất cả đơn | 2025-06-15 |
+| `GET /api/admin/users` — danh sách users | 2026-06-15 |
+| `POST /api/admin/users/:id/ban` — khóa tài khoản | 2026-06-15 |
+| `POST /api/admin/users/:id/unban` — mở khóa | 2026-06-15 |
+| `POST /api/admin/users/:id/verify` — verify seller | 2026-06-16 |
+| `GET /api/admin/stats` — thống kê tổng hợp | 2026-06-15 |
+| `GET /api/admin/export` — xuất CSV đơn hàng | 2026-06-15 |
+| `POST /api/admin/orders/:id/force-cancel` — hủy đơn & hoàn tiền buyer | 2026-06-17 |
+| `POST /api/admin/orders/:id/force-release` — giải ngân cho seller | 2026-06-17 |
+| `POST /api/admin/process-timeouts` — trigger escrow timeout thủ công | 2025-06-15 |
+| Admin Dashboard UI (admin.html) — dark theme, login, 10 tabs | 2026-06-18 |
+| Sidebar + mobile nav + topbar (admin info, role badge) | 2026-06-18 |
+| Dispute chat — admin xem & gửi tin nhắn vào chat đơn hàng | 2026-06-18 |
+| Badge đếm dispute/withdrawal/KYC chờ xử lý | 2026-06-18 |
+| Settings — tạo/liệt kê/xóa tài khoản admin | 2026-06-18 |
+
+### 🔔 Thông Báo (Notifications)
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Tích hợp Resend API (email) | 2025-06-16 |
+| Thông báo trong app — bell icon, dropdown 20 thông báo | 2026-06-15 |
+| `GET /api/notifications` — lấy danh sách thông báo | 2026-06-15 |
+| `POST /api/notifications/:id/read` + `read-all` | 2026-06-15 |
+| Polling thông báo mỗi 30 giây | 2026-06-15 |
+| Unread badge trên bell icon | 2026-06-15 |
+
+### 🎨 Giao Diện Frontend (index.html)
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Dark UI premium (SafePass) | 2025-06-15 |
+| Marketplace — xem vé, tìm kiếm, lọc giá, lọc danh mục | 2025-06-15 |
+| Ví — tổng quan + lịch sử phân trang + export CSV | 2026-06-15 |
+| My Orders — đơn mua + đơn bán + chat nội bộ | 2025-06-15 |
+| Modal đăng nhập / đăng ký | 2025-06-16 |
+| Trang Hồ sơ (Profile) + KYC upload | 2026-06-15 |
+| Seller Dashboard analytics (Chart.js) | 2026-06-15 |
+| Trang profile công khai seller tại `/seller/:id` | 2026-06-15 |
+| Responsive mobile | 2026-06-15 |
+| Dark/light mode toggle | 2026-06-15 |
+
+### 🪪 KYC — Xác Minh Danh Tính
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Bảng `kyc_requests` Supabase | 2026-06-17 |
+| Supabase Storage bucket `kyc-documents` (private) | 2026-06-17 |
+| `POST /api/kyc/submit` — upload 3 ảnh CCCD + selfie | 2026-06-17 |
+| `GET /api/kyc/status` — user kiểm tra trạng thái KYC | 2026-06-17 |
+| `GET /api/admin/kyc` — admin xem danh sách KYC pending | 2026-06-17 |
+| `POST /api/admin/kyc/:id/approve` — duyệt KYC | 2026-06-17 |
+| `POST /api/admin/kyc/:id/reject` — từ chối KYC | 2026-06-17 |
+| Section KYC trong trang Profile người dùng | 2026-06-17 |
+
+### 📷 QR Xác Minh Vé
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| `GET /api/orders/:id/verify-qr` — tạo JWT QR token, trả về QR PNG | 2026-06-17 |
+| `POST /api/scan/auth` — xác thực scanner (admin hoặc organizer) | 2026-06-17 |
+| `POST /api/scan/verify` — quét QR, chống dùng lại | 2026-06-17 |
+| `GET /api/scan/history` — lịch sử quét | 2026-06-17 |
+| `frontend/scanner.html` — trang quét độc lập cho ban tổ chức | 2026-06-17 |
+| Xem & tải QR code trong chi tiết đơn hàng | 2026-06-17 |
+
+### 🤝 Referral & Hoa Hồng
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Mã giới thiệu duy nhất (referral code) cho mỗi user | 2026-06-18 |
+| User mới đăng ký qua mã giới thiệu nhận +50,000đ | 2026-06-18 |
+| Referrer nhận 2% hoa hồng mỗi đơn hàng thành công | 2026-06-18 |
+
+### 👥 Moderator & Phân Quyền
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Moderator role (is_moderator trên users table) | 2026-06-17 |
+| Xác minh seller (verified badge) — admin verify/unverify | 2026-06-16 |
+
+---
+
 ## 🤖 HƯỚNG DẪN CHO AI AGENT — ĐỌC TRƯỚC KHI LÀM BẤT CỨ ĐIỀU GÌ
 
 > **Khi mở project này, AI Agent phải:**
