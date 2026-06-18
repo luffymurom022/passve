@@ -5,6 +5,24 @@
 ## ✅ TỔNG KẾT CHỨC NĂNG ĐÃ BUILD XONG
 > Cập nhật lần cuối: **2026-06-18 20:00** — Tự động cập nhật sau mỗi lần build xong
 
+### 📦 Pass Đồ — Hệ Thống Giao Hàng Vật Lý *(HOÀN THÀNH)*
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Bảng `shipping_orders` — migration SQL (`shipping_migration.sql`) | 2026-06-18 |
+| `POST /api/orders/:id/submit-tracking` — seller nhập hãng + mã vận đơn | 2026-06-18 |
+| `GET /api/orders/:id/shipping` — lấy thông tin vận chuyển | 2026-06-18 |
+| `POST /api/orders/:id/confirm-delivery` — buyer xác nhận nhận hàng → giải ngân | 2026-06-18 |
+| Auto-release 7 ngày: `processExpiredEscrows` tự giải ngân nếu buyer không phản hồi | 2026-06-18 |
+| `GET /api/admin/shipping` — admin xem tất cả vận đơn | 2026-06-18 |
+| Frontend: status pill 🚚 Đang giao hàng (cyan) | 2026-06-18 |
+| Frontend: modal nhập mã vận đơn (seller) với 7 hãng carrier | 2026-06-18 |
+| Frontend: card action — seller thấy "📦 Nhập mã vận đơn", buyer thấy "✅ Tôi đã nhận hàng" | 2026-06-18 |
+| Frontend: shipping info box trong order detail (carrier + tracking code) | 2026-06-18 |
+| Frontend: auto-load tracking info async khi mở chi tiết đơn | 2026-06-18 |
+| Thông báo realtime: buyer nhận notification khi seller giao hàng | 2026-06-18 |
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `shipping_migration.sql`
+
 ### 🛒 Escrow Marketplace Đa Danh Mục *(HOÀN THÀNH)*
 | Chức năng | Ngày hoàn thành |
 |---|---|

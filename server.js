@@ -1243,6 +1243,119 @@ app.post('/api/orders/:id/confirm', auth, async (req, res) => {
 });
 
 // ════════════════════════════════
+//  PASS ĐỒ — SHIPPING SYSTEM
+// ════════════════════════════════
+
+const PHYSICAL_TYPES = ['product', 'account', 'course', 'service', 'booking'];
+
+// POST /api/orders/:id/submit-tracking — seller nhập mã vận đơn
+app.post('/api/orders/:id/submit-tracking', auth, async (req, res) => {
+  const { carrier, tracking_code } = req.body;
+  if (!carrier || !tracking_code)
+    return res.status(400).json({ error: 'Vui lòng nhập hãng vận chuyển và mã vận đơn' });
+
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (order.status !== 'waiting_qr')
+    return res.status(400).json({ error: 'Đơn không ở trạng thái chờ giao hàng' });
+  if (!PHYSICAL_TYPES.includes(order.listing_type))
+    return res.status(400).json({ error: 'Chỉ dùng cho đơn hàng vật lý (product/course/service/...)' });
+
+  const { data: existing } = await supabase.from('shipping_orders')
+    .select('id').eq('order_id', req.params.id).maybeSingle();
+
+  const shippingData = {
+    order_id: req.params.id,
+    carrier: sanitize(carrier),
+    tracking_code: sanitize(tracking_code),
+    shipping_status: 'shipping',
+    updated_at: new Date().toISOString()
+  };
+  if (existing) {
+    await supabase.from('shipping_orders').update(shippingData).eq('id', existing.id);
+  } else {
+    await supabase.from('shipping_orders').insert({ ...shippingData, created_at: new Date().toISOString() });
+  }
+
+  await supabase.from('orders').update({ status: 'shipping' }).eq('id', req.params.id);
+
+  createNotification(order.buyer_id, 'shipping', '🚚 Đơn hàng đã được giao!',
+    `${order.seller_name} đã gửi hàng qua ${sanitize(carrier)}. Mã vận đơn: ${sanitize(tracking_code)}`, '/orders');
+
+  console.log(`[Shipping] Đơn ${req.params.id} → shipping, carrier: ${carrier}, tracking: ${tracking_code}`);
+  res.json({ message: 'Đã nhập mã vận đơn thành công!', carrier, tracking_code });
+});
+
+// GET /api/orders/:id/shipping — lấy thông tin vận chuyển
+app.get('/api/orders/:id/shipping', auth, async (req, res) => {
+  const { data: order } = await supabase.from('orders')
+    .select('buyer_id,seller_id').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Không có quyền' });
+
+  const { data: shipping } = await supabase.from('shipping_orders')
+    .select('*').eq('order_id', req.params.id).maybeSingle();
+  res.json(shipping || null);
+});
+
+// POST /api/orders/:id/confirm-delivery — buyer xác nhận đã nhận hàng → giải ngân escrow
+app.post('/api/orders/:id/confirm-delivery', auth, async (req, res) => {
+  const { data: order } = await supabase.from('orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (order.status !== 'shipping')
+    return res.status(400).json({ error: 'Đơn không ở trạng thái đang giao hàng' });
+
+  const { data: buyer } = await supabase.from('users').select('*').eq('id', order.buyer_id).single();
+  const { data: seller } = await supabase.from('users').select('*').eq('id', order.seller_id).single();
+
+  await supabase.from('users').update({ escrow: Math.max(0, buyer.escrow - order.total) }).eq('id', order.buyer_id);
+  await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
+  await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
+  if (order.listing_id) {
+    await supabase.from('listings').update({ status: 'sold' }).eq('id', order.listing_id);
+  }
+  await supabase.from('shipping_orders')
+    .update({ shipping_status: 'completed', updated_at: new Date().toISOString() })
+    .eq('order_id', order.id);
+
+  await supabase.from('transactions').insert([
+    { user_id: order.seller_id, type: 'payout', amount: order.price,
+      description: `Nhận tiền bán hàng: ${order.event_name}`, order_id: order.id },
+    { user_id: order.buyer_id, type: 'escrow_release', amount: 0,
+      description: `Xác nhận nhận hàng: ${order.event_name}`, order_id: order.id }
+  ]);
+
+  createNotification(order.seller_id, 'payout', '💸 Tiền đã giải ngân!',
+    `${order.buyer_name} xác nhận nhận hàng ${order.event_name}. ${order.price.toLocaleString('vi-VN')}đ đã vào ví.`, '/wallet');
+
+  try {
+    const { data: buyerRef } = await supabase.from('users').select('referred_by').eq('id', order.buyer_id).maybeSingle();
+    if (buyerRef?.referred_by) {
+      const commission = Math.floor(order.total * 0.02);
+      if (commission > 0) {
+        const { data: ref } = await supabase.from('users').select('balance,referral_earnings')
+          .eq('id', buyerRef.referred_by).maybeSingle();
+        if (ref) {
+          await supabase.from('users').update({
+            balance: ref.balance + commission,
+            referral_earnings: (ref.referral_earnings || 0) + commission,
+          }).eq('id', buyerRef.referred_by);
+          await supabase.from('transactions').insert({
+            user_id: buyerRef.referred_by, type: 'referral_reward', amount: commission,
+            description: `Hoa hồng 2% — ${order.buyer_name}: ${order.event_name}`, order_id: order.id,
+          });
+        }
+      }
+    }
+  } catch(e) {}
+
+  res.json({ message: 'Xác nhận nhận hàng thành công! Tiền đã được giải ngân cho người bán.' });
+});
+
+// ════════════════════════════════
 //  VÍ / NẠP TIỀN
 // ════════════════════════════════
 
@@ -2208,6 +2321,46 @@ async function processExpiredEscrows() {
       } catch (e) { console.error(`[Dispute Auto-close] Lỗi đơn ${order.id}:`, e.message); }
     }
   }
+
+  // 3. Auto-release shipping orders sau 7 ngày buyer không phản hồi
+  const cutoff7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: oldShipping } = await supabase
+    .from('shipping_orders').select('order_id').eq('shipping_status', 'shipping').lt('created_at', cutoff7d);
+
+  if (oldShipping && oldShipping.length > 0) {
+    const orderIds = oldShipping.map(s => s.order_id);
+    const { data: shippingOrders } = await supabase
+      .from('orders').select('*').in('id', orderIds).eq('status', 'shipping');
+
+    for (const order of (shippingOrders || [])) {
+      try {
+        const { data: buyer } = await supabase.from('users').select('*').eq('id', order.buyer_id).single();
+        const { data: seller } = await supabase.from('users').select('*').eq('id', order.seller_id).single();
+        if (!buyer || !seller) continue;
+
+        await supabase.from('users').update({ escrow: Math.max(0, buyer.escrow - order.total) }).eq('id', order.buyer_id);
+        await supabase.from('users').update({ balance: seller.balance + order.price }).eq('id', order.seller_id);
+        await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
+        if (order.listing_id) {
+          await supabase.from('listings').update({ status: 'sold' }).eq('id', order.listing_id);
+        }
+        await supabase.from('shipping_orders')
+          .update({ shipping_status: 'completed', updated_at: new Date().toISOString() })
+          .eq('order_id', order.id);
+        await supabase.from('transactions').insert([
+          { user_id: order.seller_id, type: 'payout', amount: order.price,
+            description: `Tự động giải ngân sau 7 ngày: ${order.event_name}`, order_id: order.id },
+          { user_id: order.buyer_id, type: 'escrow_release', amount: 0,
+            description: `Tự động hoàn tất sau 7 ngày giao hàng: ${order.event_name}`, order_id: order.id }
+        ]);
+        createNotification(order.seller_id, 'payout', '💸 Tự động giải ngân sau 7 ngày',
+          `Đơn ${order.event_name} đã tự động giải ngân vì buyer không phản hồi sau 7 ngày.`, '/wallet');
+        createNotification(order.buyer_id, 'info', 'ℹ️ Đơn hàng tự động hoàn tất',
+          `Đơn ${order.event_name} đã tự động hoàn tất sau 7 ngày không phản hồi.`, '/orders');
+        console.log(`[Shipping Auto-release] Giải ngân đơn ${order.id}`);
+      } catch(e) { console.error(`[Shipping Auto-release] Lỗi ${order.id}:`, e.message); }
+    }
+  }
 }
 
 processExpiredEscrows();
@@ -2657,6 +2810,18 @@ app.delete('/api/admin/listings/:id', adminAuth, async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   logAdminAction(req.admin.id, req.admin.email, 'delete_listing', 'listing', req.params.id);
   res.json({ message: 'Đã xóa listing.' });
+});
+
+// GET /api/admin/shipping — admin xem tất cả vận đơn
+app.get('/api/admin/shipping', adminAuth, async (req, res) => {
+  const { status } = req.query;
+  let query = supabase.from('shipping_orders')
+    .select('*, orders(id, event_name, buyer_name, seller_name, total, price, status, buyer_id, seller_id, listing_type)')
+    .order('created_at', { ascending: false }).limit(200);
+  if (status) query = query.eq('shipping_status', status);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
 });
 
 app.patch('/api/admin/listings/:id/hide', adminAuth, async (req, res) => {
