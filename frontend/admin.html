@@ -18,31 +18,32 @@
   --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);--purpleBorder:rgba(155,135,245,.2);
   --cyan:#00e5ff;
   --radius:14px;--radius-sm:8px;--radius-xs:6px;
-  --sidebar:220px;
+  --sidebar:224px;
 }
-
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
 
 /* ═══════════════ LOGIN ═══════════════ */
-#login-screen{
-  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;
   background:radial-gradient(ellipse 80% 60% at 70% 0%,rgba(61,142,248,.07) 0%,transparent 60%),
-    radial-gradient(ellipse 50% 50% at 10% 90%,rgba(155,135,245,.05) 0%,transparent 60%);
-}
-.login-card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:40px 36px;}
+    radial-gradient(ellipse 50% 50% at 10% 90%,rgba(155,135,245,.05) 0%,transparent 60%);}
+.login-card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:44px 40px;}
 .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
-.login-shield{width:42px;height:42px;background:linear-gradient(135deg,#3d8ef8,#6a5af9);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.login-title{font-size:20px;font-weight:800;letter-spacing:-.4px;}
+.login-shield{width:44px;height:44px;background:linear-gradient(135deg,#3d8ef8,#6a5af9);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.login-title{font-size:21px;font-weight:800;letter-spacing:-.4px;}
 .login-badge{display:inline-block;font-size:10px;color:var(--warn);background:var(--warnBg);border:1px solid var(--warnBorder);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:6px;vertical-align:middle;}
-.login-sub{font-size:13px;color:var(--sub);margin-bottom:28px;}
+.login-sub{font-size:13px;color:var(--sub);margin-bottom:28px;line-height:1.5;}
 .field{margin-bottom:18px;}
 .field label{display:block;font-size:11px;font-weight:600;color:var(--sub);margin-bottom:7px;letter-spacing:.5px;text-transform:uppercase;}
-.field input{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;font-size:14px;color:var(--text);font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .15s,box-shadow .15s;}
+.field input{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;font-size:14px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color .15s,box-shadow .15s;}
 .field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(61,142,248,.12);}
 .btn-login{width:100%;padding:13px;background:linear-gradient(135deg,#3d8ef8,#2e7ef0);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:4px;letter-spacing:.2px;}
 .btn-login:hover{opacity:.9;}
 .btn-login:active{transform:scale(.99);}
+.btn-login:disabled{opacity:.5;cursor:not-allowed;}
 .login-err{color:var(--red);font-size:13px;margin-top:12px;text-align:center;min-height:18px;}
+.login-tabs{display:flex;gap:0;margin-bottom:28px;background:var(--card2);border-radius:var(--radius-sm);padding:4px;}
+.login-tab{flex:1;text-align:center;padding:9px;border-radius:6px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;transition:all .15s;}
+.login-tab.active{background:var(--card3);color:var(--text);font-weight:600;}
 
 /* ═══════════════ APP SHELL ═══════════════ */
 #app{display:none;min-height:100vh;}
@@ -52,8 +53,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .topbar-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;letter-spacing:-.3px;flex-shrink:0;}
 .topbar-shield{width:30px;height:30px;background:linear-gradient(135deg,#3d8ef8,#6a5af9);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;}
 .badge-admin{font-size:9px;color:var(--warn);background:var(--warnBg);border:1px solid var(--warnBorder);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:.3px;}
-.topbar-center{flex:1;display:flex;align-items:center;justify-content:center;}
+.badge-mod{font-size:9px;color:var(--purple);background:var(--purpleBg);border:1px solid var(--purpleBorder);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:.3px;}
 .topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.topbar-admin-info{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:6px;}
 .refresh-time{font-size:11px;color:var(--hint);font-family:'JetBrains Mono',monospace;}
 .btn-sm{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--card2);color:var(--sub);transition:all .15s;white-space:nowrap;}
 .btn-sm:hover{background:var(--card3);color:var(--text);}
@@ -167,13 +169,24 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .resolve-note:focus{border-color:var(--brand);}
 .resolve-btns{display:flex;gap:8px;flex-wrap:wrap;}
 
-/* ═══════════════ USER DETAIL ═══════════════ */
-.user-actions-row{display:flex;flex-wrap:wrap;gap:8px;}
+/* ═══════════════ CHAT PANEL ═══════════════ */
+.chat-panel{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:14px;}
+.chat-panel-head{padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--sub);display:flex;align-items:center;justify-content:space-between;}
+.chat-messages{height:240px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;}
+.chat-msg{max-width:80%;padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.5;}
+.chat-msg.buyer{align-self:flex-start;background:var(--card3);border:1px solid var(--border);}
+.chat-msg.seller{align-self:flex-end;background:var(--brandL);border:1px solid rgba(61,142,248,.15);}
+.chat-msg.admin-msg{align-self:center;background:var(--warnBg);border:1px solid var(--warnBorder);color:var(--warn);font-size:12px;}
+.chat-msg-sender{font-size:10px;font-weight:700;margin-bottom:3px;color:var(--sub);}
+.chat-msg-time{font-size:10px;color:var(--hint);margin-top:3px;}
+.chat-input-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);}
+.chat-input{flex:1;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;outline:none;}
+.chat-input:focus{border-color:var(--brand);}
 
 /* ═══════════════ MODAL ═══════════════ */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.open{display:flex;}
-.modal{background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
 .modal-title{font-size:15px;font-weight:700;}
 .modal-close{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--sub);transition:all .15s;}
@@ -185,6 +198,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .modal-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(61,142,248,.1);}
 .modal-textarea{resize:vertical;min-height:80px;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:8px;}
+.modal-section{font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 10px;}
+.modal-row{display:flex;gap:6px;margin-bottom:6px;font-size:13px;}
+.modal-row .lbl{color:var(--sub);width:120px;flex-shrink:0;}
+.modal-row .val{color:var(--text);word-break:break-all;}
 
 /* ═══════════════ ORDER DETAIL PANEL ═══════════════ */
 .order-detail{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-top:12px;}
@@ -192,6 +209,9 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .detail-item .d-label{font-size:11px;color:var(--sub);margin-bottom:3px;}
 .detail-item .d-val{font-size:13px;font-weight:500;}
 .detail-actions{display:flex;gap:8px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--border);margin-top:14px;}
+
+/* ═══════════════ AUDIT LOG ═══════════════ */
+.log-action{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid;}
 
 /* ═══════════════ EMPTY STATE ═══════════════ */
 .empty{text-align:center;padding:56px 24px;color:var(--sub);}
@@ -217,10 +237,14 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .spin{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* ═══════════════ AMOUNT COLORS ═══════════════ */
+/* ═══════════════ MISC ═══════════════ */
 .amt-pos{color:var(--ok);}
 .amt-neg{color:var(--red);}
 .amt-neutral{color:var(--sub);}
+.row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.info-banner{background:var(--brandL);border:1px solid rgba(61,142,248,.2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--brand);display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.warn-banner{background:var(--warnBg);border:1px solid var(--warnBorder);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--warn);display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.page-title{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
 
 /* ═══════════════ RESPONSIVE ═══════════════ */
 @media(max-width:768px){
@@ -231,6 +255,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
   .detail-grid{grid-template-columns:1fr;}
   .topbar{padding:0 14px;}
   .refresh-time{display:none;}
+  .topbar-admin-info{display:none;}
   .modal{border-radius:16px;}
   .resolve-btns{flex-direction:column;}
   .resolve-btns .btn{flex:none;}
@@ -239,19 +264,11 @@ tr:hover td{background:rgba(255,255,255,.015);}
   .stats-grid{grid-template-columns:1fr 1fr;}
   .stat-val{font-size:20px;}
   .quick-grid{grid-template-columns:1fr;}
+  .login-card{padding:32px 24px;}
 }
-
-/* ═══════════════ SCROLLBAR ═══════════════ */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--card3);border-radius:4px;}
-
-/* ═══════════════ ROW HOVER ACTIONS ═══════════════ */
-.row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-
-/* ═══════════════ INFO BANNER ═══════════════ */
-.info-banner{background:var(--brandL);border:1px solid rgba(61,142,248,.2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--brand);display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.warn-banner{background:var(--warnBg);border:1px solid var(--warnBorder);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--warn);display:flex;align-items:center;gap:10px;margin-bottom:16px;}
 </style>
 </head>
 <body>
@@ -265,13 +282,47 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div class="login-title">SafePass <span class="login-badge">ADMIN</span></div>
       </div>
     </div>
-    <p class="login-sub">Đăng nhập bằng Admin Secret Key để truy cập bảng điều khiển.</p>
-    <div class="field">
-      <label>Admin Secret Key</label>
-      <input type="password" id="secret-input" placeholder="••••••••••••••••" autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- Login tabs -->
+    <div class="login-tabs" id="login-tabs">
+      <div class="login-tab active" onclick="switchLoginTab('login')">Đăng nhập</div>
+      <div class="login-tab" onclick="switchLoginTab('setup')">Thiết lập</div>
     </div>
-    <button class="btn-login" onclick="doLogin()">🔐 Đăng nhập</button>
+
+    <!-- Login form -->
+    <div id="login-form-wrap">
+      <p class="login-sub">Đăng nhập bằng tài khoản Admin của bạn.</p>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="email"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="field">
+        <label>Mật khẩu</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-login" id="login-btn" onclick="doLogin()">🔐 Đăng nhập</button>
+    </div>
+
+    <!-- Setup form -->
+    <div id="setup-form-wrap" style="display:none">
+      <p class="login-sub">Tạo tài khoản Super Admin đầu tiên. Cần có Admin Secret Key.</p>
+      <div class="field">
+        <label>Admin Secret Key</label>
+        <input type="password" id="setup-secret" placeholder="••••••••••••••••">
+      </div>
+      <div class="field">
+        <label>Email Admin</label>
+        <input type="email" id="setup-email" placeholder="admin@example.com">
+      </div>
+      <div class="field">
+        <label>Mật khẩu (tối thiểu 8 ký tự)</label>
+        <input type="password" id="setup-password" placeholder="••••••••">
+      </div>
+      <button class="btn-login" id="setup-btn" onclick="doSetup()">🚀 Tạo Super Admin</button>
+    </div>
+
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
@@ -284,9 +335,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="topbar-brand">
       <div class="topbar-shield">🛡️</div>
       SafePass
-      <span class="badge-admin">ADMIN</span>
+      <span id="topbar-role-badge" class="badge-admin">ADMIN</span>
     </div>
     <div class="topbar-right">
+      <div class="topbar-admin-info" id="topbar-admin-info"></div>
       <span class="refresh-time" id="refresh-time">—</span>
       <button class="btn-sm btn-sm-brand" onclick="doRefresh()">🔄 Làm mới</button>
       <button class="btn-sm btn-sm-danger" onclick="doLogout()">Đăng xuất</button>
@@ -295,15 +347,16 @@ tr:hover td{background:rgba(255,255,255,.015);}
 
   <!-- MOBILE NAV -->
   <div class="mobile-nav" id="mobile-nav">
-    <div class="mob-nav-item active" onclick="switchTab('overview')" data-tab="overview">📊 Tổng quan</div>
-    <div class="mob-nav-item" onclick="switchTab('disputes')" data-tab="disputes">🔥 Khiếu nại <span class="mob-badge" id="mob-dispute-badge" style="display:none">0</span></div>
-    <div class="mob-nav-item" onclick="switchTab('orders')" data-tab="orders">📋 Đơn hàng</div>
-    <div class="mob-nav-item" onclick="switchTab('tickets')" data-tab="tickets">🎟️ Vé</div>
+    <div class="mob-nav-item active" onclick="switchTab('overview')" data-tab="overview">📊 Dashboard</div>
     <div class="mob-nav-item" onclick="switchTab('users')" data-tab="users">👥 Users</div>
+    <div class="mob-nav-item" onclick="switchTab('tickets')" data-tab="tickets">🎟️ Vé</div>
+    <div class="mob-nav-item" onclick="switchTab('orders')" data-tab="orders">📋 Đơn hàng</div>
+    <div class="mob-nav-item" onclick="switchTab('disputes')" data-tab="disputes">🔥 Khiếu nại <span class="mob-badge" id="mob-dispute-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('transactions')" data-tab="transactions">💳 Giao dịch</div>
     <div class="mob-nav-item" onclick="switchTab('withdrawals')" data-tab="withdrawals">💸 Rút tiền <span class="mob-badge" id="mob-withdraw-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('kyc')" data-tab="kyc">🪪 KYC <span class="mob-badge" id="mob-kyc-badge" style="display:none">0</span></div>
-    <div class="mob-nav-item" onclick="switchTab('scanner')" data-tab="scanner">📷 Scanner</div>
+    <div class="mob-nav-item" onclick="switchTab('audit')" data-tab="audit">📜 Audit Log</div>
+    <div class="mob-nav-item" onclick="switchTab('settings')" data-tab="settings">⚙️ Cài đặt</div>
   </div>
 
   <div class="layout">
@@ -313,10 +366,10 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="nav-item active" onclick="switchTab('overview')" data-tab="overview"><span class="nav-icon">📊</span> Dashboard</div>
 
       <div class="sidebar-section">Quản lý</div>
-      <div class="nav-item" onclick="switchTab('disputes')" data-tab="disputes"><span class="nav-icon">🔥</span> Khiếu nại <span class="nav-badge" id="dispute-badge" style="display:none">0</span></div>
-      <div class="nav-item" onclick="switchTab('orders')" data-tab="orders"><span class="nav-icon">📋</span> Đơn hàng</div>
-      <div class="nav-item" onclick="switchTab('tickets')" data-tab="tickets"><span class="nav-icon">🎟️</span> Vé</div>
       <div class="nav-item" onclick="switchTab('users')" data-tab="users"><span class="nav-icon">👥</span> Người dùng</div>
+      <div class="nav-item" onclick="switchTab('tickets')" data-tab="tickets"><span class="nav-icon">🎟️</span> Vé</div>
+      <div class="nav-item" onclick="switchTab('orders')" data-tab="orders"><span class="nav-icon">📋</span> Đơn hàng</div>
+      <div class="nav-item" onclick="switchTab('disputes')" data-tab="disputes"><span class="nav-icon">🔥</span> Khiếu nại <span class="nav-badge" id="dispute-badge" style="display:none">0</span></div>
 
       <div class="sidebar-section">Tài chính</div>
       <div class="nav-item" onclick="switchTab('transactions')" data-tab="transactions"><span class="nav-icon">💳</span> Giao dịch</div>
@@ -325,22 +378,27 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="sidebar-section">Xác minh</div>
       <div class="nav-item" onclick="switchTab('kyc')" data-tab="kyc"><span class="nav-icon">🪪</span> KYC <span class="nav-badge" id="kyc-badge" style="display:none">0</span></div>
       <div class="nav-item" onclick="switchTab('scanner')" data-tab="scanner"><span class="nav-icon">📷</span> QR Scanner</div>
+
+      <div class="sidebar-section">Hệ thống</div>
+      <div class="nav-item" onclick="switchTab('audit')" data-tab="audit"><span class="nav-icon">📜</span> Audit Log</div>
+      <div class="nav-item" onclick="switchTab('settings')" data-tab="settings"><span class="nav-icon">⚙️</span> Cài đặt</div>
     </nav>
 
     <!-- MAIN -->
     <main class="main">
 
-      <!-- ── PAGE: OVERVIEW ── -->
+      <!-- ════ PAGE: OVERVIEW ════ -->
       <div class="page active" id="page-overview">
-        <div class="stats-grid" id="stats-grid">
-          <div class="stat-card"><div class="stat-label">👥 Người dùng</div><div class="stat-val c-brand" id="s-users">—</div><div class="stat-sub" id="s-users-sub">đang tải...</div></div>
+        <div class="page-title">📊 Dashboard</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">👥 Tổng người dùng</div><div class="stat-val c-brand" id="s-users">—</div><div class="stat-sub" id="s-users-sub">đang tải...</div></div>
+          <div class="stat-card"><div class="stat-label">✅ Đã xác minh</div><div class="stat-val c-ok" id="s-verified">—</div><div class="stat-sub">tài khoản verified</div></div>
           <div class="stat-card"><div class="stat-label">💰 Doanh thu (Phí)</div><div class="stat-val c-ok" id="s-revenue">—</div><div class="stat-sub">3% phí giao dịch</div></div>
-          <div class="stat-card"><div class="stat-label">📦 GMV</div><div class="stat-val c-brand" id="s-gmv">—</div><div class="stat-sub">Tổng giá trị giao dịch</div></div>
-          <div class="stat-card"><div class="stat-label">🔒 Escrow đang giữ</div><div class="stat-val c-purple" id="s-escrow">—</div><div class="stat-sub">Trong escrow</div></div>
-          <div class="stat-card"><div class="stat-label">✅ Đơn hoàn thành</div><div class="stat-val c-ok" id="s-completed">—</div><div class="stat-sub" id="s-completed-sub">/ tổng đơn</div></div>
+          <div class="stat-card"><div class="stat-label">📦 GMV</div><div class="stat-val c-brand" id="s-gmv">—</div><div class="stat-sub">Tổng giá trị GD</div></div>
+          <div class="stat-card"><div class="stat-label">🔒 Escrow Balance</div><div class="stat-val c-purple" id="s-escrow">—</div><div class="stat-sub">đang giữ trong escrow</div></div>
+          <div class="stat-card"><div class="stat-label">📋 Đơn đang mở</div><div class="stat-val c-warn" id="s-active-orders">—</div><div class="stat-sub" id="s-completed-sub">/ tổng đơn</div></div>
           <div class="stat-card"><div class="stat-label">🎟️ Vé đang bán</div><div class="stat-val c-warn" id="s-tickets">—</div><div class="stat-sub">available listings</div></div>
           <div class="stat-card"><div class="stat-label">⚠️ Disputes chờ</div><div class="stat-val c-red" id="s-disputes">—</div><div class="stat-sub">cần xử lý</div></div>
-          <div class="stat-card"><div class="stat-label">💸 Rút tiền chờ</div><div class="stat-val c-warn" id="s-withdrawals">—</div><div class="stat-sub">yêu cầu pending</div></div>
         </div>
 
         <div class="card">
@@ -350,252 +408,258 @@ tr:hover td{background:rgba(255,255,255,.015);}
           </div>
           <div class="card-body">
             <div class="quick-grid">
-              <div class="quick-card">
-                <div class="quick-icon">🔥</div>
-                <div class="quick-title">Resolve Dispute</div>
-                <div class="quick-sub">Xem và xử lý các tranh chấp đang chờ admin</div>
-                <button class="btn btn-red btn-sm-btn" style="width:100%" onclick="switchTab('disputes')">Xem khiếu nại →</button>
-              </div>
-              <div class="quick-card">
-                <div class="quick-icon">💸</div>
-                <div class="quick-title">Duyệt rút tiền</div>
-                <div class="quick-sub">Xét duyệt yêu cầu rút tiền của người dùng</div>
-                <button class="btn btn-warn btn-sm-btn" style="width:100%" onclick="switchTab('withdrawals')">Xem rút tiền →</button>
-              </div>
-              <div class="quick-card">
-                <div class="quick-icon">👥</div>
-                <div class="quick-title">Quản lý Users</div>
-                <div class="quick-sub">Ban/unban, verify seller, set moderator</div>
-                <button class="btn btn-brand btn-sm-btn" style="width:100%" onclick="switchTab('users')">Quản lý users →</button>
-              </div>
-              <div class="quick-card">
-                <div class="quick-icon">📋</div>
-                <div class="quick-title">Đơn hàng</div>
-                <div class="quick-sub">Tra cứu, hủy đơn, hoàn tiền, giải ngân</div>
-                <button class="btn btn-brand btn-sm-btn" style="width:100%" onclick="switchTab('orders')">Xem đơn hàng →</button>
-              </div>
-              <div class="quick-card">
-                <div class="quick-icon">📥</div>
-                <div class="quick-title">Xuất CSV</div>
-                <div class="quick-sub">Tải báo cáo đơn hàng dạng CSV</div>
-                <button class="btn btn-ok btn-sm-btn" style="width:100%" onclick="exportOrdersCSV()">📥 Xuất CSV →</button>
-              </div>
+              <div class="quick-card"><div class="quick-icon">🔥</div><div class="quick-title">Resolve Dispute</div><div class="quick-sub">Xem và xử lý các tranh chấp đang chờ</div><button class="btn btn-red btn-sm-btn" style="width:100%" onclick="switchTab('disputes')">Xem khiếu nại →</button></div>
+              <div class="quick-card"><div class="quick-icon">💸</div><div class="quick-title">Duyệt rút tiền</div><div class="quick-sub">Xét duyệt yêu cầu rút tiền của users</div><button class="btn btn-warn btn-sm-btn" style="width:100%" onclick="switchTab('withdrawals')">Xem rút tiền →</button></div>
+              <div class="quick-card"><div class="quick-icon">👥</div><div class="quick-title">Quản lý Users</div><div class="quick-sub">Ban/unban, verify seller, xem thông tin</div><button class="btn btn-brand btn-sm-btn" style="width:100%" onclick="switchTab('users')">Quản lý users →</button></div>
+              <div class="quick-card"><div class="quick-icon">📋</div><div class="quick-title">Đơn hàng</div><div class="quick-sub">Tra cứu, hủy đơn, hoàn tiền, giải ngân</div><button class="btn btn-brand btn-sm-btn" style="width:100%" onclick="switchTab('orders')">Xem đơn hàng →</button></div>
+              <div class="quick-card"><div class="quick-icon">📜</div><div class="quick-title">Audit Log</div><div class="quick-sub">Xem lịch sử hành động của admin</div><button class="btn btn-ghost btn-sm-btn" style="width:100%" onclick="switchTab('audit')">Xem log →</button></div>
+              <div class="quick-card"><div class="quick-icon">📥</div><div class="quick-title">Export CSV</div><div class="quick-sub">Xuất dữ liệu đơn hàng ra file CSV</div><button class="btn btn-ghost btn-sm-btn" style="width:100%" onclick="doExport()">Xuất CSV →</button></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ── PAGE: DISPUTES ── -->
-      <div class="page" id="page-disputes">
-        <div class="card">
-          <div class="card-head">
-            <div><div class="card-title">🔥 Khiếu nại đang chờ</div><div class="card-sub" id="disputes-sub">Đang tải...</div></div>
-            <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
-          </div>
-          <div class="card-body" id="disputes-list"><div class="loading"><div class="spin"></div> Đang tải...</div></div>
-        </div>
-
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title">🔍 Resolve theo Order ID</div>
-          </div>
-          <div class="card-body">
-            <div style="display:flex;gap:10px;">
-              <input id="dispute-order-id" placeholder="Nhập Order ID (UUID)..." class="search-input" style="flex:1"
-                onkeydown="if(event.key==='Enter')loadDisputeOrder()">
-              <button class="btn btn-brand btn-sm-btn" onclick="loadDisputeOrder()">🔍 Tải đơn</button>
-            </div>
-            <div id="dispute-order-result" style="margin-top:14px;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── PAGE: ORDERS ── -->
-      <div class="page" id="page-orders">
-        <div class="card">
-          <div class="card-head">
-            <div><div class="card-title">📋 Tất cả đơn hàng</div><div class="card-sub" id="orders-sub">Đang tải...</div></div>
-            <button class="btn btn-ok btn-sm-btn" onclick="exportOrdersCSV()">📥 Xuất CSV</button>
-          </div>
-          <div class="card-body">
-            <div class="toolbar">
-              <div class="toolbar-left">
-                <input class="search-input" placeholder="🔍 Tìm theo tên sự kiện, buyer, seller..." id="orders-search" oninput="filterOrders()">
-              </div>
-              <select class="filter-select" id="orders-filter" onchange="filterOrders()">
-                <option value="">Tất cả trạng thái</option>
-                <option value="waiting_qr">⏳ Chờ QR</option>
-                <option value="waiting_confirm">📸 Chờ confirm</option>
-                <option value="disputed">⚠️ Tranh chấp</option>
-                <option value="completed">✅ Hoàn tất</option>
-                <option value="refunded">↩️ Hoàn tiền</option>
-              </select>
-            </div>
-            <div id="orders-table-wrap" class="tbl-wrap"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-head"><div class="card-title">🔍 Tra cứu & Thao tác đơn hàng</div></div>
-          <div class="card-body">
-            <div style="display:flex;gap:10px;">
-              <input id="search-order-id" placeholder="Nhập Order ID (UUID)..." class="search-input" style="flex:1"
-                onkeydown="if(event.key==='Enter')searchOrderAction()">
-              <button class="btn btn-brand btn-sm-btn" onclick="searchOrderAction()">Tìm</button>
-            </div>
-            <div id="order-action-result" style="margin-top:14px;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── PAGE: TICKETS ── -->
-      <div class="page" id="page-tickets">
-        <div class="card">
-          <div class="card-head">
-            <div><div class="card-title">🎟️ Tất cả vé</div><div class="card-sub" id="tickets-sub">Đang tải...</div></div>
-          </div>
-          <div class="card-body">
-            <div class="toolbar">
-              <div class="toolbar-left">
-                <input class="search-input" placeholder="🔍 Tìm theo sự kiện, seller..." id="tickets-search" oninput="filterTickets()">
-              </div>
-              <select class="filter-select" id="tickets-filter" onchange="filterTickets()">
-                <option value="">Tất cả</option>
-                <option value="available">✅ Đang bán</option>
-                <option value="sold">💫 Đã bán</option>
-                <option value="expired">❌ Hết hạn</option>
-              </select>
-            </div>
-            <div id="tickets-table-wrap" class="tbl-wrap"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── PAGE: USERS ── -->
+      <!-- ════ PAGE: USERS ════ -->
       <div class="page" id="page-users">
-        <div class="card">
-          <div class="card-head">
-            <div><div class="card-title">👥 Quản lý người dùng</div><div class="card-sub" id="users-sub">Đang tải...</div></div>
-            <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
+        <div class="page-title">👥 Người dùng</div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" id="user-search" placeholder="🔍 Tìm theo tên, SĐT, email..." oninput="filterUsers()">
           </div>
-          <div class="card-body">
-            <div class="toolbar">
-              <div class="toolbar-left">
-                <input class="search-input" placeholder="🔍 Tìm theo tên hoặc số điện thoại..." id="users-search" oninput="filterUsers()">
-              </div>
-              <select class="filter-select" id="users-filter" onchange="filterUsers()">
-                <option value="">Tất cả</option>
-                <option value="active">✅ Hoạt động</option>
-                <option value="banned">🚫 Bị khóa</option>
-                <option value="verified">✔️ Đã verify</option>
-              </select>
-            </div>
-            <div id="users-table-wrap" class="tbl-wrap"></div>
+          <select class="filter-select" id="user-filter" onchange="filterUsers()">
+            <option value="">Tất cả</option>
+            <option value="banned">Bị khóa</option>
+            <option value="verified">Verified</option>
+            <option value="vip">VIP</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadUsers()">🔄 Tải lại</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>User ID</th><th>Tên</th><th>SĐT / Email</th><th>Số dư</th><th>Escrow</th><th>Trạng thái</th><th>Hành động</th>
+              </tr></thead>
+              <tbody id="user-tbody"></tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <!-- ── PAGE: TRANSACTIONS ── -->
+      <!-- ════ PAGE: TICKETS ════ -->
+      <div class="page" id="page-tickets">
+        <div class="page-title">🎟️ Vé</div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" id="ticket-search" placeholder="🔍 Tìm sự kiện, tên seller..." oninput="filterTickets()">
+          </div>
+          <select class="filter-select" id="ticket-filter" onchange="filterTickets()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="available">Available</option>
+            <option value="sold">Sold</option>
+            <option value="hidden">Hidden</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadTickets()">🔄 Tải lại</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Sự kiện</th><th>Seller</th><th>Giá</th><th>Loại vé</th><th>Trạng thái</th><th>Hành động</th>
+              </tr></thead>
+              <tbody id="ticket-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: ORDERS ════ -->
+      <div class="page" id="page-orders">
+        <div class="page-title">📋 Đơn hàng</div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" id="order-search" placeholder="🔍 Tìm sự kiện, buyer, seller..." oninput="filterOrders()">
+          </div>
+          <select class="filter-select" id="order-filter" onchange="filterOrders()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="waiting_qr">Chờ QR</option>
+            <option value="waiting_confirm">Chờ xác nhận</option>
+            <option value="disputed">Disputed</option>
+            <option value="completed">Hoàn thành</option>
+            <option value="refunded">Đã hoàn tiền</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadOrders()">🔄 Tải lại</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Sự kiện</th><th>Buyer</th><th>Seller</th><th>Tổng tiền</th><th>Phí</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hành động</th>
+              </tr></thead>
+              <tbody id="order-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: DISPUTES ════ -->
+      <div class="page" id="page-disputes">
+        <div class="page-title">🔥 Khiếu nại</div>
+        <div id="disputes-list"><div class="loading"><div class="spin"></div> Đang tải...</div></div>
+      </div>
+
+      <!-- ════ PAGE: TRANSACTIONS ════ -->
       <div class="page" id="page-transactions">
+        <div class="page-title">💳 Giao dịch</div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" id="tx-search" placeholder="🔍 Tìm User ID..." oninput="filterTx()">
+          </div>
+          <select class="filter-select" id="tx-filter" onchange="filterTx()">
+            <option value="">Tất cả loại</option>
+            <option value="topup">Nạp tiền</option>
+            <option value="payout">Giải ngân</option>
+            <option value="refund">Hoàn tiền</option>
+            <option value="withdraw">Rút tiền</option>
+            <option value="admin_action">Admin action</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadTransactions()">🔄 Tải lại</button>
+        </div>
         <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>User ID</th><th>Loại</th><th>Số tiền</th><th>Mô tả</th><th>Ngày</th>
+              </tr></thead>
+              <tbody id="tx-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: WITHDRAWALS ════ -->
+      <div class="page" id="page-withdrawals">
+        <div class="page-title">💸 Rút tiền</div>
+        <div class="toolbar">
+          <select class="filter-select" id="wd-filter" onchange="loadWithdrawals()">
+            <option value="pending">Chờ duyệt</option>
+            <option value="approved">Đã duyệt</option>
+            <option value="rejected">Đã từ chối</option>
+            <option value="">Tất cả</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadWithdrawals()">🔄 Tải lại</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>User</th><th>Số tiền</th><th>Ngân hàng</th><th>Số TK</th><th>Trạng thái</th><th>Ngày</th><th>Hành động</th>
+              </tr></thead>
+              <tbody id="wd-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: KYC ════ -->
+      <div class="page" id="page-kyc">
+        <div class="page-title">🪪 KYC</div>
+        <div id="kyc-list"><div class="loading"><div class="spin"></div> Đang tải...</div></div>
+      </div>
+
+      <!-- ════ PAGE: SCANNER ════ -->
+      <div class="page" id="page-scanner">
+        <div class="page-title">📷 QR Scanner</div>
+        <div class="info-banner">ℹ️ Trang scanner dành cho ban tổ chức sự kiện. Truy cập <a href="/scanner.html" target="_blank" style="color:var(--brand);margin-left:4px">/scanner.html</a></div>
+        <iframe src="/scanner.html" style="width:100%;height:calc(100vh - 200px);border:none;border-radius:var(--radius);background:var(--card2)"></iframe>
+      </div>
+
+      <!-- ════ PAGE: AUDIT LOG ════ -->
+      <div class="page" id="page-audit">
+        <div class="page-title">📜 Audit Log</div>
+        <div class="toolbar">
+          <select class="filter-select" id="audit-filter" onchange="loadAuditLog()">
+            <option value="">Tất cả hành động</option>
+            <option value="login">Login</option>
+            <option value="ban_user">Ban user</option>
+            <option value="unban_user">Unban user</option>
+            <option value="verify_seller">Verify seller</option>
+            <option value="resolve_dispute">Resolve dispute</option>
+            <option value="force_cancel_order">Force cancel</option>
+            <option value="force_release_order">Force release</option>
+            <option value="delete_ticket">Delete ticket</option>
+            <option value="hide_ticket">Hide ticket</option>
+            <option value="approve_withdrawal">Approve withdrawal</option>
+            <option value="reject_withdrawal">Reject withdrawal</option>
+            <option value="approve_kyc">Approve KYC</option>
+            <option value="reject_kyc">Reject KYC</option>
+            <option value="create_admin">Create admin</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadAuditLog()">🔄 Tải lại</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Thời gian</th><th>Admin</th><th>Hành động</th><th>Đối tượng</th><th>ID</th><th>Chi tiết</th>
+              </tr></thead>
+              <tbody id="audit-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: SETTINGS ════ -->
+      <div class="page" id="page-settings">
+        <div class="page-title">⚙️ Cài đặt</div>
+
+        <div class="card" id="card-create-admin">
           <div class="card-head">
-            <div><div class="card-title">💳 Lịch sử giao dịch</div><div class="card-sub" id="transactions-sub">Đang tải...</div></div>
-            <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
+            <div><div class="card-title">👤 Tạo tài khoản Admin</div><div class="card-sub">Chỉ Super Admin mới có thể tạo admin mới</div></div>
           </div>
           <div class="card-body">
-            <div class="toolbar">
-              <div class="toolbar-left">
-                <input class="search-input" placeholder="🔍 Tìm theo mô tả, user..." id="txn-search" oninput="filterTxns()">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:560px">
+              <div class="modal-field">
+                <label>Email</label>
+                <input class="modal-input" type="email" id="new-admin-email" placeholder="admin@example.com">
               </div>
-              <select class="filter-select" id="txn-filter" onchange="filterTxns()">
-                <option value="">Tất cả loại</option>
-                <option value="topup">💰 Nạp tiền</option>
-                <option value="purchase">🛒 Mua vé</option>
-                <option value="payout">💸 Nhận tiền</option>
-                <option value="refund">↩️ Hoàn tiền</option>
-                <option value="withdraw">🏦 Rút tiền</option>
-                <option value="withdraw_pending">⏳ Rút chờ duyệt</option>
-                <option value="admin_action">⚙️ Admin action</option>
-              </select>
+              <div class="modal-field">
+                <label>Mật khẩu (tối thiểu 8 ký tự)</label>
+                <input class="modal-input" type="password" id="new-admin-pass" placeholder="••••••••">
+              </div>
+              <div class="modal-field">
+                <label>Role</label>
+                <select class="modal-input" id="new-admin-role">
+                  <option value="moderator">Moderator</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
             </div>
-            <div id="txn-table-wrap" class="tbl-wrap"></div>
+            <button class="btn btn-primary" onclick="createAdmin()">➕ Tạo Admin</button>
           </div>
         </div>
-      </div>
 
-      <!-- ── PAGE: WITHDRAWALS ── -->
-      <div class="page" id="page-withdrawals">
         <div class="card">
           <div class="card-head">
-            <div><div class="card-title">💸 Yêu cầu rút tiền</div><div class="card-sub" id="withdrawals-sub">Đang tải...</div></div>
-            <div style="display:flex;gap:8px;">
-              <select class="filter-select" id="wd-filter" onchange="filterWithdrawals()">
-                <option value="pending">⏳ Chờ duyệt</option>
-                <option value="approved">✅ Đã duyệt</option>
-                <option value="rejected">❌ Từ chối</option>
-                <option value="">Tất cả</option>
-              </select>
-              <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
-            </div>
+            <div><div class="card-title">📋 Danh sách Admin</div></div>
+            <button class="btn btn-ghost btn-sm-btn" onclick="loadAdminList()">🔄 Tải lại</button>
           </div>
-          <div id="withdrawals-list" class="card-body"></div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Email</th><th>Role</th><th>Ngày tạo</th><th>Hành động</th></tr></thead>
+              <tbody id="admin-list-tbody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <!-- ── PAGE: KYC ── -->
-      <div class="page" id="page-kyc">
         <div class="card">
           <div class="card-head">
-            <div>
-              <div class="card-title">🪪 Xác minh danh tính (KYC)</div>
-              <div class="card-sub" id="kyc-sub">Đang tải...</div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <select class="filter-select" id="kyc-filter" onchange="renderKyc()">
-                <option value="pending">⏳ Chờ duyệt</option>
-                <option value="approved">✅ Đã duyệt</option>
-                <option value="rejected">❌ Từ chối</option>
-                <option value="">Tất cả</option>
-              </select>
-              <button class="btn btn-brand btn-sm-btn" onclick="doRefresh()">🔄 Làm mới</button>
-            </div>
+            <div><div class="card-title">⚙️ Hành động nhanh</div></div>
           </div>
-          <div id="kyc-list" class="card-body"></div>
-        </div>
-      </div>
-
-      <!-- ── PAGE: SCANNER ── -->
-      <div class="page" id="page-scanner">
-        <div class="card" style="margin-bottom:16px;">
-          <div class="card-head">
-            <div>
-              <div class="card-title">📷 QR Ticket Scanner</div>
-              <div class="card-sub">Mở trang quét vé hoặc xem lịch sử</div>
-            </div>
-            <a href="/scanner.html" target="_blank" class="btn btn-brand btn-sm-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">🔍 Mở Scanner</a>
-          </div>
-          <div class="card-body" style="padding-top:0;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-              <div style="background:rgba(61,142,248,.08);border:1px solid rgba(61,142,248,.2);border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:28px;margin-bottom:6px;">📷</div>
-                <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Trang quét vé</div>
-                <div style="font-size:11px;color:var(--sub);margin-bottom:10px;">Dùng camera để quét QR vé tại sự kiện</div>
-                <a href="/scanner.html" target="_blank" style="font-size:12px;color:var(--brand);text-decoration:none;font-weight:600;">Mở Scanner →</a>
-              </div>
-              <div style="background:rgba(155,135,245,.08);border:1px solid rgba(155,135,245,.2);border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:28px;margin-bottom:6px;">🪪</div>
-                <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Mã Organizer</div>
-                <div style="font-size:11px;color:var(--sub);margin-bottom:10px;">Đặt <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;">SCANNER_CODE</code> trong Replit Secrets</div>
-                <span style="font-size:12px;color:var(--purple);font-weight:600;">Riêng cho BTC sự kiện</span>
-              </div>
-            </div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-              <div style="font-size:13px;font-weight:700;">📋 Lịch sử quét gần đây</div>
-              <button class="btn btn-brand btn-sm-btn" onclick="loadScanHistory()">🔄 Tải lại</button>
-            </div>
-            <div id="scan-history-list">
-              <div style="text-align:center;padding:20px;color:var(--hint);font-size:13px;">Nhấn "Tải lại" để xem lịch sử</div>
+          <div class="card-body">
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-brand" onclick="doProcessTimeouts()">⏰ Xử lý Escrow Timeout</button>
+              <button class="btn btn-ghost" onclick="doExport()">📥 Xuất CSV Đơn hàng</button>
             </div>
           </div>
         </div>
@@ -605,1051 +669,927 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 </div>
 
-<!-- ═══════════════ ACTION MODAL ═══════════════ -->
-<div class="modal-overlay" id="action-modal">
+<!-- ═══════════════ MODAL: USER DETAIL ═══════════════ -->
+<div class="modal-overlay" id="user-modal">
   <div class="modal">
     <div class="modal-head">
-      <div class="modal-title" id="modal-title">Xác nhận</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-title" id="user-modal-title">Chi tiết người dùng</div>
+      <button class="modal-close" onclick="closeModal('user-modal')">✕</button>
     </div>
-    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-body" id="user-modal-body"></div>
   </div>
 </div>
 
+<!-- ═══════════════ MODAL: ORDER DETAIL ═══════════════ -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="order-modal-title">Chi tiết đơn hàng</div>
+      <button class="modal-close" onclick="closeModal('order-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="order-modal-body"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
 <div id="toast"></div>
 
 <script>
-const API = window.location.origin + '/api';
-let ADMIN_SECRET = '';
+// ══════════════════════════════════
+//  STATE & HELPERS
+// ══════════════════════════════════
+let adminToken = localStorage.getItem('adminToken');
+let adminInfo = JSON.parse(localStorage.getItem('adminInfo') || 'null');
+let allUsers = [], allTickets = [], allOrders = [], allTx = [];
 let currentTab = 'overview';
-let _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [], kyc: [] };
-let lastRefresh = null;
 
-// ═══════════════ AUTH ═══════════════
+function fmt(n) {
+  if (n == null) return '—';
+  return Number(n).toLocaleString('vi-VN') + 'đ';
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+}
+function fmtDateShort(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('vi-VN');
+}
+function shortId(id) {
+  return id ? id.slice(0, 8) + '…' : '—';
+}
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3000);
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ── API helper ──
+async function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
+  const opts = { method, headers };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch('/api' + path, opts);
+  if (res.status === 401) { doLogout(); throw new Error('Phiên đăng nhập hết hạn'); }
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `Lỗi ${res.status}`);
+  return json;
+}
+
+// ══════════════════════════════════
+//  AUTH
+// ══════════════════════════════════
+function switchLoginTab(tab) {
+  document.querySelectorAll('.login-tab').forEach((el, i) => {
+    el.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'setup'));
+  });
+  document.getElementById('login-form-wrap').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('setup-form-wrap').style.display = tab === 'setup' ? '' : 'none';
+  document.getElementById('login-err').textContent = '';
+}
+
 async function doLogin() {
-  const secret = document.getElementById('secret-input').value.trim();
-  if (!secret) return;
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
+  if (!email || !password) { errEl.textContent = 'Vui lòng nhập email và mật khẩu'; return; }
+  btn.disabled = true; btn.textContent = 'Đang đăng nhập...';
   errEl.textContent = '';
-  ADMIN_SECRET = secret;
   try {
-    const res = await fetch(API + '/admin/stats', { headers: adminHeaders() });
-    if (!res.ok) { errEl.textContent = '❌ Secret không đúng'; ADMIN_SECRET = ''; return; }
-  } catch(e) { errEl.textContent = '❌ Không kết nối được server'; ADMIN_SECRET = ''; return; }
+    const data = await api('POST', '/admin/auth/login', { email, password });
+    adminToken = data.token;
+    adminInfo = { email: data.email, role: data.role, name: data.name };
+    localStorage.setItem('adminToken', adminToken);
+    localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+    initApp();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '🔐 Đăng nhập';
+  }
+}
 
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  await loadAllData();
-  renderTab();
+async function doSetup() {
+  const secret = document.getElementById('setup-secret').value;
+  const email = document.getElementById('setup-email').value.trim();
+  const password = document.getElementById('setup-password').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('setup-btn');
+  if (!secret || !email || !password) { errEl.textContent = 'Vui lòng điền đầy đủ thông tin'; return; }
+  btn.disabled = true; btn.textContent = 'Đang tạo...';
+  errEl.textContent = '';
+  try {
+    await api('POST', '/admin/auth/setup', { secret, email, password });
+    toast('✅ Super Admin đã được tạo! Đăng nhập ngay.', 'ok');
+    switchLoginTab('login');
+    document.getElementById('login-email').value = email;
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '🚀 Tạo Super Admin';
+  }
 }
 
 function doLogout() {
-  ADMIN_SECRET = '';
-  document.getElementById('login-screen').style.display = 'flex';
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminInfo');
+  adminToken = null; adminInfo = null;
   document.getElementById('app').style.display = 'none';
-  document.getElementById('secret-input').value = '';
-  _data = { orders: [], users: [], disputes: [], stats: null, tickets: [], transactions: [], withdrawals: [], kyc: [] };
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
 }
 
-function adminHeaders() {
-  return { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET };
-}
-function adminBody(extra = {}) {
-  return JSON.stringify({ secret: ADMIN_SECRET, ...extra });
-}
+// ══════════════════════════════════
+//  APP INIT
+// ══════════════════════════════════
+function initApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 
-// ═══════════════ DATA ═══════════════
-async function loadAllData() {
-  try {
-    const [statsRes, ordersRes, usersRes, ticketsRes, txnRes, wdRes, kycRes] = await Promise.all([
-      fetch(API + '/admin/stats', { headers: adminHeaders() }).then(r => r.ok ? r.json() : null),
-      fetch(API + '/admin/orders', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
-      fetch(API + '/admin/users', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
-      fetch(API + '/admin/tickets', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
-      fetch(API + '/admin/transactions', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
-      fetch(API + '/admin/withdrawals', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
-      fetch(API + '/admin/kyc', { headers: adminHeaders() }).then(r => r.ok ? r.json() : []),
-    ]);
-    _data.stats = statsRes;
-    _data.orders = Array.isArray(ordersRes) ? ordersRes : [];
-    _data.disputes = _data.orders.filter(o => o.status === 'disputed');
-    _data.users = Array.isArray(usersRes) ? usersRes : [];
-    _data.tickets = Array.isArray(ticketsRes) ? ticketsRes : [];
-    _data.transactions = Array.isArray(txnRes) ? txnRes : [];
-    _data.withdrawals = Array.isArray(wdRes) ? wdRes : [];
-    _data.kyc = Array.isArray(kycRes) ? kycRes : [];
-  } catch(e) { console.error('loadAllData:', e); }
-  lastRefresh = new Date();
-  updateBadges();
-  updateStats();
-  updateRefreshTime();
-}
-
-function updateRefreshTime() {
-  if (lastRefresh) {
-    document.getElementById('refresh-time').textContent = 'Lúc ' + lastRefresh.toLocaleTimeString('vi-VN');
+  // Show admin info in topbar
+  if (adminInfo) {
+    document.getElementById('topbar-admin-info').textContent = `👤 ${adminInfo.email}`;
+    const badge = document.getElementById('topbar-role-badge');
+    if (adminInfo.role === 'super_admin') {
+      badge.textContent = 'SUPER ADMIN'; badge.className = 'badge-admin';
+    } else {
+      badge.textContent = 'MODERATOR'; badge.className = 'badge-mod';
+    }
+    // Hide create admin section if not super_admin
+    if (adminInfo.role !== 'super_admin') {
+      const card = document.getElementById('card-create-admin');
+      if (card) card.style.display = 'none';
+    }
   }
+
+  loadOverview();
+  document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString('vi-VN');
 }
 
-function updateBadges() {
-  const dc = _data.disputes.length;
-  const wc = _data.withdrawals.filter(w => w.status === 'pending').length;
-  const kc = (_data.kyc || []).filter(k => k.status === 'pending').length;
-  ['dispute-badge','mob-dispute-badge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = dc; el.style.display = dc > 0 ? 'flex' : 'none';
-  });
-  ['kyc-badge','mob-kyc-badge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = kc; el.style.display = kc > 0 ? 'flex' : 'none';
-  });
-  ['withdraw-badge','mob-withdraw-badge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = wc; el.style.display = wc > 0 ? 'flex' : 'none';
-  });
+function doRefresh() {
+  switch (currentTab) {
+    case 'overview': loadOverview(); break;
+    case 'users': loadUsers(); break;
+    case 'tickets': loadTickets(); break;
+    case 'orders': loadOrders(); break;
+    case 'disputes': loadDisputes(); break;
+    case 'transactions': loadTransactions(); break;
+    case 'withdrawals': loadWithdrawals(); break;
+    case 'kyc': loadKyc(); break;
+    case 'audit': loadAuditLog(); break;
+    case 'settings': loadAdminList(); break;
+  }
+  document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString('vi-VN');
 }
 
-function updateStats() {
-  const s = _data.stats || {};
-  setText('s-users', fmt(s.totalUsers, 0));
-  setText('s-users-sub', `${s.bannedUsers || 0} bị khóa`);
-  setText('s-revenue', fmtShort(s.totalRevenue));
-  setText('s-gmv', fmtShort(s.totalGMV));
-  setText('s-escrow', fmtShort(s.totalEscrowLocked));
-  setText('s-completed', fmt(s.completedOrders, 0));
-  setText('s-completed-sub', `/ ${s.totalOrders || 0} tổng đơn`);
-  setText('s-tickets', fmt(s.availableTickets, 0));
-  setText('s-disputes', _data.disputes.length);
-  setText('s-withdrawals', (_data.withdrawals || []).filter(w => w.status === 'pending').length);
-}
-
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
-
-// ═══════════════ TABS ═══════════════
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.nav-item').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === tab);
-  });
-  document.querySelectorAll('.mob-nav-item').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === tab);
-  });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const page = document.getElementById('page-' + tab);
-  if (page) page.classList.add('active');
-  renderCurrentTab();
-  window.scrollTo(0, 0);
-}
-
-function renderCurrentTab() {
-  if (currentTab === 'disputes') renderDisputes();
-  else if (currentTab === 'orders') renderOrders();
-  else if (currentTab === 'tickets') renderTickets();
-  else if (currentTab === 'users') renderUsers();
-  else if (currentTab === 'transactions') renderTransactions();
-  else if (currentTab === 'withdrawals') renderWithdrawals();
-  else if (currentTab === 'kyc') renderKyc();
-  else if (currentTab === 'scanner') loadScanHistory();
-}
-
-async function doRefresh() {
-  showToast('🔄 Đang tải lại...', 'ok');
-  await loadAllData();
-  renderCurrentTab();
-  showToast('✅ Đã cập nhật', 'ok');
-}
-
-// ═══════════════ DISPUTES ═══════════════
-function renderDisputes() {
-  const list = _data.disputes;
-  setText('disputes-sub', `${list.length} khiếu nại chờ xử lý`);
-  const el = document.getElementById('disputes-list');
-  if (!list.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Không có khiếu nại nào</div><div class="empty-sub">Mọi đơn hàng đều ổn!</div></div>';
-    return;
+  document.querySelectorAll('.nav-item, .mob-nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.tab === tab);
+  });
+  document.getElementById(`page-${tab}`).classList.add('active');
+  switch (tab) {
+    case 'overview': loadOverview(); break;
+    case 'users': if (!allUsers.length) loadUsers(); break;
+    case 'tickets': if (!allTickets.length) loadTickets(); break;
+    case 'orders': if (!allOrders.length) loadOrders(); break;
+    case 'disputes': loadDisputes(); break;
+    case 'transactions': if (!allTx.length) loadTransactions(); break;
+    case 'withdrawals': loadWithdrawals(); break;
+    case 'kyc': loadKyc(); break;
+    case 'audit': loadAuditLog(); break;
+    case 'settings': loadAdminList(); break;
   }
-  el.innerHTML = list.map(o => buildDisputeCard(o)).join('');
 }
 
-function buildDisputeCard(o) {
-  return `
-  <div class="dispute-card" id="dcard-${o.id}">
-    <div class="dispute-top">
-      <div>
-        <div class="dispute-event">${esc(o.event_name)}</div>
-        <div class="dispute-meta">
-          Buyer: <strong>${esc(o.buyer_name)}</strong> &nbsp;·&nbsp; Seller: <strong>${esc(o.seller_name)}</strong>
-          &nbsp;·&nbsp; Tổng: <strong style="color:var(--brand)">${fmtVND(o.total)}</strong>
-          ${o.dispute_opened_at ? `<br><span style="font-size:11px;color:var(--hint);">Mở lúc: ${new Date(o.dispute_opened_at).toLocaleString('vi-VN')}</span>` : ''}
-          ${o.dispute_opened_by ? `&nbsp;·&nbsp; <span style="font-size:11px;">Mở bởi: ${o.dispute_opened_by === 'buyer' ? '🧑 Buyer' : '🏪 Seller'}</span>` : ''}
-        </div>
-      </div>
-      <span class="pill pill-red">⚠️ Disputed</span>
-    </div>
-    ${o.dispute_reason ? `
-    <div class="dispute-reason-box">
-      <div class="dispute-reason-label">Lý do khiếu nại</div>
-      <div style="font-size:13px">${esc(o.dispute_reason)}</div>
-      ${o.dispute_description ? `<div style="margin-top:6px;font-size:12px;color:var(--sub)">${esc(o.dispute_description)}</div>` : ''}
-    </div>` : ''}
-    <textarea class="resolve-note" id="note-${o.id}" rows="2" placeholder="Ghi chú lý do quyết định (không bắt buộc)..."></textarea>
-    <div class="resolve-btns">
-      <button class="btn btn-purple" onclick="resolveDispute('${o.id}','buyer')">👤 Buyer thắng — Hoàn tiền</button>
-      <button class="btn btn-warn" onclick="resolveDispute('${o.id}','seller')">🏪 Seller thắng — Giải ngân</button>
-      <button class="btn btn-ghost btn-sm-btn" onclick="showOrderDetail('${o.id}')">🔍 Xem chi tiết</button>
-    </div>
-  </div>`;
-}
-
-async function loadDisputeOrder() {
-  const id = document.getElementById('dispute-order-id').value.trim();
-  if (!id) return;
-  const el = document.getElementById('dispute-order-result');
-  el.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải...</div>';
+// ══════════════════════════════════
+//  OVERVIEW
+// ══════════════════════════════════
+async function loadOverview() {
   try {
-    const res = await fetch(`${API}/admin/orders/${id}`, { headers: adminHeaders() });
-    if (res.ok) {
-      const o = await res.json();
-      el.innerHTML = o.status === 'disputed' ? buildDisputeCard(o) : buildOrderDetailPanel(o);
-    } else {
-      el.innerHTML = buildDisputeCard({ id, event_name: 'Order: ' + id.slice(0,8) + '...', buyer_name:'?', seller_name:'?', total:0 });
-    }
-  } catch(e) { el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`; }
-}
+    const [stats, withdrawals] = await Promise.all([
+      api('GET', '/admin/stats'),
+      api('GET', '/admin/withdrawals?status=pending').catch(() => []),
+    ]);
+    document.getElementById('s-users').textContent = stats.totalUsers ?? '—';
+    document.getElementById('s-users-sub').textContent = `${stats.bannedUsers ?? 0} bị khóa`;
+    document.getElementById('s-verified').textContent = stats.verifiedUsers ?? '—';
+    document.getElementById('s-revenue').textContent = fmt(stats.totalRevenue);
+    document.getElementById('s-gmv').textContent = fmt(stats.totalGMV);
+    document.getElementById('s-escrow').textContent = fmt(stats.totalEscrowLocked);
+    document.getElementById('s-active-orders').textContent = (stats.totalOrders - stats.completedOrders) ?? '—';
+    document.getElementById('s-completed-sub').textContent = `${stats.completedOrders ?? 0} / ${stats.totalOrders ?? 0} hoàn thành`;
+    document.getElementById('s-tickets').textContent = stats.availableTickets ?? '—';
+    document.getElementById('s-disputes').textContent = stats.disputedOrders ?? '—';
 
-async function resolveDispute(orderId, winner) {
-  const note = (document.getElementById('note-' + orderId)?.value || '').trim();
-  const card = document.getElementById('dcard-' + orderId);
-  const btns = card?.querySelectorAll('button') || [];
-  btns.forEach(b => b.disabled = true);
-  try {
-    const res = await fetch(`${API}/admin/orders/${orderId}/resolve`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ winner, note })
+    // Update badges
+    const dc = stats.disputedOrders || 0;
+    ['dispute-badge', 'mob-dispute-badge'].forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = dc; el.style.display = dc > 0 ? 'flex' : 'none';
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Lỗi không xác định');
-    showToast(`✅ ${winner === 'buyer' ? 'Đã hoàn tiền cho Buyer' : 'Đã giải ngân cho Seller'}`, 'ok');
-    await loadAllData();
-    renderDisputes();
-  } catch(e) {
-    showToast('❌ ' + e.message, 'err');
-    btns.forEach(b => b.disabled = false);
-  }
-}
-
-// ═══════════════ ORDERS ═══════════════
-const ORDER_STATUS = {
-  waiting_qr: '<span class="pill pill-blue">⏳ Chờ QR</span>',
-  waiting_confirm: '<span class="pill pill-blue">📸 Chờ confirm</span>',
-  completed: '<span class="pill pill-ok">✅ Hoàn tất</span>',
-  disputed: '<span class="pill pill-red">⚠️ Tranh chấp</span>',
-  refunded: '<span class="pill pill-warn">↩️ Hoàn tiền</span>',
-};
-
-function renderOrders() {
-  const orders = _data.orders;
-  setText('orders-sub', `${orders.length} đơn hàng`);
-  renderOrdersTable(orders);
-}
-
-function renderOrdersTable(orders) {
-  const wrap = document.getElementById('orders-table-wrap');
-  if (!orders.length) {
-    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Không có đơn hàng nào</div></div>';
-    return;
-  }
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Sự kiện</th><th>Buyer</th><th>Seller</th><th>Tổng</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
-    </tr></thead>
-    <tbody>${orders.map(o => `<tr
-      data-event="${esc((o.event_name||'').toLowerCase())}"
-      data-buyer="${esc((o.buyer_name||'').toLowerCase())}"
-      data-seller="${esc((o.seller_name||'').toLowerCase())}"
-      data-status="${esc(o.status||'')}">
-      <td>
-        <div style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.event_name)}</div>
-        <div class="mono" style="font-size:10px;color:var(--hint)">${o.id.slice(0,8)}…</div>
-      </td>
-      <td style="font-size:12px">${esc(o.buyer_name)}</td>
-      <td style="font-size:12px">${esc(o.seller_name)}</td>
-      <td class="mono" style="color:var(--brand)">${fmtVND(o.total)}</td>
-      <td>${ORDER_STATUS[o.status] || `<span class="pill pill-gray">${o.status}</span>`}</td>
-      <td class="mono" style="font-size:11px;color:var(--sub)">${(o.created_at||'').slice(0,10)}</td>
-      <td><button class="btn btn-ghost btn-xs" onclick="showOrderDetail('${o.id}')">🔍 Chi tiết</button></td>
-    </tr>`).join('')}</tbody>
-  </table>`;
-}
-
-function filterOrders() {
-  const q = (document.getElementById('orders-search')?.value || '').toLowerCase().trim();
-  const st = document.getElementById('orders-filter')?.value || '';
-  let orders = _data.orders;
-  if (st) orders = orders.filter(o => o.status === st);
-  if (q) orders = orders.filter(o =>
-    (o.event_name||'').toLowerCase().includes(q) ||
-    (o.buyer_name||'').toLowerCase().includes(q) ||
-    (o.seller_name||'').toLowerCase().includes(q) ||
-    (o.id||'').toLowerCase().includes(q)
-  );
-  setText('orders-sub', `${orders.length} / ${_data.orders.length} đơn hàng`);
-  renderOrdersTable(orders);
-}
-
-async function searchOrderAction() {
-  const id = document.getElementById('search-order-id').value.trim();
-  if (!id) return;
-  const el = document.getElementById('order-action-result');
-  el.innerHTML = '<div class="loading"><div class="spin"></div> Đang tìm...</div>';
-  try {
-    const res = await fetch(`${API}/admin/orders/${id}`, { headers: adminHeaders() });
-    if (res.ok) {
-      const o = await res.json();
-      el.innerHTML = buildOrderDetailPanel(o);
-    } else {
-      el.innerHTML = `<div class="warn-banner">⚠️ Không tìm thấy đơn hàng với ID: ${esc(id)}</div>`;
-    }
-  } catch(e) { el.innerHTML = `<div style="color:var(--red);font-size:13px;">${e.message}</div>`; }
-}
-
-function buildOrderDetailPanel(o) {
-  const canCancel = ['waiting_qr','waiting_confirm','disputed'].includes(o.status);
-  const canRelease = ['waiting_qr','waiting_confirm','disputed'].includes(o.status);
-  return `
-  <div class="order-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-      <div>
-        <div style="font-size:15px;font-weight:700">${esc(o.event_name)}</div>
-        <div class="mono" style="font-size:11px;color:var(--hint);margin-top:2px">${o.id}</div>
-      </div>
-      ${ORDER_STATUS[o.status] || `<span class="pill pill-gray">${o.status}</span>`}
-    </div>
-    <div class="detail-grid">
-      <div class="detail-item"><div class="d-label">Buyer</div><div class="d-val">${esc(o.buyer_name)}</div></div>
-      <div class="detail-item"><div class="d-label">Seller</div><div class="d-val">${esc(o.seller_name)}</div></div>
-      <div class="detail-item"><div class="d-label">Giá vé</div><div class="d-val mono" style="color:var(--brand)">${fmtVND(o.price)}</div></div>
-      <div class="detail-item"><div class="d-label">Phí (3%)</div><div class="d-val mono" style="color:var(--warn)">${fmtVND(o.fee)}</div></div>
-      <div class="detail-item"><div class="d-label">Tổng (buyer trả)</div><div class="d-val mono" style="color:var(--brand)">${fmtVND(o.total)}</div></div>
-      <div class="detail-item"><div class="d-label">Ngày tạo</div><div class="d-val mono" style="font-size:12px">${(o.created_at||'').slice(0,16).replace('T',' ')}</div></div>
-    </div>
-    ${o.dispute_reason ? `<div class="dispute-reason-box"><div class="dispute-reason-label">Lý do khiếu nại</div><div>${esc(o.dispute_reason)}</div></div>` : ''}
-    <div class="detail-actions">
-      ${canCancel ? `<button class="btn btn-red btn-sm-btn" onclick="showForceCancel('${o.id}','${esc(o.event_name)}')">↩️ Hủy đơn & Hoàn tiền</button>` : ''}
-      ${canRelease ? `<button class="btn btn-ok btn-sm-btn" onclick="showForceRelease('${o.id}','${esc(o.event_name)}')">💸 Giải ngân Escrow</button>` : ''}
-      ${o.status === 'disputed' ? `<button class="btn btn-purple btn-sm-btn" onclick="resolveDispute('${o.id}','buyer')">👤 Buyer thắng</button><button class="btn btn-warn btn-sm-btn" onclick="resolveDispute('${o.id}','seller')">🏪 Seller thắng</button>` : ''}
-      ${!canCancel && !canRelease && o.status !== 'disputed' ? `<div style="color:var(--sub);font-size:13px">Đơn hàng đã kết thúc — không có thao tác nào khả dụng.</div>` : ''}
-    </div>
-  </div>`;
-}
-
-async function showOrderDetail(orderId) {
-  const el = document.getElementById('order-action-result') || document.getElementById('dispute-order-result');
-  if (currentTab === 'orders') {
-    const searchEl = document.getElementById('search-order-id');
-    if (searchEl) searchEl.value = orderId;
-    await searchOrderAction();
-    document.getElementById('order-action-result')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } else {
-    const res = await fetch(`${API}/admin/orders/${orderId}`, { headers: adminHeaders() });
-    if (res.ok) {
-      const o = await res.json();
-      openModal('🔍 Chi tiết đơn hàng', buildOrderDetailPanel(o));
-    }
-  }
-}
-
-function showForceCancel(orderId, eventName) {
-  openModal('↩️ Hủy đơn & Hoàn tiền', `
-    <div class="warn-banner">⚠️ Thao tác này sẽ hoàn toàn bộ tiền về ví Buyer và đặt lại vé về trạng thái "Đang bán".</div>
-    <div class="modal-field">
-      <label>Sự kiện</label>
-      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(eventName)}</div>
-    </div>
-    <div class="modal-field">
-      <label>Ghi chú (lý do hủy)</label>
-      <textarea class="modal-input modal-textarea" id="cancel-note" placeholder="Ghi chú cho buyer & seller..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
-      <button class="btn btn-red" onclick="doForceCancel('${orderId}')">↩️ Xác nhận hủy đơn</button>
-    </div>
-  `);
-}
-
-async function doForceCancel(orderId) {
-  const note = document.getElementById('cancel-note')?.value.trim() || '';
-  closeModal();
-  try {
-    const res = await fetch(`${API}/admin/orders/${orderId}/force-cancel`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
+    const wc = (withdrawals || []).length;
+    ['withdraw-badge', 'mob-withdraw-badge'].forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = wc; el.style.display = wc > 0 ? 'flex' : 'none';
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ ' + data.message, 'ok');
-    await loadAllData();
-    renderCurrentTab();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+  } catch (e) { console.error(e); }
 }
 
-function showForceRelease(orderId, eventName) {
-  openModal('💸 Giải ngân Escrow cho Seller', `
-    <div class="info-banner">ℹ️ Thao tác này sẽ chuyển tiền từ escrow vào ví Seller và đánh dấu đơn hoàn tất.</div>
-    <div class="modal-field">
-      <label>Sự kiện</label>
-      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(eventName)}</div>
-    </div>
-    <div class="modal-field">
-      <label>Ghi chú (lý do giải ngân)</label>
-      <textarea class="modal-input modal-textarea" id="release-note" placeholder="Ghi chú lý do giải ngân..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
-      <button class="btn btn-ok" onclick="doForceRelease('${orderId}')">💸 Xác nhận giải ngân</button>
-    </div>
-  `);
-}
-
-async function doForceRelease(orderId) {
-  const note = document.getElementById('release-note')?.value.trim() || '';
-  closeModal();
+// ══════════════════════════════════
+//  USERS
+// ══════════════════════════════════
+async function loadUsers() {
+  document.getElementById('user-tbody').innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
   try {
-    const res = await fetch(`${API}/admin/orders/${orderId}/force-release`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ ' + data.message, 'ok');
-    await loadAllData();
-    renderCurrentTab();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
-}
-
-// ═══════════════ TICKETS ═══════════════
-const TICKET_STATUS = {
-  available: '<span class="pill pill-ok">✅ Đang bán</span>',
-  sold: '<span class="pill pill-purple">💫 Đã bán</span>',
-  expired: '<span class="pill pill-gray">❌ Hết hạn</span>',
-};
-
-function renderTickets() {
-  const tickets = _data.tickets;
-  setText('tickets-sub', `${tickets.length} vé`);
-  renderTicketsTable(tickets);
-}
-
-function renderTicketsTable(tickets) {
-  const wrap = document.getElementById('tickets-table-wrap');
-  if (!tickets.length) {
-    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🎟️</div><div class="empty-title">Không có vé nào</div></div>';
-    return;
-  }
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Sự kiện</th><th>Seller</th><th>Giá</th><th>Địa điểm</th><th>Ngày sự kiện</th><th>Trạng thái</th><th>Đăng lúc</th><th>Thao tác</th>
-    </tr></thead>
-    <tbody>${tickets.map(t => `<tr
-      data-event="${esc((t.event_name||'').toLowerCase())}"
-      data-seller="${esc((t.seller_name||'').toLowerCase())}"
-      data-status="${esc(t.status||'')}">
-      <td>
-        <div style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.event_name)}</div>
-        ${t.section ? `<div style="font-size:11px;color:var(--sub)">${esc(t.section)}</div>` : ''}
-      </td>
-      <td style="font-size:12px">${esc(t.seller_name||'—')}</td>
-      <td class="mono" style="color:var(--brand)">${fmtVND(t.price)}</td>
-      <td style="font-size:12px;color:var(--sub);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.location||'—')}</td>
-      <td class="mono" style="font-size:11px;color:var(--sub)">${(t.event_date||'—').slice?.(0,10)||'—'}</td>
-      <td>${TICKET_STATUS[t.status] || `<span class="pill pill-gray">${t.status}</span>`}</td>
-      <td class="mono" style="font-size:11px;color:var(--sub)">${(t.created_at||'').slice(0,10)}</td>
-      <td><button class="btn btn-red btn-xs" onclick="deleteTicket('${t.id}','${esc(t.event_name)}')">🗑️</button></td>
-    </tr>`).join('')}</tbody>
-  </table>`;
-}
-
-function filterTickets() {
-  const q = (document.getElementById('tickets-search')?.value || '').toLowerCase().trim();
-  const st = document.getElementById('tickets-filter')?.value || '';
-  let tickets = _data.tickets;
-  if (st) tickets = tickets.filter(t => t.status === st);
-  if (q) tickets = tickets.filter(t =>
-    (t.event_name||'').toLowerCase().includes(q) ||
-    (t.seller_name||'').toLowerCase().includes(q)
-  );
-  setText('tickets-sub', `${tickets.length} / ${_data.tickets.length} vé`);
-  renderTicketsTable(tickets);
-}
-
-async function deleteTicket(ticketId, eventName) {
-  openModal('🗑️ Xóa vé', `
-    <div class="warn-banner">⚠️ Xóa vé này sẽ gỡ listing khỏi hệ thống. Không thể khôi phục.</div>
-    <div class="modal-field">
-      <label>Vé</label>
-      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(eventName)}</div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
-      <button class="btn btn-red" onclick="doDeleteTicket('${ticketId}')">🗑️ Xác nhận xóa</button>
-    </div>
-  `);
-}
-
-async function doDeleteTicket(ticketId) {
-  closeModal();
-  try {
-    const res = await fetch(`${API}/admin/tickets/${ticketId}`, {
-      method: 'DELETE', headers: adminHeaders()
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ ' + data.message, 'ok');
-    await loadAllData();
-    renderTickets();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
-}
-
-// ═══════════════ USERS ═══════════════
-function renderUsers() {
-  const users = _data.users;
-  const banned = users.filter(u => u.is_banned).length;
-  const verified = users.filter(u => u.is_verified).length;
-  setText('users-sub', `${users.length} người dùng · ${banned} bị khóa · ${verified} đã verify`);
-  renderUsersTable(users);
-}
-
-function renderUsersTable(users) {
-  const wrap = document.getElementById('users-table-wrap');
-  if (!users.length) {
-    wrap.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Không có người dùng nào</div></div>';
-    return;
-  }
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Tên</th><th>SĐT</th><th>Email</th><th>Balance</th><th>Escrow</th><th>Rating</th><th>Trạng thái</th><th>Đăng ký</th><th>Thao tác</th>
-    </tr></thead>
-    <tbody id="users-tbody">${users.map(u => buildUserRow(u)).join('')}</tbody>
-  </table>`;
-}
-
-function buildUserRow(u) {
-  const statusPills = [];
-  if (u.is_banned) statusPills.push('<span class="pill pill-red">🚫 Khóa</span>');
-  else statusPills.push('<span class="pill pill-ok">✅ Hoạt động</span>');
-  if (u.is_verified) statusPills.push('<span class="pill pill-blue" style="margin-left:4px">✔️ Verified</span>');
-  if (u.is_moderator) statusPills.push('<span class="pill pill-purple" style="margin-left:4px">⚖️ Mod</span>');
-
-  return `<tr
-    data-name="${esc((u.name||'').toLowerCase())}"
-    data-phone="${esc(u.phone||'')}"
-    data-status="${u.is_banned?'banned':'active'}"
-    data-verified="${u.is_verified?'verified':''}">
-    <td style="font-weight:600">${esc(u.name)}</td>
-    <td class="mono" style="font-size:12px">${esc(u.phone)}</td>
-    <td style="font-size:11px;color:var(--sub);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.email||'—')}</td>
-    <td class="mono" style="color:var(--ok);font-size:12px">${fmtVND(u.balance)}</td>
-    <td class="mono" style="color:var(--purple);font-size:12px">${fmtVND(u.escrow)}</td>
-    <td style="font-size:12px">${u.avg_rating ? `⭐ ${u.avg_rating} <span style="color:var(--hint)">(${u.review_count||0})</span>` : '<span style="color:var(--hint)">—</span>'}</td>
-    <td>${statusPills.join('')}</td>
-    <td class="mono" style="font-size:11px;color:var(--sub)">${(u.created_at||'').slice(0,10)}</td>
-    <td>
-      <div class="row-actions">
-        ${u.is_banned
-          ? `<button class="btn btn-ok btn-xs" onclick="unbanUser('${u.id}','${esc(u.name)}')">✅ Mở khóa</button>`
-          : `<button class="btn btn-red btn-xs" onclick="showBanUser('${u.id}','${esc(u.name)}')">🚫 Khóa</button>`}
-        ${u.is_verified
-          ? `<button class="btn btn-ghost btn-xs" onclick="unverifyUser('${u.id}','${esc(u.name)}')">❌ Bỏ verify</button>`
-          : `<button class="btn btn-brand btn-xs" onclick="verifyUser('${u.id}','${esc(u.name)}')">✔️ Verify</button>`}
-        <button class="btn btn-ghost btn-xs" onclick="toggleMod('${u.id}','${esc(u.name)}',${!!u.is_moderator})">${u.is_moderator?'❌ Bỏ Mod':'⚖️ Set Mod'}</button>
-      </div>
-    </td>
-  </tr>`;
+    allUsers = await api('GET', '/admin/users');
+    renderUsers(allUsers);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 function filterUsers() {
-  const q = (document.getElementById('users-search')?.value || '').toLowerCase().trim();
-  const filter = document.getElementById('users-filter')?.value || '';
-  let users = _data.users;
-  if (filter === 'banned') users = users.filter(u => u.is_banned);
-  else if (filter === 'active') users = users.filter(u => !u.is_banned);
-  else if (filter === 'verified') users = users.filter(u => u.is_verified);
-  if (q) users = users.filter(u =>
-    (u.name||'').toLowerCase().includes(q) ||
-    (u.phone||'').includes(q) ||
-    (u.email||'').toLowerCase().includes(q)
-  );
-  const banned = users.filter(u => u.is_banned).length;
-  setText('users-sub', `${users.length} / ${_data.users.length} người dùng · ${banned} bị khóa`);
-  const tbody = document.getElementById('users-tbody');
-  if (tbody) tbody.innerHTML = users.map(u => buildUserRow(u)).join('');
+  const q = document.getElementById('user-search').value.toLowerCase();
+  const f = document.getElementById('user-filter').value;
+  let list = allUsers;
+  if (q) list = list.filter(u => `${u.name} ${u.phone} ${u.email || ''}`.toLowerCase().includes(q));
+  if (f === 'banned') list = list.filter(u => u.is_banned);
+  if (f === 'verified') list = list.filter(u => u.is_verified);
+  if (f === 'vip') list = list.filter(u => u.is_vip);
+  renderUsers(list);
 }
 
-function showBanUser(userId, name) {
-  openModal('🚫 Khóa tài khoản', `
-    <div class="warn-banner">⚠️ Người dùng sẽ không thể đăng nhập sau khi bị khóa.</div>
-    <div class="modal-field">
-      <label>Người dùng</label>
-      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(name)}</div>
-    </div>
-    <div class="modal-field">
-      <label>Lý do khóa (optional)</label>
-      <textarea class="modal-input modal-textarea" id="ban-reason" placeholder="Lý do khóa tài khoản..."></textarea>
-    </div>
+function renderUsers(list) {
+  const tbody = document.getElementById('user-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Không có người dùng</div></div></td></tr>'; return; }
+  tbody.innerHTML = list.map(u => `
+    <tr>
+      <td class="mono">${shortId(u.id)}</td>
+      <td style="font-weight:600">${u.name || '—'}
+        ${u.is_vip ? '<span class="pill pill-warn" style="margin-left:4px;font-size:10px">VIP</span>' : ''}
+        ${u.is_moderator ? '<span class="pill pill-purple" style="margin-left:4px;font-size:10px">MOD</span>' : ''}
+      </td>
+      <td class="mono" style="font-size:12px">${u.phone || '—'}<br><span style="color:var(--hint)">${u.email || ''}</span></td>
+      <td class="mono">${fmt(u.balance)}</td>
+      <td class="mono">${fmt(u.escrow)}</td>
+      <td>
+        ${u.is_banned ? '<span class="pill pill-red">🚫 Bị khóa</span>' : '<span class="pill pill-ok">✓ Hoạt động</span>'}
+        ${u.is_verified ? '<span class="pill pill-blue" style="margin-left:4px">✓ Verified</span>' : ''}
+      </td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-xs" onclick="viewUser('${u.id}')">👁 Xem</button>
+          ${u.is_banned
+            ? `<button class="btn btn-ok btn-xs" onclick="unbanUser('${u.id}','${u.name}')">✓ Mở khóa</button>`
+            : `<button class="btn btn-red btn-xs" onclick="banUser('${u.id}','${u.name}')">🚫 Khóa</button>`}
+          ${u.is_verified
+            ? `<button class="btn btn-warn btn-xs" onclick="unverifyUser('${u.id}')">✕ Bỏ verify</button>`
+            : `<button class="btn btn-brand btn-xs" onclick="verifyUser('${u.id}','${u.name}')">✓ Verify</button>`}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function viewUser(id) {
+  const u = allUsers.find(x => x.id === id) || {};
+  document.getElementById('user-modal-title').textContent = `👤 ${u.name || 'User'}`;
+  document.getElementById('user-modal-body').innerHTML = `
+    <div class="modal-section">Thông tin cơ bản</div>
+    <div class="modal-row"><span class="lbl">User ID</span><span class="val mono">${u.id}</span></div>
+    <div class="modal-row"><span class="lbl">Tên</span><span class="val">${u.name || '—'}</span></div>
+    <div class="modal-row"><span class="lbl">SĐT</span><span class="val mono">${u.phone || '—'}</span></div>
+    <div class="modal-row"><span class="lbl">Email</span><span class="val">${u.email || '—'}</span></div>
+    <div class="modal-row"><span class="lbl">Ngày đăng ký</span><span class="val">${fmtDate(u.created_at)}</span></div>
+    <div class="modal-section">Tài chính</div>
+    <div class="modal-row"><span class="lbl">Số dư ví</span><span class="val amt-pos">${fmt(u.balance)}</span></div>
+    <div class="modal-row"><span class="lbl">Tiền escrow</span><span class="val" style="color:var(--purple)">${fmt(u.escrow)}</span></div>
+    <div class="modal-row"><span class="lbl">Rating</span><span class="val">${u.avg_rating || 0} ⭐ (${u.review_count || 0} đánh giá)</span></div>
+    <div class="modal-section">Trạng thái</div>
+    <div class="modal-row"><span class="lbl">Khóa tài khoản</span><span class="val">${u.is_banned ? '🚫 Bị khóa' : '✓ Hoạt động'}</span></div>
+    <div class="modal-row"><span class="lbl">Verified Seller</span><span class="val">${u.is_verified ? '✓ Verified' : '✗ Chưa verified'}</span></div>
+    <div class="modal-row"><span class="lbl">VIP</span><span class="val">${u.is_vip ? '✓ VIP' : '✗ Thường'}</span></div>
+    <div class="modal-row"><span class="lbl">Moderator</span><span class="val">${u.is_moderator ? '✓ Moderator' : '✗ Không'}</span></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
-      <button class="btn btn-red" onclick="doBanUser('${userId}')">🚫 Xác nhận khóa</button>
-    </div>
-  `);
+      ${u.is_banned
+        ? `<button class="btn btn-ok" onclick="unbanUser('${u.id}','${u.name}');closeModal('user-modal')">✓ Mở khóa</button>`
+        : `<button class="btn btn-red" onclick="banUser('${u.id}','${u.name}');closeModal('user-modal')">🚫 Khóa tài khoản</button>`}
+      ${u.is_verified
+        ? `<button class="btn btn-warn" onclick="unverifyUser('${u.id}');closeModal('user-modal')">✕ Bỏ Verify</button>`
+        : `<button class="btn btn-brand" onclick="verifyUser('${u.id}','${u.name}');closeModal('user-modal')">✓ Verify Seller</button>`}
+      <button class="btn btn-ghost" onclick="closeModal('user-modal')">Đóng</button>
+    </div>`;
+  document.getElementById('user-modal').classList.add('open');
 }
 
-async function doBanUser(userId) {
-  const reason = document.getElementById('ban-reason')?.value.trim() || '';
-  closeModal();
+async function banUser(id, name) {
+  const reason = prompt(`Lý do khóa tài khoản "${name}"?`);
+  if (reason === null) return;
   try {
-    const res = await fetch(`${API}/admin/users/${userId}/ban`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ reason })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ Đã khóa tài khoản', 'ok');
-    const u = _data.users.find(u => u.id === userId);
-    if (u) u.is_banned = true;
-    filterUsers();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+    await api('POST', `/admin/users/${id}/ban`, { reason });
+    toast(`✅ Đã khóa tài khoản ${name}`, 'ok');
+    loadUsers();
+  } catch (e) { toast(e.message, 'err'); }
 }
-
-async function unbanUser(userId, name) {
+async function unbanUser(id, name) {
   if (!confirm(`Mở khóa tài khoản "${name}"?`)) return;
   try {
-    const res = await fetch(`${API}/admin/users/${userId}/unban`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody()
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ Đã mở khóa tài khoản', 'ok');
-    const u = _data.users.find(u => u.id === userId);
-    if (u) u.is_banned = false;
-    filterUsers();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+    await api('POST', `/admin/users/${id}/unban`);
+    toast(`✅ Đã mở khóa ${name}`, 'ok');
+    loadUsers();
+  } catch (e) { toast(e.message, 'err'); }
 }
-
-async function verifyUser(userId, name) {
-  if (!confirm(`Xác minh seller "${name}"?`)) return;
+async function verifyUser(id, name) {
+  if (!confirm(`Verify seller "${name}"?`)) return;
   try {
-    const res = await fetch(`${API}/admin/users/${userId}/verify`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody()
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ Đã xác minh seller', 'ok');
-    const u = _data.users.find(u => u.id === userId);
-    if (u) u.is_verified = true;
-    filterUsers();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+    await api('POST', `/admin/users/${id}/verify`);
+    toast(`✅ Đã verify seller ${name}`, 'ok');
+    loadUsers();
+  } catch (e) { toast(e.message, 'err'); }
 }
-
-async function unverifyUser(userId, name) {
-  if (!confirm(`Hủy xác minh seller "${name}"?`)) return;
+async function unverifyUser(id) {
+  if (!confirm('Bỏ xác minh seller này?')) return;
   try {
-    const res = await fetch(`${API}/admin/users/${userId}/unverify`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody()
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ Đã hủy xác minh seller', 'ok');
-    const u = _data.users.find(u => u.id === userId);
-    if (u) u.is_verified = false;
-    filterUsers();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+    await api('POST', `/admin/users/${id}/unverify`);
+    toast('✅ Đã bỏ verify', 'ok');
+    loadUsers();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-async function toggleMod(userId, name, isMod) {
-  const action = isMod ? 'thu hồi quyền Moderator' : 'cấp quyền Moderator';
-  if (!confirm(`Xác nhận ${action} cho "${name}"?`)) return;
+// ══════════════════════════════════
+//  TICKETS
+// ══════════════════════════════════
+async function loadTickets() {
+  document.getElementById('ticket-tbody').innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
   try {
-    const res = await fetch(`${API}/admin/users/${userId}/set-moderator`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ is_moderator: !isMod })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ ' + data.message, 'ok');
-    const u = _data.users.find(u => u.id === userId);
-    if (u) u.is_moderator = !isMod;
-    filterUsers();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+    allTickets = await api('GET', '/admin/tickets');
+    renderTickets(allTickets);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-// ═══════════════ TRANSACTIONS ═══════════════
-const TXN_LABELS = {
-  topup: { label: '💰 Nạp tiền', cls: 'pill-ok' },
-  purchase: { label: '🛒 Mua vé', cls: 'pill-blue' },
-  payout: { label: '💸 Nhận tiền', cls: 'pill-ok' },
-  refund: { label: '↩️ Hoàn tiền', cls: 'pill-warn' },
-  withdraw: { label: '🏦 Rút tiền', cls: 'pill-red' },
-  withdraw_pending: { label: '⏳ Rút chờ duyệt', cls: 'pill-warn' },
-  withdraw_rejected: { label: '❌ Rút bị từ chối', cls: 'pill-red' },
-  admin_action: { label: '⚙️ Admin', cls: 'pill-gray' },
-  dispute_opened: { label: '⚠️ Mở KN', cls: 'pill-red' },
-  dispute_closed: { label: '🔒 Đóng KN', cls: 'pill-gray' },
-  fee: { label: '🏷️ Phí', cls: 'pill-gray' },
-};
-
-function renderTransactions() {
-  const txns = _data.transactions;
-  setText('transactions-sub', `${txns.length} giao dịch gần nhất`);
-  renderTxnTable(txns);
+function filterTickets() {
+  const q = document.getElementById('ticket-search').value.toLowerCase();
+  const f = document.getElementById('ticket-filter').value;
+  let list = allTickets;
+  if (q) list = list.filter(t => `${t.event_name} ${t.seller_name}`.toLowerCase().includes(q));
+  if (f) list = list.filter(t => t.status === f);
+  renderTickets(list);
 }
 
-function renderTxnTable(txns) {
-  const wrap = document.getElementById('txn-table-wrap');
-  if (!txns.length) {
-    wrap.innerHTML = '<div class="empty"><div class="empty-icon">💳</div><div class="empty-title">Không có giao dịch nào</div></div>';
-    return;
-  }
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Loại</th><th>Số tiền</th><th>Mô tả</th><th>User ID</th><th>Thời gian</th>
-    </tr></thead>
-    <tbody>${txns.map(t => {
-      const info = TXN_LABELS[t.type] || { label: t.type, cls: 'pill-gray' };
-      const amtCls = t.amount > 0 ? 'amt-pos' : t.amount < 0 ? 'amt-neg' : 'amt-neutral';
-      const amtStr = t.amount > 0 ? '+' + fmtVND(t.amount) : t.amount < 0 ? fmtVND(t.amount) : '—';
-      return `<tr
-        data-desc="${esc((t.description||'').toLowerCase())}"
-        data-type="${esc(t.type||'')}">
-        <td><span class="pill ${info.cls}">${info.label}</span></td>
-        <td class="mono ${amtCls}" style="font-weight:600">${amtStr}</td>
-        <td style="font-size:12px;color:var(--sub);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.description||'')}">${esc(t.description||'—')}</td>
-        <td class="mono" style="font-size:10px;color:var(--hint)">${(t.user_id||'').slice(0,8)}…</td>
-        <td class="mono" style="font-size:11px;color:var(--sub)">${(t.created_at||'').slice(0,16).replace('T',' ')}</td>
-      </tr>`;
-    }).join('')}</tbody>
-  </table>`;
+function statusPill(s) {
+  const map = {
+    available: 'pill-ok',
+    sold: 'pill-blue',
+    hidden: 'pill-gray',
+    cancelled: 'pill-red',
+  };
+  return `<span class="pill ${map[s] || 'pill-gray'}">${s}</span>`;
 }
 
-function filterTxns() {
-  const q = (document.getElementById('txn-search')?.value || '').toLowerCase().trim();
-  const type = document.getElementById('txn-filter')?.value || '';
-  let txns = _data.transactions;
-  if (type) txns = txns.filter(t => t.type === type);
-  if (q) txns = txns.filter(t =>
-    (t.description||'').toLowerCase().includes(q) ||
-    (t.user_id||'').includes(q)
-  );
-  setText('transactions-sub', `${txns.length} / ${_data.transactions.length} giao dịch`);
-  renderTxnTable(txns);
+function renderTickets(list) {
+  const tbody = document.getElementById('ticket-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">🎟️</div><div class="empty-title">Không có vé</div></div></td></tr>'; return; }
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td class="mono">${shortId(t.id)}</td>
+      <td style="max-width:200px"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.event_name || '—'}</div>
+        <div style="font-size:11px;color:var(--sub)">${fmtDateShort(t.event_date || t.created_at)}</div></td>
+      <td>${t.seller_name || '—'}</td>
+      <td class="mono">${fmt(t.price)}</td>
+      <td style="font-size:12px;color:var(--sub)">${t.ticket_type || '—'}</td>
+      <td>${statusPill(t.status)}</td>
+      <td>
+        <div class="row-actions">
+          ${t.status === 'hidden'
+            ? `<button class="btn btn-ok btn-xs" onclick="hideTicket('${t.id}', false)">👁 Hiện</button>`
+            : `<button class="btn btn-warn btn-xs" onclick="hideTicket('${t.id}', true)">🙈 Ẩn</button>`}
+          <button class="btn btn-red btn-xs" onclick="deleteTicket('${t.id}')">🗑 Xóa</button>
+          <button class="btn btn-ghost btn-xs" onclick="viewSeller('${t.seller_id}')">👤 Seller</button>
+        </div>
+      </td>
+    </tr>`).join('');
 }
 
-// ═══════════════ WITHDRAWALS ═══════════════
-function renderWithdrawals() {
-  const filter = document.getElementById('wd-filter')?.value || 'pending';
-  const wds = _data.withdrawals.filter(w => !filter || w.status === filter);
-  const pending = _data.withdrawals.filter(w => w.status === 'pending').length;
-  setText('withdrawals-sub', `${wds.length} yêu cầu · ${pending} chờ duyệt`);
-  const el = document.getElementById('withdrawals-list');
-  if (!wds.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-title">Không có yêu cầu nào</div><div class="empty-sub">Không có rút tiền ' + (filter || '') + '</div></div>';
-    return;
-  }
-  el.innerHTML = `<div class="tbl-wrap"><table>
-    <thead><tr>
-      <th>Người dùng</th><th>Số tiền</th><th>Ngân hàng</th><th>Số TK</th><th>Chủ TK</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
-    </tr></thead>
-    <tbody>${wds.map(w => {
-      const statusEl = w.status === 'pending' ? '<span class="pill pill-warn">⏳ Chờ duyệt</span>'
-        : w.status === 'approved' ? '<span class="pill pill-ok">✅ Đã duyệt</span>'
-        : '<span class="pill pill-red">❌ Từ chối</span>';
-      return `<tr>
-        <td style="font-weight:600">${esc(w.user_name||'—')}<br><span class="mono" style="font-size:11px;color:var(--sub)">${esc(w.user_phone||'')}</span></td>
-        <td class="mono" style="color:var(--warn);font-weight:700">${fmtVND(w.amount)}</td>
-        <td style="font-size:12px">${esc(w.bank_name||'—')}</td>
-        <td class="mono" style="font-size:12px">${esc(w.account_number||'—')}</td>
-        <td style="font-size:12px">${esc(w.account_holder||'—')}</td>
-        <td>${statusEl}</td>
-        <td class="mono" style="font-size:11px;color:var(--sub)">${(w.created_at||'').slice(0,10)}</td>
+async function hideTicket(id, hidden) {
+  try {
+    await api('PATCH', `/admin/tickets/${id}/hide`, { hidden });
+    toast(hidden ? '✅ Đã ẩn vé' : '✅ Đã hiện lại vé', 'ok');
+    loadTickets();
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function deleteTicket(id) {
+  if (!confirm('Xóa vĩnh viễn vé này?')) return;
+  try {
+    await api('DELETE', `/admin/tickets/${id}`);
+    toast('✅ Đã xóa vé', 'ok');
+    loadTickets();
+  } catch (e) { toast(e.message, 'err'); }
+}
+function viewSeller(sellerId) {
+  const u = allUsers.find(x => x.id === sellerId);
+  if (u) viewUser(sellerId);
+  else { switchTab('users'); setTimeout(() => { document.getElementById('user-search').value = sellerId; filterUsers(); }, 300); }
+}
+
+// ══════════════════════════════════
+//  ORDERS
+// ══════════════════════════════════
+async function loadOrders() {
+  document.getElementById('order-tbody').innerHTML = '<tr><td colspan="9"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
+  try {
+    const data = await api('GET', '/admin/orders');
+    allOrders = Array.isArray(data) ? data : (data.orders || []);
+    renderOrders(allOrders);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function filterOrders() {
+  const q = document.getElementById('order-search').value.toLowerCase();
+  const f = document.getElementById('order-filter').value;
+  let list = allOrders;
+  if (q) list = list.filter(o => `${o.event_name} ${o.buyer_name} ${o.seller_name}`.toLowerCase().includes(q));
+  if (f) list = list.filter(o => o.status === f);
+  renderOrders(list);
+}
+
+function orderStatusPill(s) {
+  const map = {
+    waiting_qr: ['pill-warn','⏳ Chờ QR'],
+    waiting_confirm: ['pill-blue','👀 Chờ xác nhận'],
+    disputed: ['pill-red','🔥 Khiếu nại'],
+    completed: ['pill-ok','✅ Hoàn thành'],
+    refunded: ['pill-purple','↩️ Hoàn tiền'],
+    cancelled: ['pill-gray','❌ Hủy'],
+  };
+  const [cls, label] = map[s] || ['pill-gray', s];
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function renderOrders(list) {
+  const tbody = document.getElementById('order-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Không có đơn hàng</div></div></td></tr>'; return; }
+  tbody.innerHTML = list.map(o => `
+    <tr>
+      <td class="mono">${shortId(o.id)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">${o.event_name || '—'}</td>
+      <td>${o.buyer_name || '—'}</td>
+      <td>${o.seller_name || '—'}</td>
+      <td class="mono">${fmt(o.total)}</td>
+      <td class="mono" style="color:var(--warn)">${fmt(o.fee)}</td>
+      <td>${orderStatusPill(o.status)}</td>
+      <td style="font-size:12px;color:var(--sub)">${fmtDateShort(o.created_at)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-xs" onclick="viewOrder('${o.id}')">👁 Chi tiết</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function viewOrder(id) {
+  const o = allOrders.find(x => x.id === id) || {};
+  document.getElementById('order-modal-title').textContent = `📋 ${o.event_name || 'Đơn hàng'}`;
+  const canAct = ['waiting_qr','waiting_confirm','disputed'].includes(o.status);
+  document.getElementById('order-modal-body').innerHTML = `
+    <div class="modal-section">Thông tin đơn hàng</div>
+    <div class="modal-row"><span class="lbl">Order ID</span><span class="val mono">${o.id}</span></div>
+    <div class="modal-row"><span class="lbl">Sự kiện</span><span class="val">${o.event_name || '—'}</span></div>
+    <div class="modal-row"><span class="lbl">Buyer</span><span class="val">${o.buyer_name || '—'}</span></div>
+    <div class="modal-row"><span class="lbl">Seller</span><span class="val">${o.seller_name || '—'}</span></div>
+    <div class="modal-row"><span class="lbl">Giá vé</span><span class="val mono">${fmt(o.price)}</span></div>
+    <div class="modal-row"><span class="lbl">Phí (3%)</span><span class="val mono" style="color:var(--warn)">${fmt(o.fee)}</span></div>
+    <div class="modal-row"><span class="lbl">Tổng tiền</span><span class="val mono" style="color:var(--ok)">${fmt(o.total)}</span></div>
+    <div class="modal-row"><span class="lbl">Trạng thái</span><span class="val">${orderStatusPill(o.status)}</span></div>
+    <div class="modal-row"><span class="lbl">Ngày tạo</span><span class="val">${fmtDate(o.created_at)}</span></div>
+    ${o.dispute_reason ? `<div class="modal-section">Khiếu nại</div>
+    <div class="modal-row"><span class="lbl">Lý do</span><span class="val">${o.dispute_reason}</span></div>
+    <div class="modal-row"><span class="lbl">Ngày mở</span><span class="val">${fmtDate(o.dispute_opened_at)}</span></div>` : ''}
+    ${canAct ? `
+    <div class="modal-section">Hành động Admin</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ok" onclick="forceRelease('${o.id}');closeModal('order-modal')">💸 Giải ngân cho Seller</button>
+      <button class="btn btn-red" onclick="forceCancel('${o.id}');closeModal('order-modal')">↩️ Hoàn tiền Buyer</button>
+    </div>` : ''}
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('order-modal')">Đóng</button></div>`;
+  document.getElementById('order-modal').classList.add('open');
+}
+
+async function forceRelease(id) {
+  const note = prompt('Ghi chú giải ngân (tùy chọn):') ?? '';
+  if (note === null) return;
+  try {
+    await api('POST', `/admin/orders/${id}/force-release`, { note });
+    toast('✅ Đã giải ngân cho seller', 'ok');
+    loadOrders();
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function forceCancel(id) {
+  const note = prompt('Lý do hủy đơn và hoàn tiền buyer:') ?? '';
+  if (note === null) return;
+  try {
+    await api('POST', `/admin/orders/${id}/force-cancel`, { note });
+    toast('✅ Đã hủy đơn và hoàn tiền buyer', 'ok');
+    loadOrders();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ══════════════════════════════════
+//  DISPUTES
+// ══════════════════════════════════
+async function loadDisputes() {
+  const container = document.getElementById('disputes-list');
+  container.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải...</div>';
+  try {
+    const disputes = await api('GET', '/admin/disputes');
+    if (!disputes.length) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div><div class="empty-title">Không có khiếu nại nào</div><div class="empty-sub">Tất cả khiếu nại đã được xử lý.</div></div>';
+      return;
+    }
+    container.innerHTML = disputes.map(o => `
+      <div class="dispute-card" id="dc-${o.id}">
+        <div class="dispute-top">
+          <div>
+            <div class="dispute-event">${o.event_name || '—'}</div>
+            <div class="dispute-meta">
+              🛒 Buyer: <strong>${o.buyer_name || '—'}</strong> &nbsp;|&nbsp;
+              💼 Seller: <strong>${o.seller_name || '—'}</strong><br>
+              💰 Tổng tiền: <strong>${fmt(o.total)}</strong> &nbsp;|&nbsp;
+              📅 Mở lúc: ${fmtDate(o.dispute_opened_at)}
+            </div>
+          </div>
+          <span class="pill pill-red">🔥 Đang khiếu nại</span>
+        </div>
+        ${o.dispute_reason ? `
+        <div class="dispute-reason-box">
+          <div class="dispute-reason-label">Lý do khiếu nại</div>
+          <div style="font-size:13px;color:var(--text)">${o.dispute_reason}</div>
+        </div>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn btn-brand btn-sm-btn" onclick="loadChat('${o.id}','${o.buyer_name}','${o.seller_name}')">💬 Xem chat</button>
+          <button class="btn btn-ghost btn-sm-btn" onclick="viewOrderDetail('${o.id}')">📋 Chi tiết đơn</button>
+        </div>
+        <div id="chat-${o.id}" style="display:none"></div>
+        <div style="margin-top:10px">
+          <textarea class="resolve-note" id="note-${o.id}" placeholder="Ghi chú quyết định (tùy chọn)..." rows="2"></textarea>
+          <div class="resolve-btns">
+            <button class="btn btn-ok" onclick="resolveDispute('${o.id}','buyer')">✅ Buyer thắng (hoàn tiền buyer)</button>
+            <button class="btn btn-brand" onclick="resolveDispute('${o.id}','seller')">💸 Seller thắng (giải ngân seller)</button>
+            <button class="btn btn-red" onclick="forceCancel('${o.id}')">↩️ Hủy & hoàn tiền</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (e) { container.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
+}
+
+async function loadChat(orderId, buyerName, sellerName) {
+  const container = document.getElementById(`chat-${orderId}`);
+  container.style.display = 'block';
+  container.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải chat...</div>';
+  try {
+    const messages = await api('GET', `/admin/orders/${orderId}/messages`);
+    container.innerHTML = `
+      <div class="chat-panel">
+        <div class="chat-panel-head">
+          <span>💬 Chat giữa ${buyerName} & ${sellerName}</span>
+          <button class="btn btn-ghost btn-xs" onclick="document.getElementById('chat-${orderId}').style.display='none'">Thu gọn</button>
+        </div>
+        <div class="chat-messages" id="chat-msgs-${orderId}">
+          ${messages.length === 0 ? '<div style="text-align:center;color:var(--sub);padding:20px">Chưa có tin nhắn</div>' :
+            messages.map(m => {
+              const isAdmin = m.sender_name?.startsWith('🛡️');
+              const cls = isAdmin ? 'admin-msg' : (m.sender_name === buyerName ? 'buyer' : 'seller');
+              return `<div class="chat-msg ${cls}">
+                <div class="chat-msg-sender">${m.sender_name || 'Unknown'}</div>
+                <div>${m.text || ''}</div>
+                <div class="chat-msg-time">${fmtDate(m.created_at)}</div>
+              </div>`;
+            }).join('')}
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chat-input-${orderId}" placeholder="Admin nhắn tin..." onkeydown="if(event.key==='Enter')sendAdminMsg('${orderId}')">
+          <button class="btn btn-brand btn-sm-btn" onclick="sendAdminMsg('${orderId}')">Gửi</button>
+        </div>
+      </div>`;
+    // Scroll to bottom
+    const msgs = document.getElementById(`chat-msgs-${orderId}`);
+    if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  } catch (e) { container.innerHTML = `<div style="color:var(--red);padding:12px">${e.message}</div>`; }
+}
+
+async function sendAdminMsg(orderId) {
+  const input = document.getElementById(`chat-input-${orderId}`);
+  const text = input?.value?.trim();
+  if (!text) return;
+  try {
+    await api('POST', `/admin/orders/${orderId}/messages`, { text });
+    input.value = '';
+    const buyerName = document.querySelector(`#dc-${orderId} .dispute-event`)?.closest('.dispute-card')?.querySelector('.dispute-meta strong')?.textContent || '';
+    const sellerName = '';
+    await loadChat(orderId, buyerName, sellerName);
+    toast('✅ Đã gửi tin nhắn', 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function resolveDispute(orderId, winner) {
+  const note = document.getElementById(`note-${orderId}`)?.value || '';
+  const label = winner === 'buyer' ? 'hoàn tiền cho Buyer' : 'giải ngân cho Seller';
+  if (!confirm(`Xác nhận: ${label}?`)) return;
+  try {
+    await api('POST', `/admin/orders/${orderId}/resolve`, { winner, note });
+    toast(`✅ Đã xử lý khiếu nại — ${winner} thắng`, 'ok');
+    loadDisputes();
+    loadOverview();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function viewOrderDetail(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (o) { viewOrder(id); return; }
+  try {
+    const data = await api('GET', `/admin/orders/${id}`);
+    allOrders.push(data);
+    viewOrder(id);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ══════════════════════════════════
+//  TRANSACTIONS
+// ══════════════════════════════════
+async function loadTransactions() {
+  document.getElementById('tx-tbody').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
+  try {
+    allTx = await api('GET', '/admin/transactions');
+    renderTx(allTx);
+  } catch (e) { toast(e.message, 'err'); }
+}
+function filterTx() {
+  const q = document.getElementById('tx-search').value.toLowerCase();
+  const f = document.getElementById('tx-filter').value;
+  let list = allTx;
+  if (q) list = list.filter(t => (t.user_id || '').toLowerCase().includes(q));
+  if (f) list = list.filter(t => t.type === f);
+  renderTx(list);
+}
+function renderTx(list) {
+  const tbody = document.getElementById('tx-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">💳</div><div class="empty-title">Không có giao dịch</div></div></td></tr>'; return; }
+  const typeColor = { topup:'pill-ok', payout:'pill-brand', refund:'pill-purple', withdraw:'pill-red', admin_action:'pill-gray', referral_reward:'pill-blue' };
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td class="mono">${shortId(t.id)}</td>
+      <td class="mono">${shortId(t.user_id)}</td>
+      <td><span class="pill ${typeColor[t.type] || 'pill-gray'}">${t.type}</span></td>
+      <td class="mono ${t.amount > 0 ? 'amt-pos' : t.amount < 0 ? 'amt-neg' : 'amt-neutral'}">${fmt(Math.abs(t.amount))}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--sub)">${t.description || '—'}</td>
+      <td style="font-size:12px;color:var(--sub)">${fmtDate(t.created_at)}</td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════
+//  WITHDRAWALS
+// ══════════════════════════════════
+async function loadWithdrawals() {
+  document.getElementById('wd-tbody').innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
+  const status = document.getElementById('wd-filter').value;
+  try {
+    const list = await api('GET', `/admin/withdrawals${status ? '?status=' + status : ''}`);
+    const tbody = document.getElementById('wd-tbody');
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">💸</div><div class="empty-title">Không có yêu cầu</div></div></td></tr>'; return; }
+    const wdStatusPill = s => ({ pending: 'pill-warn', approved: 'pill-ok', rejected: 'pill-red' }[s] || 'pill-gray');
+    tbody.innerHTML = list.map(w => `
+      <tr>
+        <td class="mono">${shortId(w.id)}</td>
+        <td>${w.user_name || shortId(w.user_id)}</td>
+        <td class="mono amt-pos">${fmt(w.amount)}</td>
+        <td>${w.bank_name || '—'}</td>
+        <td class="mono">${w.account_number || '—'}</td>
+        <td><span class="pill ${wdStatusPill(w.status)}">${w.status}</span></td>
+        <td style="font-size:12px;color:var(--sub)">${fmtDate(w.created_at)}</td>
         <td>
           ${w.status === 'pending' ? `
           <div class="row-actions">
-            <button class="btn btn-ok btn-xs" onclick="approveWithdrawal('${w.id}')">✅ Duyệt</button>
-            <button class="btn btn-red btn-xs" onclick="showRejectWithdrawal('${w.id}','${esc(w.user_name)}')">❌ Từ chối</button>
-          </div>` : w.admin_note ? `<span style="font-size:11px;color:var(--sub)">${esc(w.admin_note)}</span>` : '—'}
+            <button class="btn btn-ok btn-xs" onclick="approveWd('${w.id}','${w.amount}')">✅ Duyệt</button>
+            <button class="btn btn-red btn-xs" onclick="rejectWd('${w.id}')">❌ Từ chối</button>
+          </div>` : `<span style="font-size:12px;color:var(--hint)">${w.admin_note || '—'}</span>`}
         </td>
-      </tr>`;
-    }).join('')}</tbody>
-  </table></div>`;
-}
+      </tr>`).join('');
 
-function filterWithdrawals() {
-  renderWithdrawals();
-}
-
-async function approveWithdrawal(wdId) {
-  openModal('✅ Duyệt rút tiền', `
-    <div class="info-banner">ℹ️ Xác nhận bạn đã chuyển tiền thành công cho người dùng.</div>
-    <div class="modal-field">
-      <label>Ghi chú (optional)</label>
-      <input class="modal-input" id="approve-note" placeholder="VD: Đã chuyển lúc 14:30...">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
-      <button class="btn btn-ok" onclick="doApproveWd('${wdId}')">✅ Xác nhận duyệt</button>
-    </div>
-  `);
-}
-
-async function doApproveWd(wdId) {
-  const note = document.getElementById('approve-note')?.value.trim() || '';
-  closeModal();
-  try {
-    const res = await fetch(`${API}/admin/withdrawals/${wdId}/approve`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ ' + data.message, 'ok');
-    await loadAllData();
-    renderWithdrawals();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
-}
-
-function showRejectWithdrawal(wdId, name) {
-  openModal('❌ Từ chối rút tiền', `
-    <div class="warn-banner">⚠️ Tiền sẽ được hoàn về ví của người dùng.</div>
-    <div class="modal-field">
-      <label>Người dùng</label>
-      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(name)}</div>
-    </div>
-    <div class="modal-field">
-      <label>Lý do từ chối</label>
-      <textarea class="modal-input modal-textarea" id="reject-note" placeholder="Lý do từ chối..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
-      <button class="btn btn-red" onclick="doRejectWd('${wdId}')">❌ Từ chối</button>
-    </div>
-  `);
-}
-
-async function doRejectWd(wdId) {
-  const note = document.getElementById('reject-note')?.value.trim() || '';
-  closeModal();
-  try {
-    const res = await fetch(`${API}/admin/withdrawals/${wdId}/reject`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody({ note })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ ' + data.message, 'ok');
-    await loadAllData();
-    renderWithdrawals();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
-}
-
-// ═══════════════ KYC ═══════════════
-function renderKyc() {
-  const filter = document.getElementById('kyc-filter')?.value ?? 'pending';
-  const list = (_data.kyc || []).filter(k => !filter || k.status === filter);
-  const pending = (_data.kyc || []).filter(k => k.status === 'pending').length;
-  setText('kyc-sub', `${list.length} yêu cầu · ${pending} chờ duyệt`);
-  const el = document.getElementById('kyc-list');
-  if (!list.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">🪪</div><div class="empty-title">Không có yêu cầu KYC nào</div><div class="empty-sub">Chưa có ai nộp KYC.</div></div>';
-    return;
-  }
-  el.innerHTML = list.map(k => buildKycCard(k)).join('');
-}
-
-function buildKycCard(k) {
-  const u = k.users || {};
-  const statusBadge = k.status === 'approved'
-    ? '<span style="font-size:11px;font-weight:700;color:var(--ok);background:rgba(52,216,158,.12);border:1px solid rgba(52,216,158,.3);padding:2px 8px;border-radius:6px;">✅ Đã duyệt</span>'
-    : k.status === 'rejected'
-    ? '<span style="font-size:11px;font-weight:700;color:var(--red);background:rgba(240,80,104,.1);border:1px solid rgba(240,80,104,.3);padding:2px 8px;border-radius:6px;">❌ Từ chối</span>'
-    : '<span style="font-size:11px;font-weight:700;color:var(--warn);background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);padding:2px 8px;border-radius:6px;">⏳ Chờ duyệt</span>';
-
-  const imgStyle = 'width:100%;max-height:180px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--border);';
-  const imgHtml = (url, label) => url
-    ? `<div><div style="font-size:11px;color:var(--hint);margin-bottom:4px;">${label}</div><img src="${url}" style="${imgStyle}" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'"></div>`
-    : `<div style="font-size:11px;color:var(--hint);">${label}: N/A</div>`;
-
-  const actions = k.status === 'pending' ? `
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn btn-ok" style="flex:1" onclick="approveKyc('${k.id}','${esc(u.name||'')}')">✅ Duyệt</button>
-      <button class="btn btn-red" style="flex:1" onclick="showRejectKyc('${k.id}','${esc(u.name||'')}')">❌ Từ chối</button>
-    </div>` : k.status === 'rejected' && k.reject_reason ? `
-    <div style="margin-top:8px;font-size:12px;color:var(--hint);">Lý do từ chối: <span style="color:var(--red);">${esc(k.reject_reason)}</span></div>` : '';
-
-  return `<div style="border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div style="font-size:14px;font-weight:700;">${esc(u.name || '—')}</div>
-        <div style="font-size:12px;color:var(--sub);">📱 ${esc(u.phone || '—')} ${u.email ? '· 📧 ' + esc(u.email) : ''}</div>
-        <div style="font-size:11px;color:var(--hint);margin-top:2px;">Nộp lúc: ${new Date(k.created_at).toLocaleString('vi-VN')}</div>
-      </div>
-      ${statusBadge}
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
-      ${imgHtml(k.front_url, '📄 Mặt trước CCCD')}
-      ${imgHtml(k.back_url, '📄 Mặt sau CCCD')}
-      ${imgHtml(k.selfie_url, '🤳 Selfie')}
-    </div>
-    ${actions}
-  </div>`;
-}
-
-async function approveKyc(id, name) {
-  if (!confirm(`Duyệt KYC cho "${name}"?\nTài khoản sẽ được đánh dấu Đã xác minh.`)) return;
-  try {
-    const res = await fetch(`${API}/admin/kyc/${id}/approve`, { method: 'POST', headers: adminHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ Đã duyệt KYC thành công', 'ok');
-    await loadAllData();
-    renderKyc();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
-}
-
-function showRejectKyc(id, name) {
-  openModal('❌ Từ chối KYC', `
-    <div class="modal-field">
-      <label>Người dùng</label>
-      <div style="font-size:14px;font-weight:600;padding:8px 0">${esc(name)}</div>
-    </div>
-    <div class="modal-field">
-      <label>Lý do từ chối</label>
-      <textarea class="modal-input modal-textarea" id="kyc-reject-reason" placeholder="Ảnh mờ, không khớp thông tin..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Hủy bỏ</button>
-      <button class="btn btn-red" onclick="doRejectKyc('${id}')">❌ Từ chối</button>
-    </div>
-  `);
-}
-
-async function doRejectKyc(id) {
-  const reason = document.getElementById('kyc-reject-reason')?.value.trim() || '';
-  closeModal();
-  try {
-    const res = await fetch(`${API}/admin/kyc/${id}/reject`, {
-      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason, secret: ADMIN_SECRET })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ Đã từ chối yêu cầu KYC', 'ok');
-    await loadAllData();
-    renderKyc();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
-}
-
-// ═══════════════ SCANNER / SCAN HISTORY ═══════════════
-async function loadScanHistory() {
-  const el = document.getElementById('scan-history-list');
-  if (!el) return;
-  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint);font-size:13px;">⏳ Đang tải...</div>';
-  try {
-    const res = await fetch(API + '/scan/history', { headers: adminHeaders() });
-    if (!res.ok) throw new Error('Lỗi tải lịch sử');
-    const data = await res.json();
-    if (!data.length) {
-      el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--hint);font-size:13px;">📋 Chưa có lần quét nào.</div>';
-      return;
+    // Update badge
+    if (status === 'pending') {
+      ['withdraw-badge', 'mob-withdraw-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = list.length; el.style.display = list.length > 0 ? 'flex' : 'none';
+      });
     }
-    el.innerHTML = data.map(s => `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.order_id || '—')}</div>
-          <div style="font-size:11px;color:var(--hint);">🕐 ${new Date(s.scanned_at).toLocaleString('vi-VN')} · 👤 ${esc(s.scanned_by || '—')} · ${esc(s.scanner_type || '—')}</div>
-        </div>
-        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.3);white-space:nowrap;">✅ Đã quét</span>
-      </div>`).join('');
-  } catch(e) {
-    el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);font-size:13px;">❌ ${esc(e.message)}</div>`;
-  }
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-// ═══════════════ MISC ACTIONS ═══════════════
+async function approveWd(id, amount) {
+  const note = prompt(`Ghi chú duyệt rút ${Number(amount).toLocaleString('vi-VN')}đ:`) ?? '';
+  if (note === null) return;
+  try {
+    await api('POST', `/admin/withdrawals/${id}/approve`, { note });
+    toast('✅ Đã duyệt yêu cầu rút tiền', 'ok');
+    loadWithdrawals();
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function rejectWd(id) {
+  const note = prompt('Lý do từ chối:');
+  if (note === null) return;
+  try {
+    await api('POST', `/admin/withdrawals/${id}/reject`, { note });
+    toast('✅ Đã từ chối yêu cầu rút tiền', 'ok');
+    loadWithdrawals();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ══════════════════════════════════
+//  KYC
+// ══════════════════════════════════
+async function loadKyc() {
+  const container = document.getElementById('kyc-list');
+  container.innerHTML = '<div class="loading"><div class="spin"></div> Đang tải...</div>';
+  try {
+    const list = await api('GET', '/admin/kyc');
+    if (!list.length) { container.innerHTML = '<div class="empty"><div class="empty-icon">🪪</div><div class="empty-title">Không có yêu cầu KYC</div></div>'; return; }
+
+    const pending = list.filter(k => k.status === 'pending');
+    ['kyc-badge', 'mob-kyc-badge'].forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = pending.length; el.style.display = pending.length > 0 ? 'flex' : 'none';
+    });
+
+    container.innerHTML = `<div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>User</th><th>Tên KH</th><th>Loại GT</th><th>Ảnh</th><th>Trạng thái</th><th>Ngày</th><th>Hành động</th></tr></thead>
+      <tbody>
+      ${list.map(k => `<tr>
+        <td>${(k.users?.name || shortId(k.user_id))}</td>
+        <td>${k.full_name || '—'}</td>
+        <td>${k.id_type || '—'}</td>
+        <td><div style="display:flex;gap:4px">
+          ${k.front_url ? `<a href="${k.front_url}" target="_blank"><img src="${k.front_url}" style="height:40px;border-radius:4px;border:1px solid var(--border)"></a>` : '—'}
+          ${k.back_url ? `<a href="${k.back_url}" target="_blank"><img src="${k.back_url}" style="height:40px;border-radius:4px;border:1px solid var(--border)"></a>` : ''}
+          ${k.selfie_url ? `<a href="${k.selfie_url}" target="_blank"><img src="${k.selfie_url}" style="height:40px;border-radius:4px;border:1px solid var(--border)"></a>` : ''}
+        </div></td>
+        <td><span class="pill ${k.status === 'approved' ? 'pill-ok' : k.status === 'rejected' ? 'pill-red' : 'pill-warn'}">${k.status}</span></td>
+        <td style="font-size:12px;color:var(--sub)">${fmtDate(k.created_at)}</td>
+        <td>${k.status === 'pending' ? `
+          <div class="row-actions">
+            <button class="btn btn-ok btn-xs" onclick="approveKyc('${k.id}')">✅ Duyệt</button>
+            <button class="btn btn-red btn-xs" onclick="rejectKyc('${k.id}')">❌ Từ chối</button>
+          </div>` : `<span style="color:var(--hint);font-size:12px">${k.reject_reason || '—'}</span>`}
+        </td>
+      </tr>`).join('')}
+      </tbody></table></div></div>`;
+  } catch (e) { container.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
+}
+
+async function approveKyc(id) {
+  if (!confirm('Duyệt KYC và verify seller này?')) return;
+  try {
+    await api('POST', `/admin/kyc/${id}/approve`);
+    toast('✅ Đã duyệt KYC', 'ok');
+    loadKyc();
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function rejectKyc(id) {
+  const reason = prompt('Lý do từ chối KYC:');
+  if (reason === null) return;
+  try {
+    await api('POST', `/admin/kyc/${id}/reject`, { reason });
+    toast('✅ Đã từ chối KYC', 'ok');
+    loadKyc();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ══════════════════════════════════
+//  AUDIT LOG
+// ══════════════════════════════════
+async function loadAuditLog() {
+  document.getElementById('audit-tbody').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
+  const action = document.getElementById('audit-filter').value;
+  try {
+    const logs = await api('GET', `/admin/logs?limit=200${action ? '&action=' + action : ''}`);
+    const tbody = document.getElementById('audit-tbody');
+    if (!logs.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📜</div><div class="empty-title">Chưa có log</div></div></td></tr>'; return; }
+    const actionColors = {
+      login: 'pill-blue', ban_user: 'pill-red', unban_user: 'pill-ok',
+      verify_seller: 'pill-ok', unverify_seller: 'pill-warn',
+      resolve_dispute: 'pill-brand', force_cancel_order: 'pill-red',
+      force_release_order: 'pill-ok', delete_ticket: 'pill-red',
+      hide_ticket: 'pill-warn', unhide_ticket: 'pill-ok',
+      approve_withdrawal: 'pill-ok', reject_withdrawal: 'pill-red',
+      approve_kyc: 'pill-ok', reject_kyc: 'pill-red',
+      create_admin: 'pill-purple', send_message: 'pill-blue',
+    };
+    tbody.innerHTML = logs.map(l => `
+      <tr>
+        <td style="font-size:12px;color:var(--sub);white-space:nowrap">${fmtDate(l.created_at)}</td>
+        <td style="font-size:12px">${l.admin_email || '—'}</td>
+        <td><span class="pill ${actionColors[l.action] || 'pill-gray'}">${l.action}</span></td>
+        <td style="font-size:12px;color:var(--sub)">${l.target_type || '—'}</td>
+        <td class="mono">${l.target_id ? shortId(l.target_id) : '—'}</td>
+        <td style="font-size:11px;color:var(--hint);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${Object.keys(l.meta || {}).length ? JSON.stringify(l.meta) : '—'}
+        </td>
+      </tr>`).join('');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ══════════════════════════════════
+//  SETTINGS / ADMIN MANAGEMENT
+// ══════════════════════════════════
+async function createAdmin() {
+  const email = document.getElementById('new-admin-email').value.trim();
+  const password = document.getElementById('new-admin-pass').value;
+  const role = document.getElementById('new-admin-role').value;
+  if (!email || !password) { toast('Vui lòng điền đầy đủ thông tin', 'err'); return; }
+  try {
+    await api('POST', '/admin/auth/create', { email, password, role });
+    toast(`✅ Đã tạo admin ${email}`, 'ok');
+    document.getElementById('new-admin-email').value = '';
+    document.getElementById('new-admin-pass').value = '';
+    loadAdminList();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function loadAdminList() {
+  const tbody = document.getElementById('admin-list-tbody');
+  try {
+    const list = await api('GET', '/admin/admins');
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--hint);padding:20px">Không có admin</td></tr>'; return; }
+    tbody.innerHTML = list.map(a => `<tr>
+      <td>${a.email}</td>
+      <td><span class="pill ${a.role === 'super_admin' ? 'pill-warn' : 'pill-purple'}">${a.role}</span></td>
+      <td style="font-size:12px;color:var(--sub)">${fmtDate(a.created_at)}</td>
+      <td>${a.id !== (adminInfo?.id) ? `<button class="btn btn-red btn-xs" onclick="deleteAdmin('${a.id}','${a.email}')">🗑 Xóa</button>` : '<span style="font-size:11px;color:var(--hint)">Bạn</span>'}</td>
+    </tr>`).join('');
+  } catch (e) { tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);padding:16px">${e.message}</td></tr>`; }
+}
+
+async function deleteAdmin(id, email) {
+  if (!confirm(`Xóa admin "${email}"?`)) return;
+  try {
+    await api('DELETE', `/admin/admins/${id}`);
+    toast('✅ Đã xóa admin', 'ok');
+    loadAdminList();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ══════════════════════════════════
+//  QUICK ACTIONS
+// ══════════════════════════════════
 async function doProcessTimeouts() {
   try {
-    const res = await fetch(`${API}/admin/process-timeouts`, {
-      method: 'POST', headers: adminHeaders(), body: adminBody()
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showToast('✅ Đã xử lý escrow timeouts', 'ok');
-    await loadAllData();
-    renderCurrentTab();
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+    const r = await api('POST', '/admin/process-timeouts');
+    toast('✅ ' + (r.message || 'Đã xử lý'), 'ok');
+    loadOverview();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
-async function exportOrdersCSV() {
-  try {
-    showToast('📥 Đang xuất CSV...', 'ok');
-    const res = await fetch(`${API}/admin/export`, { headers: adminHeaders() });
-    if (!res.ok) { showToast('❌ Xuất thất bại', 'err'); return; }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `orders_safepass_${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
-    showToast('✅ Xuất CSV thành công!', 'ok');
-  } catch(e) { showToast('❌ ' + e.message, 'err'); }
+function doExport() {
+  const url = `/api/admin/export?secret=&_t=${Date.now()}`;
+  const a = document.createElement('a');
+  a.href = url;
+  // Use Bearer token via fetch
+  fetch('/api/admin/export', { headers: { Authorization: `Bearer ${adminToken}` } })
+    .then(r => r.blob())
+    .then(blob => {
+      const url2 = URL.createObjectURL(blob);
+      a.href = url2; a.download = 'orders.csv'; a.click();
+      URL.revokeObjectURL(url2);
+    }).catch(e => toast(e.message, 'err'));
 }
 
-// ═══════════════ MODAL ═══════════════
-function openModal(title, bodyHtml) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML = bodyHtml;
-  document.getElementById('action-modal').classList.add('open');
-}
-
-function closeModal() {
-  document.getElementById('action-modal').classList.remove('open');
-}
-
-document.getElementById('action-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
+// ══════════════════════════════════
+//  CLOSE MODAL ON OVERLAY CLICK
+// ══════════════════════════════════
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
 });
 
-// ═══════════════ UTILS ═══════════════
-function fmtVND(n) {
-  if (n === null || n === undefined) return '—';
-  return Number(n).toLocaleString('vi-VN') + 'đ';
-}
-
-function fmtShort(n) {
-  if (n === null || n === undefined || (!n && n !== 0)) return '—';
-  if (n >= 1000000000) return (n / 1000000000).toFixed(1) + 'B';
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'Mđ';
-  if (n >= 1000) return (n / 1000).toFixed(0) + 'Kđ';
-  return Number(n).toLocaleString('vi-VN') + 'đ';
-}
-
-function fmt(n, decimals = 0) {
-  if (n === null || n === undefined) return '—';
-  return Number(n).toLocaleString('vi-VN');
-}
-
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
-
-let toastTimer;
-function showToast(msg, type = 'ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'show ' + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = ''; }, 3200);
-}
-
-function renderTab() {
-  renderCurrentTab();
+// ══════════════════════════════════
+//  INIT
+// ══════════════════════════════════
+if (adminToken) {
+  // Verify token is still valid
+  api('GET', '/admin/me').then(data => {
+    adminInfo = data;
+    localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+    initApp();
+  }).catch(() => {
+    doLogout();
+  });
+} else {
+  document.getElementById('login-screen').style.display = 'flex';
 }
 </script>
 </body>

@@ -487,9 +487,21 @@ function auth(req, res, next) {
   }
 }
 
-// ── ADMIN secret helper ──
+// ── ADMIN secret helper — accepts legacy x-admin-secret header OR admin JWT Bearer token ──
 function adminSecret(req) {
-  return req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
+  const raw = req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
+  if (raw) return raw;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
+      if (payload.type === 'admin_jwt') {
+        req.admin = { id: payload.adminId, email: payload.email, role: payload.role };
+        return process.env.ADMIN_SECRET;
+      }
+    } catch {}
+  }
+  return null;
 }
 
 // ── MODERATOR middleware — checks JWT + is_moderator in DB ──
@@ -504,6 +516,41 @@ async function authMod(req, res, next) {
   } catch {
     res.status(401).json({ error: 'Token không hợp lệ' });
   }
+}
+
+// ── ADMIN JWT middleware ──
+function adminAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
+      if (payload.type === 'admin_jwt') {
+        req.admin = { id: payload.adminId, email: payload.email, role: payload.role };
+        return next();
+      }
+    } catch {}
+  }
+  // Fallback: legacy x-admin-secret
+  const sec = req.query?.secret || req.headers['x-admin-secret'] || req.body?.secret;
+  if (sec === process.env.ADMIN_SECRET) {
+    req.admin = { id: null, email: 'legacy', role: 'super_admin' };
+    return next();
+  }
+  return res.status(401).json({ error: 'Chưa xác thực admin' });
+}
+
+// ── ADMIN AUDIT LOG helper ──
+async function logAdminAction(adminId, adminEmail, action, targetType, targetId, meta = {}) {
+  try {
+    await supabase.from('admin_logs').insert({
+      admin_id: adminId || null,
+      admin_email: adminEmail || 'legacy',
+      action,
+      target_type: targetType || null,
+      target_id: targetId ? String(targetId) : null,
+      meta,
+    });
+  } catch (e) { console.error('[AdminLog]', e.message); }
 }
 
 // ════════════════════════════════
@@ -1454,6 +1501,8 @@ app.post('/api/admin/withdrawals/:id/approve', async (req, res) => {
     }
   }
 
+  const wra = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(wra.id, wra.email, 'approve_withdrawal', 'withdrawal', req.params.id, { amount: wr.amount, user_id: wr.user_id });
   res.json({ message: `Đã duyệt rút tiền ${wr.amount.toLocaleString('vi-VN')}đ` });
 });
 
@@ -1480,6 +1529,8 @@ app.post('/api/admin/withdrawals/:id/reject', async (req, res) => {
   createNotification(wr.user_id, 'withdraw_rejected', '❌ Yêu cầu rút tiền bị từ chối',
     `Tiền ${wr.amount.toLocaleString('vi-VN')}đ đã hoàn về ví của bạn. Lý do: ${note || 'Không đủ điều kiện.'}`, '/wallet');
 
+  const wrra = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(wrra.id, wrra.email, 'reject_withdrawal', 'withdrawal', req.params.id, { user_id: wr.user_id, note: note || '' });
   res.json({ message: 'Đã từ chối yêu cầu rút tiền. Tiền đã hoàn về ví user.' });
 });
 
@@ -1877,6 +1928,8 @@ app.post('/api/admin/orders/:id/resolve', async (req, res) => {
     description: `Admin resolved dispute: ${winner} wins — Order ${req.params.id.slice(0,8)}`,
     order_id: order.id
   });
+  const ra = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(ra.id, ra.email, 'resolve_dispute', 'order', req.params.id, { winner, note: note || '' });
 
   // Email + in-app notification cho cả hai
   sendDisputeResolvedNotification(order, winner);
@@ -2055,6 +2108,8 @@ app.post('/api/admin/users/:id/verify', async (req, res) => {
     user_id: req.params.id, type: 'admin_action', amount: 0,
     description: 'Admin verified seller account'
   }).catch(() => {});
+  const a = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(a.id, a.email, 'verify_seller', 'user', req.params.id);
   res.json({ message: 'Đã xác minh seller' });
 });
 
@@ -2063,6 +2118,8 @@ app.post('/api/admin/users/:id/unverify', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   const { error } = await supabase.from('users').update({ is_verified: false }).eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
+  const a = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(a.id, a.email, 'unverify_seller', 'user', req.params.id);
   res.json({ message: 'Đã bỏ xác minh seller' });
 });
 
@@ -2072,11 +2129,12 @@ app.post('/api/admin/users/:id/ban', async (req, res) => {
   const { reason } = req.body;
   const { error } = await supabase.from('users').update({ is_banned: true }).eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
-  // Audit log
   await supabase.from('transactions').insert({
     user_id: req.params.id, type: 'admin_action', amount: 0,
     description: `Admin banned user${reason ? ': ' + sanitize(reason) : ''}`
   });
+  const a = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(a.id, a.email, 'ban_user', 'user', req.params.id, { reason: reason || '' });
   res.json({ message: 'Đã khóa tài khoản' });
 });
 
@@ -2089,6 +2147,8 @@ app.post('/api/admin/users/:id/unban', async (req, res) => {
     user_id: req.params.id, type: 'admin_action', amount: 0,
     description: 'Admin unbanned user'
   });
+  const a = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(a.id, a.email, 'unban_user', 'user', req.params.id);
   res.json({ message: 'Đã mở khóa tài khoản' });
 });
 
@@ -2351,7 +2411,8 @@ app.post('/api/admin/orders/:id/force-cancel', async (req, res) => {
 
   createNotification(order.buyer_id, 'refund', '↩️ Đơn hàng bị hủy — Tiền hoàn về ví', `Admin đã hủy đơn hàng ${order.event_name}. Tiền đã hoàn về ví của bạn.`, '/orders');
   createNotification(order.seller_id, 'system', '❌ Đơn hàng bị Admin hủy', `Đơn hàng ${order.event_name} đã bị Admin hủy.`, '/orders');
-
+  const fca = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(fca.id, fca.email, 'force_cancel_order', 'order', req.params.id, { note: note || '' });
   res.json({ message: 'Đã hủy đơn và hoàn tiền cho buyer thành công.' });
 });
 
@@ -2385,7 +2446,8 @@ app.post('/api/admin/orders/:id/force-release', async (req, res) => {
 
   createNotification(order.seller_id, 'payout', '💸 Tiền đã vào ví!', `Admin đã giải ngân đơn hàng ${order.event_name}.`, '/wallet');
   createNotification(order.buyer_id, 'system', '✅ Đơn hàng hoàn tất', `Admin đã xác nhận hoàn tất đơn hàng ${order.event_name}.`, '/orders');
-
+  const fra = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(fra.id, fra.email, 'force_release_order', 'order', req.params.id, { note: note || '' });
   res.json({ message: 'Đã giải ngân escrow cho seller thành công.' });
 });
 
@@ -2394,7 +2456,19 @@ app.delete('/api/admin/tickets/:id', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
   const { error } = await supabase.from('tickets').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
+  const dta = req.admin || { id: null, email: 'legacy' };
+  logAdminAction(dta.id, dta.email, 'delete_ticket', 'ticket', req.params.id);
   res.json({ message: 'Đã xóa vé thành công.' });
+});
+
+// Hide / unhide ticket (admin)
+app.patch('/api/admin/tickets/:id/hide', adminAuth, async (req, res) => {
+  const { hidden } = req.body;
+  const newStatus = hidden ? 'hidden' : 'available';
+  const { error } = await supabase.from('tickets').update({ status: newStatus }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  logAdminAction(req.admin.id, req.admin.email, hidden ? 'hide_ticket' : 'unhide_ticket', 'ticket', req.params.id);
+  res.json({ message: hidden ? 'Đã ẩn vé' : 'Đã hiển thị lại vé' });
 });
 
 // Export orders CSV
@@ -2706,6 +2780,8 @@ app.post('/api/admin/kyc/:id/approve', async (req, res) => {
     await supabase.from('kyc_requests').update({ status: 'approved' }).eq('id', id);
     await supabase.from('users').update({ is_verified: true }).eq('id', kyc.user_id);
 
+    const ka = req.admin || { id: null, email: 'legacy' };
+    logAdminAction(ka.id, ka.email, 'approve_kyc', 'kyc_request', id, { user_id: kyc.user_id });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -2719,13 +2795,15 @@ app.post('/api/admin/kyc/:id/reject', async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
     const { data: kyc, error: fetchErr } = await supabase
-      .from('kyc_requests').select('status').eq('id', id).single();
+      .from('kyc_requests').select('status,user_id').eq('id', id).single();
     if (fetchErr || !kyc) return res.status(404).json({ error: 'Không tìm thấy yêu cầu KYC' });
 
     await supabase.from('kyc_requests')
       .update({ status: 'rejected', reject_reason: reason || null })
       .eq('id', id);
 
+    const kr = req.admin || { id: null, email: 'legacy' };
+    logAdminAction(kr.id, kr.email, 'reject_kyc', 'kyc_request', id, { user_id: kyc.user_id, reason: reason || '' });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -2801,6 +2879,137 @@ app.get('/api/referral/check/:code', async (req, res) => {
   const { data } = await supabase.from('users').select('id,name').eq('referral_code', code).maybeSingle();
   if (!data) return res.status(404).json({ error: 'Mã không hợp lệ' });
   res.json({ valid: true, name: data.name });
+});
+
+// ════════════════════════════════
+//  ADMIN AUTH (email + password → JWT)
+// ════════════════════════════════
+
+// POST /api/admin/auth/setup — create first super_admin (requires ADMIN_SECRET)
+app.post('/api/admin/auth/setup', async (req, res) => {
+  const { email, password, secret } = req.body;
+  if (secret !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Sai secret key' });
+  if (!email || !password || password.length < 8)
+    return res.status(400).json({ error: 'Email và mật khẩu (tối thiểu 8 ký tự) là bắt buộc' });
+  const { count } = await supabase.from('admins').select('*', { count: 'exact', head: true });
+  if (count > 0) return res.status(400).json({ error: 'Admin đã được thiết lập. Dùng endpoint create để thêm admin mới.' });
+  const hash = await bcrypt.hash(password, 12);
+  const { data, error } = await supabase.from('admins')
+    .insert({ email: email.toLowerCase().trim(), password_hash: hash, role: 'super_admin' })
+    .select('id,email,role').single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Super admin đã được tạo thành công', id: data.id });
+});
+
+// POST /api/admin/auth/login
+app.post('/api/admin/auth/login', authLimit, async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Thiếu email hoặc mật khẩu' });
+  const { data: admin } = await supabase.from('admins').select('*').eq('email', email.toLowerCase().trim()).single();
+  if (!admin) return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
+  const ok = await bcrypt.compare(password, admin.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
+  const token = jwt.sign(
+    { adminId: admin.id, email: admin.email, role: admin.role, type: 'admin_jwt' },
+    JWT_SECRET,
+    { expiresIn: '12h' }
+  );
+  logAdminAction(admin.id, admin.email, 'login', 'auth', admin.id);
+  res.json({ token, email: admin.email, role: admin.role, name: admin.email.split('@')[0] });
+});
+
+// POST /api/admin/auth/create — super_admin creates another admin
+app.post('/api/admin/auth/create', adminAuth, async (req, res) => {
+  if (req.admin.role !== 'super_admin') return res.status(403).json({ error: 'Chỉ super_admin mới có quyền' });
+  const { email, password, role = 'moderator' } = req.body;
+  if (!email || !password || password.length < 8)
+    return res.status(400).json({ error: 'Email và mật khẩu (tối thiểu 8 ký tự) là bắt buộc' });
+  if (!['super_admin', 'moderator'].includes(role))
+    return res.status(400).json({ error: 'Role không hợp lệ' });
+  const hash = await bcrypt.hash(password, 12);
+  const { data, error } = await supabase.from('admins')
+    .insert({ email: email.toLowerCase().trim(), password_hash: hash, role })
+    .select('id,email,role').single();
+  if (error) return res.status(500).json({ error: error.message });
+  logAdminAction(req.admin.id, req.admin.email, 'create_admin', 'admin', data.id, { role });
+  res.json({ message: 'Admin đã được tạo', id: data.id, email: data.email, role: data.role });
+});
+
+// GET /api/admin/me
+app.get('/api/admin/me', adminAuth, async (req, res) => {
+  if (req.admin.id) {
+    const { data } = await supabase.from('admins').select('id,email,role,created_at').eq('id', req.admin.id).single();
+    return res.json(data || req.admin);
+  }
+  res.json(req.admin);
+});
+
+// GET /api/admin/admins — list all admins (super_admin only)
+app.get('/api/admin/admins', adminAuth, async (req, res) => {
+  if (req.admin.role !== 'super_admin') return res.status(403).json({ error: 'Chỉ super_admin' });
+  const { data, error } = await supabase.from('admins').select('id,email,role,created_at').order('created_at');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// DELETE /api/admin/admins/:id — remove admin account
+app.delete('/api/admin/admins/:id', adminAuth, async (req, res) => {
+  if (req.admin.role !== 'super_admin') return res.status(403).json({ error: 'Chỉ super_admin' });
+  if (req.admin.id === req.params.id) return res.status(400).json({ error: 'Không thể tự xóa chính mình' });
+  const { error } = await supabase.from('admins').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  logAdminAction(req.admin.id, req.admin.email, 'delete_admin', 'admin', req.params.id);
+  res.json({ message: 'Đã xóa admin' });
+});
+
+// GET /api/admin/logs — audit log
+app.get('/api/admin/logs', adminAuth, async (req, res) => {
+  const { limit = 100, offset = 0, action } = req.query;
+  let query = supabase.from('admin_logs').select('*').order('created_at', { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1);
+  if (action) query = query.eq('action', action);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// GET /api/admin/disputes — active dispute queue
+app.get('/api/admin/disputes', adminAuth, async (req, res) => {
+  const { data, error } = await supabase.from('orders').select('*')
+    .eq('status', 'disputed').order('dispute_opened_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// GET /api/admin/orders/:id/messages — view order chat (admin)
+app.get('/api/admin/orders/:id/messages', adminAuth, async (req, res) => {
+  const { data, error } = await supabase.from('order_messages')
+    .select('*').eq('order_id', req.params.id).order('created_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// POST /api/admin/orders/:id/messages — send admin message into order chat
+app.post('/api/admin/orders/:id/messages', adminAuth, async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Thiếu nội dung' });
+  const { data: order } = await supabase.from('orders')
+    .select('buyer_id,seller_id,event_name').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  const { data, error } = await supabase.from('order_messages').insert({
+    order_id: req.params.id,
+    sender_id: req.admin.id || '00000000-0000-0000-0000-000000000000',
+    sender_name: `🛡️ Admin (${req.admin.email})`,
+    text: sanitize(text.trim()),
+    message_type: 'text',
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  createNotification(order.buyer_id, 'system', '📨 Admin gửi tin nhắn',
+    `Admin đã gửi tin nhắn trong đơn hàng ${order.event_name}`, '/orders');
+  createNotification(order.seller_id, 'system', '📨 Admin gửi tin nhắn',
+    `Admin đã gửi tin nhắn trong đơn hàng ${order.event_name}`, '/orders');
+  logAdminAction(req.admin.id, req.admin.email, 'send_message', 'order', req.params.id);
+  res.json(data);
 });
 
 // ── SERVE FRONTEND STATIC FILES ──

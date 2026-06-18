@@ -220,6 +220,12 @@ Tích hợp thanh toán thật, mở rộng tính năng cao cấp.
 - [x] `POST /api/admin/process-timeouts` — trigger escrow timeout thủ công *(2025-06-15)*
 - [x] Trang `admin.html` — overview, disputes, orders, users *(2026-06-15)*
 - [x] Admin Dashboard trong SPA — tab 🔐 Admin (chỉ hiện với is_admin), 4 tabs: Tổng quan/Khiếu nại/Đơn hàng/Người dùng, resolve dispute, ban/unban, verify/unverify ngay trong app *(2026-06-16)*
+- [x] Admin auth email+password — bảng `admins` Supabase, `POST /api/admin/auth/setup` (tạo super_admin đầu tiên với ADMIN_SECRET), `POST /api/admin/auth/login` (email+password → JWT 12h), `POST /api/admin/auth/create` (super_admin tạo thêm admin), `GET /api/admin/me`, `GET /api/admin/admins`, `DELETE /api/admin/admins/:id`, `adminAuth` middleware *(2026-06-18)*
+- [x] Audit Log — bảng `admin_logs` Supabase, `logAdminAction()` helper ghi log mọi hành động admin, `GET /api/admin/logs` (filter theo action), tab Audit Log trong admin.html *(2026-06-18)*
+- [x] Admin Dashboard hoàn chỉnh — dark UI, login email+password, setup first admin, sidebar + mobile nav, topbar (admin info, role badge), 10 tabs: Dashboard/Users/Tickets/Orders/Disputes/Transactions/Withdrawals/KYC/Audit Log/Settings, dispute chat (xem + gửi tin nhắn admin), badge đếm dispute/withdrawal/KYC chờ xử lý *(2026-06-18)*
+- [x] `PATCH /api/admin/tickets/:id/hide` — ẩn/hiện vé (adminAuth middleware) *(2026-06-18)*
+- [x] `GET /api/admin/disputes` — danh sách dispute đang chờ (status=disputed) *(2026-06-18)*
+- [x] `GET /api/admin/orders/:id/messages` + `POST /api/admin/orders/:id/messages` — admin đọc/gửi tin nhắn vào chat đơn hàng *(2026-06-18)*
 
 ---
 
