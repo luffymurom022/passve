@@ -1,0 +1,216 @@
+XÂY DỰNG HỆ THỐNG PASS ĐỒ CHUYÊN NGHIỆP CHO SAFEPASS
+
+Bối cảnh:
+
+SafePass đã hỗ trợ Listing và Escrow.
+
+Tôi muốn xây dựng hệ thống giao dịch hàng hóa vật lý hoàn chỉnh.
+
+==================================================
+
+MỤC TIÊU
+
+Cho phép giao dịch:
+
+* Điện thoại
+* Laptop
+* Giày
+* Quần áo
+* Đồ điện tử
+* Hàng sưu tầm
+
+==================================================
+
+DATABASE
+
+Tạo bảng:
+
+shipping_orders
+
+Fields:
+
+id UUID
+
+order_id UUID
+
+carrier TEXT
+
+tracking_code TEXT
+
+shipping_status TEXT
+
+created_at TIMESTAMP
+
+updated_at TIMESTAMP
+
+==================================================
+
+TRẠNG THÁI
+
+pending
+
+packed
+
+shipping
+
+delivered
+
+completed
+
+disputed
+
+==================================================
+
+SELLER FLOW
+
+1. Tạo Listing
+
+2. Có người mua
+
+3. Nhập mã vận đơn
+
+4. Chuyển trạng thái:
+
+packed
+
+↓
+
+shipping
+
+==================================================
+
+BUYER FLOW
+
+Theo dõi:
+
+* Mã vận đơn
+* Trạng thái giao hàng
+* Thời gian giao hàng
+
+==================================================
+
+DELIVERY CONFIRMATION
+
+Khi nhận hàng:
+
+Buyer bấm:
+
+"Tôi đã nhận hàng"
+
+↓
+
+Escrow giải ngân
+
+↓
+
+Hoàn tất đơn hàng
+
+==================================================
+
+AUTO RELEASE
+
+Nếu:
+
+* Đã giao thành công
+* Buyer không phản hồi sau 7 ngày
+
+Tự động giải ngân.
+
+==================================================
+
+DISPUTE
+
+Buyer có thể:
+
+* Báo hàng giả
+* Báo sai mô tả
+* Báo thiếu hàng
+
+Upload:
+
+* Hình ảnh
+* Video
+
+==================================================
+
+SELLER RATING
+
+Sau giao dịch:
+
+Buyer đánh giá:
+
+1-5 sao
+
+Đánh giá hiển thị trên profile.
+
+==================================================
+
+ANTI-FRAUD
+
+Tính điểm uy tín:
+
+trust_score
+
+Dựa trên:
+
+* KYC
+* Tổng giao dịch
+* Tỷ lệ hoàn tiền
+* Đánh giá
+
+==================================================
+
+PROFILE
+
+Hiển thị:
+
+Verified Seller
+
+Trust Score
+
+Tổng giao dịch
+
+Tỷ lệ thành công
+
+==================================================
+
+ADMIN
+
+Admin xem:
+
+* Tất cả vận đơn
+* Tất cả khiếu nại
+* Tất cả giao dịch
+
+Có thể:
+
+* Hoàn tiền
+* Giải ngân
+* Khóa seller
+
+==================================================
+
+UI
+
+Thêm menu:
+
+Pass Đồ
+
+Danh sách đơn hàng
+
+Theo dõi vận chuyển
+
+Lịch sử giao dịch
+
+==================================================
+
+Generate:
+
+SQL
+Backend
+API
+Frontend
+Admin
+Escrow Integration
+
+Sử dụng kiến trúc SafePass hiện có.
