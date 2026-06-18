@@ -4060,6 +4060,11 @@ function getChatThread(orderId){
 let chatOrderTyping=false;
 let chatOrderTimer=null;
 let _chatPollInterval=null;
+let _chatWS=null;
+let _chatWSOrderId=null;
+let _chatTypingTimer=null;
+let _chatTypingTimeout=null;
+let _chatReadStatus={};
 
 function stopChatPolling(){
   if(_chatPollInterval){clearInterval(_chatPollInterval);_chatPollInterval=null;}
@@ -4070,8 +4075,149 @@ function startChatPolling(orderId){
   if(!authToken||!currentUser||currentUser.id==='demo'||!orderId.includes('-')) return;
   _chatPollInterval=setInterval(async()=>{
     if(state.page!=='chat'||state.activeChat!==orderId){stopChatPolling();return;}
-    await loadChatMessages(orderId,false);
-  },5000);
+    // Fallback refresh every 30s (WS handles real-time)
+    if(!_chatWS||_chatWS.readyState>1) await loadChatMessages(orderId,false);
+  },30000);
+}
+
+function getChatWSUrl(){
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  return`${proto}//${location.host}/ws/chat`;
+}
+
+function connectChatWS(orderId){
+  if(!authToken||!currentUser||currentUser.id==='demo'||!orderId.includes('-')) return;
+  if(_chatWSOrderId===orderId&&_chatWS&&_chatWS.readyState<=1) return;
+  disconnectChatWS();
+  _chatWSOrderId=orderId;
+  try{
+    const url=`${getChatWSUrl()}?token=${encodeURIComponent(authToken)}&orderId=${orderId}`;
+    _chatWS=new WebSocket(url);
+
+    _chatWS.onopen=()=>{
+      try{_chatWS.send(JSON.stringify({type:'read'}));}catch(e){}
+      _chatWS._ping=setInterval(()=>{
+        if(_chatWS&&_chatWS.readyState===1) try{_chatWS.send(JSON.stringify({type:'ping'}));}catch(e){}
+      },25000);
+    };
+
+    _chatWS.onmessage=(evt)=>{
+      let msg;try{msg=JSON.parse(evt.data);}catch{return;}
+
+      if(msg.type==='message'){
+        const m=msg.message;
+        const thread=getChatThread(orderId);
+        const isMe=m.sender_id===currentUser?.id;
+        if(!thread.find(t=>t.id===m.id)){
+          thread.push({
+            id:m.id,role:isMe?'me':'them',text:m.text,
+            image_url:m.image_url||null,message_type:m.message_type||'text',
+            time:new Date(m.created_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+            sender_name:m.sender_name,read_at:null,
+          });
+        }
+        if(state.page==='chat'&&state.activeChat===orderId){
+          setState({});scrollOrderChatBottom();
+          if(!isMe) try{_chatWS.send(JSON.stringify({type:'read'}));}catch(e){}
+        } else if(!isMe){
+          showToast(`💬 ${m.sender_name}: ${(m.message_type==='image'?'📎 Đã gửi ảnh':(m.text||'')).slice(0,40)}`,'var(--brand)','💬');
+        }
+      }
+
+      if(msg.type==='typing'){
+        clearTimeout(_chatTypingTimeout);
+        if(state.page==='chat'&&state.activeChat===orderId){
+          const el=document.getElementById('chat-typing-indicator');
+          if(el){el.style.display=msg.isTyping?'flex':'none';if(msg.isTyping)scrollOrderChatBottom();}
+          if(msg.isTyping){
+            _chatTypingTimeout=setTimeout(()=>{
+              const el2=document.getElementById('chat-typing-indicator');
+              if(el2)el2.style.display='none';
+            },3000);
+          }
+        }
+      }
+
+      if(msg.type==='read'){
+        _chatReadStatus[orderId]=true;
+        if(state.page==='chat'&&state.activeChat===orderId){
+          document.querySelectorAll('.chat-receipt-unread').forEach(el=>{
+            el.style.color='var(--brand)';
+            el.classList.remove('chat-receipt-unread');
+          });
+        }
+      }
+
+      if(msg.type==='push_notification'){
+        showToast(`💬 ${msg.senderName}: ${(msg.text||'').slice(0,40)}`,'var(--brand)','💬');
+        loadNotificationsFromAPI&&loadNotificationsFromAPI().catch(()=>{});
+      }
+    };
+
+    _chatWS.onclose=()=>{
+      if(_chatWS&&_chatWS._ping){clearInterval(_chatWS._ping);}
+      if(_chatWSOrderId===orderId)_chatWS=null;
+    };
+    _chatWS.onerror=()=>{};
+  }catch(e){}
+}
+
+function disconnectChatWS(){
+  if(_chatWS){
+    if(_chatWS._ping)clearInterval(_chatWS._ping);
+    try{_chatWS.close();}catch(e){}
+    _chatWS=null;
+  }
+  _chatWSOrderId=null;
+  clearTimeout(_chatTypingTimer);
+  clearTimeout(_chatTypingTimeout);
+  stopChatPolling();
+}
+
+function sendChatTyping(isTyping){
+  if(_chatWS&&_chatWS.readyState===1){
+    try{_chatWS.send(JSON.stringify({type:'typing',isTyping}));}catch(e){}
+  }
+}
+
+function handleChatInput(orderId,el){
+  el.style.height='38px';
+  el.style.height=Math.min(el.scrollHeight,90)+'px';
+  sendChatTyping(true);
+  clearTimeout(_chatTypingTimer);
+  _chatTypingTimer=setTimeout(()=>sendChatTyping(false),1500);
+}
+
+async function sendChatImage(orderId){
+  if(!authToken){showToast('Cần đăng nhập','var(--red)','❌');return;}
+  const input=document.createElement('input');
+  input.type='file';input.accept='image/*';
+  input.onchange=async()=>{
+    const file=input.files[0];
+    if(!file)return;
+    if(file.size>5*1024*1024){showToast('Ảnh tối đa 5MB','var(--red)','❌');return;}
+    const btn=document.getElementById('chat-attach-btn');
+    if(btn){btn.innerHTML='⏳';btn.disabled=true;}
+    try{
+      const fd=new FormData();fd.append('image',file);
+      const res=await fetch(API+'/orders/'+orderId+'/messages/image',{
+        method:'POST',headers:{'Authorization':'Bearer '+authToken},body:fd
+      });
+      const data=await res.json();
+      if(!res.ok){showToast(data.error||'Lỗi gửi ảnh','var(--red)','❌');return;}
+      const thread=getChatThread(orderId);
+      if(!thread.find(t=>t.id===data.id)){
+        thread.push({
+          id:data.id,role:'me',text:'[Ảnh]',image_url:data.image_url,message_type:'image',
+          time:new Date(data.created_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+          sender_name:data.sender_name,read_at:null,
+        });
+      }
+      setState({});scrollOrderChatBottom();
+    }catch(e){showToast('Lỗi gửi ảnh','var(--red)','❌');}
+    finally{if(btn){btn.innerHTML='📎';btn.disabled=false;}}
+  };
+  input.click();
 }
 
 async function loadChatMessages(orderId,scroll=true){
@@ -4082,10 +4228,14 @@ async function loadChatMessages(orderId,scroll=true){
     const msgs=await res.json();
     if(!Array.isArray(msgs)) return false;
     const mapped=msgs.map(m=>({
+      id:m.id,
       role:m.sender_id===currentUser?.id?'me':'them',
       text:m.text,
+      image_url:m.image_url||null,
+      message_type:m.message_type||'text',
       time:new Date(m.created_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
-      sender_name:m.sender_name
+      sender_name:m.sender_name,
+      read_at:m.read_at||null,
     }));
     CHAT_THREADS[orderId]=mapped;
     if(state.page==='chat'&&state.activeChat===orderId){
@@ -4109,7 +4259,7 @@ function buildChatPage(){
   const thread=getChatThread(orderId);
   // Async load from API for real orders (UUID-based)
   if(authToken&&currentUser&&currentUser.id!=='demo'&&orderId.includes('-')){
-    setTimeout(()=>{loadChatMessages(orderId,true);startChatPolling(orderId);},50);
+    setTimeout(()=>{loadChatMessages(orderId,true);connectChatWS(orderId);startChatPolling(orderId);},50);
   }
   const tc=other.trust>=80?"var(--ok)":other.trust>=60?"var(--warn)":"var(--red)";
 
@@ -4118,14 +4268,14 @@ function buildChatPage(){
     return`<div style="display:flex;gap:9px;justify-content:${isMe?"flex-end":"flex-start"};margin-bottom:12px;animation:cardIn .2s ease both;animation-delay:${Math.min(i,8)*0.03}s">
       ${!isMe?`<div style="align-self:flex-end;"><svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;border-radius:50%;animation:holoFlicker 5s infinite,holoGlow 4s ease-in-out infinite;" ><defs><radialGradient id="u28chatbg" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="#9b87f5" stop-opacity=".22"/><stop offset="100%" stop-color="#030912" stop-opacity="0"/></radialGradient><linearGradient id="u28chatscan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9b87f5" stop-opacity="0"/><stop offset="50%" stop-color="#9b87f5" stop-opacity=".5"/><stop offset="100%" stop-color="#9b87f5" stop-opacity="0"/></linearGradient><clipPath id="u28chatclip"><circle cx="32" cy="32" r="30"/></clipPath></defs><circle cx="32" cy="32" r="32" fill="#040c18"/><circle cx="32" cy="32" r="30" stroke="#9b87f5" stroke-width="1" fill="none" opacity=".45"/><circle cx="32" cy="32" r="26" fill="url(#u28chatbg)"/><circle cx="32" cy="32" r="18" stroke="#9b87f5" stroke-width=".6" fill="none" opacity=".2" stroke-dasharray="3 4" style="animation:holoRing 6s linear reverse infinite;transform-origin:32px 32px;"/><line x1="2" y1="22" x2="62" y2="22" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#u28chatclip)"/><line x1="2" y1="32" x2="62" y2="32" stroke="#9b87f5" stroke-width=".35" opacity=".12" clip-path="url(#u28chatclip)"/><line x1="2" y1="42" x2="62" y2="42" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#u28chatclip)"/><rect x="2" y="0" width="60" height="12" fill="url(#u28chatscan)" clip-path="url(#u28chatclip)" style="animation:holoScan 3.5s 1s linear infinite;"/><polygon points="32,14 42,20 42,32 32,38 22,32 22,20" fill="none" stroke="#9b87f5" stroke-width="1.1" opacity=".55" style="animation:holoPulse 2.5s .5s ease-in-out infinite;"/><text x="32" y="37" text-anchor="middle" font-size="9" font-weight="800" fill="#9b87f5" font-family="JetBrains Mono,monospace" letter-spacing="1">${other.avatar}</text></svg></div>`:""}
       <div style="max-width:72%;">
-        <div style="background:${isMe?"linear-gradient(135deg,var(--brand),var(--brandD))":"var(--card2)"};border:1px solid ${isMe?"transparent":"var(--border)"};border-radius:${isMe?"16px 4px 16px 16px":"4px 16px 16px 16px"};padding:10px 13px;font-size:12.5px;line-height:1.6;color:${isMe?"var(--bg)":"var(--text)"};">${m.text}</div>
-        <div style="font-size:9.5px;color:var(--hint);margin-top:3px;${isMe?"text-align:right;":""}">${m.time}${isMe?"&nbsp;✓✓":""}</div>
+        <div style="background:${isMe?"linear-gradient(135deg,var(--brand),var(--brandD))":"var(--card2)"};border:1px solid ${isMe?"transparent":"var(--border)"};border-radius:${isMe?"16px 4px 16px 16px":"4px 16px 16px 16px"};padding:10px 13px;font-size:12.5px;line-height:1.6;color:${isMe?"var(--bg)":"var(--text)"};">${m.message_type==='image'&&m.image_url?`<img src="${m.image_url}" style="max-width:200px;max-height:200px;border-radius:8px;display:block;cursor:pointer;" loading="lazy" onclick="window.open('${m.image_url}','_blank')">`:`<span style="white-space:pre-wrap;word-break:break-word;">${m.text||''}</span>`}</div>
+        <div style="font-size:9.5px;color:var(--hint);margin-top:3px;${isMe?"text-align:right;":""}">${m.time}${isMe?`&nbsp;<span class="chat-receipt-unread" style="color:${(_chatReadStatus[orderId]||m.read_at)?'var(--brand)':'var(--hint)'};">✓✓</span>`:''}</div>
       </div>
       ${isMe?`<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brandD));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--bg);flex-shrink:0;align-self:flex-end;">U</div>`:""}
     </div>`;
   }).join("");
 
-  const typingHTML=chatOrderTyping?`<div style="display:flex;gap:9px;margin-bottom:12px;">
+  const typingHTML=`<div id="chat-typing-indicator" style="display:${chatOrderTyping?'flex':'none'};gap:9px;margin-bottom:12px;">
     <div style="flex-shrink:0;"><svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;border-radius:50%;animation:holoFlicker 5s infinite,holoGlow 4s ease-in-out infinite;" ><defs><radialGradient id="u28chatbg" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="#9b87f5" stop-opacity=".22"/><stop offset="100%" stop-color="#030912" stop-opacity="0"/></radialGradient><linearGradient id="u28chatscan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9b87f5" stop-opacity="0"/><stop offset="50%" stop-color="#9b87f5" stop-opacity=".5"/><stop offset="100%" stop-color="#9b87f5" stop-opacity="0"/></linearGradient><clipPath id="u28chatclip"><circle cx="32" cy="32" r="30"/></clipPath></defs><circle cx="32" cy="32" r="32" fill="#040c18"/><circle cx="32" cy="32" r="30" stroke="#9b87f5" stroke-width="1" fill="none" opacity=".45"/><circle cx="32" cy="32" r="26" fill="url(#u28chatbg)"/><circle cx="32" cy="32" r="18" stroke="#9b87f5" stroke-width=".6" fill="none" opacity=".2" stroke-dasharray="3 4" style="animation:holoRing 6s linear reverse infinite;transform-origin:32px 32px;"/><line x1="2" y1="22" x2="62" y2="22" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#u28chatclip)"/><line x1="2" y1="32" x2="62" y2="32" stroke="#9b87f5" stroke-width=".35" opacity=".12" clip-path="url(#u28chatclip)"/><line x1="2" y1="42" x2="62" y2="42" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#u28chatclip)"/><rect x="2" y="0" width="60" height="12" fill="url(#u28chatscan)" clip-path="url(#u28chatclip)" style="animation:holoScan 3.5s 1s linear infinite;"/><polygon points="32,14 42,20 42,32 32,38 22,32 22,20" fill="none" stroke="#9b87f5" stroke-width="1.1" opacity=".55" style="animation:holoPulse 2.5s .5s ease-in-out infinite;"/><text x="32" y="37" text-anchor="middle" font-size="9" font-weight="800" fill="#9b87f5" font-family="JetBrains Mono,monospace" letter-spacing="1">${other.avatar}</text></svg></div>
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:4px 16px 16px 16px;padding:12px 16px;">
       <span style="display:inline-flex;gap:4px;align-items:center;">
@@ -4134,7 +4284,7 @@ function buildChatPage(){
         <span style="width:6px;height:6px;border-radius:50%;background:var(--sub);animation:bounce 1.2s infinite;animation-delay:.4s;"></span>
       </span>
     </div>
-  </div>`:"";
+  </div>`;
 
   const quickMsgs=isBuyer
     ?["Vé còn không anh/chị?","Khi nào upload QR vé?","Xác nhận giúp em với 🙏","Cảm ơn bạn!"]
@@ -4179,11 +4329,11 @@ function buildChatPage(){
 
     <!-- Input -->
     <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--bg2);flex-shrink:0;">
-      <button onclick="showToast('Đính kèm file sắp ra mắt!','var(--purple)','📎')" style="width:38px;height:38px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">📎</button>
+      <button id="chat-attach-btn" onclick="sendChatImage('${orderId}')" style="width:38px;height:38px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">📎</button>
       <textarea id="order-chat-input" placeholder="Nhắn tin..." rows="1"
         style="flex:1;background:var(--card);border:1.5px solid var(--border2);border-radius:12px;padding:9px 13px;font-size:13px;color:var(--text);resize:none;outline:none;font-family:'Inter',sans-serif;line-height:1.4;height:38px;max-height:90px;transition:border-color .2s;"
         onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border2)'"
-        oninput="this.style.height='38px';this.style.height=Math.min(this.scrollHeight,90)+'px'"
+        oninput="handleChatInput('${orderId}',this)"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendOrderChat('${orderId}',this.value);}"></textarea>
       <button onclick="sendOrderChat('${orderId}',document.getElementById('order-chat-input').value)" style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brandD));border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bg);font-weight:800;">➤</button>
     </div>
@@ -4201,8 +4351,10 @@ async function sendOrderChat(orderId,text){
 
   // Real order (UUID) with authenticated user → use API
   if(authToken&&currentUser&&currentUser.id!=='demo'&&orderId.includes('-')){
+    sendChatTyping(false);
     const thread=getChatThread(orderId);
-    thread.push({role:"me",text:t,time:now});
+    const tempId=`temp_${Date.now()}`;
+    thread.push({id:tempId,role:"me",text:t,message_type:'text',time:now});
     setState({});
     scrollOrderChatBottom();
     try{
@@ -4210,11 +4362,26 @@ async function sendOrderChat(orderId,text){
         method:'POST',headers:getHeaders(),body:JSON.stringify({text:t})
       });
       if(res.ok){
-        await loadChatMessages(orderId,false);
+        const data=await res.json();
+        const idx=thread.findIndex(m=>m.id===tempId);
+        if(idx>=0) thread[idx]={
+          id:data.id,role:'me',text:data.text,message_type:data.message_type||'text',
+          time:new Date(data.created_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+          sender_name:data.sender_name,read_at:null,
+        };
+        setState({});
       } else {
+        const idx=thread.findIndex(m=>m.id===tempId);
+        if(idx>=0) thread.splice(idx,1);
         showToast('Lỗi gửi tin nhắn','var(--red)','❌');
+        setState({});
       }
-    }catch(e){showToast('Lỗi kết nối','var(--red)','❌');}
+    }catch(e){
+      const idx=thread.findIndex(m=>m.id===tempId);
+      if(idx>=0) thread.splice(idx,1);
+      showToast('Lỗi kết nối','var(--red)','❌');
+      setState({});
+    }
     return;
   }
 

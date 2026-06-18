@@ -9,7 +9,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import ws from 'ws';
+import ws, { WebSocketServer } from 'ws';
 import { Resend } from 'resend';
 import multer from 'multer';
 import QRCode from 'qrcode';
@@ -79,11 +79,24 @@ const kycUpload = multer({
   },
 });
 
+const chatUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Chỉ chấp nhận file ảnh'));
+    cb(null, true);
+  },
+});
+
 // ── CREATE KYC STORAGE BUCKET (best-effort on startup) ──
 (async () => {
   try {
     await supabase.storage.createBucket('kyc-documents', { public: false });
     console.log('[KYC] Bucket kyc-documents ready.');
+  } catch (e) { /* bucket already exists — that's fine */ }
+  try {
+    await supabase.storage.createBucket('chat-images', { public: true });
+    console.log('[Chat] Bucket chat-images ready.');
   } catch (e) { /* bucket already exists — that's fine */ }
 })();
 
@@ -91,6 +104,28 @@ const kycUpload = multer({
 const emailOtpStore = new Map(); // key: email → { otp, userId, expires }
 const resetTokenStore = new Map(); // key: token → { userId, expires }
 const vnpayPendingStore = new Map(); // key: txnRef → { userId, amount, createdAt, processed }
+
+// ── WEBSOCKET CHAT ──
+const chatRooms  = new Map(); // orderId → Set<{ socket, userId, userName }>
+const userSockets = new Map(); // userId → socket
+
+function broadcastToRoom(orderId, data, excludeUserId = null) {
+  const room = chatRooms.get(orderId);
+  if (!room) return;
+  const payload = JSON.stringify(data);
+  room.forEach(client => {
+    if (client.userId !== excludeUserId && client.socket.readyState === 1) {
+      try { client.socket.send(payload); } catch(e) {}
+    }
+  });
+}
+
+function sendToUser(userId, data) {
+  const socket = userSockets.get(userId);
+  if (socket && socket.readyState === 1) {
+    try { socket.send(JSON.stringify(data)); } catch(e) {}
+  }
+}
 
 // ── VNPay config ──
 const VNPAY_TMN_CODE   = process.env.VNPAY_TMN_CODE;
@@ -1646,13 +1681,85 @@ app.post('/api/orders/:id/messages', auth, async (req, res) => {
     sender_id: req.user.id,
     sender_name: req.user.name,
     text: sanitize(String(text).trim()),
+    message_type: 'text',
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
 
-  // Notify the other party
+  // Broadcast via WebSocket to room (exclude sender — they update via REST response)
+  broadcastToRoom(orderId, { type: 'message', message: data }, req.user.id);
+
+  // Push notification to other party (if not in the room)
   const otherId = order.buyer_id === req.user.id ? order.seller_id : order.buyer_id;
-  createNotification(otherId, 'chat', '💬 Tin nhắn mới',
-    `${req.user.name}: ${String(text).trim().slice(0, 60)}`, '/orders');
+  const otherInRoom = chatRooms.get(orderId) && [...(chatRooms.get(orderId) || [])].some(c => c.userId === otherId);
+  if (!otherInRoom) {
+    sendToUser(otherId, {
+      type: 'push_notification',
+      orderId,
+      senderName: req.user.name,
+      text: String(text).trim().slice(0, 80),
+    });
+    createNotification(otherId, 'chat', '💬 Tin nhắn mới',
+      `${req.user.name}: ${String(text).trim().slice(0, 60)}`, '/orders');
+  }
+
+  res.json(data);
+});
+
+// POST /api/orders/:id/messages/read — đánh dấu đã đọc
+app.post('/api/orders/:id/messages/read', auth, async (req, res) => {
+  const orderId = req.params.id;
+  const { data: order } = await supabase.from('orders').select('buyer_id,seller_id').eq('id', orderId).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Không có quyền' });
+
+  await supabase.from('order_messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('order_id', orderId)
+    .neq('sender_id', req.user.id)
+    .is('read_at', null);
+
+  broadcastToRoom(orderId, { type: 'read', readBy: req.user.id }, req.user.id);
+  res.json({ ok: true });
+});
+
+// POST /api/orders/:id/messages/image — gửi ảnh trong chat
+app.post('/api/orders/:id/messages/image', auth, chatUpload.single('image'), async (req, res) => {
+  const orderId = req.params.id;
+  if (!req.file) return res.status(400).json({ error: 'Không có file ảnh' });
+
+  const { data: order } = await supabase.from('orders').select('buyer_id,seller_id,event_name').eq('id', orderId).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Không có quyền' });
+
+  const ext = req.file.mimetype.split('/')[1] || 'jpg';
+  const filename = `${orderId}/${Date.now()}-${req.user.id.slice(-6)}.${ext}`;
+  const { error: upErr } = await supabase.storage
+    .from('chat-images').upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+  if (upErr) return res.status(500).json({ error: upErr.message });
+
+  const { data: urlData } = supabase.storage.from('chat-images').getPublicUrl(filename);
+  const imageUrl = urlData.publicUrl;
+
+  const { data, error } = await supabase.from('order_messages').insert({
+    order_id: orderId,
+    sender_id: req.user.id,
+    sender_name: req.user.name,
+    text: '[Ảnh]',
+    message_type: 'image',
+    image_url: imageUrl,
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  broadcastToRoom(orderId, { type: 'message', message: data });
+
+  const otherId = order.buyer_id === req.user.id ? order.seller_id : order.buyer_id;
+  const otherInRoom = chatRooms.get(orderId) && [...(chatRooms.get(orderId) || [])].some(c => c.userId === otherId);
+  if (!otherInRoom) {
+    sendToUser(otherId, { type: 'push_notification', orderId, senderName: req.user.name, text: '📎 Đã gửi ảnh' });
+    createNotification(otherId, 'chat', '💬 Tin nhắn mới', `${req.user.name}: 📎 Đã gửi ảnh`, '/orders');
+  }
 
   res.json(data);
 });
@@ -2608,4 +2715,83 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`));
+const httpServer = app.listen(PORT, '0.0.0.0', () => console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`));
+
+// ── WEBSOCKET SERVER (noServer — attaches to existing HTTP server) ──
+const wss = new WebSocketServer({ noServer: true });
+
+httpServer.on('upgrade', (request, socket, head) => {
+  const url = new URL(request.url, 'http://localhost');
+  if (!url.pathname.startsWith('/ws/chat')) { socket.destroy(); return; }
+  const token = url.searchParams.get('token');
+  if (!token) { socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n'); socket.destroy(); return; }
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    request._wsUser = user;
+    wss.handleUpgrade(request, socket, head, (wsClient) => {
+      wss.emit('connection', wsClient, request);
+    });
+  } catch(e) {
+    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+    socket.destroy();
+  }
+});
+
+wss.on('connection', async (socket, req) => {
+  const user = req._wsUser;
+  const url = new URL(req.url, 'http://localhost');
+  const orderId = url.searchParams.get('orderId');
+  let clientEntry = null;
+
+  if (orderId) {
+    const { data: order } = await supabase.from('orders')
+      .select('buyer_id,seller_id').eq('id', orderId).single();
+    if (!order || (order.buyer_id !== user.id && order.seller_id !== user.id)) {
+      socket.close(4003, 'Forbidden');
+      return;
+    }
+    if (!chatRooms.has(orderId)) chatRooms.set(orderId, new Set());
+    clientEntry = { socket, userId: user.id, userName: user.name };
+    chatRooms.get(orderId).add(clientEntry);
+  }
+
+  // Register for cross-room push notifications
+  userSockets.set(user.id, socket);
+
+  socket.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw.toString()); } catch { return; }
+
+    if (msg.type === 'typing' && orderId) {
+      broadcastToRoom(orderId, { type: 'typing', userId: user.id, isTyping: !!msg.isTyping }, user.id);
+    }
+
+    if (msg.type === 'read' && orderId) {
+      supabase.from('order_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('order_id', orderId)
+        .neq('sender_id', user.id)
+        .is('read_at', null)
+        .then(() => broadcastToRoom(orderId, { type: 'read', readBy: user.id }, user.id))
+        .catch(() => {});
+    }
+
+    if (msg.type === 'ping') {
+      try { socket.send(JSON.stringify({ type: 'pong' })); } catch(e) {}
+    }
+  });
+
+  socket.on('close', () => {
+    userSockets.delete(user.id);
+    if (orderId && clientEntry) {
+      const room = chatRooms.get(orderId);
+      if (room) {
+        room.delete(clientEntry);
+        if (room.size === 0) chatRooms.delete(orderId);
+      }
+    }
+  });
+
+  socket.on('error', () => {});
+  try { socket.send(JSON.stringify({ type: 'connected', userId: user.id })); } catch(e) {}
+});

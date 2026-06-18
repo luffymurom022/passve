@@ -114,10 +114,18 @@ alter table reviews disable row level security;
 --   sender_id uuid references users(id),
 --   sender_name text,
 --   text text not null,
+--   image_url text,
+--   message_type text default 'text',
+--   read_at timestamptz,
 --   created_at timestamptz default now()
 -- );
 -- ALTER TABLE order_messages DISABLE ROW LEVEL SECURITY;
 -- CREATE INDEX IF NOT EXISTS idx_order_messages_order ON order_messages(order_id, created_at ASC);
+
+-- Migration: nếu bảng đã tồn tại, thêm các cột mới cho chat nâng cao
+-- ALTER TABLE order_messages ADD COLUMN IF NOT EXISTS image_url text;
+-- ALTER TABLE order_messages ADD COLUMN IF NOT EXISTS message_type text DEFAULT 'text';
+-- ALTER TABLE order_messages ADD COLUMN IF NOT EXISTS read_at timestamptz;
 
 -- ═══════════════════════════════════════════════
 -- KYC REQUESTS TABLE
