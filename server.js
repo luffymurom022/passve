@@ -135,8 +135,8 @@ function generateReferralCode() {
 }
 
 // ── VNPay config ──
-const VNPAY_TMN_CODE   = process.env.VNPAY_TMN_CODE;
-const VNPAY_HASH_SECRET = process.env.VNPAY_HASH_SECRET;
+const VNPAY_TMN_CODE   = (process.env.VNPAY_TMN_CODE || '').trim();
+const VNPAY_HASH_SECRET = (process.env.VNPAY_HASH_SECRET || '').trim();
 const VNPAY_URL        = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
 const VNPAY_API_URL    = process.env.VNPAY_API_URL || 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction';
 
