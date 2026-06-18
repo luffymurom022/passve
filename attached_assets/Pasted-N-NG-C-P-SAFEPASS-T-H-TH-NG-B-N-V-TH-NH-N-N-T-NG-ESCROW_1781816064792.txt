@@ -1,0 +1,267 @@
+NÂNG CẤP SAFEPASS TỪ HỆ THỐNG BÁN VÉ THÀNH NỀN TẢNG ESCROW MARKETPLACE ĐA DANH MỤC
+
+Bối cảnh:
+
+Hiện tại SafePass chỉ hỗ trợ giao dịch vé sự kiện.
+
+Tôi muốn nâng cấp thành nền tảng giao dịch trung gian (escrow marketplace).
+
+Mọi giao dịch đều dùng cơ chế giữ tiền trung gian hiện có.
+
+==================================================
+
+MỤC TIÊU
+
+Thay thế hệ thống Ticket bằng hệ thống Listing đa loại.
+
+Một Listing có thể thuộc các loại:
+
+* ticket
+* product
+* account
+* course
+* service
+* booking
+
+==================================================
+
+DATABASE
+
+Tạo bảng mới:
+
+listings
+
+Fields:
+
+id UUID
+seller_id UUID
+
+type TEXT
+
+title TEXT
+description TEXT
+
+price NUMERIC
+
+quantity INTEGER
+
+images JSONB
+
+status TEXT
+
+created_at TIMESTAMP
+
+updated_at TIMESTAMP
+
+==================================================
+
+TYPE
+
+ticket
+
+Ví dụ:
+
+* Vé concert
+* Vé bóng đá
+* Vé workshop
+
+==================================================
+
+product
+
+Ví dụ:
+
+* Giày
+* Áo
+* Điện thoại
+* Laptop
+
+==================================================
+
+account
+
+Ví dụ:
+
+* Netflix
+* ChatGPT Plus
+* Canva Pro
+* Spotify
+* Game Account
+
+==================================================
+
+course
+
+Ví dụ:
+
+* Khóa học AI
+* Khóa học Marketing
+* Coaching
+
+==================================================
+
+service
+
+Ví dụ:
+
+* Thiết kế logo
+* Edit video
+* Chạy quảng cáo
+* Lập trình
+
+==================================================
+
+booking
+
+Ví dụ:
+
+* Đặt phòng
+* Đặt sân bóng
+* Đặt studio
+
+==================================================
+
+ORDER SYSTEM
+
+Nâng cấp Order hiện tại.
+
+Order phải hỗ trợ:
+
+buyer_id
+
+seller_id
+
+listing_id
+
+listing_type
+
+price
+
+fee
+
+escrow_amount
+
+status
+
+==================================================
+
+ESCROW
+
+Giữ nguyên cơ chế escrow hiện tại.
+
+Flow:
+
+Buyer thanh toán
+
+↓
+
+Tiền vào Escrow
+
+↓
+
+Seller hoàn thành giao dịch
+
+↓
+
+Buyer xác nhận
+
+↓
+
+Giải ngân cho Seller
+
+==================================================
+
+FRONTEND
+
+Trang chủ:
+
+Hiển thị:
+
+* Pass Vé
+* Pass Đồ
+* Pass Tài Khoản
+* Pass Khóa Học
+* Pass Dịch Vụ
+* Pass Booking
+
+==================================================
+
+SELLER CENTER
+
+Người bán có thể:
+
+Tạo Listing
+
+Chỉnh sửa Listing
+
+Ẩn Listing
+
+Xóa Listing
+
+Theo dõi đơn hàng
+
+==================================================
+
+SEARCH
+
+Bộ lọc:
+
+Theo loại
+
+Theo giá
+
+Theo người bán
+
+Theo trạng thái
+
+==================================================
+
+PROFILE
+
+Hiển thị:
+
+* Tổng giao dịch
+* Đánh giá
+* KYC
+* Verified Seller
+
+==================================================
+
+ADMIN
+
+Admin có thể:
+
+Duyệt Listing
+
+Ẩn Listing
+
+Khóa Seller
+
+Xem giao dịch
+
+Xem Escrow
+
+==================================================
+
+YÊU CẦU
+
+1. Không phá vỡ hệ thống hiện tại.
+
+2. Tự tạo migration từ tickets sang listings.
+
+3. Refactor API.
+
+4. Refactor frontend.
+
+5. Giữ tương thích dữ liệu cũ.
+
+6. Generate toàn bộ backend + frontend code.
+
+7. Sau khi hoàn thành phải có thể giao dịch được cả:
+
+   * Vé
+   * Đồ vật
+   * Tài khoản
+   * Dịch vụ
+
+Sử dụng kiến trúc hiện có của SafePass.
