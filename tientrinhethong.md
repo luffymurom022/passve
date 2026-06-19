@@ -3,7 +3,7 @@
 ---
 
 ## ✅ TỔNG KẾT CHỨC NĂNG ĐÃ BUILD XONG
-> Cập nhật lần cuối: **2026-06-18 20:00** — Tự động cập nhật sau mỗi lần build xong
+> Cập nhật lần cuối: **2026-06-19** — Tự động cập nhật sau mỗi lần build xong
 
 ### 📦 Pass Đồ — Hệ Thống Giao Hàng Vật Lý *(HOÀN THÀNH)*
 | Chức năng | Ngày hoàn thành |
@@ -39,6 +39,39 @@
 | Frontend: Sell form 3 bước với type selector 6 loại + adaptive fields | 2026-06-18 |
 | Frontend: Marketplace hiển thị cả tickets lẫn listings | 2026-06-18 |
 | Frontend: Admin tab "Listings" với filter type/status, hide/delete | 2026-06-18 |
+
+### 🛠️ Pass Dịch Vụ — Fiverr Mini *(HOÀN THÀNH)*
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| Bảng `service_listings` + `service_packages` + `service_orders` + `service_reviews` Supabase | 2026-06-19 |
+| Supabase Storage bucket `deliverables` (file nộp bài) | 2026-06-19 |
+| `GET /api/service-listings` — browse dịch vụ (search, filter category, pagination) | 2026-06-19 |
+| `GET /api/service-listings/mine` — seller xem dịch vụ của mình | 2026-06-19 |
+| `GET /api/service-listings/:id` — chi tiết 1 dịch vụ + reviews | 2026-06-19 |
+| `POST /api/service-listings` — seller đăng dịch vụ kèm gói (packages) | 2026-06-19 |
+| `PUT /api/service-listings/:id` — seller chỉnh sửa dịch vụ | 2026-06-19 |
+| `POST /api/service-orders` — buyer đặt dịch vụ → escrow giữ tiền | 2026-06-19 |
+| `GET /api/service-orders` — danh sách đơn dịch vụ (buyer/seller) | 2026-06-19 |
+| `GET /api/service-orders/:id` — chi tiết đơn dịch vụ | 2026-06-19 |
+| `POST /api/service-orders/:id/start` — seller bắt đầu làm | 2026-06-19 |
+| `POST /api/service-orders/:id/submit` — seller nộp bài | 2026-06-19 |
+| `POST /api/service-orders/:id/approve` — buyer duyệt → giải ngân | 2026-06-19 |
+| `POST /api/service-orders/:id/revision` — buyer yêu cầu sửa | 2026-06-19 |
+| `POST /api/service-orders/:id/dispute` — mở khiếu nại đơn dịch vụ | 2026-06-19 |
+| `POST /api/service-orders/:id/cancel` — hủy đơn dịch vụ | 2026-06-19 |
+| `GET/POST /api/service-orders/:id/messages` — chat nội bộ trong đơn dịch vụ | 2026-06-19 |
+| `POST /api/service-orders/:id/upload` — seller upload file deliverable (Supabase Storage) | 2026-06-19 |
+| `POST /api/service-reviews` — buyer đánh giá dịch vụ sau khi hoàn tất | 2026-06-19 |
+| Frontend: Tab "💼 Dịch Vụ" trong navbar | 2026-06-19 |
+| Frontend: Trang browse dịch vụ — search, filter, grid listing cards | 2026-06-19 |
+| Frontend: Modal chi tiết dịch vụ — mô tả, gói giá, đặt dịch vụ | 2026-06-19 |
+| Frontend: Tab "Đơn của tôi / Đơn tôi bán" trong trang dịch vụ | 2026-06-19 |
+| Frontend: Card đơn dịch vụ — timeline trạng thái, actions theo role | 2026-06-19 |
+| Frontend: Upload file deliverable + hiển thị link tải | 2026-06-19 |
+| Frontend: Seller form đăng dịch vụ (gig) với gói giá | 2026-06-19 |
+| Thông báo realtime: seller nhận notification khi có đơn mới | 2026-06-19 |
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `service_migration.sql` (nếu chưa có, xem SQL bên dưới)
 
 ### 🤝 Referral & Hoa Hồng *(HOÀN THÀNH)*
 | Chức năng | Ngày hoàn thành |
@@ -686,4 +719,4 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 
 ---
 
-*Cập nhật lần cuối: 2026-06-17 — Rút tiền (manual escrow admin duyệt) + Gói VIP/Premium + Moderator role*
+*Cập nhật lần cuối: 2026-06-19 — Pass Dịch Vụ (Fiverr mini) hoàn thành*
