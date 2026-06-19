@@ -4,7 +4,12 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "tick": "node tick.js",
+    "tick:add": "node tick.js add",
+    "tick:new": "node tick.js new",
+    "tick:all": "node tick.js all",
+    "tick:list": "node tick.js list"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

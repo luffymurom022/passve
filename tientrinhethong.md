@@ -719,4 +719,4 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 
 ---
 
-*Cập nhật lần cuối: 2026-06-19 — Pass Dịch Vụ (Fiverr mini) hoàn thành*
+*Cập nhật lần cuối: 2026-06-19*
