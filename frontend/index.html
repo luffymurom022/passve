@@ -1166,6 +1166,7 @@ function render(){
     {id:"analytics",icon:"📊",label:"Analytics"},
     {id:"aichat",icon:"💬",label:"AI Chat"},
     {id:"digital",icon:"💻",label:"Tài Khoản"},
+    {id:"service",icon:"💼",label:"Dịch Vụ"},
     {id:"profile",icon:"👤",label:"Hồ sơ"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
@@ -1235,6 +1236,7 @@ function buildPlaceholderPage(page){
   if(page==="admin_verify") return buildAdminVerifyPage();
   if(page==="moderator") return buildModeratorPage();
   if(page==="digital") return buildDigitalPage();
+  if(page==="service") return buildServicePage();
   return`<div style="text-align:center;padding:80px 20px;"><div style="font-size:13px;color:var(--sub);">Sắp ra mắt.</div></div>`;
 }
 
@@ -7030,6 +7032,596 @@ function startPolling() {
   // Chưa đăng nhập → hiện modal
   setTimeout(() => showAuthModal('login'), 500);
 })();
+
+/* ══════════════════════════════════════════
+   💼 PASS DỊCH VỤ — FREELANCE MARKETPLACE
+══════════════════════════════════════════ */
+const SVC_CATEGORIES = ['Thiết kế Logo','Thiết kế Website','Lập trình','Edit Video','Motion Graphic','Content Marketing','SEO','Facebook Ads','Google Ads','Dịch Thuật','Gia Sư','Tư Vấn','Khác'];
+const SVC_STATUS_MAP = {
+  pending:            {label:'⏳ Chờ nhận',     color:'#f5a623'},
+  in_progress:        {label:'🔨 Đang làm',     color:'#3d8ef8'},
+  submitted:          {label:'📦 Đã nộp',        color:'#9b87f5'},
+  revision_requested: {label:'📝 Cần sửa',      color:'#f5a623'},
+  completed:          {label:'✅ Hoàn thành',    color:'#22d38e'},
+  cancelled:          {label:'❌ Đã huỷ',        color:'#f05068'},
+  disputed:           {label:'⚠️ Tranh chấp',   color:'#f05068'},
+};
+
+let svcState = { tab:'browse', listings:[], myOrders:[], myGigs:[], detail:null, searchQ:'', cat:'', sort:'', loadingDetail:false, createGigOpen:false, orderDetailId:null };
+
+function setSvcState(patch){
+  Object.assign(svcState, patch);
+  // re-render service page if active
+  if(state.page==='service') renderServicePage();
+}
+
+function renderServicePage(){
+  const el = document.getElementById('svc-root');
+  if(!el) return;
+  el.innerHTML = buildServicePageInner();
+  bindSvcEvents();
+}
+
+function buildServicePage(){
+  return `<div id="svc-root">${buildServicePageInner()}</div>`;
+}
+
+function buildServicePageInner(){
+  const tabs=[
+    {id:'browse',icon:'🔍',label:'Khám phá'},
+    {id:'myorders',icon:'📋',label:'Đơn của tôi'},
+    {id:'mygigs',icon:'🛠️',label:'Gig của tôi'},
+  ];
+  const tabBar=`<div style="display:flex;gap:4px;padding:0 4px 0 0;margin-bottom:20px;overflow-x:auto;scrollbar-width:none;">
+    ${tabs.map(t=>`<button onclick="setSvcState({tab:'${t.id}'})" style="flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid ${svcState.tab===t.id?'transparent':'var(--border)'};background:${svcState.tab===t.id?'linear-gradient(135deg,#3d8ef8,#2e7ef0)':'var(--card2)'};color:${svcState.tab===t.id?'#fff':'var(--sub)'};transition:all .15s;">${t.icon} ${t.label}</button>`).join('')}
+    ${svcState.tab==='mygigs'?`<button onclick="openCreateGig()" style="flex-shrink:0;margin-left:auto;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(34,211,142,.3);background:rgba(34,211,142,.1);color:#22d38e;">➕ Tạo Gig</button>`:''}
+  </div>`;
+
+  let content='';
+  if(svcState.tab==='browse') content=buildSvcBrowse();
+  else if(svcState.tab==='myorders') content=buildSvcMyOrders();
+  else if(svcState.tab==='mygigs') content=buildSvcMyGigs();
+
+  const detailModal = svcState.orderDetailId ? buildSvcOrderDetailModal(svcState.orderDetailId) : '';
+  const createModal = svcState.createGigOpen ? buildCreateGigModal() : '';
+
+  return `<div style="max-width:1100px;margin:0 auto;padding:0 4px;">
+    <div style="margin-bottom:24px;">
+      <h2 style="font-size:22px;font-weight:800;margin:0 0 4px;">💼 Dịch Vụ</h2>
+      <p style="font-size:13px;color:var(--sub);margin:0;">Thuê freelancer chuyên nghiệp — Thanh toán qua Escrow an toàn</p>
+    </div>
+    ${tabBar}${content}${detailModal}${createModal}
+  </div>`;
+}
+
+function buildSvcBrowse(){
+  const toolbar=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
+    <input id="svc-search" placeholder="🔍 Tìm dịch vụ..." value="${escHtml(svcState.searchQ)}" oninput="setSvcState({searchQ:this.value})" onkeydown="if(event.key==='Enter')loadSvcListings()" style="flex:1;min-width:180px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;font-family:inherit;">
+    <select onchange="setSvcState({cat:this.value})" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:12px;outline:none;">
+      <option value="" ${!svcState.cat?'selected':''}>Tất cả danh mục</option>
+      ${SVC_CATEGORIES.map(c=>`<option value="${c}" ${svcState.cat===c?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <select onchange="setSvcState({sort:this.value})" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:12px;outline:none;">
+      <option value="">Mới nhất</option>
+      <option value="rating" ${svcState.sort==='rating'?'selected':''}>⭐ Đánh giá cao</option>
+      <option value="price_asc" ${svcState.sort==='price_asc'?'selected':''}>💰 Giá thấp→cao</option>
+      <option value="price_desc" ${svcState.sort==='price_desc'?'selected':''}>💰 Giá cao→thấp</option>
+    </select>
+    <button onclick="loadSvcListings()" style="padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2e7ef0);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Tìm</button>
+  </div>`;
+
+  if(svcState.listings.length===0){
+    return toolbar+`<div style="text-align:center;padding:60px 20px;color:var(--hint);">
+      <div style="font-size:48px;margin-bottom:12px;">💼</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;">Chưa có dịch vụ nào</div>
+      <div style="font-size:13px;">Hãy là người đầu tiên đăng dịch vụ!</div>
+      <button onclick="setSvcState({tab:'mygigs',createGigOpen:true})" style="margin-top:16px;padding:10px 20px;border-radius:10px;border:none;background:#3d8ef8;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">➕ Tạo Gig đầu tiên</button>
+    </div>`;
+  }
+
+  const cards=svcState.listings.map(s=>{
+    const stars='⭐'.repeat(Math.round(s.avg_rating||0));
+    const sellerVerified=s.seller?.is_verified?'<span style="color:#3d8ef8;font-size:10px;">✓</span>':'';
+    const pkgCount=(s.service_packages||[]).length;
+    return `<div onclick="openSvcDetail('${s.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;" onmouseenter="this.style.borderColor='var(--brand)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.borderColor='var(--border)';this.style.transform=''">
+      <div style="height:140px;background:linear-gradient(135deg,rgba(61,142,248,.15),rgba(155,135,245,.15));display:flex;align-items:center;justify-content:center;font-size:48px;">${getCatIcon(s.category)}</div>
+      <div style="padding:14px;flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.4px;">${s.category}</div>
+        <div style="font-size:14px;font-weight:700;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(s.title)}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:auto;">${s.seller?.name||'Freelancer'} ${sellerVerified}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+          <div style="font-size:11px;color:var(--sub);">${s.avg_rating>0?stars+' ('+s.review_count+')':'Chưa có đánh giá'}</div>
+          ${pkgCount>1?`<span style="font-size:10px;color:var(--sub);">${pkgCount} gói</span>`:''}
+        </div>
+        <div style="font-size:16px;font-weight:800;color:var(--brand);">từ ${(s.price||0).toLocaleString('vi-VN')}đ</div>
+        <div style="font-size:11px;color:var(--sub);">🕐 ${s.delivery_days} ngày · 🔄 ${s.revision_count} lần sửa · 📦 ${s.total_orders||0} đơn</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return toolbar+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">${cards}</div>`;
+}
+
+function getCatIcon(cat){
+  const m={'Thiết kế Logo':'🎨','Thiết kế Website':'🌐','Lập trình':'💻','Edit Video':'🎬','Motion Graphic':'✨','Content Marketing':'📝','SEO':'🔍','Facebook Ads':'📘','Google Ads':'🟡','Dịch Thuật':'🌍','Gia Sư':'📚','Tư Vấn':'💡','Khác':'🛠️'};
+  return m[cat]||'💼';
+}
+
+function buildSvcMyOrders(){
+  if(!authToken) return `<div style="text-align:center;padding:60px 20px;color:var(--hint);"><div style="font-size:48px;">🔒</div><div style="margin-top:12px;font-size:14px;">Đăng nhập để xem đơn hàng</div></div>`;
+  if(svcState.myOrders.length===0) return `<div style="text-align:center;padding:60px 20px;color:var(--hint);">
+    <div style="font-size:48px;">📋</div>
+    <div style="margin-top:12px;font-size:14px;font-weight:700;">Bạn chưa đặt dịch vụ nào</div>
+    <button onclick="setSvcState({tab:'browse'})" style="margin-top:16px;padding:10px 20px;border-radius:10px;border:none;background:#3d8ef8;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">🔍 Khám phá dịch vụ</button>
+  </div>`;
+
+  return svcState.myOrders.map(o=>{
+    const st=SVC_STATUS_MAP[o.status]||{label:o.status,color:'#888'};
+    const deadline=o.deadline_at?new Date(o.deadline_at).toLocaleDateString('vi-VN'):'—';
+    return `<div onclick="openSvcOrderDetail('${o.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--brand)'" onmouseleave="this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:15px;font-weight:700;">${escHtml(o.service_title||'Dịch vụ')}</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:2px;">Gói: ${o.package_name||'Cơ bản'} · Hạn: ${deadline}</div>
+        </div>
+        <span style="flex-shrink:0;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${st.color}22;color:${st.color};border:1px solid ${st.color}44;">${st.label}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:15px;font-weight:800;color:var(--brand);">${(o.price||0).toLocaleString('vi-VN')}đ</span>
+        <span style="font-size:11px;color:var(--hint);">${new Date(o.created_at).toLocaleDateString('vi-VN')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildSvcMyGigs(){
+  if(!authToken) return `<div style="text-align:center;padding:60px 20px;color:var(--hint);"><div style="font-size:48px;">🔒</div><div style="margin-top:12px;font-size:14px;">Đăng nhập để quản lý gig</div></div>`;
+  if(svcState.myGigs.length===0) return `<div style="text-align:center;padding:60px 20px;color:var(--hint);">
+    <div style="font-size:48px;">🛠️</div>
+    <div style="margin-top:12px;font-size:14px;font-weight:700;">Bạn chưa có gig nào</div>
+    <div style="font-size:13px;margin-top:4px;">Đăng dịch vụ và bắt đầu kiếm tiền!</div>
+    <button onclick="openCreateGig()" style="margin-top:16px;padding:10px 20px;border-radius:10px;border:none;background:#22d38e;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">➕ Tạo Gig đầu tiên</button>
+  </div>`;
+
+  return svcState.myGigs.map(g=>{
+    const statusC=g.status==='active'?'#22d38e':g.status==='paused'?'#f5a623':'#f05068';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;">${escHtml(g.title)}</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:3px;">${g.category} · ${g.delivery_days} ngày · ${g.revision_count} lần sửa</div>
+        </div>
+        <span style="flex-shrink:0;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${statusC}22;color:${statusC};border:1px solid ${statusC}44;">${g.status==='active'?'✅ Đang bán':g.status==='paused'?'⏸️ Tạm dừng':'❌ Bị từ chối'}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:16px;font-weight:800;color:var(--brand);">${(g.price||0).toLocaleString('vi-VN')}đ</span>
+        <div style="display:flex;gap:8px;">
+          <span style="font-size:12px;color:var(--sub);">⭐ ${g.avg_rating||0} · 📦 ${g.total_orders||0} đơn</span>
+          <button onclick="event.stopPropagation();toggleGigStatus('${g.id}','${g.status==='active'?'paused':'active'}')" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--card2);color:var(--sub);font-size:11px;cursor:pointer;">${g.status==='active'?'⏸️ Dừng':'▶️ Kích hoạt'}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildSvcOrderDetailModal(orderId){
+  const o = (svcState._orderDetail && svcState._orderDetail.id === orderId) ? svcState._orderDetail : null;
+  if(!o) return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:center;justify-content:center;" onclick="setSvcState({orderDetailId:null,_orderDetail:null})"><div style="background:var(--card);border-radius:20px;padding:40px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">⏳</div><div style="font-size:14px;color:var(--sub);">Đang tải...</div></div></div>`;
+  const isBuyer = currentUser?.id === o.buyer_id;
+  const isSeller = currentUser?.id === o.seller_id;
+  const st = SVC_STATUS_MAP[o.status]||{label:o.status,color:'#888'};
+
+  const msgs = (o.messages||[]).map(m=>{
+    const isMe = m.sender_id === currentUser?.id;
+    return `<div style="display:flex;justify-content:${isMe?'flex-end':'flex-start'};margin-bottom:8px;">
+      <div style="max-width:75%;padding:10px 13px;border-radius:12px;background:${isMe?'rgba(61,142,248,.2)':'var(--card2)'};border:1px solid ${isMe?'rgba(61,142,248,.3)':'var(--border)'};font-size:13px;line-height:1.5;">
+        ${m.content?escHtml(m.content):''}
+        ${m.file_url?`<a href="${m.file_url}" target="_blank" style="display:block;color:var(--brand);font-size:11px;margin-top:4px;">📎 Xem file</a>`:''}
+        <div style="font-size:10px;color:var(--hint);margin-top:3px;text-align:${isMe?'right':'left'};">${new Date(m.created_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const deliverables=(o.deliverables||[]).map(d=>`<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
+    ${d.message?`<div style="font-size:13px;margin-bottom:6px;">${escHtml(d.message)}</div>`:''}
+    ${d.file_url?`<a href="${d.file_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:rgba(61,142,248,.1);border:1px solid rgba(61,142,248,.2);color:var(--brand);font-size:12px;font-weight:600;text-decoration:none;">📥 Tải file: ${escHtml(d.file_name||'deliverable')}</a>`:''}
+    <div style="font-size:10px;color:var(--hint);margin-top:4px;">${new Date(d.created_at).toLocaleString('vi-VN')}</div>
+  </div>`).join('');
+
+  const actions=[];
+  if(isSeller && o.status==='pending') actions.push(`<button onclick="svcOrderAction('${o.id}','start')" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2e7ef0);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">🔨 Bắt đầu làm</button>`);
+  if(isSeller && ['in_progress','revision_requested'].includes(o.status)) actions.push(`<button onclick="openSubmitDeliverable('${o.id}')" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#9b87f5,#7b67d5);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">📦 Nộp sản phẩm</button>`);
+  if(isBuyer && o.status==='submitted'){
+    actions.push(`<button onclick="svcOrderAction('${o.id}','approve')" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#22d38e,#1ab57a);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">✅ Xác nhận</button>`);
+    if(o.revision_count < o.max_revisions) actions.push(`<button onclick="svcRequestRevision('${o.id}')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;">📝 Yêu cầu sửa (${o.revision_count}/${o.max_revisions})</button>`);
+  }
+  if(o.status==='completed'&&isBuyer&&!o.review) actions.push(`<button onclick="openSvcReview('${o.id}')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(245,166,35,.4);background:rgba(245,166,35,.1);color:#f5a623;font-size:13px;font-weight:600;cursor:pointer;">⭐ Đánh giá</button>`);
+  if(!['completed','cancelled','disputed'].includes(o.status)&&o.status!=='submitted') actions.push(`<button onclick="svcOpenDispute('${o.id}')" style="padding:10px;border-radius:10px;border:1px solid rgba(240,80,104,.3);background:rgba(240,80,104,.1);color:#f05068;font-size:13px;font-weight:600;cursor:pointer;">⚠️ Tranh chấp</button>`);
+  if(['pending','in_progress'].includes(o.status)) actions.push(`<button onclick="svcOrderAction('${o.id}','cancel')" style="padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--sub);font-size:12px;cursor:pointer;">❌ Huỷ</button>`);
+
+  return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;" onclick="if(event.target===this)setSvcState({orderDetailId:null,_orderDetail:null})">
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:640px;margin:auto;">
+      <!-- Header -->
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:15px;font-weight:800;">${escHtml(o.service_title)}</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:2px;">Gói: ${escHtml(o.package_name||'Cơ bản')} · <span style="color:${st.color};font-weight:600;">${st.label}</span></div>
+        </div>
+        <button onclick="setSvcState({orderDetailId:null,_orderDetail:null})" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:16px;color:var(--sub);">✕</button>
+      </div>
+      <!-- Info grid -->
+      <div style="padding:16px 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;border-bottom:1px solid var(--border);">
+        <div style="text-align:center;background:var(--card2);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--sub);margin-bottom:4px;">Giá trị</div><div style="font-size:16px;font-weight:800;color:var(--brand);">${(o.price||0).toLocaleString('vi-VN')}đ</div></div>
+        <div style="text-align:center;background:var(--card2);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--sub);margin-bottom:4px;">Hạn nộp</div><div style="font-size:13px;font-weight:700;">${o.deadline_at?new Date(o.deadline_at).toLocaleDateString('vi-VN'):'—'}</div></div>
+        <div style="text-align:center;background:var(--card2);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--sub);margin-bottom:4px;">Lần sửa</div><div style="font-size:13px;font-weight:700;">${o.revision_count}/${o.max_revisions}</div></div>
+      </div>
+      ${o.requirements?`<div style="padding:12px 24px;border-bottom:1px solid var(--border);"><div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Yêu cầu của buyer</div><div style="font-size:13px;line-height:1.6;background:var(--card2);border-radius:10px;padding:10px 12px;">${escHtml(o.requirements)}</div></div>`:''}
+      <!-- Deliverables -->
+      ${deliverables?`<div style="padding:12px 24px;border-bottom:1px solid var(--border);"><div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:8px;">📦 Sản phẩm đã nộp</div>${deliverables}</div>`:''}
+      <!-- Chat -->
+      <div style="padding:12px 24px;border-bottom:1px solid var(--border);">
+        <div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:8px;">💬 Chat</div>
+        <div style="height:200px;overflow-y:auto;margin-bottom:8px;padding:4px;" id="svc-msgs-box">${msgs||'<div style="text-align:center;padding:30px;color:var(--hint);font-size:12px;">Chưa có tin nhắn</div>'}</div>
+        <div style="display:flex;gap:8px;">
+          <input id="svc-msg-input" placeholder="Nhập tin nhắn..." style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;" onkeydown="if(event.key==='Enter')sendSvcMsg('${o.id}')">
+          <button onclick="sendSvcMsg('${o.id}')" style="padding:9px 16px;border-radius:10px;border:none;background:#3d8ef8;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Gửi</button>
+        </div>
+      </div>
+      <!-- Actions -->
+      ${actions.length?`<div style="padding:16px 24px;display:flex;gap:8px;flex-wrap:wrap;">${actions.join('')}</div>`:'<div style="padding:16px 24px;"></div>'}
+    </div>
+  </div>`;
+}
+
+function buildCreateGigModal(){
+  return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)setSvcState({createGigOpen:false})">
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:16px;font-weight:800;">🛠️ Tạo Gig mới</div>
+        <button onclick="setSvcState({createGigOpen:false})" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:16px;color:var(--sub);">✕</button>
+      </div>
+      <div style="padding:20px 24px;" id="create-gig-form">
+        <div style="margin-bottom:14px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Danh mục *</label>
+          <select id="gig-cat" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;">
+            ${SVC_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <div style="margin-bottom:14px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Tiêu đề *</label>
+          <input id="gig-title" placeholder="VD: Thiết kế logo chuyên nghiệp..." style="width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:14px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Mô tả *</label>
+          <textarea id="gig-desc" placeholder="Mô tả chi tiết dịch vụ của bạn..." rows="4" style="width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Giá (đ) *</label>
+            <input id="gig-price" type="number" placeholder="150000" min="10000" step="1000" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;"></div>
+          <div><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Hạn (ngày)</label>
+            <input id="gig-days" type="number" value="3" min="1" max="90" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;"></div>
+          <div><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Lần sửa</label>
+            <input id="gig-revisions" type="number" value="1" min="0" max="10" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;"></div>
+        </div>
+        <button onclick="submitCreateGig()" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#22d38e,#1ab57a);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✅ Tạo Gig</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadSvcListings(){
+  const params=new URLSearchParams();
+  if(svcState.searchQ) params.set('search',svcState.searchQ);
+  if(svcState.cat) params.set('category',svcState.cat);
+  if(svcState.sort) params.set('sort',svcState.sort);
+  try{
+    const r=await fetch(API+'/service-listings?'+params.toString());
+    const d=await r.json();
+    setSvcState({listings:Array.isArray(d)?d:[]});
+  }catch(e){ setSvcState({listings:[]}); }
+}
+
+async function loadSvcMyOrders(){
+  if(!authToken) return;
+  try{
+    const r=await fetch(API+'/service-orders?role=buyer',{headers:getHeaders()});
+    const d=await r.json();
+    setSvcState({myOrders:Array.isArray(d)?d:[]});
+  }catch(e){}
+}
+
+async function loadSvcMyGigs(){
+  if(!authToken) return;
+  try{
+    const r=await fetch(API+'/service-listings/mine',{headers:getHeaders()});
+    const d=await r.json();
+    setSvcState({myGigs:Array.isArray(d)?d:[]});
+  }catch(e){}
+}
+
+async function openSvcDetail(id){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+  ov.innerHTML='<div style="background:var(--card);border-radius:20px;padding:40px;text-align:center;"><div style="font-size:32px;">⏳</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  try{
+    const r=await fetch(API+'/service-listings/'+id);
+    const svc=await r.json();
+    ov.innerHTML=buildSvcDetailOverlay(svc,ov);
+  }catch(e){ ov.remove(); showToast('Lỗi tải dịch vụ','err'); }
+}
+
+function buildSvcDetailOverlay(s){
+  const pkgs=(s.service_packages||[]);
+  const stars=s.avg_rating>0?'⭐'.repeat(Math.round(s.avg_rating))+` (${s.review_count})`:'Chưa có đánh giá';
+  const pkgCards=pkgs.length>0?pkgs.map(p=>`<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;flex:1;min-width:140px;">
+    <div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:8px;">${escHtml(p.package_name)}</div>
+    <div style="font-size:16px;font-weight:800;">${(p.price||0).toLocaleString('vi-VN')}đ</div>
+    <div style="font-size:11px;color:var(--sub);margin-top:4px;">🕐 ${p.delivery_days}d · 🔄 ${p.revision_count}x sửa</div>
+    <button onclick="openOrderModal('${s.id}','${p.id}',${p.price},'${escHtml(p.package_name)}')" style="margin-top:10px;width:100%;padding:8px;border-radius:8px;border:none;background:#3d8ef8;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Đặt gói này</button>
+  </div>`).join('')
+  :'';
+
+  const reviews=(s.reviews||[]).map(r=>`<div style="border-bottom:1px solid var(--border);padding:12px 0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <span style="font-size:13px;font-weight:600;">${escHtml(r.buyer_name)}</span>
+      <span style="color:#f5a623;">${'⭐'.repeat(r.rating)}</span>
+    </div>
+    ${r.review?`<div style="font-size:13px;color:var(--sub);">${escHtml(r.review)}</div>`:''}
+  </div>`).join('');
+
+  return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;" onclick="if(event.target===this)this.remove()">
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:640px;margin:auto;">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;font-weight:700;color:var(--brand);">${escHtml(s.category)}</span>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:16px;color:var(--sub);">✕</button>
+      </div>
+      <div style="padding:20px 24px;">
+        <h3 style="font-size:18px;font-weight:800;margin:0 0 8px;">${escHtml(s.title)}</h3>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <span style="font-size:13px;font-weight:600;">${escHtml(s.seller?.name||'Freelancer')} ${s.seller?.is_verified?'✓':''}</span>
+          <span style="font-size:12px;color:var(--sub);">${stars}</span>
+          <span style="font-size:12px;color:var(--sub);">📦 ${s.total_orders||0} đơn</span>
+        </div>
+        <div style="font-size:13px;line-height:1.8;color:var(--sub);margin-bottom:20px;white-space:pre-wrap;">${escHtml(s.description)}</div>
+        ${pkgs.length>0?`<div style="margin-bottom:20px;"><div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:10px;">Gói dịch vụ</div><div style="display:flex;gap:10px;flex-wrap:wrap;">${pkgCards}</div></div>`
+        :`<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:16px;background:var(--card2);border-radius:12px;margin-bottom:20px;">
+          <div>
+            <div style="font-size:20px;font-weight:800;color:var(--brand);">${(s.price||0).toLocaleString('vi-VN')}đ</div>
+            <div style="font-size:12px;color:var(--sub);">🕐 ${s.delivery_days} ngày · 🔄 ${s.revision_count} lần sửa</div>
+          </div>
+          <button onclick="openOrderModal('${s.id}',null,${s.price},'Cơ bản')" style="padding:12px 24px;border-radius:12px;border:none;background:linear-gradient(135deg,#3d8ef8,#2e7ef0);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">🛒 Đặt ngay</button>
+        </div>`}
+        ${reviews?`<div><div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:10px;">Đánh giá</div>${reviews}</div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function openOrderModal(serviceId, packageId, price, pkgName){
+  if(!authToken){ showAuthModal('login'); return; }
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);z-index:400;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:440px;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:800;">🛒 Đặt dịch vụ</div>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:16px;color:var(--sub);">✕</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="background:var(--card2);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:12px;color:var(--sub);">Gói: ${escHtml(pkgName)}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--brand);margin-top:4px;">${(price||0).toLocaleString('vi-VN')}đ</div>
+        <div style="font-size:11px;color:var(--hint);margin-top:2px;">Phí 5% đã bao gồm</div>
+      </div>
+      <div style="margin-bottom:16px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Yêu cầu của bạn</label>
+        <textarea id="order-requirements" placeholder="Mô tả chi tiết yêu cầu, màu sắc, phong cách, link tham khảo..." rows="4" style="width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+      </div>
+      <button onclick="confirmPlaceServiceOrder('${serviceId}','${packageId||''}',this.closest('[style*=fixed]'))" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#3d8ef8,#2e7ef0);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✅ Xác nhận đặt dịch vụ</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+async function confirmPlaceServiceOrder(serviceId, packageId, overlayEl){
+  const reqs=document.getElementById('order-requirements')?.value.trim();
+  try{
+    const r=await fetch(API+'/service-orders',{method:'POST',headers:getHeaders(),body:JSON.stringify({service_id:serviceId,package_id:packageId||undefined,requirements:reqs||undefined})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    if(overlayEl) overlayEl.remove();
+    document.querySelectorAll('[style*="position:fixed"][style*="z-index:300"]').forEach(el=>el.remove());
+    showToast('✅ Đặt dịch vụ thành công!','ok');
+    setSvcState({tab:'myorders'});
+    loadSvcMyOrders();
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+async function openSvcOrderDetail(orderId){
+  setSvcState({orderDetailId:orderId,_orderDetail:null});
+  try{
+    const r=await fetch(API+'/service-orders/'+orderId,{headers:getHeaders()});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    setSvcState({_orderDetail:d});
+    // scroll chat to bottom
+    setTimeout(()=>{ const box=document.getElementById('svc-msgs-box'); if(box) box.scrollTop=box.scrollHeight; },50);
+  }catch(e){ setSvcState({orderDetailId:null}); showToast(e.message,'err'); }
+}
+
+async function svcOrderAction(orderId, action){
+  try{
+    const r=await fetch(API+`/service-orders/${orderId}/${action}`,{method:'POST',headers:getHeaders()});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    showToast(d.message||'Thành công','ok');
+    openSvcOrderDetail(orderId);
+    loadSvcMyOrders();
+    loadSvcMyGigs();
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+async function svcRequestRevision(orderId){
+  const note=prompt('Nội dung cần sửa:','');
+  if(note===null) return;
+  try{
+    const r=await fetch(API+`/service-orders/${orderId}/revision`,{method:'POST',headers:getHeaders(),body:JSON.stringify({note})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    showToast(d.message,'ok');
+    openSvcOrderDetail(orderId);
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+async function svcOpenDispute(orderId){
+  const reason=prompt('Lý do tranh chấp:','');
+  if(!reason) return;
+  try{
+    const r=await fetch(API+`/service-orders/${orderId}/dispute`,{method:'POST',headers:getHeaders(),body:JSON.stringify({reason})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    showToast(d.message,'ok');
+    openSvcOrderDetail(orderId);
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+function openSubmitDeliverable(orderId){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);z-index:400;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:480px;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:800;">📦 Nộp sản phẩm</div>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:16px;color:var(--sub);">✕</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="margin-bottom:14px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Ghi chú cho buyer</label>
+        <textarea id="submit-msg" placeholder="Mô tả sản phẩm, hướng dẫn sử dụng..." rows="3" style="width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+      </div>
+      <div style="margin-bottom:16px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Upload File (tùy chọn)</label>
+        <input type="file" id="submit-file" accept=".pdf,.zip,.rar,.png,.jpg,.jpeg,.mp4,.docx,.txt" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:12px;box-sizing:border-box;">
+        <div style="font-size:10px;color:var(--hint);margin-top:4px;">PDF, ZIP, RAR, PNG, JPG, MP4, DOCX (max 50MB)</div>
+      </div>
+      <button onclick="submitDeliverable('${orderId}',this.closest('[style*=fixed]'))" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#9b87f5,#7b67d5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">📦 Nộp sản phẩm</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+async function submitDeliverable(orderId, overlayEl){
+  const msg=document.getElementById('submit-msg')?.value.trim();
+  const fileEl=document.getElementById('submit-file');
+  const file=fileEl?.files?.[0];
+  let fileUrl=null, fileName=null;
+  if(file){
+    const fd=new FormData(); fd.append('file',file);
+    try{
+      const ur=await fetch(API+`/service-orders/${orderId}/upload`,{method:'POST',headers:{Authorization:`Bearer ${authToken}`},body:fd});
+      const ud=await ur.json();
+      if(!ur.ok) throw new Error(ud.error||'Upload thất bại');
+      fileUrl=ud.file_url; fileName=ud.file_name;
+    }catch(e){ showToast(e.message,'err'); return; }
+  }
+  try{
+    const r=await fetch(API+`/service-orders/${orderId}/submit`,{method:'POST',headers:getHeaders(),body:JSON.stringify({message:msg||null,file_url:fileUrl,file_name:fileName})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    if(overlayEl) overlayEl.remove();
+    showToast('📦 Đã nộp sản phẩm!','ok');
+    openSvcOrderDetail(orderId);
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+function openSvcReview(orderId){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);z-index:400;display:flex;align-items:center;justify-content:center;padding:16px;';
+  let selectedRating=5;
+  ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:420px;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:800;">⭐ Đánh giá dịch vụ</div>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:16px;color:var(--sub);">✕</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--sub);margin-bottom:10px;">Số sao</div>
+        <div style="display:flex;justify-content:center;gap:8px;">
+          ${[1,2,3,4,5].map(n=>`<button onclick="document.querySelectorAll('.svc-star').forEach((s,i)=>s.style.opacity=i<${n}?'1':'.3');this.dataset.val='${n}';document.getElementById('svc-rating-val').value='${n}';" class="svc-star" style="font-size:28px;background:none;border:none;cursor:pointer;opacity:${n<=5?'1':'.3'};">⭐</button>`).join('')}
+        </div>
+        <input type="hidden" id="svc-rating-val" value="5">
+      </div>
+      <div style="margin-bottom:16px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Nhận xét</label>
+        <textarea id="svc-review-text" placeholder="Nhận xét về chất lượng dịch vụ..." rows="3" style="width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+      </div>
+      <button onclick="submitSvcReview('${orderId}',this.closest('[style*=fixed]'))" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#f5a623,#e09010);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">⭐ Gửi đánh giá</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+async function submitSvcReview(orderId, overlayEl){
+  const rating=parseInt(document.getElementById('svc-rating-val')?.value||'5');
+  const review=document.getElementById('svc-review-text')?.value.trim();
+  try{
+    const r=await fetch(API+'/service-reviews',{method:'POST',headers:getHeaders(),body:JSON.stringify({order_id:orderId,rating,review:review||null})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    if(overlayEl) overlayEl.remove();
+    showToast('⭐ Đánh giá thành công!','ok');
+    openSvcOrderDetail(orderId);
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+async function sendSvcMsg(orderId){
+  const inp=document.getElementById('svc-msg-input');
+  const content=inp?.value.trim();
+  if(!content) return;
+  inp.value='';
+  try{
+    await fetch(API+`/service-orders/${orderId}/messages`,{method:'POST',headers:getHeaders(),body:JSON.stringify({content})});
+    openSvcOrderDetail(orderId);
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+function openCreateGig(){
+  if(!authToken){ showAuthModal('login'); return; }
+  setSvcState({tab:'mygigs',createGigOpen:true});
+}
+
+async function submitCreateGig(){
+  const cat=document.getElementById('gig-cat')?.value;
+  const title=document.getElementById('gig-title')?.value.trim();
+  const desc=document.getElementById('gig-desc')?.value.trim();
+  const price=document.getElementById('gig-price')?.value;
+  const days=document.getElementById('gig-days')?.value;
+  const revisions=document.getElementById('gig-revisions')?.value;
+  if(!title||!desc||!price){ showToast('Vui lòng điền đầy đủ thông tin','err'); return; }
+  try{
+    const r=await fetch(API+'/service-listings',{method:'POST',headers:getHeaders(),body:JSON.stringify({category:cat,title,description:desc,price:Number(price),delivery_days:Number(days)||3,revision_count:Number(revisions)||1})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    showToast('✅ Tạo gig thành công!','ok');
+    setSvcState({createGigOpen:false});
+    loadSvcMyGigs();
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+async function toggleGigStatus(id, newStatus){
+  try{
+    const r=await fetch(API+`/service-listings/${id}`,{method:'PUT',headers:getHeaders(),body:JSON.stringify({status:newStatus})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Lỗi');
+    showToast(newStatus==='active'?'✅ Đã kích hoạt':'⏸️ Đã tạm dừng','ok');
+    loadSvcMyGigs();
+  }catch(e){ showToast(e.message,'err'); }
+}
+
+function bindSvcEvents(){
+  if(svcState.tab==='browse' && svcState.listings.length===0) loadSvcListings();
+  if(svcState.tab==='myorders' && svcState.myOrders.length===0) loadSvcMyOrders();
+  if(svcState.tab==='mygigs' && svcState.myGigs.length===0) loadSvcMyGigs();
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg,type){ if(typeof toast==='function') toast(msg,type==='ok'?'success':type==='err'?'error':type); }
 
 </script>
 

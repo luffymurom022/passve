@@ -355,6 +355,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item" onclick="switchTab('shipping')" data-tab="shipping">🚚 Vận Đơn <span class="mob-badge" id="mob-shipping-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('disputes')" data-tab="disputes">🔥 Khiếu nại <span class="mob-badge" id="mob-dispute-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('digital')" data-tab="digital">💻 Tài Khoản Số <span class="mob-badge" id="mob-digital-badge" style="display:none">0</span></div>
+    <div class="mob-nav-item" onclick="switchTab('service')" data-tab="service">💼 Dịch Vụ <span class="mob-badge" id="mob-service-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('transactions')" data-tab="transactions">💳 Giao dịch</div>
     <div class="mob-nav-item" onclick="switchTab('withdrawals')" data-tab="withdrawals">💸 Rút tiền <span class="mob-badge" id="mob-withdraw-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('kyc')" data-tab="kyc">🪪 KYC <span class="mob-badge" id="mob-kyc-badge" style="display:none">0</span></div>
@@ -376,6 +377,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="nav-item" onclick="switchTab('shipping')" data-tab="shipping"><span class="nav-icon">🚚</span> Vận Đơn <span class="nav-badge" id="shipping-badge" style="display:none">0</span></div>
       <div class="nav-item" onclick="switchTab('disputes')" data-tab="disputes"><span class="nav-icon">🔥</span> Khiếu nại <span class="nav-badge" id="dispute-badge" style="display:none">0</span></div>
       <div class="nav-item" onclick="switchTab('digital')" data-tab="digital"><span class="nav-icon">💻</span> Tài Khoản Số <span class="nav-badge" id="digital-badge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="switchTab('service')" data-tab="service"><span class="nav-icon">💼</span> Dịch Vụ <span class="nav-badge" id="service-badge" style="display:none">0</span></div>
 
       <div class="sidebar-section">Tài chính</div>
       <div class="nav-item" onclick="switchTab('transactions')" data-tab="transactions"><span class="nav-icon">💳</span> Giao dịch</div>
@@ -680,6 +682,77 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <img id="kyc-lightbox-img" src="" style="max-width:92vw;max-height:88vh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6);">
         <div style="position:absolute;top:18px;right:22px;font-size:28px;color:#fff;cursor:pointer;" onclick="closeLightbox()">✕</div>
         <div id="kyc-lightbox-label" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;"></div>
+      </div>
+
+      <!-- ════ PAGE: DỊCH VỤ ════ -->
+      <div class="page" id="page-service">
+        <div class="page-title">💼 Dịch Vụ</div>
+
+        <!-- Stats -->
+        <div class="stats-grid" style="margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-label">📋 Tổng gig</div><div class="stat-val c-brand" id="sv-total-gigs">—</div><div class="stat-sub">service listings</div></div>
+          <div class="stat-card"><div class="stat-label">📦 Tổng đơn</div><div class="stat-val c-warn" id="sv-total-orders">—</div><div class="stat-sub">service orders</div></div>
+          <div class="stat-card"><div class="stat-label">⚠️ Tranh chấp</div><div class="stat-val c-red" id="sv-disputed">—</div><div class="stat-sub">cần xử lý</div></div>
+          <div class="stat-card"><div class="stat-label">✅ Hoàn thành</div><div class="stat-val c-ok" id="sv-completed">—</div><div class="stat-sub">completed orders</div></div>
+        </div>
+
+        <!-- Tabs: Listings & Orders -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button onclick="showSvcAdminTab('listings')" id="sva-tab-listings" class="btn btn-brand btn-sm-btn">📋 Gig Listings</button>
+          <button onclick="showSvcAdminTab('orders')" id="sva-tab-orders" class="btn btn-ghost btn-sm-btn">📦 Đơn Dịch Vụ</button>
+        </div>
+
+        <!-- Listings Table -->
+        <div id="sva-listings-panel" class="card">
+          <div class="card-head">
+            <div><div class="card-title">📋 Danh sách Gig</div><div class="card-sub">Duyệt, ẩn, từ chối gig freelancer</div></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select class="filter-select" id="sva-gig-filter" onchange="loadSvcAdminListings()">
+                <option value="">Tất cả</option>
+                <option value="active">✅ Đang bán</option>
+                <option value="paused">⏸️ Tạm dừng</option>
+                <option value="rejected">❌ Bị từ chối</option>
+              </select>
+              <button class="btn btn-brand btn-sm-btn" onclick="loadSvcAdminListings()">🔄 Tải lại</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Tiêu đề</th><th>Seller</th><th>Danh mục</th><th>Giá</th><th>Đơn</th><th>Đánh giá</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+                <tbody id="sva-gigs-tbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--hint);">Đang tải...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div id="sva-orders-panel" class="card" style="display:none;">
+          <div class="card-head">
+            <div><div class="card-title">📦 Đơn Dịch Vụ</div><div class="card-sub">Quản lý, hoàn tiền, giải ngân</div></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select class="filter-select" id="sva-order-filter" onchange="loadSvcAdminOrders()">
+                <option value="">Tất cả</option>
+                <option value="pending">⏳ Chờ nhận</option>
+                <option value="in_progress">🔨 Đang làm</option>
+                <option value="submitted">📦 Đã nộp</option>
+                <option value="revision_requested">📝 Cần sửa</option>
+                <option value="disputed">⚠️ Tranh chấp</option>
+                <option value="completed">✅ Hoàn thành</option>
+                <option value="cancelled">❌ Đã huỷ</option>
+              </select>
+              <button class="btn btn-brand btn-sm-btn" onclick="loadSvcAdminOrders()">🔄 Tải lại</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Dịch vụ</th><th>Buyer</th><th>Seller</th><th>Giá</th><th>Trạng thái</th><th>Ngày</th><th>Hành động</th></tr></thead>
+                <tbody id="sva-orders-tbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--hint);">Đang tải...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ════ PAGE: DIGITAL ACCOUNTS ════ -->
@@ -1033,6 +1106,7 @@ function switchTab(tab) {
     case 'shipping': loadShipping(); break;
     case 'disputes': loadDisputes(); break;
     case 'digital': loadDigitalOrders(); break;
+    case 'service': loadServiceAdmin(); break;
     case 'transactions': if (!allTx.length) loadTransactions(); break;
     case 'withdrawals': loadWithdrawals(); break;
     case 'kyc': loadKyc(); break;
@@ -1951,6 +2025,166 @@ async function deleteAdmin(id, email) {
     toast('✅ Đã xóa admin', 'ok');
     loadAdminList();
   } catch (e) { toast(e.message, 'err'); }
+}
+
+// ══════════════════════════════════
+//  PASS DỊCH VỤ — Admin
+// ══════════════════════════════════
+let _svcListings = [], _svcOrders = [];
+
+async function loadServiceAdmin() {
+  await Promise.all([loadSvcAdminListings(), loadSvcAdminOrders()]);
+}
+
+function showSvcAdminTab(tab) {
+  const lp = document.getElementById('sva-listings-panel');
+  const op = document.getElementById('sva-orders-panel');
+  const lb = document.getElementById('sva-tab-listings');
+  const ob = document.getElementById('sva-tab-orders');
+  if (tab === 'listings') {
+    if (lp) lp.style.display = '';
+    if (op) op.style.display = 'none';
+    lb?.classList.replace('btn-ghost','btn-brand');
+    ob?.classList.replace('btn-brand','btn-ghost');
+  } else {
+    if (lp) lp.style.display = 'none';
+    if (op) op.style.display = '';
+    ob?.classList.replace('btn-ghost','btn-brand');
+    lb?.classList.replace('btn-brand','btn-ghost');
+  }
+}
+
+async function loadSvcAdminListings() {
+  const status = document.getElementById('sva-gig-filter')?.value || '';
+  const tbody = document.getElementById('sva-gigs-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--hint);">⏳ Đang tải...</td></tr>';
+  try {
+    const r = await api('GET', `/admin/service-listings${status ? '?status='+status : ''}`);
+    _svcListings = Array.isArray(r) ? r : [];
+    renderSvcAdminListings(_svcListings);
+    const el = id => { const e = document.getElementById(id); if(e) e.textContent = _svcListings.length; };
+    el('sv-total-gigs');
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--red);">Lỗi: ${e.message}</td></tr>`;
+  }
+}
+
+const SVC_LISTING_STATUS = { active: {label:'✅ Đang bán',cls:'pill-ok'}, paused: {label:'⏸️ Tạm dừng',cls:'pill-warn'}, rejected: {label:'❌ Từ chối',cls:'pill-red'} };
+
+function renderSvcAdminListings(list) {
+  const tbody = document.getElementById('sva-gigs-tbody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--hint);">Không có gig nào</td></tr>'; return; }
+  tbody.innerHTML = list.map(g => {
+    const st = SVC_LISTING_STATUS[g.status] || { label: g.status, cls: 'pill-gray' };
+    return `<tr>
+      <td><div style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escA(g.title)}">${escA(g.title)}</div><div style="font-size:11px;color:var(--sub);">${g.category}</div></td>
+      <td>${escA(g.seller_name||'—')}</td>
+      <td>${escA(g.category)}</td>
+      <td><span class="mono" style="color:var(--brand);">${(g.price||0).toLocaleString('vi-VN')}đ</span></td>
+      <td>${g.total_orders||0}</td>
+      <td>${g.avg_rating>0?'⭐'+g.avg_rating+' ('+g.review_count+')':'—'}</td>
+      <td><span class="pill ${st.cls}">${st.label}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${g.status!=='active'?`<button onclick="svcAdminSetListingStatus('${g.id}','active')" class="btn btn-ok btn-xs">✅ Duyệt</button>`:''}
+          ${g.status==='active'?`<button onclick="svcAdminSetListingStatus('${g.id}','paused')" class="btn btn-warn btn-xs">⏸️ Dừng</button>`:''}
+          <button onclick="svcAdminSetListingStatus('${g.id}','rejected')" class="btn btn-red btn-xs">❌ Từ chối</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function svcAdminSetListingStatus(id, status) {
+  const note = status === 'rejected' ? prompt('Lý do từ chối:', '') : null;
+  if (status === 'rejected' && note === null) return;
+  try {
+    await api('PUT', `/admin/service-listings/${id}/status`, { status, note: note || undefined });
+    toast(`✅ Đã cập nhật trạng thái`, 'ok');
+    loadSvcAdminListings();
+  } catch(e) { toast('❌ ' + e.message, 'err'); }
+}
+
+async function loadSvcAdminOrders() {
+  const status = document.getElementById('sva-order-filter')?.value || '';
+  const tbody = document.getElementById('sva-orders-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--hint);">⏳ Đang tải...</td></tr>';
+  try {
+    const r = await api('GET', `/admin/service-orders${status ? '?status='+status : ''}`);
+    _svcOrders = Array.isArray(r) ? r : [];
+    renderSvcAdminOrders(_svcOrders);
+    // Update stats
+    const e = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+    e('sv-total-orders', _svcOrders.length);
+    e('sv-disputed', _svcOrders.filter(o => o.status === 'disputed').length);
+    e('sv-completed', _svcOrders.filter(o => o.status === 'completed').length);
+    // badge
+    const disp = _svcOrders.filter(o => o.status === 'disputed').length;
+    ['service-badge','mob-service-badge'].forEach(bid => {
+      const b = document.getElementById(bid);
+      if (!b) return;
+      b.textContent = disp; b.style.display = disp > 0 ? 'flex' : 'none';
+    });
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--red);">Lỗi: ${e.message}</td></tr>`;
+  }
+}
+
+const SVC_ORDER_STATUS = {
+  pending: {label:'⏳ Chờ nhận',cls:'pill-warn'}, in_progress: {label:'🔨 Đang làm',cls:'pill-blue'},
+  submitted: {label:'📦 Đã nộp',cls:'pill-purple'}, revision_requested: {label:'📝 Cần sửa',cls:'pill-warn'},
+  completed: {label:'✅ Hoàn thành',cls:'pill-ok'}, cancelled: {label:'❌ Đã huỷ',cls:'pill-gray'},
+  disputed: {label:'⚠️ Tranh chấp',cls:'pill-red'},
+};
+
+function renderSvcAdminOrders(list) {
+  const tbody = document.getElementById('sva-orders-tbody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--hint);">Không có đơn nào</td></tr>'; return; }
+  tbody.innerHTML = list.map(o => {
+    const st = SVC_ORDER_STATUS[o.status] || { label: o.status, cls: 'pill-gray' };
+    const canRefund = !['completed','cancelled'].includes(o.status);
+    const canRelease = !['completed','cancelled'].includes(o.status);
+    return `<tr>
+      <td><span class="mono" style="font-size:11px;" title="${o.id}">${o.id.slice(0,8)}…</span></td>
+      <td><div style="font-weight:600;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escA(o.service_title||'—')}</div>
+        ${o.dispute_reason?`<div style="font-size:10px;color:var(--red);">⚠️ ${o.dispute_reason.slice(0,50)}</div>`:''}</td>
+      <td>${escA(o.buyer_name||'—')}</td>
+      <td>${escA(o.seller_name||'—')}</td>
+      <td><span class="mono" style="color:var(--brand);">${(o.price||0).toLocaleString('vi-VN')}đ</span></td>
+      <td><span class="pill ${st.cls}">${st.label}</span></td>
+      <td><span class="mono" style="font-size:11px;">${fmtDate(o.created_at)}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${canRelease?`<button onclick="svcAdminRelease('${o.id}')" class="btn btn-ok btn-xs">💸 Giải ngân</button>`:''}
+          ${canRefund?`<button onclick="svcAdminRefund('${o.id}')" class="btn btn-red btn-xs">↩️ Hoàn tiền</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function svcAdminRelease(orderId) {
+  if (!confirm('Giải ngân cho seller?')) return;
+  const note = prompt('Ghi chú:', 'Admin giải ngân');
+  if (note === null) return;
+  try {
+    await api('POST', `/admin/service-orders/${orderId}/release`, { admin_note: note });
+    toast('✅ Đã giải ngân thành công', 'ok');
+    loadSvcAdminOrders();
+  } catch(e) { toast('❌ ' + e.message, 'err'); }
+}
+
+async function svcAdminRefund(orderId) {
+  if (!confirm('Hoàn tiền cho buyer?')) return;
+  const note = prompt('Lý do hoàn tiền:', 'Admin hoàn tiền');
+  if (note === null) return;
+  try {
+    await api('POST', `/admin/service-orders/${orderId}/refund`, { admin_note: note });
+    toast('✅ Đã hoàn tiền thành công', 'ok');
+    loadSvcAdminOrders();
+  } catch(e) { toast('❌ ' + e.message, 'err'); }
 }
 
 // ══════════════════════════════════

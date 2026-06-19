@@ -1,0 +1,377 @@
+XÂY DỰNG PASS DỊCH VỤ (SAFEPASS FREELANCE MARKETPLACE)
+
+Bối cảnh:
+
+SafePass hiện đã có:
+
+* Wallet
+* Escrow
+* KYC
+* Marketplace
+* Pass Vé
+* Pass Đồ
+* Pass Tài Khoản
+
+Tôi muốn xây dựng Pass Dịch Vụ.
+
+Mục tiêu:
+
+Cho phép người dùng thuê freelancer và thanh toán qua Escrow.
+
+==================================================
+
+LOẠI DỊCH VỤ
+
+Thiết kế Logo
+
+Thiết kế Website
+
+Lập trình
+
+Edit Video
+
+Motion Graphic
+
+Content Marketing
+
+SEO
+
+Facebook Ads
+
+Google Ads
+
+Dịch Thuật
+
+Gia Sư
+
+Tư Vấn
+
+Khác
+
+==================================================
+
+DATABASE
+
+service_listings
+
+id UUID
+
+seller_id UUID
+
+category TEXT
+
+title TEXT
+
+description TEXT
+
+price NUMERIC
+
+delivery_days INTEGER
+
+revision_count INTEGER
+
+status TEXT
+
+created_at TIMESTAMP
+
+==================================================
+
+GIG PACKAGE
+
+Tạo bảng:
+
+service_packages
+
+id UUID
+
+service_id UUID
+
+package_name TEXT
+
+price NUMERIC
+
+delivery_days INTEGER
+
+features JSONB
+
+==================================================
+
+Ví dụ:
+
+Basic
+
+Standard
+
+Premium
+
+==================================================
+
+ORDER SYSTEM
+
+service_orders
+
+id UUID
+
+service_id UUID
+
+buyer_id UUID
+
+seller_id UUID
+
+package_id UUID
+
+price NUMERIC
+
+status TEXT
+
+created_at TIMESTAMP
+
+==================================================
+
+STATUS
+
+pending
+
+in_progress
+
+submitted
+
+revision_requested
+
+approved
+
+completed
+
+cancelled
+
+disputed
+
+==================================================
+
+BUYER FLOW
+
+Mua dịch vụ
+
+↓
+
+Thanh toán
+
+↓
+
+Tiền vào Escrow
+
+↓
+
+Seller làm việc
+
+==================================================
+
+SELLER FLOW
+
+Nhận đơn
+
+↓
+
+Bắt đầu làm
+
+↓
+
+Upload kết quả
+
+↓
+
+Gửi cho buyer
+
+==================================================
+
+DELIVERABLES
+
+Tạo bảng:
+
+deliverables
+
+id UUID
+
+order_id UUID
+
+file_url TEXT
+
+message TEXT
+
+created_at TIMESTAMP
+
+==================================================
+
+Cho phép upload:
+
+PDF
+
+ZIP
+
+RAR
+
+PNG
+
+JPG
+
+MP4
+
+DOCX
+
+==================================================
+
+REVISION SYSTEM
+
+Buyer có thể:
+
+Yêu cầu sửa
+
+Nhập nội dung cần sửa
+
+Giới hạn theo package
+
+Ví dụ:
+
+Basic = 1 lần
+
+Premium = 5 lần
+
+==================================================
+
+AUTO RELEASE
+
+Buyer không phản hồi sau 5 ngày
+
+↓
+
+Tự động giải ngân
+
+↓
+
+Hoàn tất đơn
+
+==================================================
+
+RATING
+
+Buyer đánh giá:
+
+1-5 sao
+
+Review
+
+==================================================
+
+FREELANCER PROFILE
+
+Hiển thị:
+
+Avatar
+
+Trust Score
+
+Verified Badge
+
+Tổng doanh thu
+
+Tổng đơn
+
+Đánh giá trung bình
+
+Tỷ lệ hoàn thành
+
+==================================================
+
+CHAT
+
+Buyer ↔ Seller
+
+Gửi:
+
+Tin nhắn
+
+Ảnh
+
+File
+
+==================================================
+
+DISPUTE
+
+Buyer hoặc Seller có thể mở tranh chấp.
+
+Admin xem:
+
+Chat
+
+File
+
+Lịch sử đơn
+
+Bằng chứng
+
+==================================================
+
+ADMIN
+
+Duyệt dịch vụ
+
+Ẩn dịch vụ
+
+Khóa freelancer
+
+Hoàn tiền
+
+Giải ngân
+
+==================================================
+
+SEARCH
+
+Theo:
+
+Danh mục
+
+Giá
+
+Đánh giá
+
+Trust Score
+
+KYC
+
+==================================================
+
+TRANG CHỦ
+
+Thêm mục:
+
+Pass Dịch Vụ
+
+Các dịch vụ nổi bật
+
+Freelancer nổi bật
+
+==================================================
+
+YÊU CẦU
+
+1. Tích hợp Escrow hiện có.
+
+2. Tích hợp Wallet hiện có.
+
+3. Tích hợp KYC hiện có.
+
+4. Không phá kiến trúc SafePass.
+
+5. Generate:
+
+* SQL
+* Backend
+* API
+* Frontend
+* Admin Dashboard
+* Escrow Integration
+* Chat Integration
+
+Hoàn chỉnh như một Fiverr mini.

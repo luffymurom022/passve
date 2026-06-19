@@ -2366,6 +2366,7 @@ async function processExpiredEscrows() {
 processExpiredEscrows();
 setInterval(processExpiredEscrows, 60 * 60 * 1000);
 setInterval(autoConfirmDigitalOrders, 60 * 60 * 1000);
+setInterval(autoReleaseServiceOrders, 60 * 60 * 1000);
 
 app.post('/api/admin/process-timeouts', async (req, res) => {
   const secret = adminSecret(req);
@@ -3755,6 +3756,413 @@ async function autoConfirmDigitalOrders() {
     createNotification(order.seller_id, 'payout', '💸 Tự động giải ngân',
       `"${order.listing_title}" đã qua 24h. ${order.seller_payout.toLocaleString('vi-VN')}đ vào ví.`, '/wallet');
     console.log(`[DigitalEscrow] Auto-confirmed order ${order.id}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  PASS DỊCH VỤ — FREELANCE MARKETPLACE
+// ══════════════════════════════════════════════════════════
+
+const SERVICE_FEE_RATE = 0.05; // 5%
+const SERVICE_AUTO_RELEASE_DAYS = 5;
+const SERVICE_CATEGORIES = ['Thiết kế Logo','Thiết kế Website','Lập trình','Edit Video','Motion Graphic','Content Marketing','SEO','Facebook Ads','Google Ads','Dịch Thuật','Gia Sư','Tư Vấn','Khác'];
+
+const deliverableUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_, file, cb) => {
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (['pdf','zip','rar','png','jpg','jpeg','mp4','docx','txt'].includes(ext)) return cb(null, true);
+    cb(new Error('Định dạng không được phép. Cho phép: PDF, ZIP, RAR, PNG, JPG, MP4, DOCX'));
+  },
+});
+
+(async () => {
+  try { await supabase.storage.createBucket('deliverables', { public: true }); } catch(e) {}
+})();
+
+// ── GET /api/service-listings ─────────────────────────────
+app.get('/api/service-listings', async (req, res) => {
+  const { category, min_price, max_price, sort, search, limit = 20, offset = 0 } = req.query;
+  let q = supabase.from('service_listings').select('*,service_packages(*)').eq('status','active');
+  if (category) q = q.eq('category', category);
+  if (min_price) q = q.gte('price', Number(min_price));
+  if (max_price) q = q.lte('price', Number(max_price));
+  if (search) q = q.ilike('title', `%${search}%`);
+  if (sort === 'price_asc') q = q.order('price', { ascending: true });
+  else if (sort === 'price_desc') q = q.order('price', { ascending: false });
+  else if (sort === 'rating') q = q.order('avg_rating', { ascending: false });
+  else q = q.order('created_at', { ascending: false });
+  q = q.range(Number(offset), Number(offset) + Number(limit) - 1);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  const sellerIds = [...new Set((data||[]).map(s => s.seller_id))];
+  let sellers = {};
+  if (sellerIds.length > 0) {
+    const { data: su } = await supabase.from('users').select('id,name,avg_rating,review_count,is_verified').in('id', sellerIds);
+    (su||[]).forEach(u => sellers[u.id] = u);
+  }
+  res.json((data||[]).map(s => ({ ...s, seller: sellers[s.seller_id] || null })));
+});
+
+// ── GET /api/service-listings/mine ───────────────────────
+app.get('/api/service-listings/mine', auth, async (req, res) => {
+  const { data, error } = await supabase.from('service_listings')
+    .select('*,service_packages(*)').eq('seller_id', req.user.id).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── GET /api/service-listings/:id ────────────────────────
+app.get('/api/service-listings/:id', async (req, res) => {
+  const { data, error } = await supabase.from('service_listings')
+    .select('*,service_packages(*)').eq('id', req.params.id).single();
+  if (error || !data) return res.status(404).json({ error: 'Không tìm thấy dịch vụ' });
+  const { data: seller } = await supabase.from('users')
+    .select('id,name,avg_rating,review_count,is_verified,created_at').eq('id', data.seller_id).single();
+  const { data: reviews } = await supabase.from('service_reviews')
+    .select('*').eq('service_id', req.params.id).order('created_at', { ascending: false }).limit(10);
+  const reviewerIds = (reviews||[]).map(r => r.buyer_id);
+  let reviewers = {};
+  if (reviewerIds.length > 0) {
+    const { data: ru } = await supabase.from('users').select('id,name').in('id', reviewerIds);
+    (ru||[]).forEach(u => reviewers[u.id] = u.name);
+  }
+  res.json({ ...data, seller, reviews: (reviews||[]).map(r => ({ ...r, buyer_name: reviewers[r.buyer_id] || '?' })) });
+});
+
+// ── POST /api/service-listings ───────────────────────────
+app.post('/api/service-listings', auth, async (req, res) => {
+  const { category, title, description, price, delivery_days, revision_count, image_url, packages } = req.body;
+  if (!category || !title || !description || !price) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+  if (!SERVICE_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Danh mục không hợp lệ' });
+  if (Number(price) < 10000) return res.status(400).json({ error: 'Giá tối thiểu 10,000đ' });
+  const { data, error } = await supabase.from('service_listings').insert({
+    seller_id: req.user.id, category, title: sanitize(title),
+    description: sanitize(description), price: Number(price),
+    delivery_days: Number(delivery_days) || 3,
+    revision_count: Number(revision_count) || 1,
+    image_url: image_url || null, status: 'active',
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  if (packages && packages.length > 0) {
+    await supabase.from('service_packages').insert(packages.map(p => ({
+      service_id: data.id, package_name: p.package_name,
+      price: Number(p.price), delivery_days: Number(p.delivery_days),
+      revision_count: Number(p.revision_count) || 1, features: p.features || [],
+    })));
+  }
+  res.json({ id: data.id, message: 'Tạo gig thành công!' });
+});
+
+// ── PUT /api/service-listings/:id ────────────────────────
+app.put('/api/service-listings/:id', auth, async (req, res) => {
+  const { data: svc } = await supabase.from('service_listings').select('seller_id').eq('id', req.params.id).single();
+  if (!svc) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (svc.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { category, title, description, price, delivery_days, revision_count, image_url, status } = req.body;
+  const u = {};
+  if (category) u.category = category;
+  if (title) u.title = sanitize(title);
+  if (description) u.description = sanitize(description);
+  if (price) u.price = Number(price);
+  if (delivery_days) u.delivery_days = Number(delivery_days);
+  if (revision_count !== undefined) u.revision_count = Number(revision_count);
+  if (image_url !== undefined) u.image_url = image_url;
+  if (status && ['active','paused'].includes(status)) u.status = status;
+  u.updated_at = new Date().toISOString();
+  const { error } = await supabase.from('service_listings').update(u).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Đã cập nhật' });
+});
+
+// ── POST /api/service-orders ─────────────────────────────
+app.post('/api/service-orders', auth, orderLimit, async (req, res) => {
+  const { service_id, package_id, requirements } = req.body;
+  if (!service_id) return res.status(400).json({ error: 'Thiếu service_id' });
+  const { data: svc } = await supabase.from('service_listings').select('*').eq('id', service_id).single();
+  if (!svc) return res.status(404).json({ error: 'Dịch vụ không tồn tại' });
+  if (svc.status !== 'active') return res.status(400).json({ error: 'Dịch vụ không nhận đơn' });
+  if (svc.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể tự thuê dịch vụ mình' });
+  let finalPrice = svc.price, maxRevisions = svc.revision_count, deliveryDays = svc.delivery_days, pkgName = 'Cơ bản';
+  if (package_id) {
+    const { data: pkg } = await supabase.from('service_packages').select('*').eq('id', package_id).eq('service_id', service_id).single();
+    if (!pkg) return res.status(400).json({ error: 'Package không hợp lệ' });
+    finalPrice = pkg.price; maxRevisions = pkg.revision_count; deliveryDays = pkg.delivery_days; pkgName = pkg.package_name;
+  }
+  const { data: buyer } = await supabase.from('users').select('balance,is_vip').eq('id', req.user.id).single();
+  if (!buyer || buyer.balance < finalPrice) return res.status(400).json({ error: `Số dư không đủ. Cần ${finalPrice.toLocaleString('vi-VN')}đ, hiện có ${(buyer?.balance||0).toLocaleString('vi-VN')}đ` });
+  const feeRate = buyer.is_vip ? 0.015 : SERVICE_FEE_RATE;
+  const fee = Math.round(finalPrice * feeRate);
+  const sellerPayout = finalPrice - fee;
+  const deadlineAt = new Date(Date.now() + deliveryDays * 86400000).toISOString();
+  const autoReleaseAt = new Date(Date.now() + (deliveryDays + SERVICE_AUTO_RELEASE_DAYS) * 86400000).toISOString();
+  await supabase.from('users').update({ balance: buyer.balance - finalPrice }).eq('id', req.user.id);
+  const { data: order, error: orderErr } = await supabase.from('service_orders').insert({
+    service_id, package_id: package_id || null, buyer_id: req.user.id, seller_id: svc.seller_id,
+    package_name: pkgName, service_title: svc.title, price: finalPrice, fee, seller_payout: sellerPayout,
+    status: 'pending', requirements: requirements || null, max_revisions: maxRevisions,
+    deadline_at: deadlineAt, auto_release_at: autoReleaseAt,
+  }).select().single();
+  if (orderErr) {
+    await supabase.from('users').update({ balance: buyer.balance }).eq('id', req.user.id);
+    return res.status(500).json({ error: orderErr.message });
+  }
+  await supabase.from('service_listings').update({ total_orders: (svc.total_orders||0) + 1 }).eq('id', service_id);
+  createNotification(svc.seller_id, 'order', '🛒 Đơn dịch vụ mới!', `Đơn mới: "${svc.title}". Hạn: ${new Date(deadlineAt).toLocaleDateString('vi-VN')}`, '/service-orders');
+  createNotification(req.user.id, 'order', '✅ Đặt dịch vụ thành công', `"${svc.title}" đã được đặt. Tiền escrow.`, '/service-orders');
+  res.json({ order_id: order.id, message: 'Đặt dịch vụ thành công!' });
+});
+
+// ── GET /api/service-orders ──────────────────────────────
+app.get('/api/service-orders', auth, async (req, res) => {
+  const { role } = req.query;
+  let q = supabase.from('service_orders').select('*').order('created_at', { ascending: false });
+  if (role === 'seller') q = q.eq('seller_id', req.user.id);
+  else q = q.eq('buyer_id', req.user.id);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── GET /api/service-orders/:id ──────────────────────────
+app.get('/api/service-orders/:id', auth, async (req, res) => {
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const [dRes, mRes, bRes, sRes, rRes] = await Promise.all([
+    supabase.from('deliverables').select('*').eq('order_id', order.id).order('created_at'),
+    supabase.from('service_messages').select('*').eq('order_id', order.id).order('created_at').limit(200),
+    supabase.from('users').select('id,name,avg_rating,is_verified').eq('id', order.buyer_id).single(),
+    supabase.from('users').select('id,name,avg_rating,is_verified').eq('id', order.seller_id).single(),
+    supabase.from('service_reviews').select('*').eq('order_id', order.id).maybeSingle(),
+  ]);
+  res.json({ ...order, deliverables: dRes.data||[], messages: mRes.data||[], buyer: bRes.data, seller: sRes.data, review: rRes.data });
+});
+
+// ── POST /api/service-orders/:id/start ───────────────────
+app.post('/api/service-orders/:id/start', auth, async (req, res) => {
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (order.status !== 'pending') return res.status(400).json({ error: 'Đơn không ở trạng thái chờ' });
+  await supabase.from('service_orders').update({ status: 'in_progress', updated_at: new Date().toISOString() }).eq('id', order.id);
+  createNotification(order.buyer_id, 'order', '🔨 Seller bắt đầu làm!', `"${order.service_title}" đang được thực hiện.`, '/service-orders');
+  res.json({ message: 'Đã bắt đầu thực hiện' });
+});
+
+// ── POST /api/service-orders/:id/submit ──────────────────
+app.post('/api/service-orders/:id/submit', auth, async (req, res) => {
+  const { message, file_url, file_name } = req.body;
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['in_progress','revision_requested'].includes(order.status)) return res.status(400).json({ error: 'Không thể nộp ở trạng thái này' });
+  if (!message && !file_url) return res.status(400).json({ error: 'Cần nội dung hoặc file' });
+  const autoReleaseAt = new Date(Date.now() + SERVICE_AUTO_RELEASE_DAYS * 86400000).toISOString();
+  await supabase.from('service_orders').update({ status: 'submitted', submitted_at: new Date().toISOString(), auto_release_at: autoReleaseAt, updated_at: new Date().toISOString() }).eq('id', order.id);
+  await supabase.from('deliverables').insert({ order_id: order.id, seller_id: req.user.id, file_url: file_url||null, file_name: file_name||null, message: message||null });
+  createNotification(order.buyer_id, 'order', '📦 Seller nộp sản phẩm!', `"${order.service_title}" hoàn thành. Kiểm tra và xác nhận.`, '/service-orders');
+  res.json({ message: 'Đã nộp sản phẩm!' });
+});
+
+// ── POST /api/service-orders/:id/approve ─────────────────
+app.post('/api/service-orders/:id/approve', auth, async (req, res) => {
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (order.status !== 'submitted') return res.status(400).json({ error: 'Đơn chưa được nộp' });
+  const { data: seller } = await supabase.from('users').select('balance').eq('id', order.seller_id).single();
+  await supabase.from('users').update({ balance: (seller?.balance||0) + order.seller_payout }).eq('id', order.seller_id);
+  await supabase.from('service_orders').update({ status: 'completed', approved_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', order.id);
+  createNotification(order.seller_id, 'payout', '💸 Tiền giải ngân!', `"${order.service_title}" xác nhận. ${order.seller_payout.toLocaleString('vi-VN')}đ vào ví.`, '/wallet');
+  res.json({ message: 'Đã xác nhận. Tiền giải ngân cho seller.' });
+});
+
+// ── POST /api/service-orders/:id/revision ────────────────
+app.post('/api/service-orders/:id/revision', auth, async (req, res) => {
+  const { note } = req.body;
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (order.status !== 'submitted') return res.status(400).json({ error: 'Chỉ yêu cầu sửa khi đã nộp' });
+  if (order.revision_count >= order.max_revisions) return res.status(400).json({ error: `Đã dùng hết ${order.max_revisions} lần sửa` });
+  const newCount = order.revision_count + 1;
+  await supabase.from('service_orders').update({ status: 'revision_requested', revision_count: newCount, updated_at: new Date().toISOString() }).eq('id', order.id);
+  await supabase.from('service_messages').insert({ order_id: order.id, sender_id: req.user.id, content: `📝 Yêu cầu sửa (${newCount}/${order.max_revisions}): ${note || 'Không có ghi chú'}` });
+  createNotification(order.seller_id, 'order', '📝 Yêu cầu sửa', `"${order.service_title}" cần sửa (${newCount}/${order.max_revisions})`, '/service-orders');
+  res.json({ message: `Đã gửi yêu cầu sửa lần ${newCount}` });
+});
+
+// ── POST /api/service-orders/:id/dispute ─────────────────
+app.post('/api/service-orders/:id/dispute', auth, async (req, res) => {
+  const { reason } = req.body;
+  if (!reason) return res.status(400).json({ error: 'Vui lòng nêu lý do tranh chấp' });
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (['completed','cancelled','disputed'].includes(order.status)) return res.status(400).json({ error: 'Không thể tranh chấp ở trạng thái này' });
+  await supabase.from('service_orders').update({ status: 'disputed', disputed_at: new Date().toISOString(), dispute_reason: reason, updated_at: new Date().toISOString() }).eq('id', order.id);
+  const otherId = order.buyer_id === req.user.id ? order.seller_id : order.buyer_id;
+  createNotification(otherId, 'dispute', '⚠️ Tranh chấp mở', `"${order.service_title}" đang tranh chấp. Admin xem xét.`, '/service-orders');
+  res.json({ message: 'Đã mở tranh chấp.' });
+});
+
+// ── POST /api/service-orders/:id/cancel ──────────────────
+app.post('/api/service-orders/:id/cancel', auth, async (req, res) => {
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (['completed','cancelled','disputed'].includes(order.status)) return res.status(400).json({ error: 'Không thể huỷ ở trạng thái này' });
+  if (order.status === 'submitted') return res.status(400).json({ error: 'Seller đã nộp. Hãy xác nhận hoặc yêu cầu sửa.' });
+  if (['pending','in_progress'].includes(order.status)) {
+    const { data: buyer } = await supabase.from('users').select('balance').eq('id', order.buyer_id).single();
+    await supabase.from('users').update({ balance: (buyer?.balance||0) + order.price }).eq('id', order.buyer_id);
+    createNotification(order.buyer_id, 'refund', '↩️ Hoàn tiền', `"${order.service_title}" đã huỷ. ${order.price.toLocaleString('vi-VN')}đ hoàn ví.`, '/wallet');
+  }
+  await supabase.from('service_orders').update({ status: 'cancelled', cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', order.id);
+  res.json({ message: 'Đã huỷ đơn.' });
+});
+
+// ── GET /api/service-orders/:id/messages ─────────────────
+app.get('/api/service-orders/:id/messages', auth, async (req, res) => {
+  const { data: order } = await supabase.from('service_orders').select('buyer_id,seller_id').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { data, error } = await supabase.from('service_messages').select('*').eq('order_id', req.params.id).order('created_at');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── POST /api/service-orders/:id/messages ────────────────
+app.post('/api/service-orders/:id/messages', auth, async (req, res) => {
+  const { content, file_url } = req.body;
+  if (!content && !file_url) return res.status(400).json({ error: 'Không có nội dung' });
+  const { data: order } = await supabase.from('service_orders').select('buyer_id,seller_id').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { data, error } = await supabase.from('service_messages').insert({ order_id: req.params.id, sender_id: req.user.id, content: content||null, file_url: file_url||null }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  const otherId = order.buyer_id === req.user.id ? order.seller_id : order.buyer_id;
+  sendToUser(otherId, { type: 'service_message', order_id: req.params.id, message: data });
+  res.json(data);
+});
+
+// ── POST /api/service-reviews ────────────────────────────
+app.post('/api/service-reviews', auth, async (req, res) => {
+  const { order_id, rating, review } = req.body;
+  if (!order_id || !rating) return res.status(400).json({ error: 'Thiếu thông tin' });
+  if (Number(rating) < 1 || Number(rating) > 5) return res.status(400).json({ error: 'Rating 1-5' });
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', order_id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Chỉ buyer mới được đánh giá' });
+  if (order.status !== 'completed') return res.status(400).json({ error: 'Chỉ đánh giá đơn hoàn thành' });
+  const { error } = await supabase.from('service_reviews').insert({ order_id, service_id: order.service_id, buyer_id: req.user.id, seller_id: order.seller_id, rating: Number(rating), review: review||null });
+  if (error) return res.status(400).json({ error: 'Đã đánh giá đơn này rồi' });
+  const { data: reviews } = await supabase.from('service_reviews').select('rating').eq('service_id', order.service_id);
+  if (reviews && reviews.length > 0) {
+    const avg = reviews.reduce((s,r) => s + r.rating, 0) / reviews.length;
+    await supabase.from('service_listings').update({ avg_rating: Math.round(avg * 10) / 10, review_count: reviews.length }).eq('id', order.service_id);
+  }
+  res.json({ message: 'Đánh giá thành công!' });
+});
+
+// ── POST /api/service-orders/:id/upload ──────────────────
+app.post('/api/service-orders/:id/upload', auth, deliverableUpload.single('file'), async (req, res) => {
+  const { data: order } = await supabase.from('service_orders').select('seller_id').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.seller_id !== req.user.id) return res.status(403).json({ error: 'Chỉ seller mới upload được' });
+  if (!req.file) return res.status(400).json({ error: 'Không có file' });
+  const ext = req.file.originalname.split('.').pop().toLowerCase();
+  const fileName = `${req.params.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await supabase.storage.from('deliverables').upload(fileName, req.file.buffer, { contentType: req.file.mimetype });
+  if (error) return res.status(500).json({ error: error.message });
+  const { data: { publicUrl } } = supabase.storage.from('deliverables').getPublicUrl(fileName);
+  res.json({ file_url: publicUrl, file_name: req.file.originalname });
+});
+
+// ── Admin: GET /api/admin/service-listings ───────────────
+app.get('/api/admin/service-listings', adminAuth, async (req, res) => {
+  const { status } = req.query;
+  let q = supabase.from('service_listings').select('*').order('created_at', { ascending: false });
+  if (status) q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  const ids = [...new Set((data||[]).map(s => s.seller_id))];
+  let sellers = {};
+  if (ids.length > 0) {
+    const { data: su } = await supabase.from('users').select('id,name').in('id', ids);
+    (su||[]).forEach(u => sellers[u.id] = u.name);
+  }
+  res.json((data||[]).map(s => ({ ...s, seller_name: sellers[s.seller_id] || '?' })));
+});
+
+// ── Admin: PUT /api/admin/service-listings/:id/status ────
+app.put('/api/admin/service-listings/:id/status', adminAuth, async (req, res) => {
+  const { status, note } = req.body;
+  if (!['active','paused','rejected'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const { data: svc } = await supabase.from('service_listings').select('seller_id,title').eq('id', req.params.id).single();
+  if (!svc) return res.status(404).json({ error: 'Không tìm thấy' });
+  await supabase.from('service_listings').update({ status, updated_at: new Date().toISOString() }).eq('id', req.params.id);
+  if (status === 'rejected') createNotification(svc.seller_id, 'order', '❌ Gig bị từ chối', `"${svc.title}" không được duyệt. ${note||''}`, '/service-orders');
+  else if (status === 'active') createNotification(svc.seller_id, 'order', '✅ Gig được duyệt', `"${svc.title}" đã kích hoạt.`, '/service-orders');
+  res.json({ message: 'Cập nhật thành công' });
+});
+
+// ── Admin: GET /api/admin/service-orders ─────────────────
+app.get('/api/admin/service-orders', adminAuth, async (req, res) => {
+  const { status } = req.query;
+  let q = supabase.from('service_orders').select('*').order('created_at', { ascending: false });
+  if (status) q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  const uids = [...new Set([...(data||[]).map(o=>o.buyer_id),...(data||[]).map(o=>o.seller_id)])];
+  let usersMap = {};
+  if (uids.length > 0) {
+    const { data: ud } = await supabase.from('users').select('id,name').in('id', uids);
+    (ud||[]).forEach(u => usersMap[u.id] = u.name);
+  }
+  res.json((data||[]).map(o => ({ ...o, buyer_name: usersMap[o.buyer_id]||'?', seller_name: usersMap[o.seller_id]||'?' })));
+});
+
+// ── Admin: POST /api/admin/service-orders/:id/refund ─────
+app.post('/api/admin/service-orders/:id/refund', adminAuth, async (req, res) => {
+  const { admin_note } = req.body;
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (['completed','cancelled'].includes(order.status)) return res.status(400).json({ error: 'Không thể hoàn tiền' });
+  const { data: buyer } = await supabase.from('users').select('balance').eq('id', order.buyer_id).single();
+  await supabase.from('users').update({ balance: (buyer?.balance||0) + order.price }).eq('id', order.buyer_id);
+  await supabase.from('service_orders').update({ status: 'cancelled', admin_note: admin_note||'Admin hoàn tiền', cancelled_at: new Date().toISOString() }).eq('id', order.id);
+  createNotification(order.buyer_id, 'refund', '✅ Hoàn tiền dịch vụ', `${order.price.toLocaleString('vi-VN')}đ hoàn về ví.`, '/wallet');
+  res.json({ message: 'Hoàn tiền thành công' });
+});
+
+// ── Admin: POST /api/admin/service-orders/:id/release ────
+app.post('/api/admin/service-orders/:id/release', adminAuth, async (req, res) => {
+  const { admin_note } = req.body;
+  const { data: order } = await supabase.from('service_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (['completed','cancelled'].includes(order.status)) return res.status(400).json({ error: 'Không thể giải ngân' });
+  const { data: seller } = await supabase.from('users').select('balance').eq('id', order.seller_id).single();
+  await supabase.from('users').update({ balance: (seller?.balance||0) + order.seller_payout }).eq('id', order.seller_id);
+  await supabase.from('service_orders').update({ status: 'completed', approved_at: new Date().toISOString(), admin_note: admin_note||'Admin giải ngân' }).eq('id', order.id);
+  createNotification(order.seller_id, 'payout', '💸 Giải ngân dịch vụ', `${order.seller_payout.toLocaleString('vi-VN')}đ vào ví.`, '/wallet');
+  res.json({ message: 'Giải ngân thành công' });
+});
+
+// ── Auto-release after 5 days ─────────────────────────────
+async function autoReleaseServiceOrders() {
+  const now = new Date().toISOString();
+  const { data: orders } = await supabase.from('service_orders')
+    .select('*').eq('status','submitted').lt('auto_release_at', now);
+  if (!orders || orders.length === 0) return;
+  for (const o of orders) {
+    const { data: seller } = await supabase.from('users').select('balance').eq('id', o.seller_id).single();
+    await supabase.from('users').update({ balance: (seller?.balance||0) + o.seller_payout }).eq('id', o.seller_id);
+    await supabase.from('service_orders').update({ status: 'completed', approved_at: new Date().toISOString() }).eq('id', o.id);
+    createNotification(o.seller_id, 'payout', '💸 Tự động giải ngân', `"${o.service_title}" sau 5 ngày. ${o.seller_payout.toLocaleString('vi-VN')}đ vào ví.`, '/wallet');
+    console.log(`[ServiceEscrow] Auto-released ${o.id}`);
   }
 }
 
