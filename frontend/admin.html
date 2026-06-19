@@ -352,6 +352,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item" onclick="switchTab('tickets')" data-tab="tickets">🎟️ Vé</div>
     <div class="mob-nav-item" onclick="switchTab('listings')" data-tab="listings">🏷️ Listings</div>
     <div class="mob-nav-item" onclick="switchTab('orders')" data-tab="orders">📋 Đơn hàng</div>
+    <div class="mob-nav-item" onclick="switchTab('shipping')" data-tab="shipping">🚚 Vận Đơn <span class="mob-badge" id="mob-shipping-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('disputes')" data-tab="disputes">🔥 Khiếu nại <span class="mob-badge" id="mob-dispute-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('transactions')" data-tab="transactions">💳 Giao dịch</div>
     <div class="mob-nav-item" onclick="switchTab('withdrawals')" data-tab="withdrawals">💸 Rút tiền <span class="mob-badge" id="mob-withdraw-badge" style="display:none">0</span></div>
@@ -371,6 +372,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="nav-item" onclick="switchTab('tickets')" data-tab="tickets"><span class="nav-icon">🎟️</span> Vé (legacy)</div>
       <div class="nav-item" onclick="switchTab('listings')" data-tab="listings"><span class="nav-icon">🏷️</span> Listings</div>
       <div class="nav-item" onclick="switchTab('orders')" data-tab="orders"><span class="nav-icon">📋</span> Đơn hàng</div>
+      <div class="nav-item" onclick="switchTab('shipping')" data-tab="shipping"><span class="nav-icon">🚚</span> Vận Đơn <span class="nav-badge" id="shipping-badge" style="display:none">0</span></div>
       <div class="nav-item" onclick="switchTab('disputes')" data-tab="disputes"><span class="nav-icon">🔥</span> Khiếu nại <span class="nav-badge" id="dispute-badge" style="display:none">0</span></div>
 
       <div class="sidebar-section">Tài chính</div>
@@ -509,6 +511,34 @@ tr:hover td{background:rgba(255,255,255,.015);}
             </table>
           </div>
         </div>
+      </div>
+
+      <!-- ════ PAGE: SHIPPING (VẬN ĐƠN) ════ -->
+      <div class="page" id="page-shipping">
+        <div class="page-title">🚚 Vận Đơn — Pass Đồ</div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input class="search-input" id="shipping-search" placeholder="🔍 Tìm mã vận đơn, carrier, tên hàng..." oninput="filterShipping()">
+          </div>
+          <select class="filter-select" id="shipping-status-filter" onchange="filterShipping()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="shipping">🚚 Đang giao</option>
+            <option value="completed">✅ Hoàn thành</option>
+            <option value="disputed">⚠️ Khiếu nại</option>
+          </select>
+          <button class="btn btn-brand btn-sm-btn" onclick="loadShipping()">🔄 Tải lại</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Hãng VC</th><th>Mã vận đơn</th><th>Sản phẩm</th><th>Buyer</th><th>Seller</th><th>Tổng tiền</th><th>TT vận đơn</th><th>TT đơn</th><th>Ngày giao</th>
+              </tr></thead>
+              <tbody id="shipping-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="shipping-stats" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;"></div>
       </div>
 
       <!-- ════ PAGE: ORDERS ════ -->
@@ -923,6 +953,7 @@ function doRefresh() {
     case 'tickets': loadTickets(); break;
     case 'listings': loadListings(); break;
     case 'orders': loadOrders(); break;
+    case 'shipping': loadShipping(); break;
     case 'disputes': loadDisputes(); break;
     case 'transactions': loadTransactions(); break;
     case 'withdrawals': loadWithdrawals(); break;
@@ -946,6 +977,7 @@ function switchTab(tab) {
     case 'tickets': if (!allTickets.length) loadTickets(); break;
     case 'listings': if (!allListings.length) loadListings(); break;
     case 'orders': if (!allOrders.length) loadOrders(); break;
+    case 'shipping': loadShipping(); break;
     case 'disputes': loadDisputes(); break;
     case 'transactions': if (!allTx.length) loadTransactions(); break;
     case 'withdrawals': loadWithdrawals(); break;
@@ -1252,8 +1284,90 @@ async function deleteListing(id) {
 }
 
 // ══════════════════════════════════
+//  SHIPPING — VẬN ĐƠN
+// ══════════════════════════════════
+let allShipping = [];
+
+async function loadShipping() {
+  const tbody = document.getElementById('shipping-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="10"><div class="loading"><div class="spin"></div> Đang tải vận đơn...</div></td></tr>';
+  try {
+    const data = await api('GET', '/admin/shipping');
+    allShipping = Array.isArray(data) ? data : [];
+    renderShipping(allShipping);
+    // Update badge for in-progress shipments
+    const inProgress = allShipping.filter(s => s.shipping_status === 'shipping').length;
+    const badge = document.getElementById('shipping-badge');
+    const mobBadge = document.getElementById('mob-shipping-badge');
+    if (badge) { badge.textContent = inProgress; badge.style.display = inProgress > 0 ? '' : 'none'; }
+    if (mobBadge) { mobBadge.textContent = inProgress; mobBadge.style.display = inProgress > 0 ? '' : 'none'; }
+    // Stats
+    const statsEl = document.getElementById('shipping-stats');
+    if (statsEl) {
+      const total = allShipping.length;
+      const shipping = allShipping.filter(s => s.shipping_status === 'shipping').length;
+      const completed = allShipping.filter(s => s.shipping_status === 'completed').length;
+      statsEl.innerHTML = [
+        `<div class="stat-card" style="flex:1;min-width:120px;"><div class="stat-label">📦 Tổng vận đơn</div><div class="stat-val c-brand">${total}</div></div>`,
+        `<div class="stat-card" style="flex:1;min-width:120px;"><div class="stat-label">🚚 Đang giao</div><div class="stat-val c-warn">${shipping}</div></div>`,
+        `<div class="stat-card" style="flex:1;min-width:120px;"><div class="stat-label">✅ Hoàn thành</div><div class="stat-val c-ok">${completed}</div></div>`,
+      ].join('');
+    }
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function filterShipping() {
+  const q = (document.getElementById('shipping-search')?.value || '').toLowerCase();
+  const f = document.getElementById('shipping-status-filter')?.value || '';
+  let list = allShipping;
+  if (q) list = list.filter(s => `${s.carrier} ${s.tracking_code} ${s.orders?.event_name} ${s.orders?.buyer_name} ${s.orders?.seller_name}`.toLowerCase().includes(q));
+  if (f) list = list.filter(s => s.shipping_status === f);
+  renderShipping(list);
+}
+
+function shippingStatusPill(s) {
+  const map = {
+    shipping: ['pill-warn', '🚚 Đang giao'],
+    completed: ['pill-ok', '✅ Hoàn thành'],
+    disputed: ['pill-red', '⚠️ Khiếu nại'],
+    pending: ['pill-gray', '⏳ Chờ'],
+  };
+  const [cls, label] = map[s] || ['pill-gray', s];
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function renderShipping(list) {
+  const tbody = document.getElementById('shipping-tbody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><div class="empty-icon">🚚</div><div class="empty-title">Không có vận đơn nào</div><div class="empty-sub">Chưa có đơn hàng vật lý nào được giao</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(s => {
+    const o = s.orders || {};
+    const daysSince = s.created_at ? Math.floor((Date.now() - new Date(s.created_at)) / 86400000) : null;
+    const isOverdue = s.shipping_status === 'shipping' && daysSince !== null && daysSince >= 5;
+    return `<tr${isOverdue ? ' style="background:rgba(240,80,104,.06);"' : ''}>
+      <td class="mono" style="font-size:11px;">${shortId(s.id)}</td>
+      <td style="font-weight:600;white-space:nowrap;">${s.carrier || '—'}</td>
+      <td class="mono" style="font-size:12px;color:var(--brand);">${s.tracking_code || '—'}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.event_name || '—'}</td>
+      <td>${o.buyer_name || '—'}</td>
+      <td>${o.seller_name || '—'}</td>
+      <td class="mono">${fmt(o.total)}</td>
+      <td>${shippingStatusPill(s.shipping_status)}</td>
+      <td>${orderStatusPill(o.status)}</td>
+      <td style="font-size:11px;color:${isOverdue ? 'var(--red)' : 'var(--sub)'};">
+        ${fmtDateShort(s.created_at)}${daysSince !== null ? `<br><span style="font-size:10px;">${daysSince}d${isOverdue ? ' ⚠️' : ''}</span>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════
 //  ORDERS
 // ══════════════════════════════════
+
 async function loadOrders() {
   document.getElementById('order-tbody').innerHTML = '<tr><td colspan="9"><div class="loading"><div class="spin"></div> Đang tải...</div></td></tr>';
   try {
