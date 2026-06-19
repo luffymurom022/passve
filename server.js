@@ -2365,6 +2365,7 @@ async function processExpiredEscrows() {
 
 processExpiredEscrows();
 setInterval(processExpiredEscrows, 60 * 60 * 1000);
+setInterval(autoConfirmDigitalOrders, 60 * 60 * 1000);
 
 app.post('/api/admin/process-timeouts', async (req, res) => {
   const secret = adminSecret(req);
@@ -3387,6 +3388,375 @@ app.post('/api/admin/orders/:id/messages', adminAuth, async (req, res) => {
   logAdminAction(req.admin.id, req.admin.email, 'send_message', 'order', req.params.id);
   res.json(data);
 });
+
+// ════════════════════════════════════════════════════
+//  DIGITAL ACCOUNT PASS — Pass Tài Khoản
+// ════════════════════════════════════════════════════
+
+// ── Encryption helpers (AES-256-GCM) ──
+function getEncKey() {
+  return crypto.createHash('sha256').update(JWT_SECRET || 'safepass-fallback').digest();
+}
+function encryptField(text) {
+  if (!text) return null;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', getEncKey(), iv);
+  const enc = Buffer.concat([cipher.update(String(text), 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return iv.toString('hex') + '.' + tag.toString('hex') + '.' + enc.toString('hex');
+}
+function decryptField(stored) {
+  if (!stored) return null;
+  try {
+    const [ivHex, tagHex, encHex] = stored.split('.');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', getEncKey(), Buffer.from(ivHex, 'hex'));
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+    return decipher.update(Buffer.from(encHex, 'hex')) + decipher.final('utf8');
+  } catch { return null; }
+}
+
+// ── GET /api/digital-listings — browse ──
+app.get('/api/digital-listings', async (req, res) => {
+  const { asset_type, seller_id, page = 1, limit = 20 } = req.query;
+  let q = supabase.from('digital_listings')
+    .select('*, users!digital_listings_seller_id_fkey(name,id)', { count: 'exact' })
+    .eq('status', 'active')
+    .gt('available_qty', 0)
+    .order('created_at', { ascending: false })
+    .range((page - 1) * limit, page * limit - 1);
+  if (asset_type && asset_type !== 'all') q = q.eq('asset_type', asset_type);
+  if (seller_id) q = q.eq('seller_id', seller_id);
+  const { data, error, count } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ listings: data, total: count, page: +page, limit: +limit });
+});
+
+// ── GET /api/digital-listings/:id ──
+app.get('/api/digital-listings/:id', async (req, res) => {
+  const { data, error } = await supabase.from('digital_listings')
+    .select('*, users!digital_listings_seller_id_fkey(name,id)')
+    .eq('id', req.params.id).single();
+  if (error) return res.status(404).json({ error: 'Không tìm thấy' });
+  res.json(data);
+});
+
+// ── POST /api/digital-listings — seller tạo listing ──
+app.post('/api/digital-listings', auth, async (req, res) => {
+  const { title, description, asset_type, price, image_url } = req.body;
+  if (!title || !asset_type || !price) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+  if (price < 1000) return res.status(400).json({ error: 'Giá tối thiểu 1,000đ' });
+  const { data, error } = await supabase.from('digital_listings').insert({
+    seller_id: req.user.id,
+    title: sanitize(title),
+    description: sanitize(description || ''),
+    asset_type,
+    price: parseInt(price),
+    image_url: image_url || null,
+    available_qty: 0, total_qty: 0, sold_qty: 0,
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── PUT /api/digital-listings/:id — seller cập nhật ──
+app.put('/api/digital-listings/:id', auth, async (req, res) => {
+  const { data: listing } = await supabase.from('digital_listings').select('seller_id').eq('id', req.params.id).single();
+  if (!listing || listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { title, description, price, status } = req.body;
+  const upd = { updated_at: new Date().toISOString() };
+  if (title) upd.title = sanitize(title);
+  if (description !== undefined) upd.description = sanitize(description);
+  if (price) upd.price = parseInt(price);
+  if (status) upd.status = status;
+  const { data, error } = await supabase.from('digital_listings').update(upd).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── POST /api/digital-listings/:id/inventory — seller upload kho tài khoản ──
+app.post('/api/digital-listings/:id/inventory', auth, async (req, res) => {
+  const { data: listing } = await supabase.from('digital_listings').select('seller_id').eq('id', req.params.id).single();
+  if (!listing) return res.status(404).json({ error: 'Listing không tồn tại' });
+  if (listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+
+  const { accounts } = req.body; // array of { username, password, backup_email?, notes? }
+  if (!Array.isArray(accounts) || accounts.length === 0) return res.status(400).json({ error: 'Cần ít nhất 1 tài khoản' });
+  if (accounts.length > 500) return res.status(400).json({ error: 'Tối đa 500 tài khoản mỗi lần upload' });
+
+  const rows = accounts.map(a => ({
+    listing_id: req.params.id,
+    seller_id: req.user.id,
+    username_enc: encryptField(a.username),
+    password_enc: encryptField(a.password),
+    backup_email_enc: encryptField(a.backup_email || null),
+    notes_enc: encryptField(a.notes || null),
+    status: 'available',
+  }));
+
+  const { data, error } = await supabase.from('asset_inventory').insert(rows).select('id');
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Update listing counts
+  const { data: inv } = await supabase.from('asset_inventory')
+    .select('id', { count: 'exact' }).eq('listing_id', req.params.id).eq('status', 'available');
+  const { data: soldInv } = await supabase.from('asset_inventory')
+    .select('id', { count: 'exact' }).eq('listing_id', req.params.id).eq('status', 'sold');
+  await supabase.from('digital_listings').update({
+    available_qty: inv?.length || 0,
+    total_qty: (inv?.length || 0) + (soldInv?.length || 0),
+    updated_at: new Date().toISOString(),
+  }).eq('id', req.params.id);
+
+  res.json({ added: data.length });
+});
+
+// ── GET /api/digital-listings/:id/stats — seller xem kho ──
+app.get('/api/digital-listings/:id/stats', auth, async (req, res) => {
+  const { data: listing } = await supabase.from('digital_listings').select('*').eq('id', req.params.id).single();
+  if (!listing) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (listing.seller_id !== req.user.id && !req.user.is_admin) return res.status(403).json({ error: 'Không có quyền' });
+
+  const { data: inv } = await supabase.from('asset_inventory')
+    .select('id,status,created_at').eq('listing_id', req.params.id);
+  const stats = { available: 0, reserved: 0, sold: 0, disabled: 0 };
+  (inv || []).forEach(i => { stats[i.status] = (stats[i.status] || 0) + 1; });
+  res.json({ listing, stats, total: inv?.length || 0 });
+});
+
+// ── POST /api/digital-orders — buyer mua → auto-deliver ──
+app.post('/api/digital-orders', auth, async (req, res) => {
+  const { listing_id } = req.body;
+  if (!listing_id) return res.status(400).json({ error: 'Thiếu listing_id' });
+
+  const { data: listing } = await supabase.from('digital_listings').select('*').eq('id', listing_id).single();
+  if (!listing) return res.status(404).json({ error: 'Listing không tồn tại' });
+  if (listing.status !== 'active') return res.status(400).json({ error: 'Listing không còn hoạt động' });
+  if (listing.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể tự mua listing của mình' });
+
+  // Check buyer balance
+  const { data: buyer } = await supabase.from('users').select('balance').eq('id', req.user.id).single();
+  if (!buyer || buyer.balance < listing.price) return res.status(400).json({ error: 'Số dư không đủ' });
+
+  // Reserve an available account (atomic-ish — pick first available)
+  const { data: accounts } = await supabase.from('asset_inventory')
+    .select('id').eq('listing_id', listing_id).eq('status', 'available').limit(1);
+  if (!accounts || accounts.length === 0) return res.status(400).json({ error: 'Hết tài khoản. Vui lòng thử lại sau.' });
+  const inventoryId = accounts[0].id;
+
+  // Mark as reserved
+  await supabase.from('asset_inventory').update({ status: 'reserved', reserved_at: new Date().toISOString() }).eq('id', inventoryId).eq('status', 'available');
+
+  // Deduct buyer balance
+  const fee = Math.round(listing.price * (listing.fee_percent / 100));
+  const sellerPayout = listing.price - fee;
+  await supabase.from('users').update({ balance: buyer.balance - listing.price }).eq('id', req.user.id);
+
+  // Create digital order
+  const { data: order, error: orderErr } = await supabase.from('digital_orders').insert({
+    listing_id,
+    inventory_id: inventoryId,
+    buyer_id: req.user.id,
+    seller_id: listing.seller_id,
+    listing_title: listing.title,
+    asset_type: listing.asset_type,
+    price: listing.price,
+    fee,
+    seller_payout: sellerPayout,
+    status: 'delivered',
+    delivered_at: new Date().toISOString(),
+  }).select().single();
+
+  if (orderErr) {
+    // Rollback
+    await supabase.from('users').update({ balance: buyer.balance }).eq('id', req.user.id);
+    await supabase.from('asset_inventory').update({ status: 'available', reserved_at: null }).eq('id', inventoryId);
+    return res.status(500).json({ error: orderErr.message });
+  }
+
+  // Mark inventory as sold + link order
+  await supabase.from('asset_inventory').update({
+    status: 'sold', sold_at: new Date().toISOString(), digital_order_id: order.id,
+  }).eq('id', inventoryId);
+
+  // Update listing counts
+  await supabase.from('digital_listings').update({
+    available_qty: Math.max(0, listing.available_qty - 1),
+    sold_qty: listing.sold_qty + 1,
+    updated_at: new Date().toISOString(),
+  }).eq('id', listing_id);
+
+  // Notify seller
+  createNotification(listing.seller_id, 'order', '🛒 Đơn tài khoản mới',
+    `Buyer đã mua "${listing.title}". Tiền đang escrow.`, '/digital-orders');
+  createNotification(req.user.id, 'order', '✅ Mua thành công',
+    `Bạn đã mua "${listing.title}". Kiểm tra thông tin tài khoản ngay.`, '/digital-orders');
+
+  res.json({ order_id: order.id, message: 'Mua thành công! Tài khoản đã được giao.' });
+});
+
+// ── GET /api/digital-orders — danh sách đơn ──
+app.get('/api/digital-orders', auth, async (req, res) => {
+  const { role } = req.query; // buyer | seller
+  let q = supabase.from('digital_orders').select('*').order('created_at', { ascending: false });
+  if (role === 'seller') q = q.eq('seller_id', req.user.id);
+  else q = q.eq('buyer_id', req.user.id);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── GET /api/digital-orders/:id/asset — buyer xem tài khoản đã mua ──
+app.get('/api/digital-orders/:id/asset', auth, async (req, res) => {
+  const { data: order } = await supabase.from('digital_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.buyer_id !== req.user.id && !req.user.is_admin) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['delivered', 'confirmed', 'disputed', 'replaced'].includes(order.status)) return res.status(400).json({ error: 'Tài khoản chưa sẵn sàng' });
+
+  const { data: inv } = await supabase.from('asset_inventory').select('*').eq('id', order.inventory_id).single();
+  if (!inv) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+
+  res.json({
+    order_id: order.id,
+    listing_title: order.listing_title,
+    asset_type: order.asset_type,
+    username: decryptField(inv.username_enc),
+    password: decryptField(inv.password_enc),
+    backup_email: decryptField(inv.backup_email_enc),
+    notes: decryptField(inv.notes_enc),
+    delivered_at: order.delivered_at,
+    status: order.status,
+  });
+});
+
+// ── POST /api/digital-orders/:id/confirm — buyer xác nhận ──
+app.post('/api/digital-orders/:id/confirm', auth, async (req, res) => {
+  const { data: order } = await supabase.from('digital_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (order.status !== 'delivered') return res.status(400).json({ error: 'Không thể xác nhận ở trạng thái này' });
+
+  // Release escrow → seller
+  const { data: seller } = await supabase.from('users').select('balance').eq('id', order.seller_id).single();
+  await supabase.from('users').update({ balance: (seller?.balance || 0) + order.seller_payout }).eq('id', order.seller_id);
+  await supabase.from('digital_orders').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', order.id);
+
+  createNotification(order.seller_id, 'payout', '💸 Nhận tiền tài khoản',
+    `Buyer đã xác nhận "${order.listing_title}". ${order.seller_payout.toLocaleString('vi-VN')}đ vào ví.`, '/wallet');
+  res.json({ message: 'Đã xác nhận. Tiền đã giải ngân cho seller.' });
+});
+
+// ── POST /api/digital-orders/:id/report — buyer báo lỗi ──
+app.post('/api/digital-orders/:id/report', auth, async (req, res) => {
+  const { reason } = req.body;
+  const { data: order } = await supabase.from('digital_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['delivered', 'replaced'].includes(order.status)) return res.status(400).json({ error: 'Không thể báo lỗi ở trạng thái này' });
+
+  await supabase.from('digital_orders').update({
+    status: 'disputed', dispute_reason: sanitize(reason || 'Không đăng nhập được'),
+    dispute_at: new Date().toISOString(),
+  }).eq('id', order.id);
+
+  createNotification(order.seller_id, 'dispute', '⚠️ Khiếu nại tài khoản',
+    `Buyer báo lỗi "${order.listing_title}": ${reason}. Admin đang xem xét.`, '/digital-orders');
+  res.json({ message: 'Đã gửi báo lỗi. Admin sẽ xử lý sớm.' });
+});
+
+// ── GET /api/admin/digital-orders — admin xem tất cả ──
+app.get('/api/admin/digital-orders', adminAuth, async (req, res) => {
+  const { status } = req.query;
+  let q = supabase.from('digital_orders').select('*').order('created_at', { ascending: false });
+  if (status) q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  // Enrich with buyer/seller names
+  const userIds = [...new Set([...data.map(o => o.buyer_id), ...data.map(o => o.seller_id)])];
+  const { data: users } = await supabase.from('users').select('id,name,phone').in('id', userIds);
+  const userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
+  const enriched = data.map(o => ({
+    ...o,
+    buyer_name: userMap[o.buyer_id]?.name || '—',
+    seller_name: userMap[o.seller_id]?.name || '—',
+  }));
+  res.json(enriched);
+});
+
+// ── POST /api/admin/digital-orders/:id/replace — admin đổi tài khoản ──
+app.post('/api/admin/digital-orders/:id/replace', adminAuth, async (req, res) => {
+  const { data: order } = await supabase.from('digital_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+
+  // Get a new available account from the same listing
+  const { data: accounts } = await supabase.from('asset_inventory')
+    .select('id').eq('listing_id', order.listing_id).eq('status', 'available').limit(1);
+  if (!accounts || accounts.length === 0) return res.status(400).json({ error: 'Không còn tài khoản thay thế' });
+
+  const newInvId = accounts[0].id;
+  // Mark old inventory as disabled
+  await supabase.from('asset_inventory').update({ status: 'disabled' }).eq('id', order.inventory_id);
+  // Mark new inventory as sold
+  await supabase.from('asset_inventory').update({
+    status: 'sold', sold_at: new Date().toISOString(), digital_order_id: order.id,
+  }).eq('id', newInvId);
+
+  // Update order
+  const { admin_note } = req.body;
+  await supabase.from('digital_orders').update({
+    inventory_id: newInvId, status: 'replaced',
+    admin_note: sanitize(admin_note || 'Admin đã đổi tài khoản mới'),
+    updated_at: new Date().toISOString(),
+  }).eq('id', order.id);
+
+  // Update listing available count
+  const { data: listing } = await supabase.from('digital_listings').select('available_qty').eq('id', order.listing_id).single();
+  await supabase.from('digital_listings').update({ available_qty: Math.max(0, (listing?.available_qty || 1) - 1) }).eq('id', order.listing_id);
+
+  logAdminAction(req.admin.id, req.admin.email, 'replace_digital_account', 'digital_order', order.id);
+  createNotification(order.buyer_id, 'order', '🔄 Tài khoản đã được thay',
+    `Admin đã cung cấp tài khoản mới cho "${order.listing_title}".`, '/digital-orders');
+  res.json({ message: 'Đã thay tài khoản mới thành công.' });
+});
+
+// ── POST /api/admin/digital-orders/:id/refund — admin hoàn tiền ──
+app.post('/api/admin/digital-orders/:id/refund', adminAuth, async (req, res) => {
+  const { data: order } = await supabase.from('digital_orders').select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.status === 'confirmed') return res.status(400).json({ error: 'Đơn đã xác nhận, không thể hoàn tiền' });
+
+  const { data: buyer } = await supabase.from('users').select('balance').eq('id', order.buyer_id).single();
+  await supabase.from('users').update({ balance: (buyer?.balance || 0) + order.price }).eq('id', order.buyer_id);
+  await supabase.from('digital_orders').update({
+    status: 'refunded', admin_note: sanitize(req.body.admin_note || 'Admin hoàn tiền'),
+    updated_at: new Date().toISOString(),
+  }).eq('id', order.id);
+
+  // Free up inventory if still sellable
+  if (order.inventory_id) {
+    await supabase.from('asset_inventory').update({ status: 'disabled' }).eq('id', order.inventory_id);
+  }
+
+  logAdminAction(req.admin.id, req.admin.email, 'refund_digital_order', 'digital_order', order.id);
+  createNotification(order.buyer_id, 'refund', '✅ Hoàn tiền tài khoản số',
+    `${order.price.toLocaleString('vi-VN')}đ đã được hoàn về ví.`, '/wallet');
+  res.json({ message: 'Hoàn tiền thành công.' });
+});
+
+// ── Auto-confirm digital orders after 24h (run with escrow checker) ──
+async function autoConfirmDigitalOrders() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: orders } = await supabase.from('digital_orders')
+    .select('*').eq('status', 'delivered').lt('delivered_at', cutoff);
+  if (!orders || orders.length === 0) return;
+  for (const order of orders) {
+    const { data: seller } = await supabase.from('users').select('balance').eq('id', order.seller_id).single();
+    await supabase.from('users').update({ balance: (seller?.balance || 0) + order.seller_payout }).eq('id', order.seller_id);
+    await supabase.from('digital_orders').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', order.id);
+    createNotification(order.seller_id, 'payout', '💸 Tự động giải ngân',
+      `"${order.listing_title}" đã qua 24h. ${order.seller_payout.toLocaleString('vi-VN')}đ vào ví.`, '/wallet');
+    console.log(`[DigitalEscrow] Auto-confirmed order ${order.id}`);
+  }
+}
 
 // ── SERVE FRONTEND STATIC FILES ──
 app.use(express.static(join(__dirname, 'frontend')));

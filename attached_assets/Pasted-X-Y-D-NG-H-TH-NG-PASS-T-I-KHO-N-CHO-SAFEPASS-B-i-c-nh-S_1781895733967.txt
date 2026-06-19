@@ -1,0 +1,254 @@
+XÂY DỰNG HỆ THỐNG PASS TÀI KHOẢN CHO SAFEPASS
+
+Bối cảnh:
+
+SafePass đã hỗ trợ:
+
+* Escrow
+* Wallet
+* KYC
+* Marketplace
+* Pass Đồ
+
+Tôi muốn xây dựng Pass Tài Khoản chuyên cho giao dịch tài sản số.
+
+==================================================
+
+LOẠI TÀI KHOẢN
+
+* ChatGPT Plus
+* Canva Pro
+* Netflix
+* Spotify
+* CapCut Pro
+* YouTube Premium
+* Game Account
+* Tài khoản học tập
+
+==================================================
+
+DATABASE
+
+Tạo bảng:
+
+digital_assets
+
+Fields:
+
+id UUID
+
+listing_id UUID
+
+asset_type TEXT
+
+delivery_method TEXT
+
+status TEXT
+
+created_at TIMESTAMP
+
+==================================================
+
+KHO TÀI KHOẢN
+
+Tạo bảng:
+
+asset_inventory
+
+Fields:
+
+id UUID
+
+listing_id UUID
+
+username TEXT
+
+password TEXT
+
+backup_email TEXT
+
+notes TEXT
+
+status TEXT
+
+==================================================
+
+STATUS
+
+available
+
+reserved
+
+sold
+
+disabled
+
+==================================================
+
+SELLER FLOW
+
+Seller tạo listing:
+
+* Tên tài khoản
+* Mô tả
+* Giá
+* Loại tài khoản
+
+Sau đó upload nhiều tài khoản vào kho.
+
+Ví dụ:
+
+100 tài khoản Canva Pro.
+
+==================================================
+
+AUTO DELIVERY
+
+Khi buyer thanh toán:
+
+↓
+
+Escrow giữ tiền
+
+↓
+
+Hệ thống tự lấy tài khoản còn trống
+
+↓
+
+Giao cho buyer
+
+↓
+
+Đánh dấu sold
+
+==================================================
+
+BUYER DASHBOARD
+
+Hiển thị:
+
+Tài sản đã mua
+
+Username
+
+Password
+
+Thông tin giao hàng
+
+Ngày mua
+
+==================================================
+
+ACCOUNT REPLACEMENT
+
+Buyer có thể báo:
+
+* Sai mật khẩu
+* Tài khoản chết
+* Không đăng nhập được
+
+Admin có thể:
+
+* Đổi tài khoản khác
+* Hoàn tiền
+
+==================================================
+
+TRUST PROTECTION
+
+Ẩn password khỏi API public.
+
+Mã hóa dữ liệu nhạy cảm.
+
+Chỉ buyer sở hữu mới xem được.
+
+==================================================
+
+ESCROW
+
+Buyer nhận tài khoản
+
+↓
+
+Có 24 giờ kiểm tra
+
+↓
+
+Không khiếu nại
+
+↓
+
+Tự động giải ngân
+
+==================================================
+
+SELLER CENTER
+
+Hiển thị:
+
+* Tổng tài khoản
+* Tài khoản còn lại
+* Tài khoản đã bán
+* Doanh thu
+
+==================================================
+
+ADMIN
+
+Admin xem:
+
+* Inventory
+* Đơn hàng
+* Khiếu nại
+* Tỷ lệ lỗi
+
+==================================================
+
+SEARCH
+
+Lọc:
+
+ChatGPT
+
+Canva
+
+Netflix
+
+Spotify
+
+Game
+
+Khác
+
+==================================================
+
+PROFILE
+
+Hiển thị:
+
+Tỷ lệ giao thành công
+
+Số tài khoản đã bán
+
+Trust Score
+
+==================================================
+
+GENERATE
+
+SQL
+
+Backend
+
+API
+
+Frontend
+
+Admin Dashboard
+
+Auto Delivery Engine
+
+Escrow Integration
+
+Không phá kiến trúc SafePass hiện tại.
