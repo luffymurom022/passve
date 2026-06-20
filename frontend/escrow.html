@@ -301,6 +301,19 @@ async function adminApi(method, path, body) {
   return data;
 }
 
+function buildTrustMini(trust, completed, disputed, total) {
+  if(total==null||total===0) return '<div style="font-size:10px;color:var(--hint);margin-top:3px">Thành viên mới</div>';
+  const dispRate = total>0 ? Math.round((disputed/total)*100) : 0;
+  const trustColor = trust>=80?'var(--ok)':trust>=60?'var(--warn)':'var(--red)';
+  return `<div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span style="font-size:10px;color:var(--hint)">✅ ${completed} giao dịch</span>
+      <span style="font-size:10px;color:${trustColor};font-weight:700">${trust!=null?trust+'% tin cậy':'N/A'}</span>
+    </div>
+    ${dispRate>0?`<span style="font-size:10px;color:var(--red)">⚠️ ${dispRate}% tranh chấp</span>`:''}
+  </div>`;
+}
+
 function avatarInitials(name) {
   if(!name) return '?';
   return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
@@ -570,7 +583,7 @@ function buildRoom() {
           <div style="flex:1">
             <div class="p-name">${e.buyer_name||'Buyer'}</div>
             <span class="p-role" style="background:var(--brandL);color:var(--brand)">🛒 Buyer</span>
-            ${e.buyer_trust!=null?`<div style="font-size:11px;color:var(--hint);margin-top:3px">Trust: ${e.buyer_trust}%</div>`:''}
+            ${buildTrustMini(e.buyer_trust, e.buyer_completed, e.buyer_disputed, e.buyer_total)}
           </div>
         </div>
         <div class="participant">
@@ -579,7 +592,7 @@ function buildRoom() {
             <div class="p-name">${e.seller_name||e.seller_email}</div>
             <span class="p-role" style="background:var(--okBg);color:var(--ok)">🏪 Seller</span>
             ${e.seller_id?`<div style="font-size:11px;color:var(--hint);margin-top:3px">Đã tham gia</div>`:`<div style="font-size:11px;color:var(--warn);margin-top:3px">⏳ Chờ xác nhận</div>`}
-            ${e.seller_trust!=null?`<div style="font-size:11px;color:var(--hint)">Trust: ${e.seller_trust}%</div>`:''}
+            ${buildTrustMini(e.seller_trust, e.seller_completed, e.seller_disputed, e.seller_total)}
           </div>
         </div>
       </div>

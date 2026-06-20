@@ -4292,15 +4292,23 @@ async function oeGetFull(id) {
     const { data: bu } = await supabase.from('users').select('name,phone').eq('id', e.buyer_id).single();
     e.buyer_name  = bu?.name || bu?.phone || 'Buyer';
     const { count: bc } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).eq('buyer_id',e.buyer_id).eq('status','completed');
+    const { count: bd } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).or(`buyer_id.eq.${e.buyer_id},seller_id.eq.${e.buyer_id}`).eq('status','disputed');
     const { count: bt } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).or(`buyer_id.eq.${e.buyer_id},seller_id.eq.${e.buyer_id}`).in('status',['completed','disputed','cancelled']);
-    e.buyer_trust = bt>0 ? Math.round((bc/bt)*100) : null;
+    e.buyer_trust    = bt>0 ? Math.round((bc/bt)*100) : null;
+    e.buyer_completed = bc||0;
+    e.buyer_disputed  = bd||0;
+    e.buyer_total     = bt||0;
   }
   if(e.seller_id) {
     const { data: su } = await supabase.from('users').select('name,phone').eq('id', e.seller_id).single();
     e.seller_name  = su?.name || su?.phone || e.seller_email;
     const { count: sc } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).eq('seller_id',e.seller_id).eq('status','completed');
+    const { count: sd } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).or(`buyer_id.eq.${e.seller_id},seller_id.eq.${e.seller_id}`).eq('status','disputed');
     const { count: st } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).or(`buyer_id.eq.${e.seller_id},seller_id.eq.${e.seller_id}`).in('status',['completed','disputed','cancelled']);
-    e.seller_trust = st>0 ? Math.round((sc/st)*100) : null;
+    e.seller_trust    = st>0 ? Math.round((sc/st)*100) : null;
+    e.seller_completed = sc||0;
+    e.seller_disputed  = sd||0;
+    e.seller_total     = st||0;
   }
   return e;
 }

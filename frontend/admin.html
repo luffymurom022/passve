@@ -2872,7 +2872,7 @@ async function loadOeAdmin() {
         <td style="padding:10px 8px"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;color:${sc};background:${sc}18;border:1px solid ${sc}33">${OE_STATUS_LABEL[e.status]||e.status}</span></td>
         <td style="padding:10px 8px;font-size:11px;color:var(--hint)">${new Date(e.created_at).toLocaleDateString('vi-VN')}</td>
         <td style="padding:10px 8px;text-align:center">
-          <button class="btn btn-sm btn-warn" onclick="event.stopPropagation();openOeModal('${e.id}','${(e.title||'').replace(/'/g,"\\'")}',${e.amount||0},'${e.status}','${e.seller_email||'}')">⚡ Xử lý</button>
+          <button class="btn btn-sm btn-warn" onclick="event.stopPropagation();openOeModal('${e.id}','${(e.title||'').replace(/'/g,"\\'")}',${e.amount||0},'${e.status}','${(e.seller_email||'').replace(/'/g,"\\'")}')">⚡ Xử lý</button>
         </td>
       </tr>`;
     }).join('');
