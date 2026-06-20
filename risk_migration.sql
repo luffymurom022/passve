@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS risk_rules (
   rule_key TEXT NOT NULL UNIQUE,
   rule_name TEXT NOT NULL,
   description TEXT,
-  threshold NUMERIC(10,4) NOT NULL,
+  threshold NUMERIC(20,4) NOT NULL,
   score_delta INTEGER NOT NULL DEFAULT 10,
   enabled BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
