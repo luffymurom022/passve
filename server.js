@@ -7993,6 +7993,324 @@ app.post('/api/admin/risk/alerts/create', adminAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// PHASE 16: SAFEPASS ECOSYSTEM
+// ═══════════════════════════════════════════════════════════
+
+// Serve ecosystem page
+app.get('/ecosystem', (req, res) => {
+  res.sendFile(new URL('./frontend/ecosystem.html', import.meta.url).pathname);
+});
+
+// ── /api/users/me ──
+app.get('/api/users/me', auth, async (req, res) => {
+  const { data: user } = await supabase.from('users')
+    .select('id,name,phone,email,is_admin,is_moderator,is_banned,is_kyc_verified,two_factor,created_at')
+    .eq('id', req.user.userId).single();
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json(user);
+});
+
+// ── Ecosystem Dashboard ──
+app.get('/api/ecosystem/dashboard', auth, async (req, res) => {
+  const uid = req.user.userId;
+  // Parallel queries across all modules
+  const [escrows, listings, shipments, orders, warehouseItems, inspections, deliveries] = await Promise.all([
+    supabase.from('orders').select('id,status,amount,created_at').or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).order('created_at',{ascending:false}),
+    supabase.from('tickets').select('id,status').eq('seller_id', uid).eq('status','active'),
+    supabase.from('logistics_shipments').select('id').eq('user_id', uid),
+    supabase.from('orders').select('id').or(`buyer_id.eq.${uid},seller_id.eq.${uid}`),
+    supabase.from('warehouse_inventory').select('id').eq('owner_id', uid),
+    supabase.from('inspection_requests').select('id').eq('user_id', uid),
+    supabase.from('delivery_orders').select('id').eq('user_id', uid)
+  ]);
+
+  const stats = {
+    total_escrows: orders.data?.length || 0,
+    active_listings: listings.data?.length || 0,
+    total_shipments: shipments.data?.length || 0,
+    total_orders: orders.data?.length || 0,
+    warehouse_items: warehouseItems.data?.length || 0,
+    inspections: inspections.data?.length || 0,
+    deliveries: deliveries.data?.length || 0
+  };
+
+  // Recent activity: latest 8 orders
+  const recentOrders = (escrows.data || []).slice(0, 8).map(o => ({
+    icon: '📋', title: `Đơn hàng ${o.id.slice(0,8)}...`,
+    description: `${o.status} · ${Number(o.amount||0).toLocaleString('vi-VN')}₫`,
+    created_at: o.created_at
+  }));
+
+  // Monthly data: last 6 months
+  const monthly = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const m = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+    const monthOrders = (orders.data||[]).filter(o => o.created_at?.startsWith(m));
+    monthly.push({
+      label,
+      escrows: monthOrders.length,
+      revenue: monthOrders.reduce((s,o) => s+(o.amount||0), 0)
+    });
+  }
+
+  res.json({ stats, recent_activity: recentOrders, monthly });
+});
+
+// ── Ecosystem Workflow: List orders ──
+app.get('/api/ecosystem/workflow/orders', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: orders } = await supabase.from('orders')
+    .select('id,title,amount,status,buyer_id,seller_id,created_at,funded_at,released_at,refunded_at')
+    .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
+    .order('created_at', { ascending: false }).limit(20);
+  res.json({ orders: orders || [] });
+});
+
+// ── Ecosystem Workflow: Single order detail ──
+app.get('/api/ecosystem/workflow/:id', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: order } = await supabase.from('orders')
+    .select('*').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+  if (order.buyer_id !== uid && order.seller_id !== uid)
+    return res.status(403).json({ error: 'Không có quyền truy cập' });
+  // Build workflow steps
+  const wf = {
+    listing: 'done',
+    escrow: ['funded','delivered','completed','released'].includes(order.status) ? 'done'
+           : order.status === 'pending' ? 'active' : 'pending',
+    inspection: order.funded_at ? 'done' : 'pending',
+    warehouse: order.funded_at ? 'done' : 'pending',
+    delivery: ['delivered','completed','released'].includes(order.status) ? 'done'
+             : order.funded_at ? 'active' : 'pending',
+    completed: ['completed','released'].includes(order.status) ? 'done' : 'pending'
+  };
+  res.json({ ...order, workflow: wf });
+});
+
+// ── Global Search ──
+app.get('/api/ecosystem/search', auth, async (req, res) => {
+  const { q = '', type = 'all' } = req.query;
+  if (!q || q.length < 2) return res.json({ results: {} });
+  const uid = req.user.userId;
+  const results = {};
+  const searchQ = `%${q}%`;
+
+  if (type === 'all' || type === 'listings') {
+    const { data } = await supabase.from('tickets')
+      .select('id,title,price,category,status,created_at')
+      .ilike('title', searchQ).limit(5);
+    results.listings = (data || []).map(t => ({
+      id: t.id, _type: 'listing',
+      title: t.title,
+      subtitle: `${t.category} · ${Number(t.price||0).toLocaleString('vi-VN')}₫`,
+      badge: t.status, amount: t.price
+    }));
+  }
+  if (type === 'all' || type === 'orders') {
+    const { data } = await supabase.from('orders')
+      .select('id,title,amount,status,created_at')
+      .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
+      .ilike('title', searchQ).limit(5);
+    results.orders = (data || []).map(o => ({
+      id: o.id, _type: 'order',
+      title: o.title || `Đơn hàng ${o.id.slice(0,8)}`,
+      subtitle: new Date(o.created_at).toLocaleDateString('vi-VN'),
+      badge: o.status, amount: o.amount
+    }));
+  }
+  if ((type === 'all' || type === 'users') && req.user.isAdmin) {
+    const { data } = await supabase.from('users')
+      .select('id,name,phone,is_kyc_verified,created_at')
+      .or(`name.ilike.${searchQ},phone.ilike.${searchQ}`).limit(5);
+    results.users = (data || []).map(u => ({
+      id: u.id, _type: 'user',
+      title: u.name || u.phone,
+      subtitle: u.phone,
+      badge: u.is_kyc_verified ? 'active' : 'pending'
+    }));
+  }
+  if (type === 'all' || type === 'logistics') {
+    const { data } = await supabase.from('logistics_shipments')
+      .select('id,tracking_code,sender_name,receiver_name,status,created_at')
+      .eq('user_id', uid)
+      .or(`tracking_code.ilike.${searchQ},sender_name.ilike.${searchQ},receiver_name.ilike.${searchQ}`)
+      .limit(5);
+    results.logistics = (data || []).map(s => ({
+      id: s.id, _type: 'logistics',
+      title: s.tracking_code || `Vận đơn ${s.id.slice(0,8)}`,
+      subtitle: `${s.sender_name||''} → ${s.receiver_name||''}`,
+      badge: s.status
+    }));
+  }
+  res.json({ results });
+});
+
+// ── User Stats ──
+app.get('/api/ecosystem/user-stats', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const [orders, listings, shipments, trustScore] = await Promise.all([
+    supabase.from('orders').select('id').or(`buyer_id.eq.${uid},seller_id.eq.${uid}`),
+    supabase.from('tickets').select('id').eq('seller_id', uid),
+    supabase.from('logistics_shipments').select('id').eq('user_id', uid),
+    supabase.from('trust_scores').select('score,badges').eq('user_id', uid).single()
+  ]);
+  const { data: reviews } = await supabase.from('reviews')
+    .select('rating').eq('seller_id', uid);
+  const avgRating = reviews?.length
+    ? (reviews.reduce((s,r)=>s+(r.rating||0),0) / reviews.length)
+    : 0;
+  const { data: bizAcc } = await supabase.from('business_accounts')
+    .select('id').eq('owner_id', uid).limit(1);
+  const { data: franPartner } = await supabase.from('franchise_partners')
+    .select('id').eq('phone', req.user.phone||'').limit(1);
+  res.json({
+    orders: orders.data?.length || 0,
+    escrows: orders.data?.length || 0,
+    listings: listings.data?.length || 0,
+    shipments: shipments.data?.length || 0,
+    trust_score: trustScore.data?.score || 0,
+    badges: trustScore.data?.badges || [],
+    avg_rating: avgRating,
+    has_business: !!(bizAcc?.length),
+    has_franchise: !!(franPartner?.length)
+  });
+});
+
+// ── Business Summary ──
+app.get('/api/ecosystem/biz-summary', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const [shipments, warehouseItems, inspections, deliveries] = await Promise.all([
+    supabase.from('logistics_shipments').select('id').eq('user_id', uid),
+    supabase.from('warehouse_inventory').select('id').eq('owner_id', uid),
+    supabase.from('inspection_requests').select('id').eq('user_id', uid),
+    supabase.from('delivery_orders').select('id').eq('user_id', uid)
+  ]);
+  // Monthly breakdown (last 6m)
+  const monthly = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const label = d.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+    monthly.push({ label, merchant: 0, franchise: 0, logistics: 0 });
+  }
+  res.json({
+    merchant_orders: 0, franchise_txns: 0,
+    shipments: shipments.data?.length || 0,
+    warehouse_items: warehouseItems.data?.length || 0,
+    deliveries: deliveries.data?.length || 0,
+    inspections: inspections.data?.length || 0,
+    monthly
+  });
+});
+
+// ── Ecosystem Analytics ──
+app.get('/api/ecosystem/analytics', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const months = Number(req.query.period === '12m' ? 12 : 6);
+  const { data: orders } = await supabase.from('orders')
+    .select('id,amount,status,created_at,category')
+    .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`);
+  const allOrders = orders || [];
+  const total_escrow_value = allOrders.reduce((s,o)=>s+(o.amount||0),0);
+  const successful_txns = allOrders.filter(o=>['completed','released'].includes(o.status)).length;
+  const pending_txns = allOrders.filter(o=>['pending','funded'].includes(o.status)).length;
+  const refunded = allOrders.filter(o=>o.status==='refunded').length;
+  const refund_rate = allOrders.length ? (refunded/allOrders.length*100) : 0;
+  const monthly = [];
+  for (let i = months-1; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth()-i);
+    const m = d.toISOString().slice(0,7);
+    const label = d.toLocaleDateString('vi-VN',{month:'short',year:'numeric'});
+    const mo = allOrders.filter(o=>o.created_at?.startsWith(m));
+    monthly.push({ label, orders: mo.length, escrows: mo.length });
+  }
+  // Category breakdown
+  const catMap = {};
+  allOrders.forEach(o=>{const c=o.category||'Khác';catMap[c]=(catMap[c]||0)+1;});
+  const categories = Object.entries(catMap).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
+  // Value ranges
+  const ranges=[0,0,0,0,0];
+  allOrders.forEach(o=>{
+    const v=o.amount||0;
+    if(v<100000)ranges[0]++;
+    else if(v<1000000)ranges[1]++;
+    else if(v<10000000)ranges[2]++;
+    else if(v<100000000)ranges[3]++;
+    else ranges[4]++;
+  });
+  const [ls,sh,wh,ins,del] = await Promise.all([
+    supabase.from('tickets').select('id',{count:'exact'}).eq('seller_id',uid),
+    supabase.from('logistics_shipments').select('id',{count:'exact'}).eq('user_id',uid),
+    supabase.from('warehouse_inventory').select('id',{count:'exact'}).eq('owner_id',uid),
+    supabase.from('inspection_requests').select('id',{count:'exact'}).eq('user_id',uid),
+    supabase.from('delivery_orders').select('id',{count:'exact'}).eq('user_id',uid)
+  ]);
+  res.json({
+    total_escrow_value, successful_txns, pending_txns, refund_rate,
+    monthly, categories, value_ranges: ranges,
+    mods:{escrow:allOrders.length,listings:ls.count||0,logistics:sh.count||0,
+      warehouse:wh.count||0,inspection:ins.count||0,delivery:del.count||0}
+  });
+});
+
+// ── Admin: Ecosystem Stats ──
+app.get('/api/admin/ecosystem/stats', adminAuth, async (req, res) => {
+  const [users, orders, listings, logistics, warehouse, delivery, inspection, business, franchise, kyc, risk, recentUsers, openDisputes] = await Promise.all([
+    supabase.from('users').select('id',{count:'exact'}),
+    supabase.from('orders').select('id,amount,status,created_at,buyer_id'),
+    supabase.from('tickets').select('id',{count:'exact'}),
+    supabase.from('logistics_shipments').select('id,status',{count:'exact'}),
+    supabase.from('warehouses').select('id',{count:'exact'}),
+    supabase.from('delivery_orders').select('id,status',{count:'exact'}),
+    supabase.from('inspection_requests').select('id,status',{count:'exact'}),
+    supabase.from('business_accounts').select('id,is_verified_business',{count:'exact'}),
+    supabase.from('franchise_partners').select('id,status',{count:'exact'}),
+    supabase.from('kyc_requests').select('id,status',{count:'exact'}),
+    supabase.from('risk_alerts').select('id,status',{count:'exact'}),
+    supabase.from('users').select('id,name,phone,is_kyc_verified,created_at').order('created_at',{ascending:false}).limit(10),
+    supabase.from('orders').select('id,amount,status,created_at,buyer_id').eq('status','disputed').limit(10)
+  ]);
+  const allOrders = orders.data || [];
+  const total_escrow_value = allOrders.reduce((s,o)=>s+(o.amount||0),0);
+  const logData = logistics.data || [];
+  const delData = delivery.data || [];
+  const insData = inspection.data || [];
+  const bizData = business.data || [];
+  const franData = franchise.data || [];
+  const kycData = kyc.data || [];
+  const riskData = risk.data || [];
+  // Monthly
+  const monthly = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth()-i);
+    const m = d.toISOString().slice(0,7);
+    const label = d.toLocaleDateString('vi-VN',{month:'short',year:'numeric'});
+    const mu = (recentUsers.data||[]).filter(u=>u.created_at?.startsWith(m));
+    const mo = allOrders.filter(o=>o.created_at?.startsWith(m));
+    monthly.push({ label, new_users: mu.length, escrow_value: mo.reduce((s,o)=>s+(o.amount||0),0) });
+  }
+  res.json({
+    total_users: users.count || 0,
+    total_escrow_value,
+    total_orders: allOrders.length,
+    total_listings: listings.count || 0,
+    logistics: { total: logData.length, in_transit: logData.filter(l=>l.status==='in_transit').length, delivered: logData.filter(l=>l.status==='delivered').length },
+    warehouse: { warehouses: warehouse.count||0, items: 0, transfers: 0 },
+    delivery: { drivers: 0, orders: delData.length, delivered: delData.filter(d=>d.status==='delivered').length },
+    inspection: { requests: insData.length, in_progress: insData.filter(i=>i.status==='in_progress').length, completed: insData.filter(i=>i.status==='completed').length },
+    business: { merchants: bizData.length, verified: bizData.filter(b=>b.is_verified_business).length, revenue: 0 },
+    franchise: { partners: franData.length, active: franData.filter(f=>f.status==='active').length, txns: 0 },
+    kyc: { approved: kycData.filter(k=>k.status==='approved').length, pending: kycData.filter(k=>k.status==='pending').length, banned: 0 },
+    risk: { open_alerts: riskData.filter(r=>r.status==='open').length, high_risk: 0, resolved: riskData.filter(r=>r.status==='resolved').length },
+    monthly,
+    recent_users: recentUsers.data || [],
+    open_disputes: openDisputes.data || []
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
 // PHASE 15: FRANCHISE NETWORK
 // ═══════════════════════════════════════════════════════════
 

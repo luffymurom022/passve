@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafePass Ecosystem</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#080d18;--bg2:#0b1120;--card:#0f1929;--card2:#131e30;--border:#1a2840;
+  --brand:#3d8ef8;--brand2:#a78bfa;--brand3:#06b6d4;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--orange:#f97316;--pink:#ec4899;
+  --txt:#e2e8f0;--sub:#4a6080;--muted:#2a3f5f;
+  --radius:14px;--glow:0 0 24px rgba(61,142,248,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+
+/* ── Sidebar ── */
+.sidebar{position:fixed;top:0;left:0;width:230px;height:100vh;background:var(--card);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:200;}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-logo-icon{font-size:28px;}
+.sb-logo-text{font-size:16px;font-weight:800;line-height:1.1;}
+.sb-logo-text span{color:var(--brand);}
+.sb-logo-text small{display:block;font-size:9px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-top:1px;}
+.sb-user{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
+.sb-uname{font-size:12px;font-weight:700;line-height:1.2;}
+.sb-uphone{font-size:10px;color:var(--sub);}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 0;}
+.sb-section{padding:10px 18px 4px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;
+  border-left:3px solid transparent;transition:all .15s;font-size:13px;color:var(--sub);}
+.sb-item:hover{background:rgba(61,142,248,.06);color:var(--txt);}
+.sb-item.active{color:var(--brand);border-left-color:var(--brand);background:rgba(61,142,248,.1);}
+.sb-item .ico{font-size:16px;width:20px;text-align:center;}
+.sb-item .notif-dot{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--red);}
+.sb-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;}
+
+/* ── Main ── */
+.main{margin-left:230px;min-height:100vh;padding:24px 28px;}
+.page{display:none;animation:fadeIn .2s ease;} .page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.page-title{font-size:20px;font-weight:800;}
+.page-sub{font-size:12px;color:var(--sub);margin-top:2px;}
+
+/* ── Buttons ── */
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;
+  font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{filter:brightness(1.15);box-shadow:var(--glow);}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--txt);border:1px solid var(--border);}
+.btn-ghost:hover{background:rgba(255,255,255,.09);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px;}
+.btn-icon{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;
+  padding:8px 10px;cursor:pointer;font-size:16px;transition:all .15s;}
+.btn-icon:hover{background:rgba(255,255,255,.1);}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-sm{padding:14px 16px;}
+.card-title{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;
+  letter-spacing:.7px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+
+/* ── Grids ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+
+/* ── Stat Cards ── */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;}
+.stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat.c-blue::after{background:linear-gradient(90deg,var(--brand),var(--brand3));}
+.stat.c-purple::after{background:linear-gradient(90deg,var(--brand2),var(--pink));}
+.stat.c-green::after{background:linear-gradient(90deg,var(--green),#16a34a);}
+.stat.c-yellow::after{background:linear-gradient(90deg,var(--yellow),var(--orange));}
+.stat.c-red::after{background:linear-gradient(90deg,var(--red),#b91c1c);}
+.stat.c-cyan::after{background:linear-gradient(90deg,var(--brand3),#0891b2);}
+.stat-ico{font-size:26px;margin-bottom:4px;}
+.stat-label{font-size:11px;color:var(--sub);font-weight:600;}
+.stat-val{font-size:24px;font-weight:800;letter-spacing:-.5px;}
+.stat-sub{font-size:11px;color:var(--sub);}
+.stat-trend{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;}
+.up{background:rgba(34,197,94,.15);color:var(--green);}
+.dn{background:rgba(239,68,68,.15);color:var(--red);}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+.b-green{background:rgba(34,197,94,.12);color:var(--green);}
+.b-red{background:rgba(239,68,68,.12);color:var(--red);}
+.b-yellow{background:rgba(245,158,11,.12);color:var(--yellow);}
+.b-blue{background:rgba(61,142,248,.12);color:var(--brand);}
+.b-purple{background:rgba(167,139,250,.12);color:var(--brand2);}
+.b-gray{background:rgba(74,96,128,.2);color:var(--sub);}
+.b-cyan{background:rgba(6,182,212,.12);color:var(--brand3);}
+
+/* ── Tables ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:9px 14px;font-size:10px;font-weight:700;color:var(--sub);
+  border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.6px;}
+td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.015);}
+
+/* ── Search ── */
+.search-bar{display:flex;gap:10px;margin-bottom:20px;}
+.search-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:11px 16px 11px 42px;color:var(--txt);font-size:14px;outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a6080' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:14px center;transition:border-color .15s;}
+.search-input:focus{border-color:var(--brand);}
+.search-input::placeholder{color:var(--sub);}
+.search-filter{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:11px 12px;color:var(--sub);cursor:pointer;font-size:12px;}
+.search-results{display:flex;flex-direction:column;gap:8px;}
+.search-item{background:var(--card2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s;}
+.search-item:hover{border-color:rgba(61,142,248,.3);background:rgba(61,142,248,.04);}
+.search-item-ico{font-size:22px;width:36px;height:36px;border-radius:8px;
+  background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.search-item-info{flex:1;}
+.search-item-title{font-weight:600;font-size:13px;}
+.search-item-sub{font-size:11px;color:var(--sub);margin-top:2px;}
+.search-category{font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1px;color:var(--sub);padding:12px 0 4px;display:flex;align-items:center;gap:6px;}
+.search-category::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── Workflow pipeline ── */
+.wf-pipeline{display:flex;align-items:center;gap:0;margin-bottom:28px;overflow-x:auto;padding:4px 0;}
+.wf-step{display:flex;align-items:center;flex-shrink:0;}
+.wf-node{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 14px;
+  border-radius:12px;min-width:100px;position:relative;transition:all .2s;}
+.wf-node.done{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);}
+.wf-node.active{background:rgba(61,142,248,.1);border:1px solid rgba(61,142,248,.4);
+  box-shadow:0 0 20px rgba(61,142,248,.15);}
+.wf-node.pending{background:rgba(255,255,255,.03);border:1px solid var(--border);}
+.wf-node.skipped{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);}
+.wf-icon{font-size:26px;}
+.wf-label{font-size:10px;font-weight:700;text-align:center;line-height:1.3;}
+.wf-status{font-size:9px;font-weight:700;text-align:center;}
+.wf-node.done .wf-status{color:var(--green);}
+.wf-node.active .wf-status{color:var(--brand);}
+.wf-node.pending .wf-status{color:var(--sub);}
+.wf-node.skipped .wf-status{color:var(--yellow);}
+.wf-arrow{font-size:18px;color:var(--muted);padding:0 4px;flex-shrink:0;}
+.wf-order-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s;}
+.wf-order-card:hover{border-color:rgba(61,142,248,.3);}
+.wf-order-card.selected{border-color:var(--brand);background:rgba(61,142,248,.04);}
+
+/* ── Notifications ── */
+.notif-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+.notif-item:last-child{border-bottom:none;}
+.notif-ico{font-size:20px;width:38px;height:38px;border-radius:10px;
+  background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.notif-body{flex:1;}
+.notif-title{font-size:13px;font-weight:600;line-height:1.3;}
+.notif-sub{font-size:11px;color:var(--sub);margin-top:3px;}
+.notif-time{font-size:10px;color:var(--sub);white-space:nowrap;margin-top:4px;}
+.notif-unread .notif-ico{background:rgba(61,142,248,.12);}
+.notif-unread .notif-title{color:var(--brand);}
+
+/* ── Quick actions ── */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.quick-item{background:var(--card2);border:1px solid var(--border);border-radius:12px;
+  padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  cursor:pointer;transition:all .2s;text-decoration:none;color:var(--txt);}
+.quick-item:hover{border-color:rgba(61,142,248,.3);background:rgba(61,142,248,.04);transform:translateY(-2px);}
+.quick-ico{font-size:28px;}
+.quick-label{font-size:11px;font-weight:600;text-align:center;color:var(--sub);}
+
+/* ── Mini module cards ── */
+.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.module-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:16px;cursor:pointer;transition:all .2s;text-decoration:none;display:block;}
+.module-card:hover{border-color:rgba(61,142,248,.3);transform:translateY(-2px);}
+.module-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.module-ico{font-size:24px;}
+.module-name{font-size:12px;font-weight:700;color:var(--sub);margin-top:4px;}
+.module-stat{font-size:20px;font-weight:800;}
+.module-sub{font-size:11px;color:var(--sub);}
+
+/* ── Command center ── */
+.cmd-section{margin-bottom:24px;}
+.cmd-section-title{font-size:13px;font-weight:700;color:var(--sub);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.5px;}
+.info-row{display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.info-row:last-child{border-bottom:none;}
+.info-key{color:var(--sub);}
+.info-val{font-weight:600;}
+
+/* ── Analytics ── */
+.chart-wrap{position:relative;} 
+.chart-tabs{display:flex;gap:4px;background:rgba(255,255,255,.04);border-radius:8px;padding:4px;margin-bottom:16px;width:fit-content;}
+.chart-tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--sub);transition:all .15s;}
+.chart-tab.active{background:var(--brand);color:#fff;}
+
+/* ── Admin ecosystem ── */
+.admin-module-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.admin-module{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.admin-module-name{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+.admin-module-rows{display:flex;flex-direction:column;gap:6px;}
+.admin-module-row{display:flex;justify-content:space-between;font-size:12px;}
+.admin-module-row .k{color:var(--sub);}
+.admin-module-row .v{font-weight:700;}
+
+/* ── Progress ── */
+.progress{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:6px;}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s;}
+.pf-blue{background:linear-gradient(90deg,var(--brand),var(--brand3));}
+.pf-green{background:linear-gradient(90deg,var(--green),#16a34a);}
+.pf-purple{background:linear-gradient(90deg,var(--brand2),var(--pink));}
+.pf-yellow{background:linear-gradient(90deg,var(--yellow),var(--orange));}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--card2);border:1px solid var(--border);color:var(--txt);
+  padding:10px 22px;border-radius:8px;font-size:13px;z-index:9999;
+  opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* ── Spinner ── */
+.spin-wrap{text-align:center;padding:40px;color:var(--sub);}
+.spin{display:inline-block;width:32px;height:32px;border:3px solid var(--border);
+  border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── Auth screen ── */
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 30% 20%,rgba(61,142,248,.07),transparent 60%),var(--bg);}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:40px;width:400px;max-width:95vw;text-align:center;}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .sidebar{width:60px;}
+  .sb-logo-text,.sb-uname,.sb-uphone,.sb-section,.sb-item span:not(.ico){display:none;}
+  .sb-item{justify-content:center;padding:10px;}
+  .main{margin-left:60px;}
+  .g4,.admin-module-grid{grid-template-columns:1fr 1fr;}
+  .g3,.module-grid{grid-template-columns:1fr 1fr;}
+  .quick-grid{grid-template-columns:repeat(3,1fr);}
+}
+@media(max-width:600px){
+  .g2,.g3,.g4,.module-grid,.admin-module-grid{grid-template-columns:1fr;}
+  .quick-grid{grid-template-columns:repeat(2,1fr);}
+  .main{padding:16px;}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- AUTH SCREEN (shown when not logged in) -->
+<div id="authScreen" class="auth-screen" style="display:none;">
+  <div class="auth-box">
+    <div style="font-size:50px;margin-bottom:12px;">🌐</div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:6px;">SafePass <span style="color:var(--brand)">Ecosystem</span></div>
+    <div style="color:var(--sub);font-size:13px;margin-bottom:28px;">Đăng nhập tài khoản SafePass để tiếp tục</div>
+    <a href="/" class="btn btn-primary" style="width:100%;justify-content:center;font-size:14px;">
+      Đăng nhập tại SafePass →
+    </a>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appShell" style="display:none;">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">🌐</div>
+    <div class="sb-logo-text">Safe<span>Pass</span><small>Ecosystem v16</small></div>
+  </div>
+  <div class="sb-user">
+    <div class="sb-avatar" id="sbAvatar">?</div>
+    <div><div class="sb-uname" id="sbName">...</div><div class="sb-uphone" id="sbPhone">...</div></div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">Tổng quan</div>
+    <div class="sb-item active" onclick="nav('dashboard')"><span class="ico">🏠</span> <span>Unified Dashboard</span></div>
+    <div class="sb-item" onclick="nav('workflow')"><span class="ico">⚡</span> <span>Smart Workflow</span></div>
+    <div class="sb-item" onclick="nav('search')"><span class="ico">🔍</span> <span>Global Search</span></div>
+    <div class="sb-section">Quản lý</div>
+    <div class="sb-item" onclick="nav('notifications')"><span class="ico">🔔</span> <span>Notification Center</span><span class="notif-dot" id="notifDot" style="display:none;"></span></div>
+    <div class="sb-item" onclick="nav('user-cmd')"><span class="ico">👤</span> <span>User Command Center</span></div>
+    <div class="sb-item" onclick="nav('biz-cmd')"><span class="ico">🏢</span> <span>Business Command Center</span></div>
+    <div class="sb-section">Phân tích</div>
+    <div class="sb-item" onclick="nav('analytics')"><span class="ico">📊</span> <span>Ecosystem Analytics</span></div>
+    <div class="sb-item admin-only" onclick="nav('admin')" style="display:none;"><span class="ico">🛡️</span> <span>Admin Center</span></div>
+  </nav>
+  <div class="sb-footer">
+    <a href="/" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;">← SafePass</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ══════════════ 1. UNIFIED DASHBOARD ══════════════ -->
+<div class="page active" id="pg-dashboard">
+  <div class="topbar">
+    <div><div class="page-title">🏠 Unified Dashboard</div>
+    <div class="page-sub">Tổng quan toàn hệ sinh thái SafePass của bạn</div></div>
+    <button class="btn btn-ghost" onclick="loadDashboard()">🔄 Làm mới</button>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="quick-grid" id="quickActions">
+    <a href="/escrow.html" class="quick-item"><div class="quick-ico">🔐</div><div class="quick-label">Tạo Escrow</div></a>
+    <a href="/#listings" class="quick-item"><div class="quick-ico">🎫</div><div class="quick-label">Đăng bán vé</div></a>
+    <a href="/logistics" class="quick-item"><div class="quick-ico">🚚</div><div class="quick-label">Vận chuyển</div></a>
+    <a href="/warehouse" class="quick-item"><div class="quick-ico">🏭</div><div class="quick-label">Kho bãi</div></a>
+    <a href="/inspection" class="quick-item"><div class="quick-ico">🔬</div><div class="quick-label">Kiểm định</div></a>
+    <a href="/delivery" class="quick-item"><div class="quick-ico">🚴</div><div class="quick-label">Giao nhận</div></a>
+    <a href="/business" class="quick-item"><div class="quick-ico">🏬</div><div class="quick-label">Merchant</div></a>
+    <a href="/franchise" class="quick-item"><div class="quick-ico">🤝</div><div class="quick-label">Franchise</div></a>
+  </div>
+
+  <!-- Stats row -->
+  <div class="g4" style="margin-bottom:18px;" id="dashStats">
+    <div class="stat c-blue"><div class="stat-ico">💰</div><div class="stat-label">Tổng giao dịch escrow</div><div class="stat-val" id="d-escrow">—</div><div class="stat-sub">Tất cả trạng thái</div></div>
+    <div class="stat c-green"><div class="stat-ico">🎫</div><div class="stat-label">Vé đang bán</div><div class="stat-val" id="d-listings">—</div><div class="stat-sub">Đang active</div></div>
+    <div class="stat c-purple"><div class="stat-ico">📦</div><div class="stat-label">Đơn vận chuyển</div><div class="stat-val" id="d-logistics">—</div><div class="stat-sub">Tổng cộng</div></div>
+    <div class="stat c-yellow"><div class="stat-ico">📊</div><div class="stat-label">Đơn giao dịch</div><div class="stat-val" id="d-orders">—</div><div class="stat-sub">Tổng cộng</div></div>
+  </div>
+
+  <!-- Module overview + Activity -->
+  <div class="g2" style="margin-bottom:18px;">
+    <div class="card">
+      <div class="card-title">🌐 Các module đang dùng</div>
+      <div class="module-grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:0;" id="moduleGrid">
+        <div class="spin-wrap" style="grid-column:span 2;padding:20px;"><div class="spin"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🕐 Hoạt động gần nhất</div>
+      <div id="recentActivity"><div class="spin-wrap"><div class="spin"></div></div></div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">📈 Giao dịch escrow theo tháng</div>
+      <canvas id="escrowChart" height="180"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">🎫 Doanh thu vé theo tháng</div>
+      <canvas id="revenueChart" height="180"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 2. SMART WORKFLOW ══════════════ -->
+<div class="page" id="pg-workflow">
+  <div class="topbar">
+    <div><div class="page-title">⚡ Smart Workflow</div>
+    <div class="page-sub">Theo dõi hành trình giao dịch tự động từ đầu đến cuối</div></div>
+  </div>
+
+  <!-- Pipeline visualization -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title">🔄 Quy trình tự động</div>
+    <div class="wf-pipeline" id="wfPipeline">
+      <div class="wf-step"><div class="wf-node pending"><div class="wf-icon">📋</div><div class="wf-label">Đăng bán</div><div class="wf-status">Bước 1</div></div></div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-step"><div class="wf-node pending"><div class="wf-icon">🔐</div><div class="wf-label">Escrow</div><div class="wf-status">Bước 2</div></div></div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-step"><div class="wf-node pending"><div class="wf-icon">🔬</div><div class="wf-label">Kiểm định</div><div class="wf-status">Bước 3</div></div></div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-step"><div class="wf-node pending"><div class="wf-icon">🏭</div><div class="wf-label">Kho bãi</div><div class="wf-status">Bước 4</div></div></div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-step"><div class="wf-node pending"><div class="wf-icon">🚴</div><div class="wf-label">Giao nhận</div><div class="wf-status">Bước 5</div></div></div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-step"><div class="wf-node pending"><div class="wf-icon">✅</div><div class="wf-label">Hoàn tất</div><div class="wf-status">Bước 6</div></div></div>
+    </div>
+    <div style="font-size:12px;color:var(--sub);margin-top:6px;">
+      Chọn một đơn hàng bên dưới để xem trạng thái chi tiết trong workflow
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">📋 Đơn hàng của bạn</div>
+      <div id="wfOrderList"><div class="spin-wrap"><div class="spin"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="wfDetailTitle">📌 Chọn đơn để xem chi tiết</div>
+      <div id="wfDetail">
+        <div style="text-align:center;padding:40px;color:var(--sub);">
+          <div style="font-size:40px;margin-bottom:12px;">👆</div>
+          Chọn một đơn hàng bên trái
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 3. GLOBAL SEARCH ══════════════ -->
+<div class="page" id="pg-search">
+  <div class="topbar"><div><div class="page-title">🔍 Global Search</div>
+  <div class="page-sub">Tìm kiếm toàn bộ hệ thống SafePass</div></div></div>
+
+  <div class="search-bar">
+    <input class="search-input" id="searchQ" placeholder="Tìm kiếm vé, đơn hàng, người dùng..." oninput="debounceSearch()" onkeydown="if(event.key==='Enter')doSearch()"/>
+    <select class="search-filter" id="searchType">
+      <option value="all">Tất cả</option>
+      <option value="listings">Vé / Sản phẩm</option>
+      <option value="orders">Đơn hàng</option>
+      <option value="users">Người dùng</option>
+      <option value="logistics">Vận chuyển</option>
+    </select>
+    <button class="btn btn-primary" onclick="doSearch()">Tìm</button>
+  </div>
+
+  <div id="searchResults">
+    <div style="text-align:center;padding:60px;color:var(--sub);">
+      <div style="font-size:48px;margin-bottom:14px;">🔍</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Tìm kiếm toàn hệ thống</div>
+      <div style="font-size:13px;">Nhập từ khóa để tìm vé, đơn hàng, tài khoản...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 4. NOTIFICATION CENTER ══════════════ -->
+<div class="page" id="pg-notifications">
+  <div class="topbar">
+    <div><div class="page-title">🔔 Notification Center</div>
+    <div class="page-sub">Tất cả thông báo tập trung tại đây</div></div>
+    <button class="btn btn-ghost" onclick="markAllRead()">Đánh dấu đã đọc</button>
+  </div>
+
+  <!-- Filter tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+    <button class="btn btn-sm" id="ntab-all" onclick="filterNotifs('all')" style="background:var(--brand);color:#fff;">Tất cả</button>
+    <button class="btn btn-ghost btn-sm" id="ntab-transaction" onclick="filterNotifs('transaction')">Giao dịch</button>
+    <button class="btn btn-ghost btn-sm" id="ntab-order" onclick="filterNotifs('order')">Đơn hàng</button>
+    <button class="btn btn-ghost btn-sm" id="ntab-system" onclick="filterNotifs('system')">Hệ thống</button>
+  </div>
+
+  <div class="card" id="notifList"><div class="spin-wrap"><div class="spin"></div></div></div>
+</div>
+
+<!-- ══════════════ 5. USER COMMAND CENTER ══════════════ -->
+<div class="page" id="pg-user-cmd">
+  <div class="topbar"><div><div class="page-title">👤 User Command Center</div>
+  <div class="page-sub">Trung tâm quản lý tài khoản của bạn</div></div></div>
+
+  <div class="g2" style="margin-bottom:18px;">
+    <div class="card">
+      <div class="card-title">👤 Thông tin tài khoản</div>
+      <div id="userProfileInfo"><div class="spin-wrap"><div class="spin"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔐 Bảo mật & Xác thực</div>
+      <div id="userSecurityInfo"><div class="spin-wrap"><div class="spin"></div></div></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card card-sm">
+      <div class="card-title">🛡️ Trust Score</div>
+      <div id="userTrustInfo"><div class="spin-wrap" style="padding:16px;"><div class="spin"></div></div></div>
+    </div>
+    <div class="card card-sm">
+      <div class="card-title">📊 Thống kê cá nhân</div>
+      <div id="userStatsInfo"><div class="spin-wrap" style="padding:16px;"><div class="spin"></div></div></div>
+    </div>
+    <div class="card card-sm">
+      <div class="card-title">🔗 Các dịch vụ đã dùng</div>
+      <div id="userServicesInfo"><div class="spin-wrap" style="padding:16px;"><div class="spin"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 6. BUSINESS COMMAND CENTER ══════════════ -->
+<div class="page" id="pg-biz-cmd">
+  <div class="topbar"><div><div class="page-title">🏢 Business Command Center</div>
+  <div class="page-sub">Trung tâm quản lý hoạt động kinh doanh</div></div></div>
+
+  <div class="module-grid" id="bizModuleCards" style="margin-bottom:18px;">
+    <div class="spin-wrap" style="grid-column:span 3;"><div class="spin"></div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">📈 Doanh thu tổng hợp</div>
+      <canvas id="bizRevenueChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">🚀 Hành động nhanh</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+        <a href="/business" class="btn btn-ghost" style="justify-content:flex-start;width:100%;">🏬 Merchant Center → Quản lý kho, ký gửi, nhân viên</a>
+        <a href="/franchise" class="btn btn-ghost" style="justify-content:flex-start;width:100%;">🤝 Franchise Network → Quản lý đại lý, điểm dịch vụ</a>
+        <a href="/logistics" class="btn btn-ghost" style="justify-content:flex-start;width:100%;">🚚 Logistics Hub → Tạo vận đơn, theo dõi hàng</a>
+        <a href="/warehouse" class="btn btn-ghost" style="justify-content:flex-start;width:100%;">🏭 Warehouse → Kho hàng, nhập/xuất, chuyển kho</a>
+        <a href="/delivery" class="btn btn-ghost" style="justify-content:flex-start;width:100%;">🚴 Delivery Network → Tài xế, đơn giao hàng</a>
+        <a href="/inspection" class="btn btn-ghost" style="justify-content:flex-start;width:100%;">🔬 Inspection → Kiểm định hàng hóa, báo cáo</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 7. ECOSYSTEM ANALYTICS ══════════════ -->
+<div class="page" id="pg-analytics">
+  <div class="topbar"><div><div class="page-title">📊 Ecosystem Analytics</div>
+  <div class="page-sub">Phân tích toàn diện hệ sinh thái của bạn</div></div>
+  <div class="chart-tabs">
+    <div class="chart-tab active" onclick="switchPeriod('6m',this)">6 tháng</div>
+    <div class="chart-tab" onclick="switchPeriod('12m',this)">12 tháng</div>
+  </div></div>
+
+  <div class="g4" style="margin-bottom:18px;" id="analyticsStats">
+    <div class="stat c-blue"><div class="stat-ico">💵</div><div class="stat-label">Tổng giá trị escrow</div><div class="stat-val" id="a-escrowVal">—</div></div>
+    <div class="stat c-green"><div class="stat-ico">✅</div><div class="stat-label">Giao dịch thành công</div><div class="stat-val" id="a-success">—</div></div>
+    <div class="stat c-yellow"><div class="stat-ico">⏳</div><div class="stat-label">Đang xử lý</div><div class="stat-val" id="a-pending">—</div></div>
+    <div class="stat c-red"><div class="stat-ico">🔄</div><div class="stat-label">Tỷ lệ hoàn tiền</div><div class="stat-val" id="a-refund">—</div></div>
+  </div>
+
+  <div class="g2" style="margin-bottom:18px;">
+    <div class="card">
+      <div class="card-title">📈 Hoạt động theo tháng</div>
+      <canvas id="activityChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">🥧 Phân bổ giao dịch theo module</div>
+      <canvas id="moduleChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🏆 Danh mục phổ biến nhất</div>
+      <canvas id="categoryChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Giá trị giao dịch theo khoảng</div>
+      <canvas id="valueChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 8. ADMIN ECOSYSTEM CENTER ══════════════ -->
+<div class="page" id="pg-admin">
+  <div class="topbar"><div><div class="page-title">🛡️ Admin Ecosystem Center</div>
+  <div class="page-sub">Theo dõi toàn bộ hệ sinh thái SafePass</div></div>
+  <button class="btn btn-ghost" onclick="loadAdminEcosystem()">🔄 Làm mới</button></div>
+
+  <!-- System health -->
+  <div class="g4" style="margin-bottom:18px;" id="adminTopStats">
+    <div class="stat c-blue"><div class="stat-ico">👥</div><div class="stat-label">Tổng người dùng</div><div class="stat-val" id="adm-users">—</div></div>
+    <div class="stat c-green"><div class="stat-ico">💰</div><div class="stat-label">Tổng escrow (₫)</div><div class="stat-val" id="adm-escrow">—</div></div>
+    <div class="stat c-yellow"><div class="stat-ico">📦</div><div class="stat-label">Tổng đơn hàng</div><div class="stat-val" id="adm-orders">—</div></div>
+    <div class="stat c-purple"><div class="stat-ico">🎫</div><div class="stat-label">Tổng vé listing</div><div class="stat-val" id="adm-listings">—</div></div>
+  </div>
+
+  <!-- Module stats grid -->
+  <div class="admin-module-grid" id="adminModuleGrid">
+    <div class="spin-wrap" style="grid-column:span 4;"><div class="spin"></div></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="g2" style="margin-bottom:18px;">
+    <div class="card">
+      <div class="card-title">📈 Người dùng mới theo tháng</div>
+      <canvas id="adminUserChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">💰 Giá trị escrow theo tháng</div>
+      <canvas id="adminEscrowChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent users + disputes -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🕐 Người dùng mới nhất</div>
+      <div class="tbl-wrap" id="adminNewUsers"><div class="spin-wrap"><div class="spin"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚠️ Tranh chấp đang mở</div>
+      <div class="tbl-wrap" id="adminDisputes"><div class="spin-wrap"><div class="spin"></div></div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div><!-- end appShell -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SafePass Ecosystem — Frontend Logic
+// ═══════════════════════════════════════════════════════════
+const API = '/api/ecosystem';
+const token = localStorage.getItem('sp_token');
+let currentUser = null;
+let searchTimer = null;
+let chartInstances = {};
+let analyticsPeriod = '6m';
+
+// Helpers
+function fmt(n){if(!n&&n!==0)return'—';return Number(n).toLocaleString('vi-VN')+'₫';}
+function fmtN(n){if(!n&&n!==0)return'—';return Number(n).toLocaleString('vi-VN');}
+function fmtK(n){if(n>=1e9)return(n/1e9).toFixed(1)+'tỷ';if(n>=1e6)return(n/1e6).toFixed(1)+'tr';if(n>=1e3)return(n/1e3).toFixed(0)+'k';return n||0;}
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.style.borderColor=type==='error'?'var(--red)':type==='success'?'var(--green)':'var(--brand)';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
+}
+function H(){return{'Content-Type':'application/json','Authorization':'Bearer '+token};}
+function mkChart(id,cfg){if(chartInstances[id])chartInstances[id].destroy();
+  chartInstances[id]=new Chart(document.getElementById(id).getContext('2d'),cfg);return chartInstances[id];}
+const chartDefaults={responsive:true,plugins:{legend:{display:false}},scales:{
+  y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a6080'}},
+  x:{grid:{display:false},ticks:{color:'#4a6080'}}}};
+function statusBadge(s){
+  const m={pending:'b-yellow',active:'b-green',completed:'b-green',funded:'b-blue',
+    delivered:'b-green',cancelled:'b-red',disputed:'b-red',released:'b-green',
+    refunded:'b-yellow',in_transit:'b-cyan'};
+  const l={pending:'Chờ',active:'Hoạt động',completed:'Hoàn thành',funded:'Đã nạp',
+    delivered:'Đã giao',cancelled:'Hủy',disputed:'Tranh chấp',released:'Đã giải phóng',
+    refunded:'Hoàn tiền',in_transit:'Đang giao'};
+  return`<span class="badge ${m[s]||'b-gray'}">${l[s]||s}</span>`;
+}
+
+// ── Navigation ──
+function nav(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('pg-'+page)?.classList.add('active');
+  document.querySelector(`.sb-item[onclick*="${page}"]`)?.classList.add('active');
+  const loaders={
+    dashboard:loadDashboard,workflow:loadWorkflow,
+    notifications:loadNotifications,'user-cmd':loadUserCmd,
+    'biz-cmd':loadBizCmd,analytics:loadAnalytics,admin:loadAdminEcosystem
+  };
+  if(loaders[page])loaders[page]();
+}
+
+// ── Boot ──
+(async()=>{
+  if(!token){
+    document.getElementById('authScreen').style.display='flex';
+    return;
+  }
+  try{
+    const r=await fetch('/api/users/me',{headers:H()});
+    if(!r.ok)throw new Error();
+    currentUser=await r.json();
+    document.getElementById('appShell').style.display='flex';
+    const initials=(currentUser.name||currentUser.phone||'?').charAt(0).toUpperCase();
+    document.getElementById('sbAvatar').textContent=initials;
+    document.getElementById('sbName').textContent=currentUser.name||currentUser.phone||'User';
+    document.getElementById('sbPhone').textContent=currentUser.phone||'';
+    if(currentUser.is_admin){
+      document.querySelectorAll('.admin-only').forEach(el=>el.style.display='flex');
+    }
+    loadDashboard();
+  }catch(e){
+    document.getElementById('authScreen').style.display='flex';
+  }
+})();
+
+// ══════════════════════════════════════════════════════
+// 1. UNIFIED DASHBOARD
+// ══════════════════════════════════════════════════════
+async function loadDashboard(){
+  try{
+    const r=await fetch(API+'/dashboard',{headers:H()});
+    const d=await r.json();
+    if(!r.ok){toast(d.error||'Lỗi tải dashboard','error');return;}
+
+    document.getElementById('d-escrow').textContent=fmtN(d.stats.total_escrows);
+    document.getElementById('d-listings').textContent=fmtN(d.stats.active_listings);
+    document.getElementById('d-logistics').textContent=fmtN(d.stats.total_shipments);
+    document.getElementById('d-orders').textContent=fmtN(d.stats.total_orders);
+
+    // Module grid
+    const modules=[
+      {icon:'🔐',name:'Escrow',val:d.stats.total_escrows,sub:'giao dịch',color:'c-blue',link:'/escrow.html'},
+      {icon:'🎫',name:'Listings',val:d.stats.active_listings,sub:'đang bán',color:'c-green',link:'/'},
+      {icon:'🚚',name:'Logistics',val:d.stats.total_shipments,sub:'vận đơn',color:'c-purple',link:'/logistics'},
+      {icon:'🏭',name:'Warehouse',val:d.stats.warehouse_items,sub:'hàng trong kho',color:'c-yellow',link:'/warehouse'},
+      {icon:'🔬',name:'Inspection',val:d.stats.inspections,sub:'yêu cầu KĐ',color:'c-cyan',link:'/inspection'},
+      {icon:'🚴',name:'Delivery',val:d.stats.deliveries,sub:'đơn giao',color:'c-blue',link:'/delivery'},
+    ];
+    document.getElementById('moduleGrid').innerHTML=modules.map(m=>`
+      <a href="${m.link}" class="module-card" style="text-decoration:none;display:block;">
+        <div class="module-card-top">
+          <div><div class="module-ico">${m.icon}</div><div class="module-name">${m.name}</div></div>
+          <div class="stat-trend up">↗</div>
+        </div>
+        <div class="module-stat">${fmtN(m.val)}</div>
+        <div class="module-sub">${m.sub}</div>
+      </a>`).join('');
+
+    // Recent activity
+    const acts=d.recent_activity||[];
+    document.getElementById('recentActivity').innerHTML=acts.length?
+      acts.map(a=>`<div class="notif-item">
+        <div class="notif-ico">${a.icon||'📌'}</div>
+        <div class="notif-body">
+          <div class="notif-title">${a.title}</div>
+          <div class="notif-sub">${a.description||''}</div>
+        </div>
+        <div class="notif-time">${timeAgo(a.created_at)}</div>
+      </div>`).join('')
+      :'<p style="color:var(--sub);padding:16px;text-align:center;">Chưa có hoạt động</p>';
+
+    // Charts
+    const months=(d.monthly||[]).map(m=>m.label);
+    mkChart('escrowChart',{type:'bar',data:{labels:months,
+      datasets:[{label:'Escrow',data:(d.monthly||[]).map(m=>m.escrows),
+        backgroundColor:'rgba(61,142,248,.5)',borderColor:'var(--brand)',borderWidth:2,borderRadius:6}]},
+      options:{...chartDefaults,plugins:{legend:{display:false}}}});
+    mkChart('revenueChart',{type:'line',data:{labels:months,
+      datasets:[{label:'Doanh thu',data:(d.monthly||[]).map(m=>m.revenue),
+        borderColor:'var(--green)',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.4,
+        pointBackgroundColor:'var(--green)'}]},
+      options:{...chartDefaults,plugins:{legend:{display:false}},
+        scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{color:'#4a6080',callback:v=>fmtK(v)}}}}});
+  }catch(e){console.error(e);toast('Lỗi tải dashboard','error');}
+}
+
+function timeAgo(ts){
+  if(!ts)return'';
+  const s=Math.floor((Date.now()-new Date(ts))/1000);
+  if(s<60)return s+'s trước';if(s<3600)return Math.floor(s/60)+'ph trước';
+  if(s<86400)return Math.floor(s/3600)+'h trước';return Math.floor(s/86400)+'ngày trước';
+}
+
+// ══════════════════════════════════════════════════════
+// 2. SMART WORKFLOW
+// ══════════════════════════════════════════════════════
+async function loadWorkflow(){
+  const r=await fetch(API+'/workflow/orders',{headers:H()});
+  const d=await r.json();
+  const orders=d.orders||[];
+  document.getElementById('wfOrderList').innerHTML=orders.length?
+    orders.map(o=>`<div class="wf-order-card" onclick="selectWfOrder('${o.id}',this)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:13px;">${o.title||'Đơn hàng'}</div>
+        ${statusBadge(o.status)}
+      </div>
+      <div style="font-size:12px;color:var(--sub);">
+        ${fmt(o.amount||0)} · ${new Date(o.created_at).toLocaleDateString('vi-VN')}
+      </div>
+    </div>`).join('')
+    :'<p style="color:var(--sub);text-align:center;padding:30px;">Bạn chưa có đơn hàng nào</p>';
+}
+
+async function selectWfOrder(id,el){
+  document.querySelectorAll('.wf-order-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  const r=await fetch(API+'/workflow/'+id,{headers:H()});
+  const d=await r.json();
+  const wf=d.workflow||{};
+  // Update pipeline
+  const steps=['listing','escrow','inspection','warehouse','delivery','completed'];
+  const icons=['📋','🔐','🔬','🏭','🚴','✅'];
+  const labels=['Đăng bán','Escrow','Kiểm định','Kho bãi','Giao nhận','Hoàn tất'];
+  const pipeline=document.getElementById('wfPipeline');
+  pipeline.innerHTML=steps.map((s,i)=>{
+    const st=wf[s]||'pending';
+    return`<div class="wf-step">
+      <div class="wf-node ${st}">
+        <div class="wf-icon">${icons[i]}</div>
+        <div class="wf-label">${labels[i]}</div>
+        <div class="wf-status">${st==='done'?'✓ Xong':st==='active'?'▶ Đang xử lý':st==='skipped'?'— Bỏ qua':'⬤ Chờ'}</div>
+      </div>
+    </div>${i<steps.length-1?'<div class="wf-arrow">→</div>':''}`;
+  }).join('');
+  // Detail panel
+  document.getElementById('wfDetailTitle').textContent='📌 Chi tiết đơn hàng';
+  document.getElementById('wfDetail').innerHTML=`
+    <div class="info-row"><span class="info-key">Tiêu đề</span><span class="info-val">${d.title||'—'}</span></div>
+    <div class="info-row"><span class="info-key">Giá trị</span><span class="info-val">${fmt(d.amount)}</span></div>
+    <div class="info-row"><span class="info-key">Trạng thái</span><span class="info-val">${statusBadge(d.status)}</span></div>
+    <div class="info-row"><span class="info-key">Người mua</span><span class="info-val">${d.buyer_name||d.buyer_phone||'—'}</span></div>
+    <div class="info-row"><span class="info-key">Người bán</span><span class="info-val">${d.seller_name||d.seller_phone||'—'}</span></div>
+    <div class="info-row"><span class="info-key">Ngày tạo</span><span class="info-val">${new Date(d.created_at||Date.now()).toLocaleString('vi-VN')}</span></div>
+    ${d.funded_at?`<div class="info-row"><span class="info-key">Ngày nạp tiền</span><span class="info-val">${new Date(d.funded_at).toLocaleString('vi-VN')}</span></div>`:''}
+    ${d.released_at?`<div class="info-row"><span class="info-key">Ngày giải phóng</span><span class="info-val">${new Date(d.released_at).toLocaleString('vi-VN')}</span></div>`:''}
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="/" class="btn btn-ghost btn-sm">Xem đơn hàng ↗</a>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════
+// 3. GLOBAL SEARCH
+// ══════════════════════════════════════════════════════
+function debounceSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,500);}
+async function doSearch(){
+  const q=document.getElementById('searchQ').value.trim();
+  const type=document.getElementById('searchType').value;
+  if(!q){document.getElementById('searchResults').innerHTML=
+    '<p style="color:var(--sub);text-align:center;padding:40px;">Nhập từ khóa để tìm kiếm...</p>';return;}
+  document.getElementById('searchResults').innerHTML='<div class="spin-wrap"><div class="spin"></div></div>';
+  try{
+    const r=await fetch(`${API}/search?q=${encodeURIComponent(q)}&type=${type}`,{headers:H()});
+    const d=await r.json();
+    renderSearchResults(d.results||{},q);
+  }catch(e){toast('Lỗi tìm kiếm','error');}
+}
+function renderSearchResults(res,q){
+  let html='';
+  const renderItems=(items,cat,ico)=>{
+    if(!items||!items.length)return'';
+    html+=`<div class="search-category">${cat} (${items.length})</div>`;
+    html+=items.map(i=>`<div class="search-item" onclick="openSearchResult('${i._type}','${i.id}')">
+      <div class="search-item-ico">${ico}</div>
+      <div class="search-item-info">
+        <div class="search-item-title">${highlight(i.title||i.name||i.phone||'—',q)}</div>
+        <div class="search-item-sub">${i.subtitle||''}</div>
+      </div>
+      ${i.badge?`<div>${statusBadge(i.badge)}</div>`:''}
+      ${i.amount?`<div style="font-weight:700;color:var(--green);white-space:nowrap;">${fmt(i.amount)}</div>`:''}
+    </div>`).join('');
+    return html;
+  };
+  renderItems(res.listings,'🎫 Vé / Sản phẩm','🎫');
+  renderItems(res.orders,'📋 Đơn hàng','📋');
+  renderItems(res.users,'👤 Người dùng','👤');
+  renderItems(res.logistics,'🚚 Vận chuyển','🚚');
+  const total=Object.values(res).reduce((s,a)=>s+(a?.length||0),0);
+  if(!total)html=`<div style="text-align:center;padding:50px;color:var(--sub);">
+    <div style="font-size:36px;margin-bottom:10px;">🔍</div>
+    <div>Không tìm thấy kết quả cho "<strong>${q}</strong>"</div></div>`;
+  document.getElementById('searchResults').innerHTML=html;
+}
+function highlight(text,q){
+  if(!q||!text)return text;
+  return String(text).replace(new RegExp(q,'gi'),m=>`<mark style="background:rgba(61,142,248,.25);color:var(--brand);border-radius:2px;">${m}</mark>`);
+}
+function openSearchResult(type,id){
+  const routes={listing:'/',order:'/',user:'/admin',logistics:'/logistics'};
+  toast('Chuyển đến '+type+'...');
+  setTimeout(()=>window.location.href=routes[type]||'/',800);
+}
+
+// ══════════════════════════════════════════════════════
+// 4. NOTIFICATIONS
+// ══════════════════════════════════════════════════════
+let allNotifs=[];
+async function loadNotifications(){
+  const r=await fetch('/api/notifications',{headers:H()});
+  const d=await r.json();
+  allNotifs=d.notifications||d||[];
+  renderNotifs(allNotifs);
+  const unread=allNotifs.filter(n=>!n.is_read).length;
+  const dot=document.getElementById('notifDot');
+  if(dot)dot.style.display=unread>0?'block':'none';
+}
+function renderNotifs(items){
+  const icons={transaction:'💰',order:'📦',system:'🔔',dispute:'⚠️',kyc:'🪪',review:'⭐'};
+  document.getElementById('notifList').innerHTML=items.length?
+    `<div>${items.map(n=>`<div class="notif-item ${n.is_read?'':'notif-unread'}">
+      <div class="notif-ico">${icons[n.type]||'🔔'}</div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title||n.message||'Thông báo'}</div>
+        <div class="notif-sub">${n.message||n.body||''}</div>
+        <div class="notif-time">${timeAgo(n.created_at)}</div>
+      </div>
+      ${!n.is_read?'<div style="width:8px;height:8px;border-radius:50%;background:var(--brand);flex-shrink:0;margin-top:4px;"></div>':''}
+    </div>`).join('')}</div>`
+    :'<p style="color:var(--sub);text-align:center;padding:40px;">Không có thông báo nào</p>';
+}
+function filterNotifs(type){
+  document.querySelectorAll('[id^="ntab-"]').forEach(b=>{b.style.background='';b.style.color='';b.className='btn btn-ghost btn-sm';});
+  document.getElementById('ntab-'+type).className='btn btn-sm';
+  document.getElementById('ntab-'+type).style.background='var(--brand)';
+  document.getElementById('ntab-'+type).style.color='#fff';
+  const filtered=type==='all'?allNotifs:allNotifs.filter(n=>n.type===type);
+  renderNotifs(filtered);
+}
+async function markAllRead(){
+  await fetch('/api/notifications/read-all',{method:'POST',headers:H()});
+  toast('Đã đánh dấu tất cả là đã đọc','success');
+  loadNotifications();
+}
+
+// ══════════════════════════════════════════════════════
+// 5. USER COMMAND CENTER
+// ══════════════════════════════════════════════════════
+async function loadUserCmd(){
+  if(!currentUser){toast('Chưa đăng nhập','error');return;}
+  const u=currentUser;
+  // Profile info
+  document.getElementById('userProfileInfo').innerHTML=`
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));
+        display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;margin:0 auto 10px;">
+        ${(u.name||u.phone||'?').charAt(0).toUpperCase()}
+      </div>
+      <div style="font-size:15px;font-weight:700;">${u.name||'—'}</div>
+      <div style="font-size:12px;color:var(--sub);">${u.phone||''}</div>
+    </div>
+    <div class="info-row"><span class="info-key">Tên hiển thị</span><span class="info-val">${u.name||'—'}</span></div>
+    <div class="info-row"><span class="info-key">Số điện thoại</span><span class="info-val">${u.phone||'—'}</span></div>
+    <div class="info-row"><span class="info-key">Email</span><span class="info-val">${u.email||'—'}</span></div>
+    <div class="info-row"><span class="info-key">Vai trò</span><span class="info-val">
+      ${u.is_admin?'<span class="badge b-red">Admin</span>':u.is_moderator?'<span class="badge b-yellow">Moderator</span>':'<span class="badge b-blue">Người dùng</span>'}
+    </span></div>
+    <div class="info-row"><span class="info-key">Ngày tham gia</span><span class="info-val">${new Date(u.created_at||Date.now()).toLocaleDateString('vi-VN')}</span></div>
+    <div style="margin-top:14px;"><a href="/" class="btn btn-ghost btn-sm">✏️ Chỉnh sửa hồ sơ</a></div>
+  `;
+  // Security info
+  document.getElementById('userSecurityInfo').innerHTML=`
+    <div class="info-row"><span class="info-key">Xác thực 2 bước</span>
+      <span class="info-val">${u.two_factor?'<span class="badge b-green">Đã bật</span>':'<span class="badge b-gray">Chưa bật</span>'}</span></div>
+    <div class="info-row"><span class="info-key">KYC</span>
+      <span class="info-val">${u.is_kyc_verified?'<span class="badge b-green">Đã xác minh</span>':'<span class="badge b-yellow">Chưa xác minh</span>'}</span></div>
+    <div class="info-row"><span class="info-key">Bị cấm</span>
+      <span class="info-val">${u.is_banned?'<span class="badge b-red">Bị cấm</span>':'<span class="badge b-green">Bình thường</span>'}</span></div>
+    <div class="info-row"><span class="info-key">Phiên đăng nhập</span><span class="info-val">Đang hoạt động</span></div>
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+      <a href="/" class="btn btn-ghost btn-sm">🔑 Đổi mật khẩu</a>
+      <a href="/" class="btn btn-ghost btn-sm">🪪 Xác minh KYC</a>
+    </div>
+  `;
+  // Fetch user stats
+  try{
+    const r=await fetch(API+'/user-stats',{headers:H()});
+    const d=await r.json();
+    document.getElementById('userStatsInfo').innerHTML=`
+      <div class="info-row"><span class="info-key">Đơn hàng</span><span class="info-val">${fmtN(d.orders)}</span></div>
+      <div class="info-row"><span class="info-key">Escrow</span><span class="info-val">${fmtN(d.escrows)}</span></div>
+      <div class="info-row"><span class="info-key">Vé đã đăng</span><span class="info-val">${fmtN(d.listings)}</span></div>
+      <div class="info-row"><span class="info-key">Đánh giá nhận</span><span class="info-val">⭐ ${(d.avg_rating||0).toFixed(1)}</span></div>
+    `;
+    document.getElementById('userTrustInfo').innerHTML=`
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-size:36px;font-weight:800;color:var(--brand);">${d.trust_score||'—'}</div>
+        <div style="font-size:11px;color:var(--sub);">Trust Score</div>
+      </div>
+      <div class="progress"><div class="progress-fill pf-blue" style="width:${Math.min(100,d.trust_score||0)}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-top:4px;"><span>0</span><span>100</span></div>
+      <div style="margin-top:12px;">
+        ${(d.badges||[]).map(b=>`<span class="badge b-green" style="margin:2px;">${b}</span>`).join('')||'<span style="color:var(--sub);font-size:12px;">Chưa có huy hiệu</span>'}
+      </div>
+    `;
+    document.getElementById('userServicesInfo').innerHTML=`
+      ${d.has_business?'<div class="info-row"><span class="info-key">Merchant</span><span class="info-val"><span class="badge b-green">✓ Đã đăng ký</span></span></div>':''}
+      ${d.has_franchise?'<div class="info-row"><span class="info-key">Franchise</span><span class="info-val"><span class="badge b-blue">✓ Đại lý</span></span></div>':''}
+      <div class="info-row"><span class="info-key">Logistics</span><span class="info-val">${fmtN(d.shipments)} vận đơn</span></div>
+      <div class="info-row"><span class="info-key">KYC</span><span class="info-val">${u.is_kyc_verified?'<span class="badge b-green">✓</span>':'<a href="/" class="badge b-yellow">Xác minh ngay</a>'}</span></div>
+    `;
+  }catch(e){
+    ['userStatsInfo','userTrustInfo','userServicesInfo'].forEach(id=>{
+      document.getElementById(id).innerHTML='<p style="color:var(--sub);font-size:12px;padding:8px;">Không thể tải dữ liệu</p>';
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// 6. BUSINESS COMMAND CENTER
+// ══════════════════════════════════════════════════════
+async function loadBizCmd(){
+  try{
+    const r=await fetch(API+'/biz-summary',{headers:H()});
+    const d=await r.json();
+    const mods=[
+      {icon:'🏬',name:'Merchant Center',stat:d.merchant_orders||0,sub:'đơn hàng',link:'/business',color:'var(--brand)'},
+      {icon:'🤝',name:'Franchise',stat:d.franchise_txns||0,sub:'giao dịch',link:'/franchise',color:'var(--green)'},
+      {icon:'🚚',name:'Logistics',stat:d.shipments||0,sub:'vận đơn',link:'/logistics',color:'var(--brand2)'},
+      {icon:'🏭',name:'Warehouse',stat:d.warehouse_items||0,sub:'hàng lưu kho',link:'/warehouse',color:'var(--yellow)'},
+      {icon:'🚴',name:'Delivery',stat:d.deliveries||0,sub:'đơn giao',link:'/delivery',color:'var(--orange)'},
+      {icon:'🔬',name:'Inspection',stat:d.inspections||0,sub:'yêu cầu',link:'/inspection',color:'var(--brand3)'},
+    ];
+    document.getElementById('bizModuleCards').innerHTML=mods.map(m=>`
+      <a href="${m.link}" class="module-card">
+        <div class="module-card-top">
+          <div><div class="module-ico">${m.icon}</div><div class="module-name">${m.name}</div></div>
+        </div>
+        <div class="module-stat" style="color:${m.color};">${fmtN(m.stat)}</div>
+        <div class="module-sub">${m.sub}</div>
+      </a>`).join('');
+    // Revenue chart
+    const labels=(d.monthly||[]).map(m=>m.label);
+    mkChart('bizRevenueChart',{type:'bar',data:{labels,
+      datasets:[
+        {label:'Merchant',data:(d.monthly||[]).map(m=>m.merchant||0),backgroundColor:'rgba(61,142,248,.6)',borderRadius:4},
+        {label:'Franchise',data:(d.monthly||[]).map(m=>m.franchise||0),backgroundColor:'rgba(34,197,94,.6)',borderRadius:4},
+        {label:'Logistics',data:(d.monthly||[]).map(m=>m.logistics||0),backgroundColor:'rgba(167,139,250,.6)',borderRadius:4},
+      ]},options:{...chartDefaults,plugins:{legend:{display:true,position:'top',labels:{color:'#4a6080',boxWidth:10}}},
+        scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,
+          ticks:{color:'#4a6080',callback:v=>fmtK(v)}}}}});
+  }catch(e){console.error(e);}
+}
+
+// ══════════════════════════════════════════════════════
+// 7. ECOSYSTEM ANALYTICS
+// ══════════════════════════════════════════════════════
+async function loadAnalytics(){
+  try{
+    const r=await fetch(`${API}/analytics?period=${analyticsPeriod}`,{headers:H()});
+    const d=await r.json();
+    document.getElementById('a-escrowVal').textContent=fmtK(d.total_escrow_value||0);
+    document.getElementById('a-success').textContent=fmtN(d.successful_txns||0);
+    document.getElementById('a-pending').textContent=fmtN(d.pending_txns||0);
+    document.getElementById('a-refund').textContent=(d.refund_rate||0).toFixed(1)+'%';
+    const labels=(d.monthly||[]).map(m=>m.label);
+    mkChart('activityChart',{type:'line',data:{labels,datasets:[
+      {label:'Đơn hàng',data:(d.monthly||[]).map(m=>m.orders||0),borderColor:'var(--brand)',backgroundColor:'rgba(61,142,248,.08)',fill:true,tension:.4},
+      {label:'Escrow',data:(d.monthly||[]).map(m=>m.escrows||0),borderColor:'var(--green)',backgroundColor:'rgba(34,197,94,.08)',fill:true,tension:.4},
+    ]},options:{...chartDefaults,plugins:{legend:{display:true,position:'top',labels:{color:'#4a6080',boxWidth:10}}}}});
+    mkChart('moduleChart',{type:'doughnut',data:{
+      labels:['Escrow','Listings','Logistics','Warehouse','Inspection','Delivery'],
+      datasets:[{data:[d.mods?.escrow||0,d.mods?.listings||0,d.mods?.logistics||0,d.mods?.warehouse||0,d.mods?.inspection||0,d.mods?.delivery||0],
+        backgroundColor:['rgba(61,142,248,.7)','rgba(34,197,94,.7)','rgba(167,139,250,.7)','rgba(245,158,11,.7)','rgba(6,182,212,.7)','rgba(249,115,22,.7)'],
+        borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#4a6080',boxWidth:10,padding:10}}}}});
+    mkChart('categoryChart',{type:'bar',data:{
+      labels:(d.categories||[]).map(c=>c.name).slice(0,8),
+      datasets:[{label:'Giao dịch',data:(d.categories||[]).map(c=>c.count).slice(0,8),
+        backgroundColor:'rgba(167,139,250,.6)',borderRadius:6}]},
+      options:{...chartDefaults,indexAxis:'y',plugins:{legend:{display:false}}}});
+    mkChart('valueChart',{type:'bar',data:{
+      labels:['<100k','100k-1tr','1tr-10tr','10tr-100tr','>100tr'],
+      datasets:[{label:'Số giao dịch',data:d.value_ranges||[0,0,0,0,0],
+        backgroundColor:['rgba(61,142,248,.5)','rgba(34,197,94,.5)','rgba(245,158,11,.5)','rgba(167,139,250,.5)','rgba(249,115,22,.5)'],
+        borderRadius:6}]},
+      options:{...chartDefaults,plugins:{legend:{display:false}}}});
+  }catch(e){console.error(e);}
+}
+function switchPeriod(p,btn){
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  analyticsPeriod=p;
+  loadAnalytics();
+}
+
+// ══════════════════════════════════════════════════════
+// 8. ADMIN ECOSYSTEM CENTER
+// ══════════════════════════════════════════════════════
+async function loadAdminEcosystem(){
+  if(!currentUser?.is_admin){
+    document.getElementById('pg-admin').innerHTML=
+      '<div style="text-align:center;padding:80px;color:var(--sub);"><div style="font-size:48px;">🔒</div><div style="margin-top:12px;font-size:16px;">Chỉ Admin mới có quyền truy cập</div></div>';
+    return;
+  }
+  try{
+    const r=await fetch('/api/admin/ecosystem/stats',{headers:H()});
+    const d=await r.json();
+    document.getElementById('adm-users').textContent=fmtN(d.total_users||0);
+    document.getElementById('adm-escrow').textContent=fmtK(d.total_escrow_value||0);
+    document.getElementById('adm-orders').textContent=fmtN(d.total_orders||0);
+    document.getElementById('adm-listings').textContent=fmtN(d.total_listings||0);
+    // Module stats
+    const mods=[
+      {name:'Logistics',rows:[['Tổng vận đơn',d.logistics?.total],[  'Đang giao',d.logistics?.in_transit],['Hoàn thành',d.logistics?.delivered]]},
+      {name:'Warehouse',rows:[['Tổng kho',d.warehouse?.warehouses],['Hàng lưu kho',d.warehouse?.items],['Chuyển kho',d.warehouse?.transfers]]},
+      {name:'Delivery',rows:[['Tổng tài xế',d.delivery?.drivers],['Đơn giao',d.delivery?.orders],['Đã giao',d.delivery?.delivered]]},
+      {name:'Inspection',rows:[['Yêu cầu KĐ',d.inspection?.requests],['Đang KĐ',d.inspection?.in_progress],['Hoàn thành',d.inspection?.completed]]},
+      {name:'Business',rows:[['Merchant',d.business?.merchants],['Đã xác minh',d.business?.verified],['Doanh thu',fmtK(d.business?.revenue||0)]]},
+      {name:'Franchise',rows:[['Đại lý',d.franchise?.partners],['Đang hoạt động',d.franchise?.active],['Giao dịch',d.franchise?.txns]]},
+      {name:'Trust/KYC',rows:[['KYC duyệt',d.kyc?.approved],['KYC chờ',d.kyc?.pending],['Bị cấm',d.kyc?.banned]]},
+      {name:'Risk Engine',rows:[['Alert mở',d.risk?.open_alerts],['Rủi ro cao',d.risk?.high_risk],['Đã xử lý',d.risk?.resolved]]},
+    ];
+    document.getElementById('adminModuleGrid').innerHTML=mods.map(m=>`
+      <div class="admin-module">
+        <div class="admin-module-name">${m.name}</div>
+        <div class="admin-module-rows">${m.rows.map(([k,v])=>`
+          <div class="admin-module-row"><span class="k">${k}</span><span class="v">${v??'—'}</span></div>`).join('')}
+        </div>
+      </div>`).join('');
+    // Charts
+    const months=(d.monthly||[]).map(m=>m.label);
+    mkChart('adminUserChart',{type:'bar',data:{labels:months,
+      datasets:[{label:'Người dùng mới',data:(d.monthly||[]).map(m=>m.new_users||0),
+        backgroundColor:'rgba(61,142,248,.5)',borderRadius:6}]},options:{...chartDefaults,plugins:{legend:{display:false}}}});
+    mkChart('adminEscrowChart',{type:'line',data:{labels:months,
+      datasets:[{label:'Giá trị escrow',data:(d.monthly||[]).map(m=>m.escrow_value||0),
+        borderColor:'var(--green)',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.4}]},
+      options:{...chartDefaults,plugins:{legend:{display:false}},
+        scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{color:'#4a6080',callback:v=>fmtK(v)}}}}});
+    // Recent users
+    const newUsers=d.recent_users||[];
+    document.getElementById('adminNewUsers').innerHTML=newUsers.length?
+      `<table><thead><tr><th>Tên</th><th>SĐT</th><th>KYC</th><th>Ngày</th></tr></thead>
+      <tbody>${newUsers.map(u=>`<tr>
+        <td>${u.name||'—'}</td><td style="font-family:monospace;">${u.phone}</td>
+        <td>${u.is_kyc_verified?'<span class="badge b-green">✓</span>':'<span class="badge b-gray">—</span>'}</td>
+        <td style="font-size:11px;color:var(--sub);">${new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
+      </tr>`).join('')}</tbody></table>`
+      :'<p style="color:var(--sub);text-align:center;padding:16px;">Không có dữ liệu</p>';
+    // Disputes
+    const disputes=d.open_disputes||[];
+    document.getElementById('adminDisputes').innerHTML=disputes.length?
+      `<table><thead><tr><th>Mã</th><th>Số tiền</th><th>Bên tranh chấp</th><th>Ngày</th></tr></thead>
+      <tbody>${disputes.map(o=>`<tr>
+        <td style="font-family:monospace;font-size:11px;">${o.id.slice(0,8)}...</td>
+        <td style="color:var(--red);font-weight:700;">${fmt(o.amount)}</td>
+        <td style="font-size:11px;">${o.buyer_name||'—'}</td>
+        <td style="font-size:11px;color:var(--sub);">${new Date(o.created_at).toLocaleDateString('vi-VN')}</td>
+      </tr>`).join('')}</tbody></table>`
+      :'<p style="color:var(--sub);text-align:center;padding:16px;">Không có tranh chấp</p>';
+  }catch(e){console.error(e);toast('Lỗi tải admin stats','error');}
+}
+</script>
+</body>
+</html>

@@ -1179,6 +1179,7 @@ function render(){
     {id:"risk",icon:"🤖",label:"AI Risk"},
     {id:"business_center",icon:"🏬",label:"Business"},
     {id:"franchise_network",icon:"🤝",label:"Franchise"},
+    {id:"ecosystem",icon:"🌐",label:"Ecosystem"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1217,6 +1218,8 @@ function render(){
           ?"window.location.href='/business'"
           :p.id==="franchise_network"
           ?"window.location.href='/franchise'"
+          :p.id==="ecosystem"
+          ?"window.location.href='/ecosystem'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

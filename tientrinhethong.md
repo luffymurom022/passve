@@ -949,3 +949,32 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 > **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `franchise_network_migration.sql`
 
 *Cập nhật lần cuối: 2026-06-20*
+
+---
+
+## ✅ PHASE 16: SAFEPASS ECOSYSTEM — HOÀN THÀNH 2026-06-20
+
+| Tính năng | Ngày |
+|-----------|------|
+| **Unified Dashboard** — stat grid 4 module, quick actions 8 nút, module overview 6 card, biểu đồ escrow & doanh thu theo tháng, hoạt động gần nhất | 2026-06-20 |
+| **Smart Workflow** — pipeline 6 bước trực quan (Đăng bán→Escrow→Kiểm định→Kho→Giao nhận→Hoàn tất), chọn đơn hàng để xem trạng thái từng bước | 2026-06-20 |
+| **Global Search** — tìm kiếm toàn hệ thống: vé/sản phẩm, đơn hàng, người dùng, vận chuyển; debounce 500ms; highlight từ khóa | 2026-06-20 |
+| **Notification Center** — tổng hợp toàn bộ thông báo, filter theo loại (giao dịch/đơn hàng/hệ thống), đánh dấu tất cả đã đọc | 2026-06-20 |
+| **User Command Center** — avatar, thông tin tài khoản, bảo mật, trust score, thống kê cá nhân, dịch vụ đã dùng | 2026-06-20 |
+| **Business Command Center** — 6 module card (Merchant/Franchise/Logistics/Warehouse/Delivery/Inspection), biểu đồ doanh thu tổng hợp, hành động nhanh | 2026-06-20 |
+| **Ecosystem Analytics** — 4 stat card, biểu đồ hoạt động theo tháng, phân bổ module (doughnut), danh mục phổ biến, khoảng giá trị giao dịch | 2026-06-20 |
+| **Admin Ecosystem Center** — tổng quan 4 stat, 8 module mini-card (Logistics/Warehouse/Delivery/Inspection/Business/Franchise/KYC/Risk), biểu đồ người dùng mới + escrow theo tháng, bảng user mới nhất + tranh chấp đang mở | 2026-06-20 |
+| **`GET /api/users/me`** — endpoint user profile cho toàn hệ thống | 2026-06-20 |
+| **`GET /api/ecosystem/dashboard`** — aggregated stats từ tất cả module cho user | 2026-06-20 |
+| **`GET /api/ecosystem/search`** — global search cross-module | 2026-06-20 |
+| **`GET /api/ecosystem/analytics`** — phân tích theo period (6m/12m) | 2026-06-20 |
+| **`GET /api/ecosystem/workflow/orders`** — danh sách đơn hàng cho workflow | 2026-06-20 |
+| **`GET /api/ecosystem/workflow/:id`** — chi tiết workflow từng bước cho một đơn | 2026-06-20 |
+| **`GET /api/ecosystem/user-stats`** — thống kê cá nhân toàn hệ thống | 2026-06-20 |
+| **`GET /api/ecosystem/biz-summary`** — tóm tắt kinh doanh tổng hợp | 2026-06-20 |
+| **`GET /api/admin/ecosystem/stats`** — admin view toàn hệ sinh thái | 2026-06-20 |
+| **Nav "🌐 Ecosystem"** thêm vào index.html → `/ecosystem` | 2026-06-20 |
+| **UI** — dark mode sâu (#080d18), sidebar fixed, Chart.js 4 loại biểu đồ, animation fadeIn, responsive | 2026-06-20 |
+| **Không cần migration SQL** — Phase 16 chỉ aggregate dữ liệu từ các bảng đã có | 2026-06-20 |
+
+*Cập nhật lần cuối: 2026-06-20*
