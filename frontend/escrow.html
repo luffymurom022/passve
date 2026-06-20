@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafePass — Open Escrow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a0c11;--bg2:#10131a;--card:#13171f;--card2:#191e28;--card3:#1e2433;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --text:#eef0f6;--sub:#8b92a8;--hint:#4d5466;
+  --brand:#3d8ef8;--brand2:#2d6fd4;--brandL:rgba(61,142,248,.12);--brandM:rgba(61,142,248,.18);
+  --ok:#34d89e;--okBg:rgba(52,216,158,.08);--okBorder:rgba(52,216,158,.2);
+  --warn:#f5a623;--warnBg:rgba(245,166,35,.08);--warnBorder:rgba(245,166,35,.2);
+  --red:#f0566a;--redBg:rgba(240,86,106,.08);--redBorder:rgba(240,86,106,.2);
+  --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);--purpleBorder:rgba(155,135,245,.2);
+  --cyan:#00e5ff;--cyanBg:rgba(0,229,255,.06);
+  --glow:0 0 20px rgba(61,142,248,.3);
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+  --r:14px;--r2:10px;--r3:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,textarea,select{font-family:inherit;outline:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+
+/* ── LAYOUT ── */
+.header{position:sticky;top:0;z-index:100;background:rgba(10,12,17,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#3d8ef8,#9b87f5);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.badge-tag{background:var(--brandL);border:1px solid rgba(61,142,248,.3);color:var(--brand);font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;margin-left:6px;letter-spacing:.4px}
+.header-spacer{flex:1}
+.header-actions{display:flex;align-items:center;gap:10px}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:30px;padding:5px 14px 5px 6px;font-size:13px;font-weight:500}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.container{max-width:1200px;margin:0 auto;padding:28px 24px}
+
+/* ── BTNS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;border:1px solid var(--border2);background:var(--card2);color:var(--text);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--card3);border-color:rgba(255,255,255,.2)}
+.btn-brand{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn-brand:hover{background:var(--brand2);border-color:var(--brand2);box-shadow:var(--glow)}
+.btn-ok{background:var(--okBg);border-color:var(--okBorder);color:var(--ok)}
+.btn-ok:hover{background:rgba(52,216,158,.14)}
+.btn-warn{background:var(--warnBg);border-color:var(--warnBorder);color:var(--warn)}
+.btn-red{background:var(--redBg);border-color:var(--redBorder);color:var(--red)}
+.btn-red:hover{background:rgba(240,86,106,.14)}
+.btn-purple{background:var(--purpleBg);border-color:var(--purpleBorder);color:var(--purple)}
+.btn-lg{padding:12px 28px;font-size:14px;border-radius:11px}
+.btn-sm{padding:5px 12px;font-size:11px;border-radius:7px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--sub)}
+
+/* ── STATUS BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-pending  {background:var(--warnBg);border:1px solid var(--warnBorder);color:var(--warn)}
+.badge-funded   {background:var(--brandL);border:1px solid rgba(61,142,248,.3);color:var(--brand)}
+.badge-shipped  {background:var(--cyanBg);border:1px solid rgba(0,229,255,.2);color:var(--cyan)}
+.badge-delivered{background:var(--purpleBg);border:1px solid var(--purpleBorder);color:var(--purple)}
+.badge-completed{background:var(--okBg);border:1px solid var(--okBorder);color:var(--ok)}
+.badge-disputed {background:var(--redBg);border:1px solid var(--redBorder);color:var(--red)}
+.badge-cancelled{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--hint)}
+.badge-frozen   {background:var(--cyanBg);border:1px solid rgba(0,229,255,.2);color:var(--cyan)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--card2);border:1px solid var(--border);border-radius:11px;padding:4px;width:fit-content;margin-bottom:24px}
+.tab{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;color:var(--sub);background:transparent;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab.active{background:var(--brand);color:#fff;box-shadow:0 2px 12px rgba(61,142,248,.35)}
+.tab:hover:not(.active){color:var(--text);background:var(--card3)}
+
+/* ── ESCROW CARDS ── */
+.escrow-grid{display:grid;gap:14px}
+.ec{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .18s}
+.ec:hover{border-color:rgba(61,142,248,.3);background:linear-gradient(135deg,rgba(61,142,248,.04),rgba(155,135,245,.02));transform:translateY(-1px);box-shadow:var(--shadow)}
+.ec-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ec-body{flex:1;min-width:0}
+.ec-title{font-size:14px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ec-meta{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ec-right{text-align:right;flex-shrink:0}
+.ec-amount{font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.ec-role{font-size:11px;font-weight:600;margin-top:3px}
+
+/* ── ESCROW ROOM ── */
+.room-layout{display:grid;grid-template-columns:320px 1fr;gap:20px;min-height:calc(100vh - 120px)}
+@media(max-width:900px){.room-layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+.room-sidebar{display:flex;flex-direction:column;gap:14px}
+.room-main{display:flex;flex-direction:column;gap:14px}
+
+/* ── TIMELINE ── */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;align-items:flex-start;gap:12px;padding:8px 0}
+.tl-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.tl-line{width:2px;background:var(--border);flex-shrink:0;margin:0 5px}
+.tl-done .tl-dot{background:var(--ok)}
+.tl-active .tl-dot{background:var(--brand);box-shadow:0 0 10px var(--brand)}
+.tl-pending .tl-dot{background:var(--border2)}
+
+/* ── CHAT ── */
+.chat-wrap{display:flex;flex-direction:column;height:500px}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg-user{align-self:flex-end;max-width:75%}
+.msg-other{align-self:flex-start;max-width:75%}
+.msg-system{align-self:center;max-width:90%}
+.msg-bubble{padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5}
+.msg-user .msg-bubble{background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+.msg-other .msg-bubble{background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg-system .msg-bubble{background:var(--card3);border:1px solid var(--border);color:var(--sub);font-size:11px;text-align:center;border-radius:20px;padding:5px 14px}
+.msg-name{font-size:11px;color:var(--hint);margin-bottom:3px;font-weight:600}
+.msg-time{font-size:10px;color:var(--hint);margin-top:3px;text-align:right}
+.chat-input-row{padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--card)}
+.chat-input{flex:1;background:var(--card2);border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:10px 14px;font-size:13px;resize:none;max-height:100px}
+.chat-input:focus{border-color:var(--brand)}
+
+/* ── FORM ── */
+.form-group{margin-bottom:18px}
+.form-label{font-size:12px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;display:block}
+.form-input{width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:11px 14px;border-radius:10px;font-size:14px;transition:border-color .15s}
+.form-input:focus{border-color:var(--brand);background:var(--card3)}
+.form-input::placeholder{color:var(--hint)}
+.form-textarea{resize:vertical;min-height:80px}
+.form-select option{background:var(--card2)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-head{padding:24px 24px 0;display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:18px;font-weight:800}
+.modal-close{width:32px;height:32px;border-radius:8px;background:var(--card2);border:1px solid var(--border);color:var(--sub);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+.modal-close:hover{background:var(--redBg);color:var(--red)}
+.modal-body{padding:20px 24px 24px}
+
+/* ── STATS ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:28px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px;text-align:center}
+.kpi-val{font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.kpi-label{font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+
+/* ── TRUST SCORE ── */
+.trust-ring{position:relative;width:80px;height:80px;flex-shrink:0}
+.trust-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.trust-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace}
+
+/* ── PARTICIPANTS ── */
+.participant{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.participant:last-child{border-bottom:none}
+.p-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--purple));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.p-name{font-size:14px;font-weight:700}
+.p-role{font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px}
+
+/* ── EVIDENCE ── */
+.evidence-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:12px}
+.ev-item{border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;aspect-ratio:1;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:28px}
+.ev-item img{width:100%;height:100%;object-fit:cover}
+
+/* ── AUTH SCREEN ── */
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{width:100%;max-width:420px}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-form{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:32px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:60px 24px;color:var(--sub)}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:13px;line-height:1.6}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:12px 20px;font-size:13px;font-weight:600;z-index:9999;transition:transform .3s;white-space:nowrap;box-shadow:var(--shadow)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+
+/* ── AMOUNT DISPLAY ── */
+.amount-big{font-size:32px;font-weight:800;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,var(--ok),var(--brand));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* ── ACTION BUTTONS ROW ── */
+.actions-row{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ── FILE INPUT ── */
+.file-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;background:var(--card2);border:1px solid var(--border2);color:var(--sub);cursor:pointer;transition:all .15s}
+.file-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .container{padding:16px}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .room-layout{grid-template-columns:1fr}
+  .tabs{overflow-x:auto;width:100%}
+}
+
+/* ── INVITE BANNER ── */
+.invite-banner{background:linear-gradient(135deg,rgba(61,142,248,.12),rgba(155,135,245,.08));border:1px solid rgba(61,142,248,.25);border-radius:var(--r);padding:24px;text-align:center;margin-bottom:24px}
+
+/* ── PROGRESS BAR ── */
+.prog-track{height:6px;background:var(--card3);border-radius:3px;overflow:hidden;margin:12px 0}
+.prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--brand),var(--ok));transition:width .5s ease}
+
+/* loading spinner */
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;flex-direction:column;align-items:center;padding:60px;gap:16px;color:var(--sub);font-size:13px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  GLOBALS
+// ══════════════════════════════════════════════
+const API = '';
+let token = localStorage.getItem('sp_token');
+let currentUser = JSON.parse(localStorage.getItem('sp_user') || 'null');
+let ws = null;
+let wsEscrowId = null;
+
+const CATEGORIES = [
+  {v:'ticket',   l:'🎫 Vé sự kiện'},
+  {v:'digital',  l:'💻 Tài khoản số'},
+  {v:'service',  l:'💼 Dịch vụ'},
+  {v:'goods',    l:'📦 Hàng hoá vật lý'},
+  {v:'game',     l:'🎮 Game / Thẻ nạp'},
+  {v:'other',    l:'📋 Khác'},
+];
+
+const CAT_ICONS = {ticket:'🎫',digital:'💻',service:'💼',goods:'📦',game:'🎮',other:'📋'};
+
+const STATUS_LABEL = {
+  pending:'⏳ Chờ seller', funded:'💰 Đã nạp tiền', shipped:'🚚 Đã giao hàng',
+  delivered:'📦 Đã nhận', completed:'✅ Hoàn thành', disputed:'⚠️ Tranh chấp',
+  cancelled:'❌ Đã huỷ', frozen:'🔒 Bị đóng băng'
+};
+
+const STATUS_PROGRESS = {pending:1,funded:2,shipped:3,delivered:4,completed:5,disputed:0,cancelled:0,frozen:0};
+
+// ── STATE ──
+let view  = 'dashboard'; // dashboard | room | invite
+let activeTab = 'all';
+let escrows  = [];
+let activeEscrow = null;
+let messages = [];
+let evidence = [];
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+const VND = n => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(n||0);
+const ts  = d => new Date(d).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const ago = d => {
+  const s = Math.floor((Date.now()-new Date(d).getTime())/1000);
+  if(s<60) return 'vừa xong';
+  if(s<3600) return Math.floor(s/60)+'p trước';
+  if(s<86400) return Math.floor(s/3600)+'h trước';
+  return Math.floor(s/86400)+'d trước';
+};
+
+let toastTimer;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = type==='ok'?'var(--okBorder)':type==='err'?'var(--redBorder)':'var(--warnBorder)';
+  el.style.color = type==='ok'?'var(--ok)':type==='err'?'var(--red)':'var(--warn)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 3200);
+}
+
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}) }
+  };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(API+'/api/open-escrow'+path, opts);
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.error || 'Lỗi server');
+  return data;
+}
+
+async function adminApi(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}) }
+  };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(API+'/api/admin/open-escrows'+path, opts);
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.error || 'Lỗi server');
+  return data;
+}
+
+function avatarInitials(name) {
+  if(!name) return '?';
+  return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function statusBadge(s) {
+  return `<span class="badge badge-${s}">${STATUS_LABEL[s]||s}</span>`;
+}
+
+// ══════════════════════════════════════════════
+//  RENDER ROOT
+// ══════════════════════════════════════════════
+function render() {
+  if(!token || !currentUser) { renderAuth(); return; }
+  document.getElementById('root').innerHTML = buildApp();
+  attachListeners();
+  if(view==='room' && activeEscrow) connectWs();
+}
+
+function buildApp() {
+  return `
+  ${buildHeader()}
+  <div class="container">
+    ${view === 'dashboard' ? buildDashboard()
+    : view === 'room'     ? buildRoom()
+    : view === 'invite'   ? buildInviteAccept()
+    : ''}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  HEADER
+// ══════════════════════════════════════════════
+function buildHeader() {
+  return `<div class="header">
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      Safe<span style="color:var(--brand)">Pass</span>
+      <span class="badge-tag">OPEN ESCROW</span>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <a href="/index.html" class="btn btn-sm">← Marketplace</a>
+      ${view==='room' ? `<button class="btn btn-sm" onclick="goBack()">← Dashboard</button>` : ''}
+      <div class="user-chip">
+        <div class="avatar" style="font-size:10px">${avatarInitials(currentUser.name||currentUser.phone)}</div>
+        <span>${currentUser.name||currentUser.phone}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════
+function buildDashboard() {
+  const filtered = filterEscrows(activeTab);
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 style="font-size:24px;font-weight:800;margin-bottom:4px">🔐 Open Escrow</h1>
+      <p style="color:var(--sub);font-size:13px">Giao dịch an toàn với bất kỳ ai — tiền được bảo vệ trong Escrow</p>
+    </div>
+    <button class="btn btn-brand btn-lg" onclick="openCreateModal()">+ Tạo Escrow mới</button>
+  </div>
+
+  ${buildKpis()}
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="tabs" id="tab-bar">
+      ${['all','active','completed','disputed','cancelled'].map(t=>`
+        <button class="tab ${activeTab===t?'active':''}" onclick="switchTab('${t}')">
+          ${{all:'🗂 Tất cả',active:'⚡ Đang diễn ra',completed:'✅ Hoàn thành',disputed:'⚠️ Tranh chấp',cancelled:'❌ Đã huỷ'}[t]}
+          ${tabCount(t)>0?`<span style="background:rgba(255,255,255,.15);border-radius:10px;padding:1px 7px;font-size:10px;margin-left:3px">${tabCount(t)}</span>`:''}
+        </button>`).join('')}
+    </div>
+    <div style="margin-left:auto">
+      <button class="btn btn-sm" onclick="loadEscrows()">🔄 Làm mới</button>
+    </div>
+  </div>
+
+  <div id="escrow-list">
+    ${filtered.length === 0
+      ? `<div class="empty"><div class="empty-icon">${activeTab==='all'?'🔐':'🔍'}</div>
+         <div class="empty-title">${activeTab==='all'?'Chưa có giao dịch nào':'Không có kết quả'}</div>
+         <div class="empty-sub">${activeTab==='all'?'Tạo một Escrow mới để bắt đầu giao dịch an toàn.':'Không có giao dịch trong mục này.'}</div>
+         ${activeTab==='all'?`<button class="btn btn-brand" style="margin-top:16px" onclick="openCreateModal()">+ Tạo ngay</button>`:''}</div>`
+      : `<div class="escrow-grid">${filtered.map(buildEscrowCard).join('')}</div>`}
+  </div>
+
+  ${buildCreateModal()}`;
+}
+
+function buildKpis() {
+  const total   = escrows.length;
+  const active  = escrows.filter(e=>['pending','funded','shipped','delivered'].includes(e.status)).length;
+  const done    = escrows.filter(e=>e.status==='completed').length;
+  const disputed= escrows.filter(e=>e.status==='disputed').length;
+  const volume  = escrows.filter(e=>e.status==='completed').reduce((s,e)=>s+(e.amount||0),0);
+  const rate    = total>0?Math.round((done/total)*100):0;
+
+  return `<div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--brand)">${total}</div>
+      <div class="kpi-label">Tổng giao dịch</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--warn)">${active}</div>
+      <div class="kpi-label">Đang diễn ra</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--ok)">${done}</div>
+      <div class="kpi-label">Hoàn thành</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--red)">${disputed}</div>
+      <div class="kpi-label">Tranh chấp</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--ok);font-size:18px">${rate}%</div>
+      <div class="kpi-label">Tỷ lệ thành công</div>
+    </div>
+  </div>`;
+}
+
+function filterEscrows(tab) {
+  if(tab==='all')       return escrows;
+  if(tab==='active')    return escrows.filter(e=>['pending','funded','shipped','delivered'].includes(e.status));
+  if(tab==='completed') return escrows.filter(e=>e.status==='completed');
+  if(tab==='disputed')  return escrows.filter(e=>e.status==='disputed');
+  if(tab==='cancelled') return escrows.filter(e=>['cancelled','frozen'].includes(e.status));
+  return escrows;
+}
+
+function tabCount(tab) {
+  return filterEscrows(tab).length;
+}
+
+function buildEscrowCard(e) {
+  const isBuyer = e.buyer_id === currentUser.id;
+  const role  = isBuyer ? 'buyer' : 'seller';
+  const other = isBuyer ? (e.seller_name||e.seller_email) : e.buyer_name;
+  const icon  = CAT_ICONS[e.category]||'📋';
+  const amtColor = e.status==='completed'?'var(--ok)':e.status==='disputed'?'var(--red)':'var(--text)';
+  return `<div class="ec" onclick="openRoom('${e.id}')">
+    <div class="ec-icon" style="background:${isBuyer?'var(--brandL)':'var(--okBg)'}">${icon}</div>
+    <div class="ec-body">
+      <div class="ec-title">${e.title}</div>
+      <div class="ec-meta">
+        ${statusBadge(e.status)}
+        <span>👤 ${other||'Chờ seller'}</span>
+        <span style="color:var(--hint)">${ago(e.created_at)}</span>
+      </div>
+    </div>
+    <div class="ec-right">
+      <div class="ec-amount" style="color:${amtColor}">${VND(e.amount)}</div>
+      <div class="ec-role" style="color:${isBuyer?'var(--brand)':'var(--ok)'}">${isBuyer?'🛒 Buyer':'🏪 Seller'}</div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  CREATE MODAL
+// ══════════════════════════════════════════════
+function buildCreateModal() {
+  return `<div class="modal-overlay" id="create-modal" style="display:none" onclick="closeCreateModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">🔐 Tạo Escrow mới</div>
+        <button class="modal-close" onclick="closeCreateModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Tiêu đề giao dịch</label>
+          <input id="c-title" class="form-input" placeholder="VD: Mua vé Blackpink từ Hoàng"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mô tả chi tiết</label>
+          <textarea id="c-desc" class="form-input form-textarea" placeholder="Mô tả sản phẩm / dịch vụ…"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="form-group">
+            <label class="form-label">Danh mục</label>
+            <select id="c-cat" class="form-input form-select">
+              ${CATEGORIES.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Giá trị (VND)</label>
+            <input id="c-amount" class="form-input" type="number" placeholder="500000" min="10000"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email của Seller</label>
+          <input id="c-email" class="form-input" type="email" placeholder="seller@email.com"/>
+          <div style="font-size:11px;color:var(--hint);margin-top:6px">Seller sẽ nhận link xác nhận tham gia giao dịch.</div>
+        </div>
+        <div id="create-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px"></div>
+        <button class="btn btn-brand" style="width:100%;" onclick="submitCreate()">🔐 Tạo Escrow</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openCreateModal() {
+  document.getElementById('create-modal').style.display='flex';
+}
+function closeCreateModal(e) {
+  if(!e||e.target===document.getElementById('create-modal'))
+    document.getElementById('create-modal').style.display='none';
+}
+
+async function submitCreate() {
+  const title  = document.getElementById('c-title').value.trim();
+  const desc   = document.getElementById('c-desc').value.trim();
+  const cat    = document.getElementById('c-cat').value;
+  const amount = parseInt(document.getElementById('c-amount').value)||0;
+  const email  = document.getElementById('c-email').value.trim();
+  const errEl  = document.getElementById('create-err');
+  errEl.textContent='';
+  if(!title||!email||amount<10000){
+    errEl.textContent='Vui lòng điền đầy đủ và số tiền tối thiểu 10.000đ'; return;
+  }
+  try {
+    const data = await api('POST','',{title,description:desc,category:cat,amount,seller_email:email});
+    closeCreateModal();
+    toast('✅ Tạo Escrow thành công! Link đã gửi cho seller.');
+    await loadEscrows();
+    openRoom(data.id);
+  } catch(e) {
+    errEl.textContent = e.message;
+  }
+}
+
+// ══════════════════════════════════════════════
+//  ESCROW ROOM
+// ══════════════════════════════════════════════
+function buildRoom() {
+  const e = activeEscrow;
+  if(!e) return '<div class="loading"><div class="spinner"></div>Đang tải…</div>';
+  const isBuyer  = e.buyer_id === currentUser.id;
+  const prog     = STATUS_PROGRESS[e.status]||0;
+  const progPct  = Math.round((prog/5)*100);
+
+  return `
+  <div class="room-layout">
+    <!-- LEFT SIDEBAR -->
+    <div class="room-sidebar">
+
+      <!-- AMOUNT CARD -->
+      <div class="card" style="text-align:center;background:linear-gradient(135deg,rgba(61,142,248,.08),rgba(155,135,245,.06));border-color:rgba(61,142,248,.2)">
+        <div style="font-size:12px;color:var(--sub);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Giá trị Escrow</div>
+        <div class="amount-big">${VND(e.amount)}</div>
+        <div style="margin-top:12px">${statusBadge(e.status)}</div>
+        ${prog>0&&prog<5?`
+        <div style="margin-top:16px">
+          <div class="prog-track"><div class="prog-fill" style="width:${progPct}%"></div></div>
+          <div style="font-size:11px;color:var(--hint)">${prog}/5 bước hoàn thành</div>
+        </div>`:``}
+      </div>
+
+      <!-- PARTICIPANTS -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">👥 Người tham gia</div>
+        <div class="participant">
+          <div class="p-avatar">${avatarInitials(e.buyer_name||'B')}</div>
+          <div style="flex:1">
+            <div class="p-name">${e.buyer_name||'Buyer'}</div>
+            <span class="p-role" style="background:var(--brandL);color:var(--brand)">🛒 Buyer</span>
+            ${e.buyer_trust!=null?`<div style="font-size:11px;color:var(--hint);margin-top:3px">Trust: ${e.buyer_trust}%</div>`:''}
+          </div>
+        </div>
+        <div class="participant">
+          <div class="p-avatar" style="background:linear-gradient(135deg,var(--ok),var(--cyan))">${avatarInitials(e.seller_name||e.seller_email)}</div>
+          <div style="flex:1">
+            <div class="p-name">${e.seller_name||e.seller_email}</div>
+            <span class="p-role" style="background:var(--okBg);color:var(--ok)">🏪 Seller</span>
+            ${e.seller_id?`<div style="font-size:11px;color:var(--hint);margin-top:3px">Đã tham gia</div>`:`<div style="font-size:11px;color:var(--warn);margin-top:3px">⏳ Chờ xác nhận</div>`}
+            ${e.seller_trust!=null?`<div style="font-size:11px;color:var(--hint)">Trust: ${e.seller_trust}%</div>`:''}
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">📋 Timeline</div>
+        ${buildTimeline(e)}
+      </div>
+
+      <!-- INVITE LINK -->
+      ${!e.seller_id?`<div class="card" style="background:var(--warnBg);border-color:var(--warnBorder)">
+        <div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:8px">⏳ Chờ seller xác nhận</div>
+        <div style="font-size:11px;color:var(--sub);margin-bottom:10px">Chia sẻ link này cho seller:</div>
+        <div style="background:var(--card3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;word-break:break-all;cursor:pointer" onclick="copyInvite('${e.invite_token}')">${location.origin}/escrow.html?invite=${e.invite_token}</div>
+        <button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="copyInvite('${e.invite_token}')">📋 Copy link</button>
+      </div>`:''}
+
+      <!-- INFO -->
+      <div class="card">
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--hint)">Mã giao dịch</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${e.id.slice(0,8).toUpperCase()}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--hint)">Danh mục</span><span>${CAT_ICONS[e.category]||'📋'} ${CATEGORIES.find(c=>c.v===e.category)?.l||e.category}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--hint)">Tạo lúc</span><span>${ts(e.created_at)}</span></div>
+          ${e.description?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);color:var(--sub);line-height:1.5">${e.description}</div>`:''}
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT MAIN -->
+    <div class="room-main">
+
+      <!-- ACTION BUTTONS -->
+      ${buildActions(e, isBuyer)}
+
+      <!-- CHAT -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:14px;font-weight:700">💬 Chat bảo mật</div>
+          <div id="ws-status" style="font-size:11px;color:var(--hint)">⚪ Đang kết nối…</div>
+        </div>
+        <div class="chat-wrap">
+          <div class="chat-msgs" id="chat-msgs">
+            ${messages.length===0?`<div style="text-align:center;color:var(--hint);font-size:12px;padding:20px">Chưa có tin nhắn. Bắt đầu cuộc trò chuyện.</div>`:''}
+            ${messages.map(buildMsgBubble).join('')}
+          </div>
+          <div class="chat-input-row">
+            <label class="file-btn" title="Đính kèm file">
+              📎
+              <input type="file" style="display:none" id="chat-file-input" onchange="sendFile()" accept="image/*,.pdf,.doc,.docx"/>
+            </label>
+            <textarea class="chat-input" id="chat-input" rows="1" placeholder="Nhập tin nhắn…" onkeydown="chatKeydown(event)"></textarea>
+            <button class="btn btn-brand btn-sm" onclick="sendMsg()">Gửi</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVIDENCE -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="card-title">🗂 Bằng chứng & Tài liệu</div>
+          <label class="btn btn-sm">
+            📎 Thêm bằng chứng
+            <input type="file" style="display:none" id="evidence-input" accept="image/*,.pdf,.mp4,.mov" onchange="uploadEvidence()"/>
+          </label>
+        </div>
+        ${evidence.length===0
+          ?`<div style="text-align:center;color:var(--hint);font-size:12px;padding:16px">Chưa có bằng chứng. Upload ảnh, video hoặc tài liệu.</div>`
+          :`<div class="evidence-grid" id="evidence-grid">
+            ${evidence.map(ev=>`
+              <div class="ev-item" onclick="window.open('${ev.file_url}','_blank')" title="${ev.description||''}">
+                ${ev.file_type==='image'?`<img src="${ev.file_url}" alt="evidence"/>`:
+                  ev.file_type==='pdf'?'📄':ev.file_type==='video'?'🎥':'📁'}
+              </div>`).join('')}
+          </div>`}
+      </div>
+    </div>
+  </div>
+
+  ${buildDisputeModal(e)}`;
+}
+
+function buildTimeline(e) {
+  const steps = [
+    {k:'pending',   label:'Tạo giao dịch', done:true,  ts: e.created_at},
+    {k:'accepted',  label:'Seller xác nhận', done:!!e.seller_id, ts:null},
+    {k:'funded',    label:'Buyer nạp tiền',  done:['funded','shipped','delivered','completed'].includes(e.status), ts: e.funded_at},
+    {k:'shipped',   label:'Seller giao hàng',done:['shipped','delivered','completed'].includes(e.status), ts: e.shipped_at},
+    {k:'delivered', label:'Buyer xác nhận',  done:['delivered','completed'].includes(e.status), ts: e.delivered_at},
+    {k:'completed', label:'Hoàn thành',       done:e.status==='completed', ts: e.completed_at},
+  ];
+  return steps.map((s,i)=>`
+    <div style="display:flex;align-items:flex-start;gap:10px;${i<steps.length-1?'padding-bottom:12px':''}">
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+        <div style="width:12px;height:12px;border-radius:50%;margin-top:3px;background:${s.done?'var(--ok)':'var(--border2)'};${!s.done&&i===steps.findIndex(x=>!x.done)?'background:var(--brand);box-shadow:0 0 8px var(--brand)':''};transition:all .3s"></div>
+        ${i<steps.length-1?`<div style="width:2px;flex:1;min-height:20px;background:${s.done?'var(--ok)':'var(--border)'};margin-top:4px;transition:all .3s"></div>`:''}
+      </div>
+      <div style="flex:1;padding-bottom:${i<steps.length-1?'8':'0'}px">
+        <div style="font-size:12px;font-weight:600;color:${s.done?'var(--text)':'var(--hint)'}">${s.label}</div>
+        ${s.ts?`<div style="font-size:10px;color:var(--hint)">${ts(s.ts)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function buildActions(e, isBuyer) {
+  if(e.status==='frozen') return `<div class="card" style="background:var(--cyanBg);border-color:rgba(0,229,255,.2)"><div style="color:var(--cyan);font-weight:700;font-size:14px">🔒 Giao dịch bị đóng băng bởi Admin</div><div style="color:var(--sub);font-size:12px;margin-top:4px">${e.admin_notes||''}</div></div>`;
+  if(e.status==='cancelled') return `<div class="card" style="background:rgba(255,255,255,.02)"><div style="color:var(--hint)">❌ Giao dịch đã bị huỷ</div></div>`;
+  if(e.status==='completed') return `<div class="card" style="background:var(--okBg);border-color:var(--okBorder)"><div style="color:var(--ok);font-weight:700;font-size:14px">✅ Giao dịch hoàn thành thành công!</div><div style="color:var(--sub);font-size:12px;margin-top:4px">Cảm ơn bạn đã sử dụng SafePass Open Escrow.</div></div>`;
+
+  const btns = [];
+  if(e.status==='pending' && !e.seller_id && isBuyer){
+    btns.push(`<button class="btn btn-warn" onclick="doCancel()">❌ Huỷ giao dịch</button>`);
+  }
+  if(e.status==='pending' && !e.seller_id && !isBuyer){
+    btns.push(`<button class="btn btn-ok btn-lg" onclick="doAccept()">✅ Chấp nhận giao dịch</button>`);
+  }
+  if(e.status==='funded' && !isBuyer){
+    btns.push(`<button class="btn btn-brand btn-lg" onclick="openShipModal()">🚚 Xác nhận đã giao hàng</button>`);
+  }
+  if(e.status==='pending' && e.seller_id && isBuyer){
+    btns.push(`<button class="btn btn-brand btn-lg" onclick="doFund()">💰 Nạp tiền vào Escrow (${VND(e.amount)})</button>`);
+  }
+  if(e.status==='shipped' && isBuyer){
+    btns.push(`<button class="btn btn-ok btn-lg" onclick="doConfirm()">✅ Xác nhận đã nhận hàng</button>`);
+    btns.push(`<button class="btn btn-red" onclick="openDisputeModal()">⚠️ Mở Tranh chấp</button>`);
+  }
+  if(e.status==='funded' && isBuyer){
+    btns.push(`<button class="btn btn-red btn-sm" onclick="doCancel()">❌ Huỷ & hoàn tiền</button>`);
+  }
+  if(e.status==='disputed'){
+    btns.push(`<span style="color:var(--red);font-weight:700;font-size:14px">⚠️ Tranh chấp đang được Admin xem xét</span>`);
+  }
+  if(['funded','shipped','delivered'].includes(e.status) && !['disputed'].includes(e.status)){
+    if(!btns.some(b=>b.includes('Tranh chấp')))
+      btns.push(`<button class="btn btn-red" onclick="openDisputeModal()">⚠️ Mở Tranh chấp</button>`);
+  }
+
+  if(btns.length===0) return '';
+  return `<div class="card" style="background:var(--brandL);border-color:rgba(61,142,248,.2)">
+    <div class="actions-row">${btns.join('')}</div>
+    ${buildShipInput(e)}
+  </div>`;
+}
+
+function buildShipInput(e) {
+  return `<div id="ship-modal-inline" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(61,142,248,.2)">
+    <div class="form-group">
+      <label class="form-label">Mã vận đơn / Thông tin giao hàng</label>
+      <input id="tracking-input" class="form-input" placeholder="VD: GHTK12345 / Link GDrive / Mã xác nhận…"/>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ok" onclick="doShip()">✅ Xác nhận giao hàng</button>
+      <button class="btn btn-sm" onclick="closeShipModal()">Huỷ</button>
+    </div>
+  </div>`;
+}
+
+function buildDisputeModal(e) {
+  return `<div class="modal-overlay" id="dispute-modal" style="display:none" onclick="closeDisputeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">⚠️ Mở Tranh chấp</div>
+        <button class="modal-close" onclick="closeDisputeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:var(--warnBg);border:1px solid var(--warnBorder);border-radius:10px;padding:14px;margin-bottom:18px;font-size:12px;color:var(--sub)">
+          Mở tranh chấp sẽ <strong style="color:var(--warn)">đóng băng</strong> số tiền ${VND(e.amount)} và Admin sẽ xem xét trong 48h.
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lý do tranh chấp</label>
+          <textarea id="dispute-reason" class="form-input form-textarea" placeholder="Mô tả vấn đề của bạn…"></textarea>
+        </div>
+        <div id="dispute-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px"></div>
+        <button class="btn btn-red" style="width:100%" onclick="submitDispute()">⚠️ Xác nhận mở tranh chấp</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildMsgBubble(m) {
+  const isMe = m.user_id === currentUser.id;
+  const isSystem = m.type === 'system';
+  if(isSystem) return `<div class="msg-system"><div class="msg-bubble">🤖 ${m.content}</div></div>`;
+  const cls = isMe ? 'msg-user' : 'msg-other';
+  const name = isMe ? 'Bạn' : (m.sender_name||'Người dùng');
+  if(m.type==='image'||m.type==='file') {
+    return `<div class="${cls}">
+      ${!isMe?`<div class="msg-name">${name}</div>`:''}
+      <div class="msg-bubble" style="padding:6px">
+        ${m.type==='image'?`<img src="${m.file_url}" style="max-width:220px;border-radius:8px;display:block" onclick="window.open('${m.file_url}','_blank')"/>`:
+          `<a href="${m.file_url}" target="_blank" style="color:var(--brand)">📎 ${m.file_name||'File đính kèm'}</a>`}
+      </div>
+      <div class="msg-time">${ago(m.created_at)}</div>
+    </div>`;
+  }
+  return `<div class="${cls}">
+    ${!isMe?`<div class="msg-name">${name}</div>`:''}
+    <div class="msg-bubble">${m.content}</div>
+    <div class="msg-time">${ago(m.created_at)}</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  INVITE ACCEPT PAGE
+// ══════════════════════════════════════════════
+function buildInviteAccept() {
+  const e = activeEscrow;
+  if(!e) return '<div class="loading"><div class="spinner"></div>Đang tải…</div>';
+  return `<div style="max-width:480px;margin:60px auto">
+    <div class="invite-banner">
+      <div style="font-size:48px;margin-bottom:12px">🔐</div>
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:8px">Bạn được mời làm Seller</h2>
+      <p style="color:var(--sub);font-size:13px">Buyer đã tạo giao dịch Escrow an toàn với bạn</p>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--sub);font-size:13px">Tiêu đề</span>
+          <span style="font-weight:700">${e.title}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--sub);font-size:13px">Giá trị</span>
+          <span class="amount-big" style="font-size:22px">${VND(e.amount)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--sub);font-size:13px">Buyer</span>
+          <span style="font-weight:600">${e.buyer_name||'Người dùng'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--sub);font-size:13px">Danh mục</span>
+          <span>${CAT_ICONS[e.category]||'📋'} ${CATEGORIES.find(c=>c.v===e.category)?.l||e.category}</span>
+        </div>
+        ${e.description?`<div style="padding-top:10px;border-top:1px solid var(--border);color:var(--sub);font-size:13px;line-height:1.5">${e.description}</div>`:''}
+      </div>
+    </div>
+    <div style="background:var(--okBg);border:1px solid var(--okBorder);border-radius:10px;padding:14px;margin-bottom:18px;font-size:12px;color:var(--sub)">
+      ✅ Tiền của buyer sẽ được <strong style="color:var(--ok)">khoá trong Escrow</strong> và chỉ giải ngân khi bạn hoàn thành giao hàng & buyer xác nhận.
+    </div>
+    <div class="actions-row">
+      <button class="btn btn-ok btn-lg" style="flex:1" onclick="doAccept()">✅ Chấp nhận & Tham gia</button>
+      <button class="btn btn-red" onclick="doDecline()">❌ Từ chối</button>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════
+function renderAuth() {
+  document.getElementById('root').innerHTML = `
+  <div class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px">
+          <div class="logo-icon" style="width:44px;height:44px;font-size:22px">🔐</div>
+          <span style="font-size:24px;font-weight:800">SafePass <span style="color:var(--brand)">Escrow</span></span>
+        </div>
+        <p style="color:var(--sub);font-size:13px">Bạn cần đăng nhập vào SafePass để sử dụng Open Escrow.</p>
+      </div>
+      <div class="auth-form">
+        <a href="/index.html" class="btn btn-brand" style="width:100%;justify-content:center;margin-bottom:14px">🏠 Về SafePass để đăng nhập</a>
+        <div style="font-size:12px;color:var(--hint);text-align:center">Sau khi đăng nhập, quay lại trang này.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════════
+async function doAccept() {
+  try {
+    await api('POST',`/${activeEscrow.id}/accept`);
+    toast('✅ Đã chấp nhận giao dịch!');
+    await reloadRoom();
+    if(view==='invite') { view='room'; render(); }
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+async function doDecline() {
+  try {
+    await api('POST',`/${activeEscrow.id}/cancel`);
+    toast('Đã từ chối giao dịch.','warn');
+    view='dashboard'; await loadEscrows(); render();
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+async function doFund() {
+  if(!confirm(`Xác nhận nạp ${VND(activeEscrow.amount)} vào Escrow? Tiền sẽ bị khoá cho đến khi giao dịch hoàn thành.`)) return;
+  try {
+    await api('POST',`/${activeEscrow.id}/fund`);
+    toast('💰 Đã nạp tiền thành công! Escrow đang giữ tiền của bạn.');
+    await reloadRoom();
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+function openShipModal() {
+  document.getElementById('ship-modal-inline').style.display='block';
+}
+function closeShipModal() {
+  document.getElementById('ship-modal-inline').style.display='none';
+}
+
+async function doShip() {
+  const tracking = document.getElementById('tracking-input').value.trim();
+  if(!tracking){ toast('Vui lòng nhập thông tin giao hàng','warn'); return; }
+  try {
+    await api('POST',`/${activeEscrow.id}/ship`,{tracking_info:tracking});
+    toast('🚚 Đã xác nhận giao hàng!');
+    await reloadRoom();
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+async function doConfirm() {
+  if(!confirm('Xác nhận đã nhận hàng? Tiền Escrow sẽ được giải ngân cho seller.')) return;
+  try {
+    await api('POST',`/${activeEscrow.id}/confirm`);
+    toast('✅ Hoàn thành! Tiền đã được giải ngân.');
+    await reloadRoom();
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+async function doCancel() {
+  if(!confirm('Xác nhận huỷ giao dịch?')) return;
+  try {
+    await api('POST',`/${activeEscrow.id}/cancel`);
+    toast('Giao dịch đã huỷ.','warn');
+    await reloadRoom();
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+function openDisputeModal() {
+  document.getElementById('dispute-modal').style.display='flex';
+}
+function closeDisputeModal(e) {
+  if(!e||e.target===document.getElementById('dispute-modal'))
+    document.getElementById('dispute-modal').style.display='none';
+}
+
+async function submitDispute() {
+  const reason = document.getElementById('dispute-reason').value.trim();
+  const errEl  = document.getElementById('dispute-err');
+  errEl.textContent='';
+  if(!reason){ errEl.textContent='Vui lòng nhập lý do tranh chấp'; return; }
+  try {
+    await api('POST',`/${activeEscrow.id}/dispute`,{reason});
+    closeDisputeModal();
+    toast('⚠️ Tranh chấp đã mở. Admin sẽ xem xét trong 48h.','warn');
+    await reloadRoom();
+  } catch(e){ errEl.textContent=e.message; }
+}
+
+function copyInvite(tok) {
+  const url = `${location.origin}/escrow.html?invite=${tok}`;
+  navigator.clipboard?.writeText(url);
+  toast('📋 Đã sao chép link invite!');
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function switchTab(t) {
+  activeTab = t; render();
+}
+
+async function openRoom(id) {
+  try {
+    activeEscrow = await api('GET',`/${id}`);
+    messages = await api('GET',`/${id}/messages`);
+    evidence = await api('GET',`/${id}/evidence`);
+    view = 'room';
+    render();
+    scrollMsgs();
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+async function reloadRoom() {
+  if(!activeEscrow) return;
+  activeEscrow = await api('GET',`/${activeEscrow.id}`);
+  messages = await api('GET',`/${activeEscrow.id}/messages`);
+  evidence = await api('GET',`/${activeEscrow.id}/evidence`);
+  await loadEscrows();
+  render();
+  scrollMsgs();
+}
+
+function goBack() {
+  disconnectWs();
+  activeEscrow = null; messages = []; evidence = [];
+  view = 'dashboard'; render();
+}
+
+function scrollMsgs() {
+  setTimeout(()=>{
+    const el = document.getElementById('chat-msgs');
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 100);
+}
+
+// ══════════════════════════════════════════════
+//  WEBSOCKET
+// ══════════════════════════════════════════════
+function connectWs() {
+  if(!activeEscrow||!token) return;
+  disconnectWs();
+  const proto = location.protocol==='https:'?'wss':'ws';
+  const url = `${proto}://${location.host}/ws/escrow?token=${token}&escrowId=${activeEscrow.id}`;
+  ws = new WebSocket(url);
+  ws.onopen  = () => { updateWsStatus('🟢 Đang kết nối'); };
+  ws.onclose = () => { updateWsStatus('⚪ Offline'); ws=null; };
+  ws.onerror = () => { updateWsStatus('🔴 Lỗi kết nối'); };
+  ws.onmessage = (evt) => {
+    try {
+      const d = JSON.parse(evt.data);
+      if(d.type==='message') {
+        messages.push(d.payload);
+        const container = document.getElementById('chat-msgs');
+        if(container) {
+          const bubble = document.createElement('div');
+          bubble.innerHTML = buildMsgBubble(d.payload);
+          container.appendChild(bubble.firstElementChild);
+          container.scrollTop = container.scrollHeight;
+        }
+      } else if(d.type==='status_change') {
+        activeEscrow.status = d.status;
+        reloadRoom();
+      }
+    } catch{}
+  };
+}
+
+function disconnectWs() {
+  if(ws){ ws.close(); ws=null; }
+}
+
+function updateWsStatus(txt) {
+  const el = document.getElementById('ws-status');
+  if(el) el.textContent = txt;
+}
+
+// ══════════════════════════════════════════════
+//  CHAT
+// ══════════════════════════════════════════════
+function chatKeydown(e) {
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
+}
+
+async function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const content = input?.value?.trim();
+  if(!content||!activeEscrow) return;
+  input.value='';
+  try {
+    if(ws && ws.readyState===1) {
+      ws.send(JSON.stringify({type:'message',content}));
+    } else {
+      const msg = await api('POST',`/${activeEscrow.id}/messages`,{content});
+      messages.push(msg);
+      const container = document.getElementById('chat-msgs');
+      if(container){
+        const el = document.createElement('div');
+        el.innerHTML = buildMsgBubble(msg);
+        container.appendChild(el.firstElementChild);
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+async function sendFile() {
+  const file = document.getElementById('chat-file-input').files[0];
+  if(!file||!activeEscrow) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch(`/api/open-escrow/${activeEscrow.id}/messages/file`, {
+      method:'POST',
+      headers:{Authorization:`Bearer ${token}`},
+      body: fd
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error);
+    messages.push(data);
+    const container = document.getElementById('chat-msgs');
+    if(container){
+      const el = document.createElement('div');
+      el.innerHTML = buildMsgBubble(data);
+      container.appendChild(el.firstElementChild);
+      container.scrollTop = container.scrollHeight;
+    }
+    toast('📎 File đã gửi!');
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+async function uploadEvidence() {
+  const file = document.getElementById('evidence-input').files[0];
+  if(!file||!activeEscrow) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch(`/api/open-escrow/${activeEscrow.id}/evidence`, {
+      method:'POST',
+      headers:{Authorization:`Bearer ${token}`},
+      body: fd
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error);
+    evidence.push(data);
+    const grid = document.getElementById('evidence-grid');
+    if(grid){
+      const el = document.createElement('div');
+      el.innerHTML = `<div class="ev-item" onclick="window.open('${data.file_url}','_blank')">${data.file_type==='image'?`<img src="${data.file_url}" style="width:100%;height:100%;object-fit:cover"/>`:data.file_type==='video'?'🎥':'📄'}</div>`;
+      grid.appendChild(el.firstElementChild);
+    }
+    toast('📎 Bằng chứng đã tải lên!');
+  } catch(e){ toast('❌ '+e.message,'err'); }
+}
+
+// ══════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════
+async function loadEscrows() {
+  try {
+    escrows = await api('GET','/my');
+  } catch(e) { escrows=[]; }
+}
+
+function attachListeners() {}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+async function init() {
+  // Check for invite token
+  const params  = new URLSearchParams(location.search);
+  const invite  = params.get('invite');
+
+  if(invite) {
+    if(!token || !currentUser) { renderAuth(); return; }
+    try {
+      const e = await fetch(`/api/open-escrow/invite/${invite}`).then(r=>r.json());
+      if(e.error) throw new Error(e.error);
+      activeEscrow = e;
+      // If already joined, open room
+      if(activeEscrow.seller_id === currentUser.id || activeEscrow.buyer_id === currentUser.id) {
+        messages = await api('GET',`/${activeEscrow.id}/messages`);
+        evidence = await api('GET',`/${activeEscrow.id}/evidence`);
+        view = 'room';
+      } else {
+        view = 'invite';
+      }
+      render();
+      return;
+    } catch(err) {
+      toast('❌ Link không hợp lệ hoặc đã hết hạn','err');
+    }
+  }
+
+  if(!token || !currentUser) { renderAuth(); return; }
+  await loadEscrows();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

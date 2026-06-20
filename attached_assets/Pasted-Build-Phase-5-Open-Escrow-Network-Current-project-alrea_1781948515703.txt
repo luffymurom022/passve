@@ -1,0 +1,169 @@
+Build Phase 5: Open Escrow Network
+
+Current project already has:
+- User authentication
+- Wallet system
+- Escrow transactions
+- Marketplace
+- Dispute system
+- Admin panel
+- Seller verification
+
+Create a completely new feature called:
+
+OPEN ESCROW
+
+Purpose:
+Allow any buyer and seller to create a secure escrow transaction even if the item is not listed on the marketplace.
+
+------------------------------------------------
+
+FEATURES
+
+1. Create Escrow Transaction
+
+Buyer enters:
+
+- Transaction title
+- Description
+- Item category
+- Item value
+- Seller email
+
+System creates an escrow room.
+
+------------------------------------------------
+
+2. Escrow Room
+
+Show:
+
+- Buyer information
+- Seller information
+- Transaction status
+- Timeline
+- Chat panel
+- Evidence upload
+
+Statuses:
+
+Pending
+Funded
+Shipped
+Delivered
+Completed
+Disputed
+Cancelled
+
+------------------------------------------------
+
+3. Secure Chat
+
+Inside escrow room:
+
+- Real-time messages
+- File upload
+- Image upload
+- System messages
+
+Examples:
+
+Buyer funded transaction.
+Seller marked item as shipped.
+Buyer confirmed delivery.
+
+------------------------------------------------
+
+4. Escrow Funding
+
+Buyer can fund escrow.
+
+Money remains locked.
+
+Seller cannot withdraw.
+
+------------------------------------------------
+
+5. Delivery Confirmation
+
+Buyer confirms:
+
+Received
+Not Received
+
+If received:
+Release funds.
+
+------------------------------------------------
+
+6. Dispute System
+
+Both parties can open dispute.
+
+Upload:
+
+- Images
+- Videos
+- Documents
+
+Admin review panel.
+
+------------------------------------------------
+
+7. Escrow Dashboard
+
+User can see:
+
+Active Escrows
+Completed Escrows
+Disputed Escrows
+Cancelled Escrows
+
+------------------------------------------------
+
+8. Trust Score
+
+Each completed escrow increases trust score.
+
+Show:
+
+Completed Deals
+Success Rate
+Dispute Rate
+
+------------------------------------------------
+
+9. Admin Escrow Center
+
+Admin can:
+
+View all escrows
+Freeze escrow
+Force refund
+Release funds
+Resolve disputes
+
+------------------------------------------------
+
+10. UI
+
+Modern fintech style.
+
+Inspired by:
+
+Stripe
+PayPal
+Wise
+
+Use:
+Next.js
+Tailwind
+TypeScript
+
+Mobile responsive.
+
+Dark mode support.
+
+Do not remove existing marketplace.
+
+Add Open Escrow as a new major section in navigation.

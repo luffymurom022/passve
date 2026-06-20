@@ -1168,6 +1168,7 @@ function render(){
     {id:"digital",icon:"💻",label:"Tài Khoản"},
     {id:"service",icon:"💼",label:"Dịch Vụ"},
     {id:"profile",icon:"👤",label:"Hồ sơ"},
+    {id:"open_escrow",icon:"🔐",label:"Open Escrow"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1184,6 +1185,8 @@ function render(){
         const badge=(p.id==="orders"&&state.orderBadge>0)?`<span class="tab-badge">${state.orderBadge}</span>`:"";
         const click=p.id==="orders"
           ?"setState({page:'orders',orderBadge:0,activeOrder:null})"
+          :p.id==="open_escrow"
+          ?"window.location.href='/escrow.html'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

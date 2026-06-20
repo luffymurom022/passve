@@ -363,6 +363,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item" onclick="switchTab('settings')" data-tab="settings">⚙️ Cài đặt</div>
     <div class="mob-nav-item" onclick="switchTab('security')" data-tab="security">🛡️ Bảo Mật</div>
     <div class="mob-nav-item" onclick="switchTab('setup-guide')" data-tab="setup-guide">🚀 Setup</div>
+    <div class="mob-nav-item" onclick="switchTab('oe-admin')" data-tab="oe-admin">🔐 Escrow</div>
   </div>
 
   <div class="layout">
@@ -394,6 +395,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="nav-item" onclick="switchTab('settings')" data-tab="settings"><span class="nav-icon">⚙️</span> Cài đặt</div>
       <div class="nav-item" onclick="switchTab('security')" data-tab="security"><span class="nav-icon">🛡️</span> Bảo Mật <span class="nav-badge" id="security-badge" style="display:none">!</span></div>
       <div class="nav-item" onclick="switchTab('setup-guide')" data-tab="setup-guide"><span class="nav-icon">🚀</span> Setup Guide <span class="nav-badge" id="setup-badge" style="display:none">!</span></div>
+      <div class="nav-item" onclick="switchTab('oe-admin')" data-tab="oe-admin"><span class="nav-icon">🔐</span> Open Escrow <span class="nav-badge" id="oe-badge" style="display:none">!</span></div>
     </nav>
 
     <!-- MAIN -->
@@ -934,6 +936,90 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 </div>
 
+<!-- ════ PAGE: OPEN ESCROW ADMIN CENTER ════ -->
+<div class="page" id="page-oe-admin">
+  <div class="page-title">🔐 Open Escrow — Admin Center</div>
+
+  <!-- KPI ROW -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px" id="oe-kpi-row">
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand)" id="oe-k-total">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Tổng giao dịch</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--warn)" id="oe-k-active">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Đang diễn ra</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--red)" id="oe-k-disputed">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Tranh chấp</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--ok)" id="oe-k-completed">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Hoàn thành</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--ok)" id="oe-k-volume">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Doanh thu</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--purple)" id="oe-k-locked">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Đang khoá</div></div>
+  </div>
+
+  <!-- FILTER + TABLE -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head" style="margin-bottom:14px">
+      <div><div class="card-title">📋 Danh sách Open Escrow</div><div class="card-sub" id="oe-list-count">Đang tải…</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="oe-filter-status" onchange="loadOeAdmin()" style="background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:7px 12px;border-radius:8px;font-size:12px;font-family:inherit">
+          <option value="">Tất cả trạng thái</option>
+          <option value="pending">⏳ Pending</option>
+          <option value="funded">💰 Funded</option>
+          <option value="shipped">🚚 Shipped</option>
+          <option value="delivered">📦 Delivered</option>
+          <option value="completed">✅ Completed</option>
+          <option value="disputed">⚠️ Disputed</option>
+          <option value="cancelled">❌ Cancelled</option>
+          <option value="frozen">🔒 Frozen</option>
+        </select>
+        <input id="oe-search" placeholder="🔍 Tìm theo tiêu đề / email…" onkeydown="if(event.key==='Enter')loadOeAdmin()"
+          style="background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:7px 12px;border-radius:8px;font-size:12px;font-family:inherit;width:240px"/>
+        <button class="btn btn-sm" onclick="loadOeAdmin()">Tìm</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:8px;color:var(--hint);font-weight:600;white-space:nowrap">ID</th>
+            <th style="text-align:left;padding:8px;color:var(--hint);font-weight:600">Tiêu đề</th>
+            <th style="text-align:left;padding:8px;color:var(--hint);font-weight:600">Seller</th>
+            <th style="text-align:right;padding:8px;color:var(--hint);font-weight:600">Giá trị</th>
+            <th style="text-align:left;padding:8px;color:var(--hint);font-weight:600">Trạng thái</th>
+            <th style="text-align:left;padding:8px;color:var(--hint);font-weight:600">Ngày tạo</th>
+            <th style="text-align:center;padding:8px;color:var(--hint);font-weight:600">Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="oe-table-body">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--hint)">Đang tải…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- OE ACTION MODAL -->
+<div class="modal-overlay" id="oe-action-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title" id="oe-modal-title">🔐 Hành động Admin</div>
+      <button class="modal-close" onclick="document.getElementById('oe-action-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="oe-modal-info" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px;font-size:12px;color:var(--sub)"></div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:7px">Hành động</label>
+        <select id="oe-modal-action" style="width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:11px 14px;border-radius:10px;font-size:13px;font-family:inherit">
+          <option value="freeze">🔒 Đóng băng giao dịch</option>
+          <option value="release">✅ Giải ngân cho Seller</option>
+          <option value="refund">🔄 Hoàn tiền cho Buyer</option>
+          <option value="resolve">⚖️ Giải quyết tranh chấp</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:7px">Ghi chú Admin</label>
+        <textarea id="oe-modal-notes" style="width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:11px 14px;border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:80px" placeholder="Lý do / ghi chú…"></textarea>
+      </div>
+      <div id="oe-modal-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px"></div>
+      <button class="btn btn-brand" style="width:100%" onclick="submitOeAction()">✅ Thực hiện hành động</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════ PAGE: SETUP GUIDE ════ -->
 <div class="page" id="page-setup-guide">
   <div class="page-title">🚀 Setup Guide — Hướng Dẫn Cài Đặt</div>
@@ -1316,6 +1402,7 @@ function switchTab(tab) {
     case 'settings': loadAdminList(); break;
     case 'security': loadSecurity(); break;
     case 'setup-guide': loadSetupGuide(); break;
+    case 'oe-admin': loadOeAdmin(); break;
   }
 }
 
@@ -2720,6 +2807,120 @@ function renderSecEvents() {
 
 async function secClearBans() {
   toast('Chức năng xóa ban chỉ tự xóa sau 30 phút theo cơ chế tự động.', 'warn');
+}
+
+// ══════════════════════════════════════════════════
+//  🔐 OPEN ESCROW ADMIN CENTER
+// ══════════════════════════════════════════════════
+let oeCurrentId = null;
+
+const OE_STATUS_LABEL = {
+  pending:'⏳ Pending', funded:'💰 Funded', shipped:'🚚 Shipped',
+  delivered:'📦 Delivered', completed:'✅ Completed', disputed:'⚠️ Disputed',
+  cancelled:'❌ Cancelled', frozen:'🔒 Frozen'
+};
+const OE_STATUS_COLOR = {
+  pending:'var(--warn)', funded:'var(--brand)', shipped:'var(--cyan)',
+  delivered:'var(--purple)', completed:'var(--ok)', disputed:'var(--red)',
+  cancelled:'var(--hint)', frozen:'var(--cyan)'
+};
+
+async function loadOeAdmin() {
+  const status = document.getElementById('oe-filter-status')?.value || '';
+  const search = document.getElementById('oe-search')?.value.trim() || '';
+  const tbody  = document.getElementById('oe-table-body');
+  if(tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--hint)">Đang tải…</td></tr>';
+
+  try {
+    const params = new URLSearchParams();
+    if(status) params.set('status', status);
+    if(search) params.set('search', search);
+    const [list, stats] = await Promise.all([
+      api('GET', `/admin/open-escrows?${params}`),
+      api('GET', '/admin/open-escrows/stats')
+    ]);
+
+    // KPIs
+    const activeCount = (list||[]).filter(e=>['pending','funded','shipped','delivered'].includes(e.status)).length;
+    const dispCount   = (list||[]).filter(e=>e.status==='disputed').length;
+    const doneCount   = (list||[]).filter(e=>e.status==='completed').length;
+    setText('oe-k-total',     stats.total||0);
+    setText('oe-k-active',    activeCount);
+    setText('oe-k-disputed',  dispCount);
+    setText('oe-k-completed', doneCount);
+    setText('oe-k-volume',    fmtVND(stats.totalVolume||0));
+    setText('oe-k-locked',    fmtVND(stats.activeVolume||0));
+    setText('oe-list-count',  `${(list||[]).length} giao dịch`);
+
+    if(dispCount>0) {
+      document.getElementById('oe-badge').style.display='flex';
+      document.getElementById('oe-badge').textContent=dispCount;
+    }
+
+    if(!tbody) return;
+    if(!list||list.length===0) {
+      tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--hint)">Không có dữ liệu</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(e => {
+      const sc = OE_STATUS_COLOR[e.status]||'var(--sub)';
+      return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="openOeModal('${e.id}','${(e.title||'').replace(/'/g,"\\'")}',${e.amount||0},'${e.status}','${e.seller_email||''}')">
+        <td style="padding:10px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--hint)">${e.id.slice(0,8).toUpperCase()}</td>
+        <td style="padding:10px 8px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||'—'}</td>
+        <td style="padding:10px 8px;color:var(--sub);font-size:11px">${e.seller_email||'—'}</td>
+        <td style="padding:10px 8px;text-align:right;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px">${fmtVND(e.amount||0)}</td>
+        <td style="padding:10px 8px"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;color:${sc};background:${sc}18;border:1px solid ${sc}33">${OE_STATUS_LABEL[e.status]||e.status}</span></td>
+        <td style="padding:10px 8px;font-size:11px;color:var(--hint)">${new Date(e.created_at).toLocaleDateString('vi-VN')}</td>
+        <td style="padding:10px 8px;text-align:center">
+          <button class="btn btn-sm btn-warn" onclick="event.stopPropagation();openOeModal('${e.id}','${(e.title||'').replace(/'/g,"\\'")}',${e.amount||0},'${e.status}','${e.seller_email||'}')">⚡ Xử lý</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(err) {
+    if(tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--red)">${err.message}</td></tr>`;
+  }
+}
+
+function fmtVND(n) {
+  if(n>=1000000000) return (n/1000000000).toFixed(1)+'B';
+  if(n>=1000000)    return (n/1000000).toFixed(1)+'M';
+  return new Intl.NumberFormat('vi-VN').format(n)+'đ';
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if(el) el.textContent = val;
+}
+
+function openOeModal(id, title, amount, status, sellerEmail) {
+  oeCurrentId = id;
+  document.getElementById('oe-action-modal').style.display = 'flex';
+  document.getElementById('oe-modal-title').textContent = `🔐 Xử lý: ${title}`;
+  document.getElementById('oe-modal-notes').value = '';
+  document.getElementById('oe-modal-err').textContent = '';
+  document.getElementById('oe-modal-info').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;justify-content:space-between"><span>ID</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${id.slice(0,8).toUpperCase()}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Seller</span><span>${sellerEmail}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Giá trị</span><strong style="color:var(--ok)">${fmtVND(amount)}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Trạng thái</span><span style="color:${OE_STATUS_COLOR[status]||'var(--sub)'}">${OE_STATUS_LABEL[status]||status}</span></div>
+    </div>`;
+}
+
+async function submitOeAction() {
+  const action = document.getElementById('oe-modal-action').value;
+  const notes  = document.getElementById('oe-modal-notes').value.trim();
+  const errEl  = document.getElementById('oe-modal-err');
+  errEl.textContent = '';
+  if(!oeCurrentId) return;
+  try {
+    await api('POST', `/admin/open-escrows/${oeCurrentId}/action`, { action, notes });
+    document.getElementById('oe-action-modal').style.display = 'none';
+    toast(`✅ Hành động "${action}" thực hiện thành công!`, 'ok');
+    loadOeAdmin();
+  } catch(e) {
+    errEl.textContent = '❌ ' + e.message;
+  }
 }
 
 // ══════════════════════════════════════════════════

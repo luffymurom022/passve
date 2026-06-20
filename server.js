@@ -4271,6 +4271,476 @@ async function migratePhoneNumbers() {
   } catch(e) { console.error('[PhoneMigrate] Lỗi:', e.message); }
 }
 
+// ════════════════════════════════════════════════════════════════
+//  🔐 OPEN ESCROW NETWORK — Complete API
+// ════════════════════════════════════════════════════════════════
+
+const oeStorage = multer.memoryStorage();
+const oeUpload  = multer({ storage: oeStorage, limits: { fileSize: 20 * 1024 * 1024 } });
+
+// Helper: send system message inside an escrow room
+async function oeSystemMsg(escrowId, content) {
+  await supabase.from('open_escrow_messages').insert({ escrow_id: escrowId, type: 'system', content });
+  oeWsBroadcast(escrowId, { type: 'message', payload: { escrow_id: escrowId, type: 'system', content, created_at: new Date().toISOString() } });
+}
+
+// Helper: get participant names & trust scores joined to escrow
+async function oeGetFull(id) {
+  const { data: e, error } = await supabase.from('open_escrows').select('*').eq('id', id).single();
+  if(error||!e) return null;
+  if(e.buyer_id) {
+    const { data: bu } = await supabase.from('users').select('name,phone').eq('id', e.buyer_id).single();
+    e.buyer_name  = bu?.name || bu?.phone || 'Buyer';
+    const { count: bc } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).eq('buyer_id',e.buyer_id).eq('status','completed');
+    const { count: bt } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).or(`buyer_id.eq.${e.buyer_id},seller_id.eq.${e.buyer_id}`).in('status',['completed','disputed','cancelled']);
+    e.buyer_trust = bt>0 ? Math.round((bc/bt)*100) : null;
+  }
+  if(e.seller_id) {
+    const { data: su } = await supabase.from('users').select('name,phone').eq('id', e.seller_id).single();
+    e.seller_name  = su?.name || su?.phone || e.seller_email;
+    const { count: sc } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).eq('seller_id',e.seller_id).eq('status','completed');
+    const { count: st } = await supabase.from('open_escrows').select('*',{count:'exact',head:true}).or(`buyer_id.eq.${e.seller_id},seller_id.eq.${e.seller_id}`).in('status',['completed','disputed','cancelled']);
+    e.seller_trust = st>0 ? Math.round((sc/st)*100) : null;
+  }
+  return e;
+}
+
+// ── WebSocket rooms for open escrow ──
+const oeRooms = new Map(); // escrowId => Set<ws>
+function oeWsJoin(escrowId, socket) {
+  if(!oeRooms.has(escrowId)) oeRooms.set(escrowId, new Set());
+  oeRooms.get(escrowId).add(socket);
+}
+function oeWsLeave(escrowId, socket) {
+  oeRooms.get(escrowId)?.delete(socket);
+}
+function oeWsBroadcast(escrowId, payload, exceptSocket) {
+  const room = oeRooms.get(escrowId);
+  if(!room) return;
+  const msg = JSON.stringify(payload);
+  room.forEach(s => { if(s !== exceptSocket && s.readyState === 1) s.send(msg); });
+}
+
+// ── CREATE escrow ──
+app.post('/api/open-escrow', auth, async (req, res) => {
+  const { title, description, category, amount, seller_email } = req.body;
+  if(!title||!seller_email||!amount||amount<10000)
+    return res.status(400).json({ error: 'Thiếu thông tin hoặc số tiền tối thiểu 10.000đ' });
+
+  const { data: e, error } = await supabase.from('open_escrows').insert({
+    title, description: description||'', category: category||'other',
+    amount: parseInt(amount), buyer_id: req.user.id,
+    seller_email: seller_email.toLowerCase(), status: 'pending'
+  }).select().single();
+  if(error) return res.status(500).json({ error: error.message });
+
+  // Send invite email if Resend configured
+  if(resend) {
+    const inviteUrl = `${process.env.APP_URL||'https://'+process.env.REPLIT_DEV_DOMAIN||'http://localhost:5000'}/escrow.html?invite=${e.invite_token}`;
+    resend.emails.send({
+      from: 'SafePass <noreply@safepass.vn>',
+      to: seller_email,
+      subject: `[SafePass] Bạn được mời làm Seller — ${title}`,
+      html: `<h2>Bạn được mời tham gia giao dịch Escrow an toàn</h2>
+        <p><strong>Tiêu đề:</strong> ${title}</p>
+        <p><strong>Giá trị:</strong> ${new Intl.NumberFormat('vi-VN').format(amount)}đ</p>
+        <p><strong>Mô tả:</strong> ${description||'—'}</p>
+        <p>Nhấn nút bên dưới để xem và chấp nhận giao dịch:</p>
+        <a href="${inviteUrl}" style="display:inline-block;background:#3d8ef8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Xem giao dịch →</a>
+        <p style="color:#888;font-size:12px;margin-top:20px">SafePass — Marketplace Escrow An Toàn</p>`
+    }).catch(()=>{});
+  }
+  res.json(e);
+});
+
+// ── GET my escrows ──
+app.get('/api/open-escrow/my', auth, async (req, res) => {
+  const { data, error } = await supabase.from('open_escrows')
+    .select('*').or(`buyer_id.eq.${req.user.id},seller_id.eq.${req.user.id}`)
+    .order('created_at', { ascending: false });
+  if(error) return res.status(500).json({ error: error.message });
+
+  // Attach names
+  const enriched = await Promise.all((data||[]).map(async e => {
+    if(e.buyer_id) {
+      const { data: u } = await supabase.from('users').select('name,phone').eq('id',e.buyer_id).single();
+      e.buyer_name = u?.name||u?.phone||'Buyer';
+    }
+    if(e.seller_id) {
+      const { data: u } = await supabase.from('users').select('name,phone').eq('id',e.seller_id).single();
+      e.seller_name = u?.name||u?.phone||e.seller_email;
+    }
+    return e;
+  }));
+  res.json(enriched);
+});
+
+// ── GET escrow by invite token (public, no auth — for invite page render) ──
+app.get('/api/open-escrow/invite/:token', async (req, res) => {
+  const { data: e, error } = await supabase.from('open_escrows').select('*').eq('invite_token', req.params.token).single();
+  if(error||!e) return res.status(404).json({ error: 'Link không hợp lệ hoặc đã hết hạn' });
+  const full = await oeGetFull(e.id);
+  res.json(full);
+});
+
+// ── GET single escrow (must be participant) ──
+app.get('/api/open-escrow/:id', auth, async (req, res) => {
+  const e = await oeGetFull(req.params.id);
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+  if(e.buyer_id !== req.user.id && e.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Bạn không có quyền xem giao dịch này' });
+  res.json(e);
+});
+
+// ── SELLER ACCEPTS ──
+app.post('/api/open-escrow/:id/accept', auth, async (req, res) => {
+  const { data: e } = await supabase.from('open_escrows').select('*').eq('id',req.params.id).single();
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+  if(e.status !== 'pending') return res.status(400).json({ error: 'Giao dịch không ở trạng thái chờ' });
+  if(e.buyer_id === req.user.id) return res.status(400).json({ error: 'Buyer không thể tự chấp nhận' });
+
+  // Check seller email matches
+  const { data: u } = await supabase.from('users').select('email,phone').eq('id',req.user.id).single();
+  if(u?.email && u.email.toLowerCase() !== e.seller_email.toLowerCase() && u?.phone !== e.seller_email)
+    return res.status(403).json({ error: 'Email/SĐT của bạn không khớp với thư mời' });
+
+  await supabase.from('open_escrows').update({ seller_id: req.user.id, updated_at: new Date() }).eq('id',req.params.id);
+  await oeSystemMsg(req.params.id, 'Seller đã chấp nhận giao dịch. Đang chờ Buyer nạp tiền vào Escrow.');
+  oeWsBroadcast(req.params.id, { type: 'status_change', status: 'pending' });
+  const updated = await oeGetFull(req.params.id);
+  res.json(updated);
+});
+
+// ── BUYER FUNDS ESCROW ──
+app.post('/api/open-escrow/:id/fund', auth, async (req, res) => {
+  const { data: e } = await supabase.from('open_escrows').select('*').eq('id',req.params.id).single();
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+  if(e.buyer_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Buyer mới có thể nạp tiền' });
+  if(e.status !== 'pending' || !e.seller_id)
+    return res.status(400).json({ error: 'Giao dịch chưa sẵn sàng hoặc seller chưa xác nhận' });
+
+  // Deduct from buyer wallet
+  const { data: buyer } = await supabase.from('users').select('balance,escrow').eq('id',req.user.id).single();
+  if(!buyer || buyer.balance < e.amount)
+    return res.status(400).json({ error: `Số dư không đủ. Cần ${e.amount.toLocaleString()}đ, bạn có ${(buyer?.balance||0).toLocaleString()}đ` });
+
+  await supabase.from('users').update({
+    balance: buyer.balance - e.amount,
+    escrow:  (buyer.escrow||0) + e.amount
+  }).eq('id', req.user.id);
+
+  await supabase.from('open_escrows').update({ status:'funded', funded_at: new Date(), updated_at: new Date() }).eq('id',req.params.id);
+  await supabase.from('transactions').insert({ user_id: req.user.id, type:'escrow_lock', amount: -e.amount, description: `Escrow: ${e.title}`, ref_id: e.id });
+  await oeSystemMsg(req.params.id, `Buyer đã nạp ${e.amount.toLocaleString()}đ vào Escrow. Tiền được khoá an toàn. Seller có thể bắt đầu giao hàng.`);
+  oeWsBroadcast(req.params.id, { type: 'status_change', status: 'funded' });
+  res.json({ ok: true });
+});
+
+// ── SELLER SHIPS ──
+app.post('/api/open-escrow/:id/ship', auth, async (req, res) => {
+  const { tracking_info } = req.body;
+  const { data: e } = await supabase.from('open_escrows').select('*').eq('id',req.params.id).single();
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+  if(e.seller_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Seller mới có thể xác nhận giao hàng' });
+  if(e.status !== 'funded') return res.status(400).json({ error: 'Escrow chưa được nạp tiền' });
+
+  await supabase.from('open_escrows').update({
+    status:'shipped', shipped_at: new Date(), tracking_info, updated_at: new Date()
+  }).eq('id',req.params.id);
+  await oeSystemMsg(req.params.id, `Seller đã xác nhận giao hàng. ${tracking_info?'Thông tin: '+tracking_info:''} Đang chờ Buyer xác nhận đã nhận.`);
+  oeWsBroadcast(req.params.id, { type: 'status_change', status: 'shipped' });
+  res.json({ ok: true });
+});
+
+// ── BUYER CONFIRMS DELIVERY → RELEASE FUNDS ──
+app.post('/api/open-escrow/:id/confirm', auth, async (req, res) => {
+  const { data: e } = await supabase.from('open_escrows').select('*').eq('id',req.params.id).single();
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+  if(e.buyer_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Buyer mới có thể xác nhận' });
+  if(!['shipped','delivered'].includes(e.status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+
+  const fee = Math.round(e.amount * 0.01); // 1% platform fee
+  const sellerReceives = e.amount - fee;
+
+  // Release from buyer escrow, pay seller
+  const { data: buyer } = await supabase.from('users').select('escrow').eq('id',e.buyer_id).single();
+  const { data: seller } = await supabase.from('users').select('balance').eq('id',e.seller_id).single();
+
+  await supabase.from('users').update({ escrow: Math.max(0,(buyer?.escrow||0)-e.amount) }).eq('id',e.buyer_id);
+  await supabase.from('users').update({ balance: (seller?.balance||0)+sellerReceives }).eq('id',e.seller_id);
+
+  await supabase.from('open_escrows').update({
+    status:'completed', delivered_at: new Date(), completed_at: new Date(), updated_at: new Date()
+  }).eq('id',req.params.id);
+
+  await supabase.from('transactions').insert([
+    { user_id: e.buyer_id,  type:'escrow_release', amount: -e.amount, description: `Giải ngân Escrow: ${e.title}`, ref_id: e.id },
+    { user_id: e.seller_id, type:'escrow_release', amount: sellerReceives, description: `Nhận tiền Escrow: ${e.title}`, ref_id: e.id }
+  ]);
+  await oeSystemMsg(req.params.id, `✅ Buyer đã xác nhận nhận hàng! Escrow hoàn thành. Seller nhận được ${sellerReceives.toLocaleString()}đ (phí 1% = ${fee.toLocaleString()}đ).`);
+  oeWsBroadcast(req.params.id, { type: 'status_change', status: 'completed' });
+  res.json({ ok: true });
+});
+
+// ── DISPUTE ──
+app.post('/api/open-escrow/:id/dispute', auth, async (req, res) => {
+  const { reason } = req.body;
+  const { data: e } = await supabase.from('open_escrows').select('*').eq('id',req.params.id).single();
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+  if(e.buyer_id !== req.user.id && e.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Bạn không tham gia giao dịch này' });
+  if(!['funded','shipped','delivered'].includes(e.status))
+    return res.status(400).json({ error: 'Không thể mở tranh chấp ở trạng thái này' });
+  if(!reason) return res.status(400).json({ error: 'Vui lòng nhập lý do tranh chấp' });
+
+  await supabase.from('open_escrows').update({
+    status:'disputed', disputed_at: new Date(), dispute_reason: reason,
+    dispute_by: req.user.id, updated_at: new Date()
+  }).eq('id',req.params.id);
+  const { data: u } = await supabase.from('users').select('name,phone').eq('id',req.user.id).single();
+  await oeSystemMsg(req.params.id, `⚠️ ${u?.name||u?.phone||'Người dùng'} đã mở tranh chấp: "${reason}". Admin sẽ xem xét trong 48h. Tiền Escrow bị đóng băng.`);
+  oeWsBroadcast(req.params.id, { type: 'status_change', status: 'disputed' });
+  res.json({ ok: true });
+});
+
+// ── CANCEL ──
+app.post('/api/open-escrow/:id/cancel', auth, async (req, res) => {
+  const { data: e } = await supabase.from('open_escrows').select('*').eq('id',req.params.id).single();
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+  if(e.buyer_id !== req.user.id && e.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Không có quyền' });
+  if(['completed','disputed','frozen'].includes(e.status))
+    return res.status(400).json({ error: 'Không thể huỷ ở trạng thái này' });
+
+  // Refund if funded
+  if(e.status==='funded' && e.buyer_id) {
+    const { data: buyer } = await supabase.from('users').select('balance,escrow').eq('id',e.buyer_id).single();
+    await supabase.from('users').update({
+      balance: (buyer?.balance||0)+e.amount,
+      escrow:  Math.max(0,(buyer?.escrow||0)-e.amount)
+    }).eq('id',e.buyer_id);
+    await supabase.from('transactions').insert({ user_id: e.buyer_id, type:'refund', amount: e.amount, description: `Hoàn tiền Escrow: ${e.title}`, ref_id: e.id });
+  }
+  await supabase.from('open_escrows').update({ status:'cancelled', cancelled_at: new Date(), updated_at: new Date() }).eq('id',req.params.id);
+  await oeSystemMsg(req.params.id, 'Giao dịch đã bị huỷ. Tiền đã được hoàn lại cho Buyer (nếu có).');
+  oeWsBroadcast(req.params.id, { type: 'status_change', status: 'cancelled' });
+  res.json({ ok: true });
+});
+
+// ── GET MESSAGES ──
+app.get('/api/open-escrow/:id/messages', auth, async (req, res) => {
+  const { data: e } = await supabase.from('open_escrows').select('buyer_id,seller_id').eq('id',req.params.id).single();
+  if(!e || (e.buyer_id !== req.user.id && e.seller_id !== req.user.id))
+    return res.status(403).json({ error: 'Không có quyền' });
+  const { data } = await supabase.from('open_escrow_messages').select('*').eq('escrow_id',req.params.id).order('created_at');
+  // Attach sender names
+  const enriched = await Promise.all((data||[]).map(async m => {
+    if(m.user_id && m.type!=='system') {
+      const { data: u } = await supabase.from('users').select('name,phone').eq('id',m.user_id).single();
+      m.sender_name = u?.name||u?.phone||'Người dùng';
+    }
+    return m;
+  }));
+  res.json(enriched);
+});
+
+// ── SEND MESSAGE ──
+app.post('/api/open-escrow/:id/messages', auth, async (req, res) => {
+  const { content } = req.body;
+  if(!content?.trim()) return res.status(400).json({ error: 'Nội dung trống' });
+  const { data: e } = await supabase.from('open_escrows').select('buyer_id,seller_id').eq('id',req.params.id).single();
+  if(!e || (e.buyer_id !== req.user.id && e.seller_id !== req.user.id))
+    return res.status(403).json({ error: 'Không có quyền' });
+  const { data: u } = await supabase.from('users').select('name,phone').eq('id',req.user.id).single();
+  const { data: msg } = await supabase.from('open_escrow_messages').insert({
+    escrow_id: req.params.id, user_id: req.user.id, content: content.trim(), type:'user'
+  }).select().single();
+  if(msg) { msg.sender_name = u?.name||u?.phone||'Người dùng'; }
+  oeWsBroadcast(req.params.id, { type:'message', payload: msg });
+  res.json(msg);
+});
+
+// ── SEND FILE MESSAGE (multer) ──
+app.post('/api/open-escrow/:id/messages/file', auth, oeUpload.single('file'), async (req, res) => {
+  if(!req.file) return res.status(400).json({ error: 'Không có file' });
+  const { data: e } = await supabase.from('open_escrows').select('buyer_id,seller_id').eq('id',req.params.id).single();
+  if(!e || (e.buyer_id !== req.user.id && e.seller_id !== req.user.id))
+    return res.status(403).json({ error: 'Không có quyền' });
+
+  const isImg = req.file.mimetype.startsWith('image/');
+  const ext   = req.file.originalname.split('.').pop();
+  const path  = `escrow/${req.params.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data: upload, error: upErr } = await supabase.storage.from('chat-images').upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+  if(upErr) return res.status(500).json({ error: upErr.message });
+  const { data: { publicUrl } } = supabase.storage.from('chat-images').getPublicUrl(path);
+
+  const { data: u } = await supabase.from('users').select('name,phone').eq('id',req.user.id).single();
+  const { data: msg } = await supabase.from('open_escrow_messages').insert({
+    escrow_id: req.params.id, user_id: req.user.id,
+    type: isImg?'image':'file', file_url: publicUrl, file_name: req.file.originalname, content: req.file.originalname
+  }).select().single();
+  if(msg) msg.sender_name = u?.name||u?.phone||'Người dùng';
+  oeWsBroadcast(req.params.id, { type:'message', payload: msg });
+  res.json(msg);
+});
+
+// ── GET EVIDENCE ──
+app.get('/api/open-escrow/:id/evidence', auth, async (req, res) => {
+  const { data: e } = await supabase.from('open_escrows').select('buyer_id,seller_id').eq('id',req.params.id).single();
+  if(!e || (e.buyer_id !== req.user.id && e.seller_id !== req.user.id))
+    return res.status(403).json({ error: 'Không có quyền' });
+  const { data } = await supabase.from('open_escrow_evidence').select('*').eq('escrow_id',req.params.id).order('created_at');
+  res.json(data||[]);
+});
+
+// ── UPLOAD EVIDENCE ──
+app.post('/api/open-escrow/:id/evidence', auth, oeUpload.single('file'), async (req, res) => {
+  if(!req.file) return res.status(400).json({ error: 'Không có file' });
+  const { data: e } = await supabase.from('open_escrows').select('buyer_id,seller_id').eq('id',req.params.id).single();
+  if(!e || (e.buyer_id !== req.user.id && e.seller_id !== req.user.id))
+    return res.status(403).json({ error: 'Không có quyền' });
+
+  const isImg  = req.file.mimetype.startsWith('image/');
+  const isVid  = req.file.mimetype.startsWith('video/');
+  const isPdf  = req.file.mimetype === 'application/pdf';
+  const ftype  = isImg?'image':isVid?'video':isPdf?'pdf':'file';
+  const ext    = req.file.originalname.split('.').pop();
+  const path   = `evidence/${req.params.id}/${Date.now()}.${ext}`;
+
+  const bucket = isImg?'ticket-images':'kyc-documents';
+  const { error: upErr } = await supabase.storage.from(bucket).upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+  if(upErr) return res.status(500).json({ error: upErr.message });
+  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
+
+  const { data: ev } = await supabase.from('open_escrow_evidence').insert({
+    escrow_id: req.params.id, user_id: req.user.id, file_url: publicUrl, file_type: ftype, description: req.body.description||''
+  }).select().single();
+
+  await oeSystemMsg(req.params.id, `📎 Bằng chứng mới được tải lên bởi ${req.user.id===e.buyer_id?'Buyer':'Seller'}.`);
+  res.json(ev);
+});
+
+// ── TRUST SCORE ──
+app.get('/api/open-escrow/trust/:userId', async (req, res) => {
+  const uid = req.params.userId;
+  const { count: total } = await supabase.from('open_escrows').select('*',{count:'exact',head:true})
+    .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`);
+  const { count: done  } = await supabase.from('open_escrows').select('*',{count:'exact',head:true})
+    .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).eq('status','completed');
+  const { count: disp  } = await supabase.from('open_escrows').select('*',{count:'exact',head:true})
+    .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`).eq('status','disputed');
+  res.json({
+    total: total||0, completed: done||0, disputed: disp||0,
+    success_rate: total>0 ? Math.round(((done||0)/(total||1))*100) : null,
+    dispute_rate: total>0 ? Math.round(((disp||0)/(total||1))*100) : null
+  });
+});
+
+// ── ADMIN: LIST ALL ──
+app.get('/api/admin/open-escrows', adminAuth, async (req, res) => {
+  const { status, search } = req.query;
+  let q = supabase.from('open_escrows').select('*').order('created_at',{ascending:false}).limit(200);
+  if(status) q = q.eq('status',status);
+  if(search) q = q.or(`title.ilike.%${search}%,seller_email.ilike.%${search}%`);
+  const { data, error } = await q;
+  if(error) return res.status(500).json({ error: error.message });
+  res.json(data||[]);
+});
+
+// ── ADMIN: STATS ──
+app.get('/api/admin/open-escrows/stats', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('open_escrows').select('status,amount');
+  const rows = data||[];
+  const byStatus = {};
+  let totalVolume=0, activeVolume=0;
+  rows.forEach(r=>{
+    byStatus[r.status]=(byStatus[r.status]||0)+1;
+    if(r.status==='completed') totalVolume+=(r.amount||0);
+    if(['funded','shipped','delivered'].includes(r.status)) activeVolume+=(r.amount||0);
+  });
+  res.json({ total: rows.length, byStatus, totalVolume, activeVolume });
+});
+
+// ── ADMIN: ACTION (freeze / release / refund / resolve) ──
+app.post('/api/admin/open-escrows/:id/action', adminAuth, async (req, res) => {
+  const { action, notes } = req.body;
+  const { data: e } = await supabase.from('open_escrows').select('*').eq('id',req.params.id).single();
+  if(!e) return res.status(404).json({ error: 'Không tìm thấy' });
+
+  let update = { admin_notes: notes||'', admin_action_by: req.admin?.email||'admin', updated_at: new Date() };
+  let sysMsg = '';
+
+  if(action==='freeze') {
+    update.status = 'frozen';
+    sysMsg = `🔒 Admin đã đóng băng giao dịch. ${notes||''}`;
+  } else if(action==='release') {
+    // Release funds to seller
+    if(!e.seller_id) return res.status(400).json({ error: 'Chưa có seller' });
+    const fee = Math.round(e.amount * 0.01);
+    const sellerReceives = e.amount - fee;
+    const { data: buyer  } = await supabase.from('users').select('escrow').eq('id',e.buyer_id).single();
+    const { data: seller } = await supabase.from('users').select('balance').eq('id',e.seller_id).single();
+    await supabase.from('users').update({ escrow: Math.max(0,(buyer?.escrow||0)-e.amount) }).eq('id',e.buyer_id);
+    await supabase.from('users').update({ balance: (seller?.balance||0)+sellerReceives }).eq('id',e.seller_id);
+    await supabase.from('transactions').insert({ user_id: e.seller_id, type:'escrow_release', amount: sellerReceives, description:`Admin giải ngân: ${e.title}`, ref_id: e.id });
+    update.status = 'completed'; update.completed_at = new Date();
+    sysMsg = `✅ Admin đã giải ngân ${sellerReceives.toLocaleString()}đ cho Seller. ${notes||''}`;
+  } else if(action==='refund') {
+    // Full refund to buyer
+    const { data: buyer } = await supabase.from('users').select('balance,escrow').eq('id',e.buyer_id).single();
+    await supabase.from('users').update({
+      balance: (buyer?.balance||0)+e.amount, escrow: Math.max(0,(buyer?.escrow||0)-e.amount)
+    }).eq('id',e.buyer_id);
+    await supabase.from('transactions').insert({ user_id: e.buyer_id, type:'refund', amount: e.amount, description:`Admin hoàn tiền: ${e.title}`, ref_id: e.id });
+    update.status = 'cancelled'; update.cancelled_at = new Date();
+    sysMsg = `🔄 Admin đã hoàn toàn bộ ${e.amount.toLocaleString()}đ cho Buyer. ${notes||''}`;
+  } else if(action==='resolve') {
+    update.status = 'completed';
+    sysMsg = `⚖️ Admin đã giải quyết tranh chấp. ${notes||''}`;
+  } else {
+    return res.status(400).json({ error: 'Hành động không hợp lệ' });
+  }
+
+  await supabase.from('open_escrows').update(update).eq('id',req.params.id);
+  if(sysMsg) await oeSystemMsg(req.params.id, sysMsg);
+  oeWsBroadcast(req.params.id, { type:'status_change', status: update.status });
+  res.json({ ok: true });
+});
+
+// ── EXTEND WEBSOCKET HANDLER FOR ESCROW ──
+// (Added to existing httpServer.on('upgrade') below via wss2)
+const wss2 = new WebSocketServer({ noServer: true });
+
+wss2.on('connection', async (socket, req) => {
+  const user = req._wsUser;
+  const url  = new URL(req.url, 'http://localhost');
+  const escrowId = url.searchParams.get('escrowId');
+  if(!escrowId) { socket.close(); return; }
+
+  // Verify participant
+  const { data: e } = await supabase.from('open_escrows').select('buyer_id,seller_id').eq('id',escrowId).single();
+  if(!e || (e.buyer_id !== user.id && e.seller_id !== user.id)) { socket.close(); return; }
+
+  oeWsJoin(escrowId, socket);
+
+  socket.on('message', async raw => {
+    try {
+      const d = JSON.parse(raw);
+      if(d.type==='message' && d.content?.trim()) {
+        const { data: u } = await supabase.from('users').select('name,phone').eq('id',user.id).single();
+        const { data: msg } = await supabase.from('open_escrow_messages').insert({
+          escrow_id: escrowId, user_id: user.id, content: d.content.trim(), type:'user'
+        }).select().single();
+        if(msg) { msg.sender_name = u?.name||u?.phone||'Người dùng'; }
+        oeWsBroadcast(escrowId, { type:'message', payload: msg });
+        socket.send(JSON.stringify({ type:'message', payload: msg }));
+      }
+    } catch {}
+  });
+
+  socket.on('close', () => oeWsLeave(escrowId, socket));
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
@@ -4282,15 +4752,22 @@ const wss = new WebSocketServer({ noServer: true });
 
 httpServer.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url, 'http://localhost');
-  if (!url.pathname.startsWith('/ws/chat')) { socket.destroy(); return; }
   const token = url.searchParams.get('token');
   if (!token) { socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n'); socket.destroy(); return; }
   try {
     const user = jwt.verify(token, JWT_SECRET);
     request._wsUser = user;
-    wss.handleUpgrade(request, socket, head, (wsClient) => {
-      wss.emit('connection', wsClient, request);
-    });
+    if (url.pathname.startsWith('/ws/escrow')) {
+      wss2.handleUpgrade(request, socket, head, (wsClient) => {
+        wss2.emit('connection', wsClient, request);
+      });
+    } else if (url.pathname.startsWith('/ws/chat')) {
+      wss.handleUpgrade(request, socket, head, (wsClient) => {
+        wss.emit('connection', wsClient, request);
+      });
+    } else {
+      socket.destroy();
+    }
   } catch(e) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
     socket.destroy();
