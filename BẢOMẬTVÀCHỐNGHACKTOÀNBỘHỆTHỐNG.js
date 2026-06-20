@@ -23,8 +23,8 @@ const IP_CONFIG = {
   MAX_REQUESTS_PER_SECOND: 10,
   MAX_UA_VARIATIONS: 5,               // same IP with too many user-agents = bot
   BAN_DURATION_MS: 30 * 60 * 1000,   // 30 min
-  HONEYPOT_INSTANT_BAN: true,
-};
+  HONEYPOT_INSTANT_BAN: true
+}
 
 function getClientIP(req) {
   return (
@@ -108,7 +108,7 @@ const SQL_INJECTION_PATTERNS = [
   /BENCHMARK\s*\(/gi,
   /LOAD_FILE\s*\(/gi,
   /INFORMATION_SCHEMA/gi,
-  /SYS\.TABLES/gi,
+  /SYS\.TABLES/gi
 ];
 
 // XSS patterns
@@ -124,7 +124,7 @@ const XSS_PATTERNS = [
   /window\.location/gi,
   /\.innerHTML\s*=/gi,
   /fromCharCode/gi,
-  /&#x/gi,
+  /&#x/gi
 ];
 
 // Path traversal patterns
@@ -135,14 +135,14 @@ const PATH_TRAVERSAL_PATTERNS = [
   /\/etc\/passwd/gi,
   /\/etc\/shadow/gi,
   /\/proc\/self/gi,
-  /\\\.\\./g,
+  /\\\.\\./g
 ];
 
 // Command injection patterns
 const CMD_INJECTION_PATTERNS = [
   /[;&|`$](\s*)(ls|cat|pwd|id|whoami|uname|wget|curl|bash|sh|python|perl|ruby)/gi,
   /\|\s*(bash|sh|cmd)/gi,
-  />\s*\/dev\//gi,
+  />\s*\/dev\//gi
 ];
 
 function deepScanValue(value, path = '') {
@@ -194,8 +194,8 @@ const ANOMALY_RULES = {
   RAPID_FAILED_AUTH: { window: 300_000, max: 5, score: 60 },
   LARGE_PAYLOAD: { threshold: 100_000, score: 20 },      // bytes
   UNUSUAL_HOUR: { startHour: 2, endHour: 5, score: 10 }, // 2-5 AM
-  RAPID_PROFILE_CHANGES: { window: 3_600_000, max: 10, score: 30 },
-};
+  RAPID_PROFILE_CHANGES: { window: 3_600_000, max: 10, score: 30 }
+}
 
 function recordBehavior(userId, action, meta = {}) {
   if (!userId) return 0;
@@ -264,7 +264,7 @@ const HONEYPOT_PATHS = [
   '/admin', '/wp-admin', '/wp-login.php', '/phpmyadmin', '/mysql',
   '/.env', '/.git/config', '/config.php', '/backup.zip', '/db.sql',
   '/server.js.bak', '/api/debug', '/api/test', '/console',
-  '/api/v0/', '/actuator', '/swagger.json', '/api-docs',
+  '/api/v0/', '/actuator', '/swagger.json', '/api-docs'
 ];
 
 function installHoneypots(app) {
@@ -291,7 +291,7 @@ function securityLog(type, ip, detail, userId = null) {
     type,
     ip,
     userId,
-    detail: String(detail).slice(0, 500),
+    detail: String(detail).slice(0, 500)
   };
   securityEvents.unshift(event);
   if (securityEvents.length > MAX_EVENTS) securityEvents.splice(MAX_EVENTS);
@@ -305,7 +305,7 @@ function securityLog(type, ip, detail, userId = null) {
 // ═══════════════════════════════════════════════════════
 const SAFE_ORIGINS = new Set([
   process.env.ALLOWED_ORIGIN,
-  `https://${process.env.REPLIT_DEV_DOMAIN}`,
+  `https://${process.env.REPLIT_DEV_DOMAIN}`
 ].filter(Boolean));
 
 function validateOrigin(req) {
@@ -427,7 +427,7 @@ function middlewareSensitiveDataMasker(req, res, next) {
 
 const SENSITIVE_FIELD_NAMES = [
   'password', 'password_hash', 'secret', 'token', 'private_key',
-  'bank_account', 'cvv', 'card_number', 'pin', 'otp_code',
+  'bank_account', 'cvv', 'card_number', 'pin', 'otp_code'
 ];
 
 function maskSensitiveFields(obj) {
@@ -486,7 +486,7 @@ function applyAll(app) {
       honeypotHits: honeypotHits.size,
       trackedIPs: ipRequestMap.size,
       recentEvents: securityEvents.slice(0, 50),
-      revokedTokens: revokedTokens.size,
+      revokedTokens: revokedTokens.size
     });
   });
 
@@ -508,5 +508,5 @@ export default {
   middlewarePayloadScanner,
   middlewareSecurityHeaders,
   middlewareAntiCSRF,
-  middlewareSensitiveDataMasker,
-};
+  middlewareSensitiveDataMasker
+}

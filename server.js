@@ -14,6 +14,13 @@ import { Resend } from 'resend';
 import multer from 'multer';
 import QRCode from 'qrcode';
 
+// ══════════════════════════════════════════════════════════
+// HỆ THỐNG BẢO MẬT + MÃ HOÁ + KIỂM TRA LỖI (AUTO-LOADED)
+// ══════════════════════════════════════════════════════════
+import security from './BẢOMẬTVÀCHỐNGHACKTOÀNBỘHỆTHỐNG.js';
+import errorChecker from './KIỂMTRALỖITOÀNBỘHỆTHỐNG.js';
+import encryption, { wrapSupabase } from './MÃHOÁDỮLIỆUTOÀNHỆTHỐNG.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -22,11 +29,11 @@ dotenv.config();
 const app = express();
 app.use(cors({
   origin: '*',
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }));
 app.use(helmet({
   contentSecurityPolicy: false, // disabled to allow inline scripts in frontend
-  crossOriginEmbedderPolicy: false,
+  crossOriginEmbedderPolicy: false
 }));
 app.use(express.json());
 
@@ -35,25 +42,25 @@ const generalLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { error: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' },
-  standardHeaders: true, legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false
 });
 const authLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { error: 'Quá nhiều lần thử đăng nhập, vui lòng thử lại sau 15 phút.' },
-  standardHeaders: true, legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false
 });
 const orderLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
   message: { error: 'Quá nhiều yêu cầu, vui lòng chờ một chút.' },
-  standardHeaders: true, legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false
 });
 const topupLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
   message: { error: 'Quá nhiều lần nạp tiền, vui lòng thử lại sau.' },
-  standardHeaders: true, legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false
 });
 
 app.use('/api/auth', authLimit);
@@ -61,11 +68,19 @@ app.use('/api/orders', orderLimit);
 app.use('/api/wallet/topup', topupLimit);
 app.use('/api', generalLimit);
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
-  realtime: { transport: ws }
-});
-const JWT_SECRET = process.env.JWT_SECRET;
-const resend = new Resend(process.env.RESEND_API_KEY);
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+  console.warn('⚠️  [SafePass] SUPABASE_URL / SUPABASE_KEY chưa được cấu hình — Vui lòng thêm vào Replit Secrets');
+}
+const supabase = createClient(
+  process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_KEY || 'placeholder_key_replace_me',
+  { realtime: { transport: ws } }
+);
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_replace_me';
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// ── ÁP DỤNG BẢO MẬT ĐA LỚP (8 LAYERS) ──
+security.applyAll(app);
 
 // ── MULTER (memory storage — files go directly to Supabase Storage) ──
 const kycUpload = multer({
@@ -76,7 +91,7 @@ const kycUpload = multer({
       return cb(new Error('Chỉ chấp nhận file ảnh (jpg, png, heic…)'));
     }
     cb(null, true);
-  },
+  }
 });
 
 const chatUpload = multer({
@@ -85,7 +100,7 @@ const chatUpload = multer({
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) return cb(new Error('Chỉ chấp nhận file ảnh'));
     cb(null, true);
-  },
+  }
 });
 
 // ── CREATE KYC STORAGE BUCKET (best-effort on startup) ──
@@ -189,7 +204,7 @@ async function sendNewOrderSellerNotification(order) {
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#f5a623;font-size:14px;font-weight:600;">⚠️ Bạn có 48 giờ để upload QR code vé. Nếu không, đơn sẽ tự động bị hủy và tiền hoàn về buyer.</p>
           <p style="color:#7b8fad;font-size:14px;">Đăng nhập <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a> để upload QR ngay.</p>
-        </div>`,
+        </div>`
     });
   } catch (e) { console.error('[Email] Lỗi gửi email đơn mới cho seller:', e.message); }
 }
@@ -215,7 +230,7 @@ async function sendQRUploadedBuyerNotification(order) {
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Đăng nhập <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a> để xem QR và xác nhận nhận vé.</p>
-        </div>`,
+        </div>`
     });
   } catch (e) { console.error('[Email] Lỗi gửi email QR cho buyer:', e.message); }
 }
@@ -241,7 +256,7 @@ async function sendPayoutSellerNotification(order) {
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Kiểm tra ví tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
-        </div>`,
+        </div>`
     });
   } catch (e) { console.error('[Email] Lỗi gửi email giải ngân cho seller:', e.message); }
 }
@@ -250,7 +265,7 @@ async function sendDisputeResolvedNotification(order, winner) {
   if (!process.env.RESEND_API_KEY) return;
   const [{ data: buyer }, { data: seller }] = await Promise.all([
     supabase.from('users').select('email').eq('id', order.buyer_id).single(),
-    supabase.from('users').select('email').eq('id', order.seller_id).single(),
+    supabase.from('users').select('email').eq('id', order.seller_id).single()
   ]);
   const buyerWon = winner === 'buyer';
   const emails = [];
@@ -270,7 +285,7 @@ async function sendDisputeResolvedNotification(order, winner) {
             <p style="color:#e8edf8;">${e.won ? (winner === 'buyer' ? 'Tiền đã được hoàn về ví của bạn.' : 'Tiền đã được giải ngân vào ví của bạn.') : 'Tiền đã được chuyển cho bên kia.'}</p>
             <hr style="border-color:#1a2540;margin:20px 0"/>
             <p style="color:#7b8fad;font-size:14px;">Kiểm tra tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
-          </div>`,
+          </div>`
       });
     } catch (err) { console.error('[Email] Lỗi gửi email kết quả dispute:', err.message); }
   }
@@ -297,7 +312,7 @@ async function sendNewReviewSellerNotification(review) {
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Xem và phản hồi tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
-        </div>`,
+        </div>`
     });
   } catch (e) { console.error('[Email] Lỗi gửi email review mới cho seller:', e.message); }
 }
@@ -334,7 +349,7 @@ async function sendEscrowTimeoutAdminNotification(expiredOrders) {
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Xem chi tiết tại <a href="${process.env.APP_URL || ''}/admin.html" style="color:#3d8ef8;">trang Admin</a>.</p>
-        </div>`,
+        </div>`
     });
     console.log(`[Email] Đã gửi tóm tắt ${expiredOrders.length} escrow timeout cho admin`);
   } catch (e) { console.error('[Email] Lỗi gửi email escrow timeout (admin):', e.message); }
@@ -361,7 +376,7 @@ async function sendEscrowTimeoutBuyerNotification(order) {
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Tiền đã trở về ví SafePass của bạn. Bạn có thể mua vé khác tại <a href="${process.env.APP_URL || ''}" style="color:#3d8ef8;">SafePass</a>.</p>
-        </div>`,
+        </div>`
     });
   } catch (e) { console.error(`[Email] Lỗi gửi email hoàn tiền cho buyer ${order.buyer_name}:`, e.message); }
 }
@@ -394,7 +409,7 @@ async function sendQRReminderBuyerNotification(order) {
             <p style="margin:8px 0 0;color:#7b8fad;font-size:14px;">Nếu seller không upload QR trước <strong style="color:#f05068;">${deadlineStr}</strong>, hệ thống sẽ tự động hoàn toàn bộ tiền về ví của bạn.</p>
           </div>
           <p style="color:#7b8fad;font-size:14px;">Nếu bạn nghi ngờ có gian lận, bạn có thể <a href="${process.env.APP_URL || ''}" style="color:#f05068;font-weight:600;">mở khiếu nại ngay</a> thay vì chờ tự động hoàn tiền.</p>
-        </div>`,
+        </div>`
     });
     console.log(`[Email] Đã gửi nhắc nhở 24h cho buyer ${order.buyer_name} — đơn ${order.id}`);
   } catch (e) { console.error(`[Email] Lỗi gửi nhắc nhở 24h cho buyer ${order.buyer_name}:`, e.message); }
@@ -429,7 +444,7 @@ async function sendQRReminderSellerNotification(order) {
           </div>
           <a href="${process.env.APP_URL || ''}" style="display:inline-block;background:#f5a623;color:#06090f;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Upload QR Ngay →</a>
           <p style="color:#7b8fad;font-size:12px;margin-top:20px;">Nếu đã upload rồi, vui lòng bỏ qua email này.</p>
-        </div>`,
+        </div>`
     });
     console.log(`[Email] Đã gửi nhắc nhở 12h QR cho seller ${order.seller_name} — đơn ${order.id}`);
   } catch (e) { console.error(`[Email] Lỗi gửi nhắc nhở 12h QR cho seller ${order.seller_name}:`, e.message); }
@@ -459,7 +474,7 @@ async function sendDisputeNotification(order, reasonText, openedBy, description)
           </table>
           <hr style="border-color:#1a2540;margin:20px 0"/>
           <p style="color:#7b8fad;font-size:14px;">Đăng nhập vào <a href="${process.env.APP_URL || ''}/admin.html" style="color:#3d8ef8;">trang Admin</a> để xử lý khiếu nại này.</p>
-        </div>`,
+        </div>`
     });
     console.log(`[Email] Đã gửi thông báo khiếu nại đến ${process.env.ADMIN_EMAIL}`);
   } catch (e) { console.error('[Email] Lỗi gửi email:', e.message); }
@@ -548,7 +563,7 @@ async function logAdminAction(adminId, adminEmail, action, targetType, targetId,
       action,
       target_type: targetType || null,
       target_id: targetId ? String(targetId) : null,
-      meta,
+      meta
     });
   } catch (e) { console.error('[AdminLog]', e.message); }
 }
@@ -611,11 +626,11 @@ app.post('/api/auth/register', async (req, res) => {
       await supabase.from('users').update({ referral_count: (referrer.referral_count || 0) + 1 }).eq('id', referrer.id);
       await supabase.from('referrals').insert({
         referrer_id: referrer.id, referred_id: data.id,
-        referred_name: sanitize(name), referred_phone: phone,
+        referred_name: sanitize(name), referred_phone: phone
       }).catch(() => {});
       await supabase.from('transactions').insert({
         user_id: data.id, type: 'referral_bonus', amount: welcomeBonus,
-        description: `Thưởng chào mừng — được giới thiệu bởi ${referrer.name}`,
+        description: `Thưởng chào mừng — được giới thiệu bởi ${referrer.name}`
       }).catch(() => {});
       createNotification(referrer.id, 'referral', '🎁 Bạn bè tham gia!',
         `${sanitize(name)} đã đăng ký qua mã giới thiệu của bạn!`, '/referral');
@@ -711,7 +726,7 @@ app.post('/api/auth/send-verification', auth, async (req, res) => {
             <div style="font-size:36px;font-weight:800;letter-spacing:12px;color:#3d8ef8;">${otp}</div>
           </div>
           <p style="color:#3d4f6a;font-size:12px;">Nếu bạn không yêu cầu điều này, hãy bỏ qua email này.</p>
-        </div>`,
+        </div>`
     });
     res.json({ message: 'Đã gửi mã OTP đến email của bạn' });
   } catch (e) {
@@ -771,7 +786,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
           <a href="${resetUrl}" style="display:block;text-align:center;padding:14px 28px;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none;margin-bottom:24px;">🔐 Đặt lại mật khẩu</a>
           <p style="color:#3d4f6a;font-size:12px;">Nếu bạn không yêu cầu điều này, hãy bỏ qua email này. Mật khẩu của bạn sẽ không thay đổi.</p>
           <p style="color:#3d4f6a;font-size:11px;margin-top:8px;word-break:break-all;">Link: ${resetUrl}</p>
-        </div>`,
+        </div>`
     });
   } catch (e) {}
 
@@ -995,7 +1010,7 @@ app.post('/api/listings', auth, async (req, res) => {
     location: location ? sanitize(location) : '',
     section: section ? sanitize(section) : '',
     category: category || '',
-    event_date: event_date || null,
+    event_date: event_date || null
   };
   const { data, error } = await supabase.from('listings').insert(insertData).select().single();
   if (error) return res.status(500).json({ error: error.message });
@@ -1223,12 +1238,12 @@ app.post('/api/orders/:id/confirm', auth, async (req, res) => {
         if (ref) {
           await supabase.from('users').update({
             balance: ref.balance + commission,
-            referral_earnings: (ref.referral_earnings || 0) + commission,
+            referral_earnings: (ref.referral_earnings || 0) + commission
           }).eq('id', buyerRef.referred_by);
           await supabase.from('transactions').insert({
             user_id: buyerRef.referred_by, type: 'referral_reward', amount: commission,
             description: `Hoa hồng 2% — ${order.buyer_name}: ${order.event_name}`,
-            order_id: order.id,
+            order_id: order.id
           });
           const { data: rr } = await supabase.from('referrals').select('id,total_commission').eq('referrer_id', buyerRef.referred_by).eq('referred_id', order.buyer_id).maybeSingle();
           if (rr) await supabase.from('referrals').update({ total_commission: (rr.total_commission || 0) + commission }).eq('id', rr.id);
@@ -1341,11 +1356,11 @@ app.post('/api/orders/:id/confirm-delivery', auth, async (req, res) => {
         if (ref) {
           await supabase.from('users').update({
             balance: ref.balance + commission,
-            referral_earnings: (ref.referral_earnings || 0) + commission,
+            referral_earnings: (ref.referral_earnings || 0) + commission
           }).eq('id', buyerRef.referred_by);
           await supabase.from('transactions').insert({
             user_id: buyerRef.referred_by, type: 'referral_reward', amount: commission,
-            description: `Hoa hồng 2% — ${order.buyer_name}: ${order.event_name}`, order_id: order.id,
+            description: `Hoa hồng 2% — ${order.buyer_name}: ${order.event_name}`, order_id: order.id
           });
         }
       }
@@ -1480,7 +1495,7 @@ app.post('/api/wallet/withdraw', auth, async (req, res) => {
     bank_name: sanitize(bank_name),
     account_number: sanitize(account_number),
     account_holder: sanitize(account_holder),
-    status: 'pending',
+    status: 'pending'
   }).select().single();
   if (wrErr) {
     // Restore balance on failure
@@ -1568,7 +1583,7 @@ app.post('/api/wallet/vnpay/create-payment', auth, async (req, res) => {
     vnp_ReturnUrl:  returnUrl,
     vnp_IpAddr:     ipAddr,
     vnp_CreateDate: createDate,
-    vnp_ExpireDate: expireDate,
+    vnp_ExpireDate: expireDate
   };
 
   const secureHash = vnpCreateHash(params, VNPAY_HASH_SECRET);
@@ -1613,7 +1628,7 @@ app.get('/api/wallet/vnpay/callback', async (req, res) => {
           user_id: pending.userId,
           type: 'topup',
           amount: pending.amount,
-          description: `Nạp tiền qua VNPay — Mã GD: ${txnRef}`,
+          description: `Nạp tiền qua VNPay — Mã GD: ${txnRef}`
         });
         createNotification(pending.userId, 'topup', '💰 Nạp tiền thành công',
           `Đã nạp ${pending.amount.toLocaleString('vi-VN')}đ vào ví SafePass.`, '/wallet');
@@ -1629,7 +1644,7 @@ app.get('/api/wallet/vnpay/callback', async (req, res) => {
         user_id: pending.userId,
         type: 'topup_failed',
         amount: 0,
-        description: `Nạp tiền thất bại qua VNPay — Mã GD: ${txnRef} — Mã lỗi: ${responseCode}`,
+        description: `Nạp tiền thất bại qua VNPay — Mã GD: ${txnRef} — Mã lỗi: ${responseCode}`
       });
     }
     return res.redirect(`${appBase}/?page=wallet&vnpay=failed&code=${responseCode}`);
@@ -1669,7 +1684,7 @@ app.get('/api/wallet/vnpay/ipn', async (req, res) => {
         user_id: pending.userId,
         type: 'topup',
         amount,
-        description: `Nạp tiền qua VNPay (IPN) — Mã GD: ${txnRef}`,
+        description: `Nạp tiền qua VNPay (IPN) — Mã GD: ${txnRef}`
       });
       createNotification(pending.userId, 'topup', '💰 Nạp tiền thành công',
         `Đã nạp ${amount.toLocaleString('vi-VN')}đ vào ví SafePass.`, '/wallet');
@@ -1679,7 +1694,7 @@ app.get('/api/wallet/vnpay/ipn', async (req, res) => {
       user_id: pending.userId,
       type: 'topup_failed',
       amount: 0,
-      description: `Nạp tiền thất bại qua VNPay (IPN) — Mã GD: ${txnRef} — Mã lỗi: ${responseCode}`,
+      description: `Nạp tiền thất bại qua VNPay (IPN) — Mã GD: ${txnRef} — Mã lỗi: ${responseCode}`
     });
   }
 
@@ -1702,7 +1717,7 @@ app.post('/api/admin/vnpay/refund', async (req, res) => {
     user_id,
     type: 'refund',
     amount: amt,
-    description: `Hoàn tiền VNPay — ${sanitize(reason || 'Admin xử lý')}`,
+    description: `Hoàn tiền VNPay — ${sanitize(reason || 'Admin xử lý')}`
   });
   createNotification(user_id, 'refund', '↩️ Hoàn tiền thành công',
     `Đã hoàn ${amt.toLocaleString('vi-VN')}đ vào ví của bạn.`, '/wallet');
@@ -1877,7 +1892,7 @@ app.get('/api/users/:id', async (req, res) => {
     avatar_url: user.avatar_url || '',
     avg_rating: avgRating,
     total_reviews: totalReviews,
-    total_sold: totalSold || 0,
+    total_sold: totalSold || 0
   });
 });
 
@@ -2057,7 +2072,7 @@ app.post('/api/orders/:id/messages', auth, async (req, res) => {
     sender_id: req.user.id,
     sender_name: req.user.name,
     text: sanitize(String(text).trim()),
-    message_type: 'text',
+    message_type: 'text'
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
 
@@ -2072,7 +2087,7 @@ app.post('/api/orders/:id/messages', auth, async (req, res) => {
       type: 'push_notification',
       orderId,
       senderName: req.user.name,
-      text: String(text).trim().slice(0, 80),
+      text: String(text).trim().slice(0, 80)
     });
     createNotification(otherId, 'chat', '💬 Tin nhắn mới',
       `${req.user.name}: ${String(text).trim().slice(0, 60)}`, '/orders');
@@ -2124,7 +2139,7 @@ app.post('/api/orders/:id/messages/image', auth, chatUpload.single('image'), asy
     sender_name: req.user.name,
     text: '[Ảnh]',
     message_type: 'image',
-    image_url: imageUrl,
+    image_url: imageUrl
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
 
@@ -2541,7 +2556,7 @@ app.get('/api/seller/stats', auth, async (req, res) => {
 
   const [ordersRes, reviewsRes] = await Promise.all([
     supabase.from('orders').select('*').eq('seller_id', sellerId).order('created_at', { ascending: false }),
-    supabase.from('reviews').select('rating,created_at').eq('seller_id', sellerId),
+    supabase.from('reviews').select('rating,created_at').eq('seller_id', sellerId)
   ]);
 
   const orders = ordersRes.data || [];
@@ -2603,7 +2618,7 @@ app.get('/api/seller/stats', auth, async (req, res) => {
     refunded: d.refunded,
     total_orders: d.totalOrders,
     refund_rate: d.totalOrders > 0 ? Math.round((d.refunded / d.totalOrders) * 100) : 0,
-    avg_rating: d.ratingCount > 0 ? Math.round((d.ratingSum / d.ratingCount) * 10) / 10 : null,
+    avg_rating: d.ratingCount > 0 ? Math.round((d.ratingSum / d.ratingCount) * 10) / 10 : null
   }));
 
   // Top listings by revenue
@@ -2635,7 +2650,7 @@ app.get('/api/seller/stats', auth, async (req, res) => {
     orders_by_day: ordersByDay,
     orders_by_month: ordersByMonth,
     top_listings: top,
-    recent_orders: recent,
+    recent_orders: recent
   });
 });
 
@@ -2646,7 +2661,7 @@ app.get('/api/admin/stats', async (req, res) => {
     supabase.from('orders').select('status,fee,total,price,created_at'),
     supabase.from('users').select('id,balance,escrow,is_banned'),
     supabase.from('tickets').select('status'),
-    supabase.from('listings').select('status,type'),
+    supabase.from('listings').select('status,type')
   ]);
 
   const completed = (orders || []).filter(o => o.status === 'completed');
@@ -2666,7 +2681,7 @@ app.get('/api/admin/stats', async (req, res) => {
 
   res.json({
     totalRevenue, totalGMV, totalOrders, completedOrders, disputedOrders, refundedOrders,
-    totalUsers, bannedUsers, totalEscrowLocked, availableTickets, availableListings, listingsByType,
+    totalUsers, bannedUsers, totalEscrowLocked, availableTickets, availableListings, listingsByType
   });
 });
 
@@ -2709,7 +2724,7 @@ app.post('/api/admin/orders/:id/force-cancel', async (req, res) => {
 
   await supabase.from('users').update({
     balance: buyer.balance + order.total,
-    escrow: Math.max(0, buyer.escrow - order.total),
+    escrow: Math.max(0, buyer.escrow - order.total)
   }).eq('id', order.buyer_id);
 
   if (order.listing_id) {
@@ -2720,12 +2735,12 @@ app.post('/api/admin/orders/:id/force-cancel', async (req, res) => {
   await supabase.from('orders').update({
     status: 'refunded',
     dispute_note: sanitize(note || 'Admin force cancelled'),
-    dispute_resolved_at: new Date().toISOString(),
+    dispute_resolved_at: new Date().toISOString()
   }).eq('id', req.params.id);
 
   await supabase.from('transactions').insert([
     { user_id: order.buyer_id, type: 'refund', amount: order.total, description: `Admin hủy đơn — hoàn tiền: ${order.event_name}${note ? ' — ' + sanitize(note) : ''}`, order_id: order.id },
-    { user_id: order.seller_id, type: 'admin_action', amount: 0, description: `Admin hủy đơn: ${order.event_name}`, order_id: order.id },
+    { user_id: order.seller_id, type: 'admin_action', amount: 0, description: `Admin hủy đơn: ${order.event_name}`, order_id: order.id }
   ]);
 
   createNotification(order.buyer_id, 'refund', '↩️ Đơn hàng bị hủy — Tiền hoàn về ví', `Admin đã hủy đơn hàng ${order.event_name}. Tiền đã hoàn về ví của bạn.`, '/orders');
@@ -2759,12 +2774,12 @@ app.post('/api/admin/orders/:id/force-release', async (req, res) => {
   await supabase.from('orders').update({
     status: 'completed',
     dispute_note: sanitize(note || 'Admin force released'),
-    dispute_resolved_at: new Date().toISOString(),
+    dispute_resolved_at: new Date().toISOString()
   }).eq('id', req.params.id);
 
   await supabase.from('transactions').insert([
     { user_id: order.seller_id, type: 'payout', amount: order.price, description: `Admin giải ngân: ${order.event_name}${note ? ' — ' + sanitize(note) : ''}`, order_id: order.id },
-    { user_id: order.buyer_id, type: 'admin_action', amount: 0, description: `Admin giải ngân đơn hàng: ${order.event_name}`, order_id: order.id },
+    { user_id: order.buyer_id, type: 'admin_action', amount: 0, description: `Admin giải ngân đơn hàng: ${order.event_name}`, order_id: order.id }
   ]);
 
   createNotification(order.seller_id, 'payout', '💸 Tiền đã vào ví!', `Admin đã giải ngân đơn hàng ${order.event_name}.`, '/wallet');
@@ -2908,14 +2923,14 @@ app.get('/api/orders/:id/verify-qr', auth, async (req, res) => {
     const qrDataUrl = await QRCode.toDataURL(token, {
       width: 400, margin: 2,
       color: { dark: '#000000', light: '#ffffff' },
-      errorCorrectionLevel: 'H',
+      errorCorrectionLevel: 'H'
     });
     res.json({
       qr: qrDataUrl,
       token,
       order_id: order.id,
       event_name: order.event_name,
-      buyer_name: order.buyer_name,
+      buyer_name: order.buyer_name
     });
   } catch (e) {
     console.error('[QR] generate:', e.message);
@@ -2965,7 +2980,7 @@ app.post('/api/scan/verify', async (req, res) => {
       price: order.price,
       total: order.total,
       order_status: order.status,
-      created_at: order.created_at,
+      created_at: order.created_at
     };
 
     // Check scan history
@@ -2981,7 +2996,7 @@ app.post('/api/scan/verify', async (req, res) => {
         ticket: ticketInfo,
         first_scanned_at: scans[0].scanned_at,
         first_scanned_by: scans[0].scanned_by,
-        scan_count: scans.length,
+        scan_count: scans.length
       });
     }
 
@@ -2989,14 +3004,14 @@ app.post('/api/scan/verify', async (req, res) => {
     await supabase.from('ticket_scans').insert({
       order_id,
       scanned_by: sanitize(scanner_name || 'Không rõ'),
-      scanner_type: scanner_type || 'organizer',
+      scanner_type: scanner_type || 'organizer'
     });
 
     res.json({
       status: 'VALID',
       ticket: ticketInfo,
       scanned_at: new Date().toISOString(),
-      scanner_name: scanner_name || 'Không rõ',
+      scanner_name: scanner_name || 'Không rõ'
     });
   } catch (e) {
     console.error('[Scan] verify:', e.message);
@@ -3028,7 +3043,7 @@ app.get('/api/scan/history', async (req, res) => {
 app.post('/api/kyc/submit', auth, kycUpload.fields([
   { name: 'front_image', maxCount: 1 },
   { name: 'back_image', maxCount: 1 },
-  { name: 'selfie_image', maxCount: 1 },
+  { name: 'selfie_image', maxCount: 1 }
 ]), async (req, res) => {
   try {
     const userId = req.user.id;
@@ -3064,7 +3079,7 @@ app.post('/api/kyc/submit', auth, kycUpload.fields([
     const [frontPath, backPath, selfiePath] = await Promise.all([
       uploadOne('front', files.front_image[0]),
       uploadOne('back', files.back_image[0]),
-      uploadOne('selfie', files.selfie_image[0]),
+      uploadOne('selfie', files.selfie_image[0])
     ]);
 
     const { error: dbErr } = await supabase.from('kyc_requests').insert({
@@ -3074,7 +3089,7 @@ app.post('/api/kyc/submit', auth, kycUpload.fields([
       selfie_image: selfiePath,
       status: 'pending',
       full_name: req.body?.full_name || null,
-      id_type: req.body?.id_type || null,
+      id_type: req.body?.id_type || null
     });
     if (dbErr) throw new Error(dbErr.message);
 
@@ -3119,13 +3134,13 @@ app.get('/api/admin/kyc', adminAuth, async (req, res) => {
       const [fRes, bRes, sRes] = await Promise.all([
         supabase.storage.from('kyc-documents').createSignedUrl(kyc.front_image, 3600),
         supabase.storage.from('kyc-documents').createSignedUrl(kyc.back_image, 3600),
-        supabase.storage.from('kyc-documents').createSignedUrl(kyc.selfie_image, 3600),
+        supabase.storage.from('kyc-documents').createSignedUrl(kyc.selfie_image, 3600)
       ]);
       return {
         ...kyc,
         front_url: fRes.data?.signedUrl || null,
         back_url: bRes.data?.signedUrl || null,
-        selfie_url: sRes.data?.signedUrl || null,
+        selfie_url: sRes.data?.signedUrl || null
       };
     }));
 
@@ -3151,7 +3166,7 @@ app.post('/api/admin/kyc/:id/approve', adminAuth, async (req, res) => {
       status: 'approved',
       review_notes: review_notes || null,
       reviewed_by: admin.email,
-      reviewed_at: new Date().toISOString(),
+      reviewed_at: new Date().toISOString()
     }).eq('id', id);
     await supabase.from('users').update({ is_verified: true }).eq('id', kyc.user_id);
 
@@ -3178,7 +3193,7 @@ app.post('/api/admin/kyc/:id/reject', adminAuth, async (req, res) => {
       reject_reason: reason || null,
       review_notes: note,
       reviewed_by: admin.email,
-      reviewed_at: new Date().toISOString(),
+      reviewed_at: new Date().toISOString()
     }).eq('id', id);
 
     logAdminAction(admin.id, admin.email, 'reject_kyc', 'kyc_request', id, { user_id: kyc.user_id, reason: reason || '' });
@@ -3207,14 +3222,14 @@ app.post('/api/ai/chat', auth, async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
         system: sysPrompt,
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
-      }),
+        messages: messages.map(m => ({ role: m.role, content: m.content }))
+      })
     });
     const data = await upstream.json();
     if (!upstream.ok) return res.status(upstream.status).json({ error: data.error?.message || 'Lỗi AI' });
@@ -3248,7 +3263,7 @@ app.get('/api/referral/me', auth, async (req, res) => {
     earnings: user.referral_earnings || 0,
     count: user.referral_count || 0,
     referrals: referrals || [],
-    recent_rewards: recentRewards || [],
+    recent_rewards: recentRewards || []
   });
 });
 
@@ -3379,7 +3394,7 @@ app.post('/api/admin/orders/:id/messages', adminAuth, async (req, res) => {
     sender_id: req.admin.id || '00000000-0000-0000-0000-000000000000',
     sender_name: `🛡️ Admin (${req.admin.email})`,
     text: sanitize(text.trim()),
-    message_type: 'text',
+    message_type: 'text'
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   createNotification(order.buyer_id, 'system', '📨 Admin gửi tin nhắn',
@@ -3453,7 +3468,7 @@ app.post('/api/digital-listings', auth, async (req, res) => {
     asset_type,
     price: parseInt(price),
     image_url: image_url || null,
-    available_qty: 0, total_qty: 0, sold_qty: 0,
+    available_qty: 0, total_qty: 0, sold_qty: 0
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
@@ -3491,7 +3506,7 @@ app.post('/api/digital-listings/:id/inventory', auth, async (req, res) => {
     password_enc: encryptField(a.password),
     backup_email_enc: encryptField(a.backup_email || null),
     notes_enc: encryptField(a.notes || null),
-    status: 'available',
+    status: 'available'
   }));
 
   const { data, error } = await supabase.from('asset_inventory').insert(rows).select('id');
@@ -3505,7 +3520,7 @@ app.post('/api/digital-listings/:id/inventory', auth, async (req, res) => {
   await supabase.from('digital_listings').update({
     available_qty: inv?.length || 0,
     total_qty: (inv?.length || 0) + (soldInv?.length || 0),
-    updated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }).eq('id', req.params.id);
 
   res.json({ added: data.length });
@@ -3564,7 +3579,7 @@ app.post('/api/digital-orders', auth, async (req, res) => {
     fee,
     seller_payout: sellerPayout,
     status: 'delivered',
-    delivered_at: new Date().toISOString(),
+    delivered_at: new Date().toISOString()
   }).select().single();
 
   if (orderErr) {
@@ -3576,14 +3591,14 @@ app.post('/api/digital-orders', auth, async (req, res) => {
 
   // Mark inventory as sold + link order
   await supabase.from('asset_inventory').update({
-    status: 'sold', sold_at: new Date().toISOString(), digital_order_id: order.id,
+    status: 'sold', sold_at: new Date().toISOString(), digital_order_id: order.id
   }).eq('id', inventoryId);
 
   // Update listing counts
   await supabase.from('digital_listings').update({
     available_qty: Math.max(0, listing.available_qty - 1),
     sold_qty: listing.sold_qty + 1,
-    updated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }).eq('id', listing_id);
 
   // Notify seller
@@ -3625,7 +3640,7 @@ app.get('/api/digital-orders/:id/asset', auth, async (req, res) => {
     backup_email: decryptField(inv.backup_email_enc),
     notes: decryptField(inv.notes_enc),
     delivered_at: order.delivered_at,
-    status: order.status,
+    status: order.status
   });
 });
 
@@ -3656,7 +3671,7 @@ app.post('/api/digital-orders/:id/report', auth, async (req, res) => {
 
   await supabase.from('digital_orders').update({
     status: 'disputed', dispute_reason: sanitize(reason || 'Không đăng nhập được'),
-    dispute_at: new Date().toISOString(),
+    dispute_at: new Date().toISOString()
   }).eq('id', order.id);
 
   createNotification(order.seller_id, 'dispute', '⚠️ Khiếu nại tài khoản',
@@ -3678,7 +3693,7 @@ app.get('/api/admin/digital-orders', adminAuth, async (req, res) => {
   const enriched = data.map(o => ({
     ...o,
     buyer_name: userMap[o.buyer_id]?.name || '—',
-    seller_name: userMap[o.seller_id]?.name || '—',
+    seller_name: userMap[o.seller_id]?.name || '—'
   }));
   res.json(enriched);
 });
@@ -3698,7 +3713,7 @@ app.post('/api/admin/digital-orders/:id/replace', adminAuth, async (req, res) =>
   await supabase.from('asset_inventory').update({ status: 'disabled' }).eq('id', order.inventory_id);
   // Mark new inventory as sold
   await supabase.from('asset_inventory').update({
-    status: 'sold', sold_at: new Date().toISOString(), digital_order_id: order.id,
+    status: 'sold', sold_at: new Date().toISOString(), digital_order_id: order.id
   }).eq('id', newInvId);
 
   // Update order
@@ -3706,7 +3721,7 @@ app.post('/api/admin/digital-orders/:id/replace', adminAuth, async (req, res) =>
   await supabase.from('digital_orders').update({
     inventory_id: newInvId, status: 'replaced',
     admin_note: sanitize(admin_note || 'Admin đã đổi tài khoản mới'),
-    updated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }).eq('id', order.id);
 
   // Update listing available count
@@ -3729,7 +3744,7 @@ app.post('/api/admin/digital-orders/:id/refund', adminAuth, async (req, res) => 
   await supabase.from('users').update({ balance: (buyer?.balance || 0) + order.price }).eq('id', order.buyer_id);
   await supabase.from('digital_orders').update({
     status: 'refunded', admin_note: sanitize(req.body.admin_note || 'Admin hoàn tiền'),
-    updated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }).eq('id', order.id);
 
   // Free up inventory if still sellable
@@ -3774,7 +3789,7 @@ const deliverableUpload = multer({
     const ext = (file.originalname.split('.').pop() || '').toLowerCase();
     if (['pdf','zip','rar','png','jpg','jpeg','mp4','docx','txt'].includes(ext)) return cb(null, true);
     cb(new Error('Định dạng không được phép. Cho phép: PDF, ZIP, RAR, PNG, JPG, MP4, DOCX'));
-  },
+  }
 });
 
 (async () => {
@@ -3842,14 +3857,14 @@ app.post('/api/service-listings', auth, async (req, res) => {
     description: sanitize(description), price: Number(price),
     delivery_days: Number(delivery_days) || 3,
     revision_count: Number(revision_count) || 1,
-    image_url: image_url || null, status: 'active',
+    image_url: image_url || null, status: 'active'
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   if (packages && packages.length > 0) {
     await supabase.from('service_packages').insert(packages.map(p => ({
       service_id: data.id, package_name: p.package_name,
       price: Number(p.price), delivery_days: Number(p.delivery_days),
-      revision_count: Number(p.revision_count) || 1, features: p.features || [],
+      revision_count: Number(p.revision_count) || 1, features: p.features || []
     })));
   }
   res.json({ id: data.id, message: 'Tạo gig thành công!' });
@@ -3902,7 +3917,7 @@ app.post('/api/service-orders', auth, orderLimit, async (req, res) => {
     service_id, package_id: package_id || null, buyer_id: req.user.id, seller_id: svc.seller_id,
     package_name: pkgName, service_title: svc.title, price: finalPrice, fee, seller_payout: sellerPayout,
     status: 'pending', requirements: requirements || null, max_revisions: maxRevisions,
-    deadline_at: deadlineAt, auto_release_at: autoReleaseAt,
+    deadline_at: deadlineAt, auto_release_at: autoReleaseAt
   }).select().single();
   if (orderErr) {
     await supabase.from('users').update({ balance: buyer.balance }).eq('id', req.user.id);
@@ -3935,7 +3950,7 @@ app.get('/api/service-orders/:id', auth, async (req, res) => {
     supabase.from('service_messages').select('*').eq('order_id', order.id).order('created_at').limit(200),
     supabase.from('users').select('id,name,avg_rating,is_verified').eq('id', order.buyer_id).single(),
     supabase.from('users').select('id,name,avg_rating,is_verified').eq('id', order.seller_id).single(),
-    supabase.from('service_reviews').select('*').eq('order_id', order.id).maybeSingle(),
+    supabase.from('service_reviews').select('*').eq('order_id', order.id).maybeSingle()
   ]);
   res.json({ ...order, deliverables: dRes.data||[], messages: mRes.data||[], buyer: bRes.data, seller: sRes.data, review: rRes.data });
 });

@@ -26,8 +26,8 @@ const CONFIG = {
   ],
   AUTO_FIX: true,
   LOG_FILE: path.join(ROOT, '.local', 'system-check.log'),
-  MAX_FILE_SIZE_MB: 50,
-};
+  MAX_FILE_SIZE_MB: 50
+}
 
 // ═══════════════════════════════════════════════════════
 // BỘ GHI LOG
@@ -88,7 +88,7 @@ function collectFiles(dir, results = []) {
 function checkSyntax(filePath) {
   const result = spawnSync(process.execPath, ['--check', filePath], {
     encoding: 'utf8',
-    timeout: 10_000,
+    timeout: 10_000
   });
 
   if (result.status !== 0) {
@@ -105,54 +105,54 @@ function checkSyntax(filePath) {
 const AUTO_FIXES = [
   {
     name: 'Trailing comma in object/array',
-    // e.g. { a: 1, } → { a: 1 }
+    // e.g. { a: 1 } → { a: 1 }
     pattern: /,(\s*[}\]])/g,
-    fix: (content) => content.replace(/,(\s*[}\]])/g, '$1'),
+    fix: (content) => content.replace(/,(\s*[}\]])/g, '$1')
   },
   {
     name: 'Semicolon after function/class declaration',
     pattern: /^(}\s*);$/gm,
-    fix: (content) => content.replace(/^(}\s*);$/gm, '$1'),
+    fix: (content) => content.replace(/^(}\s*);$/gm, '$1')
   },
   {
     name: 'console.log left in production (warn only)',
     pattern: /console\.log\(/,
     fix: null, // warn only, don't auto-remove
-    warnOnly: true,
+    warnOnly: true
   },
   {
     name: 'Missing semicolons on import statements',
     pattern: /^(import\s+.+from\s+['"][^'"]+['"])$/gm,
     fix: (content) =>
-      content.replace(/^(import\s+.+from\s+['"][^'"]+['"])$/gm, '$1;'),
+      content.replace(/^(import\s+.+from\s+['"][^'"]+['"])$/gm, '$1;')
   },
   {
     name: 'Double semicolon',
-    pattern: /;;/g,
-    fix: (content) => content.replace(/;;/g, ';'),
+    pattern: /;/g,
+    fix: (content) => content.replace(/;/g, ';')
   },
   {
     name: 'Windows line endings (CRLF → LF)',
     pattern: /\r\n/g,
-    fix: (content) => content.replace(/\r\n/g, '\n'),
+    fix: (content) => content.replace(/\r\n/g, '\n')
   },
   {
     name: 'BOM character at file start',
     pattern: /^\uFEFF/,
-    fix: (content) => content.replace(/^\uFEFF/, ''),
+    fix: (content) => content.replace(/^\uFEFF/, '')
   },
   {
     name: 'Undefined variable: using var (prefer const/let)',
     pattern: /\bvar\s+/g,
     fix: null,
-    warnOnly: true,
+    warnOnly: true
   },
   {
     name: 'Async function missing await',
     pattern: /async\s+function[^{]+\{[^}]*(?<!\bawait\b)/,
     fix: null,
-    warnOnly: true,
-  },
+    warnOnly: true
+  }
 ];
 
 function applyAutoFixes(filePath, content) {
@@ -191,9 +191,9 @@ const REQUIRED_PATTERNS = {
     { pattern: /SUPABASE_URL/, name: 'Supabase URL reference' },
     { pattern: /JWT_SECRET/, name: 'JWT_SECRET reference' },
     { pattern: /express\(\)/, name: 'Express init' },
-    { pattern: /app\.use\(express\.json/, name: 'JSON middleware' },
-  ],
-};
+    { pattern: /app\.use\(express\.json/, name: 'JSON middleware' }
+  ]
+}
 
 function checkRequiredPatterns(filePath, content) {
   const fileName = path.basename(filePath);
@@ -216,7 +216,7 @@ const REQUIRED_ENV_VARS = [
   'SUPABASE_URL',
   'SUPABASE_KEY',
   'JWT_SECRET',
-  'RESEND_API_KEY',
+  'RESEND_API_KEY'
 ];
 
 function checkEnvVars() {
@@ -242,7 +242,7 @@ function checkDependencies() {
 
   const allDeps = {
     ...pkg.dependencies,
-    ...pkg.devDependencies,
+    ...pkg.devDependencies
   };
 
   for (const dep of Object.keys(allDeps || {})) {
@@ -261,7 +261,7 @@ function checkDependencies() {
 const REQUIRED_FILES = [
   'server.js',
   'package.json',
-  'frontend/index.html',
+  'frontend/index.html'
 ];
 
 function checkRequiredFiles() {
