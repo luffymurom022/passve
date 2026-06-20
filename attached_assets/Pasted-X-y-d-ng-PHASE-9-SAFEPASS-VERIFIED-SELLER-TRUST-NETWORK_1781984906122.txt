@@ -1,0 +1,205 @@
+Xây dựng PHASE 9: SAFEPASS VERIFIED SELLER & TRUST NETWORK
+
+Mục tiêu:
+
+Biến SafePass thành nền tảng pass đồ uy tín nhất.
+
+Tạo hệ thống xác thực danh tính và điểm uy tín toàn nền tảng.
+
+================================================
+
+1. VERIFIED IDENTITY
+
+Người dùng có thể xác minh:
+
+- CCCD
+- Hộ chiếu
+- Giấy phép lái xe
+
+Trạng thái:
+
+- Chưa xác minh
+- Đang xác minh
+- Đã xác minh
+
+================================================
+
+2. PHONE VERIFICATION
+
+Xác minh số điện thoại OTP.
+
+================================================
+
+3. EMAIL VERIFICATION
+
+Xác minh email.
+
+================================================
+
+4. ADDRESS VERIFICATION
+
+Người dùng tải lên:
+
+- Hóa đơn điện nước
+- Sao kê ngân hàng
+- Giấy tờ địa chỉ
+
+================================================
+
+5. FACE VERIFICATION
+
+Upload:
+
+- Ảnh chân dung
+- Selfie xác thực
+
+So khớp khuôn mặt.
+
+================================================
+
+6. TRUST SCORE
+
+Mỗi người dùng có điểm:
+
+0 - 1000
+
+Yếu tố tính điểm:
+
+- Số giao dịch thành công
+- Tỷ lệ hoàn thành
+- Số năm tham gia
+- Tỷ lệ tranh chấp
+- Mức độ xác minh
+
+================================================
+
+7. USER LEVELS
+
+Cấp độ:
+
+- Bronze
+- Silver
+- Gold
+- Platinum
+- Diamond
+
+================================================
+
+8. VERIFIED BADGES
+
+Hiển thị huy hiệu:
+
+✓ CCCD Verified
+
+✓ Phone Verified
+
+✓ Address Verified
+
+✓ Premium Seller
+
+✓ Top Seller
+
+================================================
+
+9. SELLER PROFILE
+
+Hiển thị:
+
+- Ngày tham gia
+- Điểm uy tín
+- Tổng giao dịch
+- Tỷ lệ thành công
+- Đánh giá trung bình
+
+================================================
+
+10. BUYER PROFILE
+
+Hiển thị:
+
+- Tổng đơn mua
+- Tỷ lệ nhận hàng
+- Tỷ lệ hoàn tiền
+
+================================================
+
+11. REPUTATION HISTORY
+
+Lịch sử:
+
+- Giao dịch
+- Đánh giá
+- Tranh chấp
+- Hoàn tiền
+
+================================================
+
+12. RISK SCORE
+
+Hệ thống tính:
+
+- Low Risk
+- Medium Risk
+- High Risk
+
+================================================
+
+13. TRUST DASHBOARD
+
+Hiển thị:
+
+- Trust Score
+- Reputation
+- Badges
+- Analytics
+
+================================================
+
+14. LEADERBOARD
+
+Top Seller
+
+Top Buyer
+
+Top Trusted Users
+
+================================================
+
+15. ADMIN TRUST CENTER
+
+Admin có thể:
+
+- Xem hồ sơ xác minh
+- Duyệt CCCD
+- Duyệt địa chỉ
+- Duyệt khuôn mặt
+- Khóa tài khoản
+
+================================================
+
+16. UI
+
+Phong cách:
+
+Shopee Mall
+Lazada Mall
+eBay Verified Seller
+
+Responsive
+
+Dark Mode
+
+================================================
+
+THÊM MENU MỚI
+
+"Trust Center"
+
+Không ảnh hưởng:
+
+- Marketplace
+- Logistics
+- Escrow
+- Freelance
+- Wallet
+- Admin
