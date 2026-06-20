@@ -1,0 +1,206 @@
+Xây dựng PHASE 11: SAFEPASS WAREHOUSE NETWORK
+
+Mục tiêu:
+
+Tạo hệ thống kho trung chuyển và ký gửi hàng hóa cho SafePass.
+
+=================================================
+
+TẠO MODULE MỚI
+
+WAREHOUSE NETWORK
+
+=================================================
+
+1. WAREHOUSE SYSTEM
+
+Tạo hệ thống kho.
+
+Thông tin:
+
+- Mã kho
+- Tên kho
+- Địa chỉ
+- Thành phố
+- Sức chứa
+- Trạng thái
+
+=================================================
+
+2. WAREHOUSE LOCATIONS
+
+Hỗ trợ nhiều kho.
+
+Ví dụ:
+
+- Hồ Chí Minh
+- Hà Nội
+- Đà Nẵng
+- Cần Thơ
+
+=================================================
+
+3. INVENTORY MANAGEMENT
+
+Quản lý hàng tồn kho.
+
+Hiển thị:
+
+- Mã sản phẩm
+- Chủ sở hữu
+- Vị trí lưu kho
+- Ngày nhập kho
+- Trạng thái
+
+=================================================
+
+4. CONSIGNMENT SYSTEM
+
+Người bán gửi hàng vào kho.
+
+SafePass lưu giữ hàng.
+
+Người bán không cần tự giao.
+
+=================================================
+
+5. WAREHOUSE RECEIVING
+
+Khi hàng đến kho:
+
+- Kiểm tra
+- Chụp ảnh
+- Cân trọng lượng
+- Ghi nhận tình trạng
+
+=================================================
+
+6. STORAGE TRACKING
+
+Theo dõi:
+
+- Ngày nhập kho
+- Thời gian lưu kho
+- Chi phí lưu kho
+
+=================================================
+
+7. WAREHOUSE TRANSFER
+
+Chuyển hàng giữa các kho.
+
+Ví dụ:
+
+Kho HCM
+→
+Kho Hà Nội
+
+=================================================
+
+8. PICK & PACK SYSTEM
+
+Khi có đơn:
+
+- Lấy hàng
+- Đóng gói
+- In vận đơn
+
+=================================================
+
+9. SHIPPING INTEGRATION
+
+Kết nối với Logistics Hub.
+
+Tự động tạo đơn vận chuyển.
+
+=================================================
+
+10. INVENTORY DASHBOARD
+
+Hiển thị:
+
+- Tổng hàng trong kho
+- Hàng đã bán
+- Hàng chờ giao
+- Hàng tồn
+
+=================================================
+
+11. STORAGE FEES
+
+Tính phí:
+
+- Theo ngày
+- Theo tuần
+- Theo tháng
+
+=================================================
+
+12. WAREHOUSE MAP
+
+Sơ đồ kho:
+
+- Khu vực
+- Kệ hàng
+- Vị trí sản phẩm
+
+=================================================
+
+13. PRODUCT RESERVATION
+
+Giữ hàng cho giao dịch đang diễn ra.
+
+Ngăn bán trùng.
+
+=================================================
+
+14. ADMIN WAREHOUSE CENTER
+
+Admin có thể:
+
+- Tạo kho
+- Chỉnh sửa kho
+- Chuyển kho
+- Quản lý tồn kho
+- Quản lý phí
+
+=================================================
+
+15. WAREHOUSE ANALYTICS
+
+Hiển thị:
+
+- Công suất kho
+- Doanh thu lưu kho
+- Tỷ lệ luân chuyển hàng
+- Top danh mục
+
+=================================================
+
+16. UI
+
+Phong cách:
+
+Amazon Fulfillment
+Shopee Warehouse
+Lazada Logistics
+
+Responsive
+
+Dark Mode
+
+=================================================
+
+THÊM MENU MỚI
+
+"Warehouse"
+
+Không ảnh hưởng:
+
+- Marketplace
+- Logistics
+- Trust Center
+- Inspection Center
+- Escrow
+- Wallet
+- Admin

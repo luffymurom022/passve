@@ -1174,6 +1174,7 @@ function render(){
     {id:"logistics",icon:"🚚",label:"Logistics"},
     {id:"trust_center",icon:"🛡️",label:"Trust Center"},
     {id:"inspection",icon:"🔬",label:"Inspection"},
+    {id:"warehouse",icon:"🏭",label:"Warehouse"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1202,6 +1203,8 @@ function render(){
           ?"window.location.href='/trust'"
           :p.id==="inspection"
           ?"window.location.href='/inspection'"
+          :p.id==="warehouse"
+          ?"window.location.href='/warehouse'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

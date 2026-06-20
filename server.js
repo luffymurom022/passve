@@ -6703,6 +6703,285 @@ app.get('/api/admin/inspection/dashboard', adminAuth, async (req, res) => {
   res.json({ total, completed, revenue, verified, passRate, byStatus });
 });
 
+// ══════════════════════════════════════════════════════════
+// PHASE 11 — WAREHOUSE NETWORK
+// ══════════════════════════════════════════════════════════
+
+// ── SERVE warehouse.html ──
+app.get('/warehouse', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'warehouse.html'));
+});
+
+// ── GET /api/warehouse/list — public warehouse list ──
+app.get('/api/warehouse/list', async (req, res) => {
+  const { data, error } = await supabase.from('warehouses').select('*').order('city');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ warehouses: data || [] });
+});
+
+// ── GET /api/warehouse/fees — public storage fee list ──
+app.get('/api/warehouse/fees', async (req, res) => {
+  const { data, error } = await supabase.from('warehouse_storage_fees').select('*').order('fee_per_day');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ fees: data || [] });
+});
+
+// ── POST /api/warehouse/consign — user creates a consignment ──
+app.post('/api/warehouse/consign', auth, async (req, res) => {
+  const { product_name, category, quantity, size_category, weight_kg, condition, description, warehouse_id } = req.body;
+  if (!product_name || !size_category || !warehouse_id) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+
+  const { data: feeRow } = await supabase.from('warehouse_storage_fees').select('fee_per_day').eq('size_category', size_category).single();
+
+  const { data, error } = await supabase.from('warehouse_inventory').insert({
+    owner_id: req.user.id,
+    warehouse_id,
+    product_name: sanitize(product_name),
+    category: category || null,
+    quantity: parseInt(quantity) || 1,
+    size_category,
+    weight_kg: weight_kg ? parseFloat(weight_kg) : null,
+    condition: condition || 'good',
+    description: sanitize(description || ''),
+    status: 'pending_arrival'
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Create initial billing record
+  if (feeRow) {
+    await supabase.from('warehouse_billing').insert({
+      inventory_id: data.id,
+      owner_id: req.user.id,
+      billing_period: 'daily',
+      fee_per_unit: feeRow.fee_per_day,
+      days_stored: 0,
+      total_fee: 0,
+      period_start: new Date().toISOString()
+    });
+  }
+
+  res.json({ item: data });
+});
+
+// ── GET /api/warehouse/my-inventory ──
+app.get('/api/warehouse/my-inventory', auth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('warehouse_inventory')
+    .select('*')
+    .eq('owner_id', req.user.id)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ inventory: data || [] });
+});
+
+// ── POST /api/warehouse/pickpack — user requests pick & pack ──
+app.post('/api/warehouse/pickpack', auth, async (req, res) => {
+  const { inventory_id } = req.body;
+  if (!inventory_id) return res.status(400).json({ error: 'Thiếu inventory_id' });
+
+  const { data: item } = await supabase.from('warehouse_inventory').select('owner_id,status,warehouse_id').eq('id', inventory_id).single();
+  if (!item) return res.status(404).json({ error: 'Không tìm thấy mặt hàng' });
+  if (item.owner_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['stored','received','inspected'].includes(item.status)) return res.status(400).json({ error: 'Hàng chưa sẵn sàng đóng gói' });
+
+  const { data, error } = await supabase.from('warehouse_pickpack').insert({
+    inventory_id,
+    requested_by: req.user.id,
+    status: 'pending'
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  await supabase.from('warehouse_inventory').update({ status: 'picked' }).eq('id', inventory_id);
+  res.json({ pickpack: data });
+});
+
+// ── POST /api/warehouse/transfer — user requests warehouse transfer ──
+app.post('/api/warehouse/transfer', auth, async (req, res) => {
+  const { inventory_id, to_warehouse_id } = req.body;
+  if (!inventory_id || !to_warehouse_id) return res.status(400).json({ error: 'Thiếu thông tin' });
+
+  const { data: item } = await supabase.from('warehouse_inventory').select('owner_id,warehouse_id,status').eq('id', inventory_id).single();
+  if (!item) return res.status(404).json({ error: 'Không tìm thấy mặt hàng' });
+  if (item.owner_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (item.warehouse_id === to_warehouse_id) return res.status(400).json({ error: 'Kho đích trùng kho hiện tại' });
+
+  const { data, error } = await supabase.from('warehouse_transfers').insert({
+    inventory_id,
+    from_warehouse_id: item.warehouse_id,
+    to_warehouse_id,
+    initiated_by: req.user.id,
+    status: 'pending'
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ transfer: data });
+});
+
+// ── ADMIN: GET /api/admin/warehouse/dashboard ──
+app.get('/api/admin/warehouse/dashboard', adminAuth, async (req, res) => {
+  const { data: inv } = await supabase.from('warehouse_inventory').select('status,size_category');
+  const { data: billing } = await supabase.from('warehouse_billing').select('total_fee,paid');
+
+  const totalItems = (inv||[]).length;
+  const stored = (inv||[]).filter(i => i.status === 'stored').length;
+  const pending = (inv||[]).filter(i => i.status === 'pending_arrival').length;
+  const dispatched = (inv||[]).filter(i => i.status === 'dispatched').length;
+  const totalRevenue = (billing||[]).reduce((s, b) => s + (b.total_fee||0), 0);
+
+  const byCategory = {};
+  (inv||[]).forEach(i => { byCategory[i.size_category] = (byCategory[i.size_category]||0) + 1; });
+
+  res.json({ totalItems, stored, pending, dispatched, totalRevenue, byCategory });
+});
+
+// ── ADMIN: GET /api/admin/warehouse/inventory ──
+app.get('/api/admin/warehouse/inventory', adminAuth, async (req, res) => {
+  const { status, warehouse_id } = req.query;
+  let q = supabase
+    .from('warehouse_inventory')
+    .select('*, users!warehouse_inventory_owner_id_fkey(id,name,phone)')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (status && status !== 'all') q = q.eq('status', status);
+  if (warehouse_id) q = q.eq('warehouse_id', warehouse_id);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ inventory: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/warehouse/inventory/:id/status ──
+app.post('/api/admin/warehouse/inventory/:id/status', adminAuth, async (req, res) => {
+  const { status, shelf_location, notes } = req.body;
+  const validStatuses = ['pending_arrival','received','inspected','stored','reserved','picked','dispatched','returned','lost'];
+  if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+
+  const update = { status, updated_at: new Date().toISOString() };
+  if (shelf_location) update.shelf_location = shelf_location;
+  if (notes) update.notes = notes;
+  if (status === 'received') update.arrived_at = new Date().toISOString();
+  if (status === 'stored') update.stored_at = new Date().toISOString();
+  if (status === 'dispatched') update.dispatched_at = new Date().toISOString();
+
+  const { error } = await supabase.from('warehouse_inventory').update(update).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Update warehouse used_slots when stored or dispatched
+  if (status === 'stored') {
+    const { data: item } = await supabase.from('warehouse_inventory').select('warehouse_id').eq('id', req.params.id).single();
+    if (item?.warehouse_id) {
+      await supabase.rpc('increment_warehouse_slots', { wh_id: item.warehouse_id, delta: 1 }).catch(() => {});
+    }
+  }
+
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/warehouse/create ──
+app.post('/api/admin/warehouse/create', adminAuth, async (req, res) => {
+  const { code, name, address, city, capacity, manager_name } = req.body;
+  if (!code || !name || !address || !city) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+
+  const { data, error } = await supabase.from('warehouses').insert({
+    code: code.toUpperCase(),
+    name: sanitize(name),
+    address: sanitize(address),
+    city: sanitize(city),
+    capacity: parseInt(capacity) || 1000,
+    manager_name: manager_name ? sanitize(manager_name) : null,
+    status: 'active'
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ warehouse: data });
+});
+
+// ── ADMIN: PUT /api/admin/warehouse/:id ── update warehouse
+app.put('/api/admin/warehouse/:id', adminAuth, async (req, res) => {
+  const { name, address, city, capacity, status, manager_name } = req.body;
+  const update = { updated_at: new Date().toISOString() };
+  if (name) update.name = sanitize(name);
+  if (address) update.address = sanitize(address);
+  if (city) update.city = sanitize(city);
+  if (capacity) update.capacity = parseInt(capacity);
+  if (status) update.status = status;
+  if (manager_name !== undefined) update.manager_name = manager_name ? sanitize(manager_name) : null;
+
+  const { error } = await supabase.from('warehouses').update(update).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/warehouse/transfers ──
+app.get('/api/admin/warehouse/transfers', adminAuth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('warehouse_transfers')
+    .select('*, warehouse_inventory(product_name), from_wh:from_warehouse_id(name), to_wh:to_warehouse_id(name)')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ transfers: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/warehouse/transfers/:id/complete ──
+app.post('/api/admin/warehouse/transfers/:id/complete', adminAuth, async (req, res) => {
+  const { data: transfer } = await supabase.from('warehouse_transfers').select('inventory_id,to_warehouse_id').eq('id', req.params.id).single();
+  if (!transfer) return res.status(404).json({ error: 'Không tìm thấy' });
+
+  await supabase.from('warehouse_transfers').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', req.params.id);
+  await supabase.from('warehouse_inventory').update({ warehouse_id: transfer.to_warehouse_id, shelf_location: null }).eq('id', transfer.inventory_id);
+
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/warehouse/pickpack ──
+app.get('/api/admin/warehouse/pickpack', adminAuth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('warehouse_pickpack')
+    .select('*, warehouse_inventory(product_name,size_category,warehouse_id)')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ orders: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/warehouse/pickpack/:id/status ──
+app.post('/api/admin/warehouse/pickpack/:id/status', adminAuth, async (req, res) => {
+  const { status, tracking_code, carrier } = req.body;
+  const valid = ['pending','picking','packing','ready','dispatched','cancelled'];
+  if (!valid.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+
+  const update = { status };
+  if (tracking_code) update.tracking_code = tracking_code;
+  if (carrier) update.carrier = carrier;
+  if (status === 'dispatched') {
+    update.dispatched_at = new Date().toISOString();
+    const { data: pp } = await supabase.from('warehouse_pickpack').select('inventory_id').eq('id', req.params.id).single();
+    if (pp?.inventory_id) {
+      await supabase.from('warehouse_inventory').update({ status: 'dispatched', dispatched_at: new Date().toISOString() }).eq('id', pp.inventory_id);
+    }
+  }
+
+  const { error } = await supabase.from('warehouse_pickpack').update(update).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: PUT /api/admin/warehouse/fees/:size_category ──
+app.put('/api/admin/warehouse/fees/:size_category', adminAuth, async (req, res) => {
+  const { fee_per_day, fee_per_week, fee_per_month } = req.body;
+  const update = {};
+  if (fee_per_day !== undefined) update.fee_per_day = parseInt(fee_per_day);
+  if (fee_per_week !== undefined) update.fee_per_week = parseInt(fee_per_week);
+  if (fee_per_month !== undefined) update.fee_per_month = parseInt(fee_per_month);
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Không có dữ liệu cập nhật' });
+
+  const { error } = await supabase.from('warehouse_storage_fees').update(update).eq('size_category', req.params.size_category);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
