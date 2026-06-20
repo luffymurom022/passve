@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafePass — Inspection Center</title>
+<style>
+:root{
+  --bg:#07090f;--bg2:#0d1117;--bg3:#141921;--card:#111720;--card2:#161e2a;
+  --border:#1e2a3a;--border2:#243042;
+  --brand:#3d8ef8;--brandL:rgba(61,142,248,.08);--brandM:rgba(61,142,248,.18);
+  --ok:#34d89e;--okBg:rgba(52,216,158,.08);
+  --warn:#f59e0b;--warnBg:rgba(245,158,11,.08);
+  --red:#f0566a;--redBg:rgba(240,86,106,.08);
+  --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);
+  --cyan:#00e5ff;--cyanBg:rgba(0,229,255,.07);
+  --gold:#fbbf24;--goldBg:rgba(251,191,36,.08);
+  --sub:#8892a4;--hint:#4a5568;--txt:#e2e8f0;
+  --glow:0 0 20px rgba(61,142,248,.25);
+  --radius:14px;--radius-sm:9px;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;}
+button{cursor:pointer;font-family:var(--font);}
+input,select,textarea{font-family:var(--font);}
+a{color:var(--brand);text-decoration:none;}
+
+.app{max-width:1100px;margin:0 auto;padding:0 16px 80px;}
+
+/* HEADER */
+.header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,9,15,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo-txt{font-size:18px;font-weight:800;color:var(--txt);}
+.logo-txt span{color:var(--brand);}
+.back-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--sub);font-size:13px;font-weight:600;transition:all .2s;}
+.back-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brandL);}
+.spacer{flex:1;}
+.user-chip{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;background:var(--card);border:1px solid var(--border);font-size:13px;font-weight:600;}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+
+/* TABS */
+.tabs{display:flex;gap:4px;padding:16px 0 4px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:9px 18px;border-radius:var(--radius-sm);border:1px solid transparent;background:transparent;color:var(--sub);font-size:13px;font-weight:600;white-space:nowrap;transition:all .2s;}
+.tab:hover{color:var(--txt);background:var(--card);}
+.tab.active{background:var(--brandM);border-color:rgba(61,142,248,.3);color:var(--brand);}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card+.card,.card+.section,.section+.card{margin-top:12px;}
+.section{margin-top:16px;}
+.card-title{font-size:13px;font-weight:700;color:var(--sub);margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* GRID */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:680px){.grid2,.grid3,.grid4{grid-template-columns:1fr 1fr;}}
+@media(max-width:420px){.grid3,.grid4{grid-template-columns:1fr;}}
+
+/* STAT BOX */
+.stat-box{padding:16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);text-align:center;}
+.stat-box .s-val{font-size:22px;font-weight:900;font-family:var(--mono);}
+.stat-box .s-lbl{font-size:11px;color:var(--sub);margin-top:3px;font-weight:600;}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:none;transition:all .2s;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{background:#2d7de8;box-shadow:var(--glow);}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--sub);}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand);}
+.btn-danger{background:transparent;border:1px solid rgba(240,86,106,.35);color:var(--red);}
+.btn-danger:hover{background:var(--redBg);}
+.btn-ok{background:transparent;border:1px solid rgba(52,216,158,.35);color:var(--ok);}
+.btn-ok:hover{background:var(--okBg);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-xs{padding:4px 9px;font-size:11px;}
+
+/* FORM FIELDS */
+.field-label{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px;}
+.field-input{width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--txt);font-size:13px;transition:border-color .2s;outline:none;}
+.field-input:focus{border-color:var(--brand);}
+.field-input::placeholder{color:var(--hint);}
+textarea.field-input{resize:vertical;min-height:80px;line-height:1.6;}
+select.field-input option{background:var(--bg3);}
+
+/* CATEGORY CARDS */
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+.cat-card{
+  padding:14px 10px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--card2);text-align:center;cursor:pointer;transition:all .2s;
+}
+.cat-card:hover,.cat-card.active{border-color:var(--brand);background:var(--brandL);}
+.cat-card.active{box-shadow:var(--glow);}
+.cat-icon{font-size:26px;margin-bottom:6px;}
+.cat-name{font-size:12px;font-weight:700;}
+.cat-fee{font-size:11px;color:var(--sub);margin-top:3px;font-family:var(--mono);}
+
+/* STATUS CHIPS */
+.status-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.s-pending{background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,158,11,.2);}
+.s-received{background:var(--brandL);color:var(--brand);border:1px solid rgba(61,142,248,.2);}
+.s-inspecting{background:var(--purpleBg);color:var(--purple);border:1px solid rgba(155,135,245,.2);}
+.s-completed{background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.2);}
+.s-rejected{background:var(--redBg);color:var(--red);border:1px solid rgba(240,86,106,.2);}
+.s-cancelled{background:var(--bg3);color:var(--hint);border:1px solid var(--border);}
+
+/* REQUEST CARD */
+.req-card{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
+  padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;
+}
+.req-card:hover{border-color:var(--border2);}
+.req-card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.req-cat-icon{width:42px;height:42px;border-radius:10px;background:var(--brandM);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.req-info{flex:1;}
+.req-title{font-size:14px;font-weight:700;margin-bottom:3px;}
+.req-meta{font-size:11px;color:var(--sub);}
+.req-fee{font-size:14px;font-weight:800;font-family:var(--mono);color:var(--brand);}
+
+/* VERIFIED BADGE */
+.sp-verified{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:20px;font-size:12px;font-weight:800;
+  background:linear-gradient(135deg,rgba(52,216,158,.15),rgba(0,229,255,.1));
+  border:1px solid rgba(52,216,158,.35);color:var(--ok);
+  letter-spacing:.3px;
+}
+.sp-verified::before{content:'🛡️';}
+
+/* SCORE DISPLAY */
+.score-display{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:28px;font-weight:900;font-family:var(--mono);
+}
+.score-sub{font-size:14px;color:var(--hint);font-family:var(--mono);}
+
+/* PHOTO GRID */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}
+.photo-thumb{
+  aspect-ratio:1;border-radius:8px;object-fit:cover;
+  border:1px solid var(--border);cursor:pointer;transition:transform .15s;width:100%;
+}
+.photo-thumb:hover{transform:scale(1.04);}
+
+/* CHECKLIST */
+.checklist-item{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--card2);margin-bottom:6px;
+}
+.checklist-item .ci-icon{font-size:16px;flex-shrink:0;}
+.checklist-item .ci-label{flex:1;font-size:13px;font-weight:600;}
+.checklist-item .ci-val{font-size:12px;font-weight:700;}
+.ci-pass{color:var(--ok);}
+.ci-fail{color:var(--red);}
+.ci-na{color:var(--hint);}
+
+/* WORKFLOW STEPS */
+.steps{display:flex;gap:0;margin:20px 0;overflow-x:auto;}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;min-width:80px;}
+.step+.step::before{content:'';position:absolute;left:-50%;top:18px;width:100%;height:2px;background:var(--border);z-index:0;}
+.step.done+.step::before{background:var(--ok);}
+.step-circle{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;z-index:1;position:relative;}
+.step.done .step-circle{border-color:var(--ok);background:var(--okBg);color:var(--ok);}
+.step.active .step-circle{border-color:var(--brand);background:var(--brandM);color:var(--brand);box-shadow:var(--glow);}
+.step-label{font-size:10px;color:var(--hint);margin-top:5px;text-align:center;font-weight:600;line-height:1.3;}
+.step.active .step-label{color:var(--brand);}
+.step.done .step-label{color:var(--ok);}
+
+/* UPLOAD ZONE */
+.upload-zone{
+  border:1px dashed var(--border2);border-radius:var(--radius);padding:24px;
+  text-align:center;cursor:pointer;transition:border-color .2s;position:relative;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--brand);background:var(--brandL);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-zone .uz-icon{font-size:32px;margin-bottom:8px;}
+.upload-zone .uz-txt{font-size:13px;color:var(--sub);}
+.upload-zone .uz-hint{font-size:11px;color:var(--hint);margin-top:4px;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.modal-close{margin-left:auto;background:transparent;border:none;color:var(--hint);font-size:18px;cursor:pointer;}
+
+/* LIGHTBOX */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;cursor:zoom-out;}
+.lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;object-fit:contain;}
+.lightbox-close{position:absolute;top:20px;right:24px;font-size:28px;color:#fff;cursor:pointer;background:none;border:none;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;z-index:9999;transition:transform .3s;pointer-events:none;background:var(--card);border:1px solid var(--border);color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:rgba(52,216,158,.4);color:var(--ok);}
+.toast.err{border-color:rgba(240,86,106,.4);color:var(--red);}
+.toast.info{border-color:rgba(61,142,248,.4);color:var(--brand);}
+
+/* SPINNER */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ADMIN PANEL */
+.admin-req-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);margin-bottom:8px;}
+.admin-req-info{flex:1;}
+.admin-req-info h4{font-size:13px;font-weight:700;}
+.admin-req-info p{font-size:11px;color:var(--sub);margin-top:2px;}
+.admin-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* CONDITION COLORS */
+.cond-excellent{color:var(--ok);}
+.cond-good{color:var(--brand);}
+.cond-fair{color:var(--warn);}
+.cond-poor{color:var(--red);}
+.cond-reject{color:var(--red);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .25s ease both;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 20px;color:var(--hint);}
+.empty .e-icon{font-size:42px;margin-bottom:12px;}
+.empty p{font-size:14px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HEADER -->
+  <div class="header">
+    <a href="/" class="logo">
+      <svg width="30" height="30" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="hS" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00f5ff"/><stop offset="40%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#9b87f5"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="#030912"/><path d="M32 8L52 17L52 37Q52 52 32 58Q12 52 12 37L12 17Z" fill="rgba(0,245,255,.04)" stroke="url(#hS)" stroke-width="1.5"/><text x="32" y="38" text-anchor="middle" font-size="14" font-weight="800" fill="url(#hS)" font-family="JetBrains Mono,monospace">SP</text></svg>
+      <span class="logo-txt">Safe<span>Pass</span></span>
+    </a>
+    <button class="back-btn" onclick="history.back()">← Quay lại</button>
+    <div class="spacer"></div>
+    <div class="user-chip">
+      <div class="avatar" id="userAvatar">?</div>
+      <span id="userName">Đang tải...</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div style="padding:28px 0 4px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span style="font-size:26px;">🔬</span>
+      <h1 style="font-size:24px;font-weight:900;">Inspection Center</h1>
+      <span style="padding:3px 10px;border-radius:20px;background:var(--brandM);color:var(--brand);font-size:11px;font-weight:800;border:1px solid rgba(61,142,248,.3);">BETA</span>
+    </div>
+    <p style="color:var(--sub);font-size:14px;">Kiểm định hàng hóa chuyên nghiệp trước khi giao — bảo vệ cả người mua lẫn người bán</p>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview')">🏠 Tổng quan</button>
+    <button class="tab" onclick="switchTab('request')">➕ Yêu cầu kiểm định</button>
+    <button class="tab" onclick="switchTab('my')">📋 Của tôi</button>
+    <button class="tab admin-only" onclick="switchTab('admin')" style="display:none;">⚙️ Admin</button>
+  </div>
+
+  <div id="content" style="padding-top:12px;"></div>
+</div>
+
+<!-- MODAL CONTAINER -->
+<div id="modalBg" class="modal-bg" style="display:none;" onclick="closeModal(event)">
+  <div class="modal" id="modalBox" onclick="event.stopPropagation()"></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" style="display:none;" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt=""/>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('safepass_token');
+let currentUser = null;
+let fees = [];
+let currentTab = 'overview';
+let selectedCategory = null;
+
+const VND = n => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+
+const STATUS_LABELS = {
+  pending_shipment: { label: 'Chờ nhận hàng', cls: 's-pending', icon: '📦' },
+  received:         { label: 'Đã nhận hàng',  cls: 's-received', icon: '📬' },
+  inspecting:       { label: 'Đang kiểm định',  cls: 's-inspecting', icon: '🔍' },
+  completed:        { label: 'Đã hoàn tất',     cls: 's-completed', icon: '✅' },
+  rejected_by_buyer:{ label: 'Người mua từ chối', cls: 's-rejected', icon: '❌' },
+  cancelled:        { label: 'Đã huỷ',           cls: 's-cancelled', icon: '⛔' },
+};
+
+const COND_LABELS = {
+  excellent:'Xuất sắc', good:'Tốt', fair:'Trung bình', poor:'Kém', reject:'Từ chối'
+};
+
+const STEPS = ['pending_shipment','received','inspecting','completed'];
+
+// ── INIT ──
+async function init() {
+  if (!token) { window.location.href = '/'; return; }
+  try {
+    const r = await fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) { window.location.href = '/'; return; }
+    currentUser = await r.json();
+    document.getElementById('userAvatar').textContent = (currentUser.name||'?').slice(0,2).toUpperCase();
+    document.getElementById('userName').textContent = currentUser.name || 'Người dùng';
+    if (currentUser.is_admin) document.querySelector('.admin-only').style.display = '';
+    await loadFees();
+    renderTab('overview');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function loadFees() {
+  try {
+    const r = await fetch(`${API}/api/inspection/fees`);
+    if (r.ok) fees = (await r.json()).fees || [];
+  } catch(e) {}
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabs = ['overview','request','my','admin'];
+  const idx = tabs.indexOf(tab);
+  if (idx >= 0) document.querySelectorAll('.tab')[idx]?.classList.add('active');
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  const el = document.getElementById('content');
+  if (tab === 'overview') el.innerHTML = buildOverview();
+  else if (tab === 'request') { el.innerHTML = buildRequestForm(); bindRequestForm(); }
+  else if (tab === 'my') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div></div>'; loadMyRequests(); }
+  else if (tab === 'admin') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div></div>'; loadAdminPanel(); }
+}
+
+// ── OVERVIEW TAB ──
+function buildOverview() {
+  const icons = { phone:'📱', laptop:'💻', camera:'📷', watch:'⌚', shoes:'👟', bag:'👜', collectible:'🎖️', electronics:'🔌', gadget:'🎮' };
+
+  return `<div class="fade-up">
+    <!-- HOW IT WORKS -->
+    <div class="card">
+      <div class="card-title">⚙️ Quy trình kiểm định</div>
+      <div class="steps" style="padding-bottom:8px;">
+        ${['Gửi hàng đến SafePass','SafePass nhận & kiểm tra','Tạo báo cáo chi tiết','Người mua xem & quyết định'].map((s,i) => `
+          <div class="step">
+            <div class="step-circle">${i+1}</div>
+            <div class="step-label">${s}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- FEE TABLE -->
+    <div class="card section">
+      <div class="card-title">💰 Phí kiểm định theo danh mục</div>
+      <div class="cat-grid">
+        ${fees.map(f => `
+          <div class="cat-card" onclick="switchTab('request');setTimeout(()=>selectCategory('${f.category}'),100)">
+            <div class="cat-icon">${f.icon}</div>
+            <div class="cat-name">${f.label}</div>
+            <div class="cat-fee">${VND(f.fee)}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- WHAT YOU GET -->
+    <div class="card section">
+      <div class="card-title">✅ Báo cáo kiểm định bao gồm</div>
+      <div class="grid2">
+        ${[
+          ['🔍','Kiểm tra tổng thể','Đánh giá tình trạng ngoại quan, lỗi, trầy xước'],
+          ['📸','Ảnh thực tế','Ảnh chi tiết, ảnh lỗi, ảnh phụ kiện từ nhiều góc'],
+          ['🎥','Video kiểm tra','Quay quá trình kiểm tra sản phẩm thực tế'],
+          ['🏅','Chứng nhận SafePass','Huy hiệu SAFEPASS VERIFIED nếu đạt tiêu chuẩn'],
+          ['🪪','Xác thực chính hãng','Xác nhận hàng chính hãng, đúng mô tả, đủ phụ kiện'],
+          ['📊','Điểm đánh giá','Chấm điểm chi tiết từng hạng mục (pin, màn hình, v.v.)'],
+        ].map(([icon,title,desc]) => `
+          <div style="display:flex;gap:12px;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);">
+            <span style="font-size:20px;flex-shrink:0;">${icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:3px;">${title}</div>
+              <div style="font-size:12px;color:var(--sub);line-height:1.5;">${desc}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div style="margin-top:16px;text-align:center;">
+      <button class="btn btn-primary" onclick="switchTab('request')" style="padding:12px 32px;font-size:15px;">
+        🔬 Gửi yêu cầu kiểm định
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── REQUEST FORM TAB ──
+function buildRequestForm() {
+  const feeIcons = {};
+  fees.forEach(f => feeIcons[f.category] = f.icon);
+
+  return `<div class="fade-up">
+    <div class="card">
+      <div class="card-title">📦 Chọn danh mục sản phẩm</div>
+      <div class="cat-grid" id="catGrid">
+        ${fees.map(f => `
+          <div class="cat-card" id="cat-${f.category}" onclick="selectCategory('${f.category}')">
+            <div class="cat-icon">${f.icon}</div>
+            <div class="cat-name">${f.label}</div>
+            <div class="cat-fee">${VND(f.fee)}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card section" id="formCard" style="${selectedCategory?'':'display:none;'}">
+      <div class="card-title">📝 Thông tin sản phẩm</div>
+      <div style="margin-bottom:14px;">
+        <label class="field-label">Tên sản phẩm *</label>
+        <input class="field-input" id="itemTitle" placeholder="Ví dụ: iPhone 15 Pro Max 256GB Titan Đen"/>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="field-label">Mô tả chi tiết</label>
+        <textarea class="field-input" id="itemDesc" placeholder="Tình trạng hiện tại, phụ kiện đi kèm, lý do cần kiểm định..."></textarea>
+      </div>
+      <div style="margin-bottom:20px;padding:14px;border-radius:var(--radius-sm);background:var(--brandL);border:1px solid rgba(61,142,248,.2);">
+        <div style="font-size:13px;font-weight:700;color:var(--brand);margin-bottom:4px;">📍 Địa chỉ gửi hàng:</div>
+        <div style="font-size:13px;color:var(--txt);">SafePass Inspection Center</div>
+        <div style="font-size:12px;color:var(--sub);">Ghi chú trên kiện hàng: Mã yêu cầu sẽ được cấp sau khi đặt lịch</div>
+      </div>
+      <div id="feeSummary" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--card2);">
+        <span style="font-size:14px;font-weight:600;">Phí kiểm định:</span>
+        <span class="score-display" style="font-size:20px;" id="feeDisplay">—</span>
+      </div>
+      <button class="btn btn-primary" id="submitBtn" onclick="submitRequest()" style="width:100%;padding:12px;">
+        🔬 Xác nhận đặt lịch kiểm định
+      </button>
+    </div>
+  </div>`;
+}
+
+function bindRequestForm() {
+  if (selectedCategory) selectCategory(selectedCategory);
+}
+
+function selectCategory(cat) {
+  selectedCategory = cat;
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById(`cat-${cat}`);
+  if (el) el.classList.add('active');
+  const feeRow = fees.find(f => f.category === cat);
+  const formCard = document.getElementById('formCard');
+  const feeDisplay = document.getElementById('feeDisplay');
+  if (formCard) formCard.style.display = '';
+  if (feeDisplay && feeRow) feeDisplay.textContent = VND(feeRow.fee);
+  formCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function submitRequest() {
+  const title = document.getElementById('itemTitle')?.value?.trim();
+  const desc = document.getElementById('itemDesc')?.value?.trim();
+  if (!selectedCategory) { showToast('Vui lòng chọn danh mục', 'err'); return; }
+  if (!title) { showToast('Vui lòng nhập tên sản phẩm', 'err'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Đang xử lý...';
+
+  try {
+    const r = await fetch(`${API}/api/inspection/request`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: selectedCategory, item_title: title, item_description: desc })
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showToast('Đã đặt lịch kiểm định thành công!', 'ok');
+      selectedCategory = null;
+      setTimeout(() => switchTab('my'), 800);
+    } else {
+      showToast(data.error || 'Lỗi tạo yêu cầu', 'err');
+      btn.disabled = false; btn.textContent = '🔬 Xác nhận đặt lịch kiểm định';
+    }
+  } catch(e) {
+    showToast('Lỗi kết nối', 'err');
+    btn.disabled = false; btn.textContent = '🔬 Xác nhận đặt lịch kiểm định';
+  }
+}
+
+// ── MY REQUESTS TAB ──
+async function loadMyRequests() {
+  try {
+    const r = await fetch(`${API}/api/inspection/my-requests`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    const reqs = data.requests || [];
+    const el = document.getElementById('content');
+
+    if (!reqs.length) {
+      el.innerHTML = `<div class="fade-up empty"><div class="e-icon">🔬</div><p>Bạn chưa có yêu cầu kiểm định nào.<br/><br/><button class="btn btn-primary btn-sm" onclick="switchTab('request')">➕ Đặt lịch ngay</button></p></div>`;
+      return;
+    }
+
+    el.innerHTML = `<div class="fade-up">${reqs.map(req => buildReqCard(req)).join('')}</div>`;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải dữ liệu</p></div>';
+  }
+}
+
+function buildReqCard(req) {
+  const st = STATUS_LABELS[req.status] || { label: req.status, cls: 's-cancelled', icon: '?' };
+  const feeRow = fees.find(f => f.category === req.category);
+  const icon = feeRow?.icon || '📦';
+  const report = Array.isArray(req.inspection_reports) ? req.inspection_reports[0] : req.inspection_reports;
+  const photos = req.inspection_photos || [];
+  const stepIdx = STEPS.indexOf(req.status);
+
+  return `<div class="req-card" onclick="openRequestDetail('${req.id}')">
+    <div class="req-card-header">
+      <div class="req-cat-icon">${icon}</div>
+      <div class="req-info">
+        <div class="req-title">${req.item_title}</div>
+        <div class="req-meta">${new Date(req.created_at).toLocaleDateString('vi-VN')} · ${feeRow?.label || req.category}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="req-fee">${VND(req.fee)}</div>
+        <span class="status-chip ${st.cls}" style="margin-top:4px;">${st.icon} ${st.label}</span>
+      </div>
+    </div>
+    <!-- Progress -->
+    <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+      ${STEPS.map((s,i) => `<div style="flex:1;height:4px;border-radius:2px;background:${i<=stepIdx&&req.status!=='rejected_by_buyer'&&req.status!=='cancelled'?'var(--ok)':'var(--border)'};"></div>`).join('')}
+    </div>
+    ${report ? `<div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+      ${report.safepass_verified ? '<span class="sp-verified">SAFEPASS VERIFIED</span>' : ''}
+      <span style="font-size:12px;color:var(--sub);">Điểm: <strong style="color:var(--txt);font-family:var(--mono);">${report.overall_score}/10</strong></span>
+      <span style="font-size:12px;color:var(--sub);">Tình trạng: <strong class="cond-${report.overall_condition}">${COND_LABELS[report.overall_condition]||report.overall_condition}</strong></span>
+      ${photos.length ? `<span style="font-size:12px;color:var(--sub);">📸 ${photos.length} ảnh</span>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+
+async function openRequestDetail(id) {
+  try {
+    const r = await fetch(`${API}/api/inspection/requests/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) { showToast('Không tìm thấy yêu cầu', 'err'); return; }
+    const req = await r.json();
+    showRequestModal(req);
+  } catch(e) { showToast('Lỗi tải chi tiết', 'err'); }
+}
+
+function showRequestModal(req) {
+  const st = STATUS_LABELS[req.status] || { label: req.status, cls: 's-cancelled', icon: '?' };
+  const feeRow = fees.find(f => f.category === req.category);
+  const icon = feeRow?.icon || '📦';
+  const report = Array.isArray(req.inspection_reports) ? req.inspection_reports[0] : req.inspection_reports;
+  const photos = req.inspection_photos || [];
+  const stepIdx = STEPS.indexOf(req.status);
+
+  const checklistHtml = report ? `
+    <div style="margin-top:16px;">
+      <div class="card-title">✅ Kết quả kiểm tra</div>
+      ${[
+        ['is_authentic', '🪪', 'Hàng chính hãng'],
+        ['matches_description', '📋', 'Đúng mô tả'],
+        ['accessories_complete', '📦', 'Đủ phụ kiện'],
+        ['no_major_defects', '🔍', 'Không lỗi nghiêm trọng'],
+      ].map(([key,ico,lbl]) => `
+        <div class="checklist-item">
+          <div class="ci-icon">${ico}</div>
+          <div class="ci-label">${lbl}</div>
+          <div class="ci-val ${report[key] ? 'ci-pass' : 'ci-fail'}">${report[key] ? '✓ Đạt' : '✗ Không đạt'}</div>
+        </div>`).join('')}
+      ${report.checklist && Object.keys(report.checklist).length ? `
+        <div style="margin-top:10px;">
+          ${Object.entries(report.checklist).map(([k,v]) => `
+            <div class="checklist-item">
+              <div class="ci-icon">🔧</div>
+              <div class="ci-label">${k}</div>
+              <div class="ci-val">${v}</div>
+            </div>`).join('')}
+        </div>` : ''}
+      ${report.inspector_notes ? `<div style="margin-top:10px;padding:12px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);font-size:12px;color:var(--sub);line-height:1.6;">📝 ${report.inspector_notes}</div>` : ''}
+    </div>` : '';
+
+  const photosHtml = photos.length ? `
+    <div style="margin-top:16px;">
+      <div class="card-title">📸 Hình ảnh kiểm định</div>
+      <div class="photo-grid">
+        ${photos.map(p => `<img class="photo-thumb" src="${p.photo_url}" onclick="openLightbox('${p.photo_url}')" title="${p.caption||p.photo_type}"/>`).join('')}
+      </div>
+    </div>` : '';
+
+  const videoHtml = report?.video_url ? `
+    <div style="margin-top:16px;">
+      <div class="card-title">🎥 Video kiểm định</div>
+      <video src="${report.video_url}" controls style="width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);max-height:280px;"></video>
+    </div>` : '';
+
+  const actionsHtml = req.status === 'completed' ? `
+    <div style="margin-top:16px;display:flex;gap:8px;">
+      <button class="btn btn-ok btn-sm" onclick="acceptResult('${req.id}')">✓ Chấp nhận kết quả</button>
+      <button class="btn btn-danger btn-sm" onclick="rejectResult('${req.id}')">✗ Từ chối</button>
+    </div>` : '';
+
+  openModal(`
+    <div class="modal-title">
+      ${icon} Chi tiết kiểm định
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <!-- Status & Steps -->
+    <div style="margin-bottom:14px;">
+      <span class="status-chip ${st.cls}">${st.icon} ${st.label}</span>
+      ${req.tracking_code ? `<span style="margin-left:8px;font-size:12px;color:var(--sub);">Mã theo dõi: <strong style="font-family:var(--mono);">${req.tracking_code}</strong></span>` : ''}
+    </div>
+    <div style="display:flex;gap:3px;margin-bottom:16px;">
+      ${STEPS.map((s,i) => `<div style="flex:1;height:4px;border-radius:2px;background:${i<=stepIdx&&req.status!=='rejected_by_buyer'&&req.status!=='cancelled'?'var(--ok)':'var(--border)'};"></div>`).join('')}
+    </div>
+    <!-- Info -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;">
+      <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);">
+        <div style="font-size:10px;color:var(--hint);font-weight:700;margin-bottom:3px;">DANH MỤC</div>
+        <div style="font-size:13px;font-weight:700;">${icon} ${feeRow?.label||req.category}</div>
+      </div>
+      <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);">
+        <div style="font-size:10px;color:var(--hint);font-weight:700;margin-bottom:3px;">PHÍ KIỂM ĐỊNH</div>
+        <div style="font-size:13px;font-weight:700;color:var(--brand);font-family:var(--mono);">${VND(req.fee)}</div>
+      </div>
+    </div>
+    <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--hint);font-weight:700;margin-bottom:3px;">SẢN PHẨM</div>
+      <div style="font-size:14px;font-weight:700;">${req.item_title}</div>
+      ${req.item_description ? `<div style="font-size:12px;color:var(--sub);margin-top:3px;line-height:1.5;">${req.item_description}</div>` : ''}
+    </div>
+    <!-- SafePass Verified badge -->
+    ${report?.safepass_verified ? `<div style="text-align:center;margin:12px 0;"><span class="sp-verified" style="font-size:14px;padding:8px 20px;">SAFEPASS VERIFIED</span></div>` : ''}
+    <!-- Score -->
+    ${report ? `<div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:var(--radius-sm);background:var(--card2);border:1px solid var(--border2);margin-bottom:4px;">
+      <div>
+        <div style="font-size:10px;color:var(--hint);font-weight:700;">ĐIỂM TỔNG QUAN</div>
+        <div class="score-display">${report.overall_score}<span class="score-sub">/10</span></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--hint);font-weight:700;">TÌNH TRẠNG</div>
+        <div style="font-size:16px;font-weight:800;" class="cond-${report.overall_condition}">${COND_LABELS[report.overall_condition]||report.overall_condition}</div>
+      </div>
+    </div>` : ''}
+    ${checklistHtml}${photosHtml}${videoHtml}${actionsHtml}
+  `);
+}
+
+async function acceptResult(id) {
+  await fetch(`${API}/api/inspection/requests/${id}/accept`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+  showToast('Đã chấp nhận kết quả kiểm định', 'ok');
+  closeModal();
+  switchTab('my');
+}
+
+async function rejectResult(id) {
+  if (!confirm('Từ chối kết quả kiểm định này?')) return;
+  await fetch(`${API}/api/inspection/requests/${id}/reject`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+  showToast('Đã từ chối kết quả', 'info');
+  closeModal();
+  switchTab('my');
+}
+
+// ── ADMIN PANEL ──
+async function loadAdminPanel() {
+  try {
+    const [dashR, reqR] = await Promise.all([
+      fetch(`${API}/api/admin/inspection/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API}/api/admin/inspection/requests`, { headers: { Authorization: `Bearer ${token}` } })
+    ]);
+    const dash = dashR.ok ? await dashR.json() : {};
+    const reqs = reqR.ok ? (await reqR.json()).requests || [] : [];
+
+    document.getElementById('content').innerHTML = `<div class="fade-up">
+      <!-- Stats -->
+      <div class="grid4">
+        <div class="stat-box"><div class="s-val" style="color:var(--brand);">${dash.total||0}</div><div class="s-lbl">Tổng yêu cầu</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--ok);">${dash.completed||0}</div><div class="s-lbl">Đã hoàn tất</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--gold);">${dash.passRate||0}%</div><div class="s-lbl">Tỷ lệ đạt</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--purple);">${VND(dash.revenue||0)}</div><div class="s-lbl">Doanh thu</div></div>
+      </div>
+
+      <!-- Filter -->
+      <div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;">
+        ${['all','pending_shipment','received','inspecting','completed'].map(s => {
+          const st = STATUS_LABELS[s] || { label: 'Tất cả', icon: '📋' };
+          const lbl = s === 'all' ? '📋 Tất cả' : `${st.icon} ${st.label}`;
+          return `<button class="btn btn-ghost btn-sm" onclick="filterAdminReqs('${s}')">${lbl}</button>`;
+        }).join('')}
+      </div>
+
+      <!-- Requests list -->
+      <div id="adminReqList">
+        ${reqs.length === 0 ? '<div class="empty"><div class="e-icon">📭</div><p>Không có yêu cầu nào</p></div>' :
+          reqs.map(req => buildAdminReqRow(req)).join('')}
+      </div>
+    </div>`;
+
+    window._allAdminReqs = reqs;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải admin panel</p></div>';
+  }
+}
+
+function filterAdminReqs(status) {
+  const reqs = (window._allAdminReqs||[]).filter(r => status === 'all' || r.status === status);
+  document.getElementById('adminReqList').innerHTML = reqs.length === 0
+    ? '<div class="empty"><div class="e-icon">📭</div><p>Không có yêu cầu</p></div>'
+    : reqs.map(req => buildAdminReqRow(req)).join('');
+}
+
+function buildAdminReqRow(req) {
+  const st = STATUS_LABELS[req.status] || { label: req.status, cls: 's-cancelled', icon: '?' };
+  const feeRow = fees.find(f => f.category === req.category);
+  const icon = feeRow?.icon || '📦';
+  const report = Array.isArray(req.inspection_reports) ? req.inspection_reports[0] : req.inspection_reports;
+  return `<div class="admin-req-row">
+    <div style="font-size:22px;">${icon}</div>
+    <div class="admin-req-info">
+      <h4>${req.item_title} <span class="status-chip ${st.cls}" style="margin-left:4px;">${st.icon} ${st.label}</span></h4>
+      <p>${req.users?.name||'?'} · ${req.users?.phone||'-'} · ${new Date(req.created_at).toLocaleDateString('vi-VN')} · ${VND(req.fee)}</p>
+      ${report ? `<p style="color:var(--ok);">Báo cáo: ${report.overall_score}/10 · ${report.safepass_verified?'✅ VERIFIED':'⚠️ Chưa đạt'}</p>` : '<p style="color:var(--warn);">Chưa có báo cáo</p>'}
+    </div>
+    <div class="admin-actions">
+      ${req.status === 'pending_shipment' ? `<button class="btn btn-ghost btn-xs" onclick="adminSetStatus('${req.id}','received')">📬 Nhận hàng</button>` : ''}
+      ${req.status === 'received' ? `<button class="btn btn-ghost btn-xs" onclick="adminSetStatus('${req.id}','inspecting')">🔍 Bắt đầu KĐ</button>` : ''}
+      ${['received','inspecting'].includes(req.status) ? `<button class="btn btn-primary btn-xs" onclick="openReportModal('${req.id}')">📝 Tạo báo cáo</button>` : ''}
+      ${report ? `<button class="btn btn-ghost btn-xs" onclick="openReportModal('${req.id}')">✏️ Sửa báo cáo</button>` : ''}
+      <button class="btn btn-ghost btn-xs" onclick="openPhotoUploadModal('${req.id}')">📸 Upload ảnh</button>
+    </div>
+  </div>`;
+}
+
+async function adminSetStatus(id, status) {
+  try {
+    const r = await fetch(`${API}/api/admin/inspection/requests/${id}/status`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (r.ok) { showToast('Đã cập nhật trạng thái', 'ok'); loadAdminPanel(); }
+    else showToast('Lỗi cập nhật', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+function openReportModal(reqId) {
+  openModal(`
+    <div class="modal-title">📝 Tạo / Cập nhật báo cáo <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div>
+        <label class="field-label">Điểm tổng quan (0-10)</label>
+        <input class="field-input" type="number" id="rScore" min="0" max="10" value="8"/>
+      </div>
+      <div>
+        <label class="field-label">Tình trạng</label>
+        <select class="field-input" id="rCondition">
+          <option value="excellent">Xuất sắc</option>
+          <option value="good" selected>Tốt</option>
+          <option value="fair">Trung bình</option>
+          <option value="poor">Kém</option>
+          <option value="reject">Từ chối</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Kiểm tra nhanh</label>
+      ${[['is_authentic','Hàng chính hãng'],['matches_description','Đúng mô tả'],['accessories_complete','Đủ phụ kiện'],['no_major_defects','Không lỗi nghiêm trọng']].map(([k,l]) => `
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:7px;cursor:pointer;">
+          <input type="checkbox" id="r_${k}" checked style="width:16px;height:16px;accent-color:var(--brand);"/>
+          <span style="font-size:13px;font-weight:600;">${l}</span>
+        </label>`).join('')}
+    </div>
+    <div style="margin-bottom:10px;">
+      <label class="field-label">Checklist chi tiết (tên: giá trị)</label>
+      <div id="checklistRows">
+        <div class="checklist-dynamic-row" style="display:flex;gap:6px;margin-bottom:6px;">
+          <input class="field-input" placeholder="Mục (VD: Pin)" style="flex:1;"/>
+          <input class="field-input" placeholder="Giá trị (VD: 92%)" style="flex:1;"/>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-xs" onclick="addChecklistRow()">+ Thêm hạng mục</button>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Ghi chú của kiểm định viên</label>
+      <textarea class="field-input" id="rNotes" placeholder="Nhập ghi chú chi tiết..."></textarea>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label class="field-label">URL video kiểm định (tuỳ chọn)</label>
+      <input class="field-input" id="rVideo" placeholder="https://..."/>
+    </div>
+    <button class="btn btn-primary" onclick="submitReport('${reqId}')" style="width:100%;">💾 Lưu báo cáo</button>
+  `);
+}
+
+function addChecklistRow() {
+  const container = document.getElementById('checklistRows');
+  const row = document.createElement('div');
+  row.className = 'checklist-dynamic-row';
+  row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;';
+  row.innerHTML = `<input class="field-input" placeholder="Mục" style="flex:1;"/><input class="field-input" placeholder="Giá trị" style="flex:1;"/>`;
+  container.appendChild(row);
+}
+
+async function submitReport(reqId) {
+  const score = parseInt(document.getElementById('rScore')?.value || 0);
+  const condition = document.getElementById('rCondition')?.value;
+  const is_authentic = document.getElementById('r_is_authentic')?.checked;
+  const matches_description = document.getElementById('r_matches_description')?.checked;
+  const accessories_complete = document.getElementById('r_accessories_complete')?.checked;
+  const no_major_defects = document.getElementById('r_no_major_defects')?.checked;
+  const notes = document.getElementById('rNotes')?.value;
+  const video_url = document.getElementById('rVideo')?.value;
+
+  const checklist = {};
+  document.querySelectorAll('.checklist-dynamic-row').forEach(row => {
+    const [kInp, vInp] = row.querySelectorAll('input');
+    if (kInp?.value?.trim()) checklist[kInp.value.trim()] = vInp?.value?.trim() || '-';
+  });
+
+  try {
+    const r = await fetch(`${API}/api/admin/inspection/requests/${reqId}/report`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overall_score: score, overall_condition: condition, is_authentic, matches_description, accessories_complete, no_major_defects, checklist, inspector_notes: notes, video_url })
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showToast(data.safepass_verified ? '✅ Báo cáo lưu — Đạt SAFEPASS VERIFIED' : '📝 Báo cáo đã lưu', 'ok');
+      closeModal();
+      loadAdminPanel();
+    } else {
+      showToast(data.error || 'Lỗi lưu báo cáo', 'err');
+    }
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+function openPhotoUploadModal(reqId) {
+  openModal(`
+    <div class="modal-title">📸 Upload hình ảnh / video <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="margin-bottom:12px;">
+      <label class="field-label">Loại ảnh</label>
+      <select class="field-input" id="photoType">
+        <option value="overall">Tổng quan</option>
+        <option value="detail">Chi tiết</option>
+        <option value="defect">Lỗi</option>
+        <option value="accessory">Phụ kiện</option>
+      </select>
+    </div>
+    <div class="upload-zone" id="photoDropZone">
+      <input type="file" id="photoFiles" multiple accept="image/*,video/*" onchange="previewUploads(this)"/>
+      <div class="uz-icon">📂</div>
+      <div class="uz-txt">Kéo thả hoặc nhấn để chọn ảnh / video</div>
+      <div class="uz-hint">Nhiều file, tối đa 50MB mỗi file</div>
+    </div>
+    <div id="photoPreviewGrid" class="photo-grid" style="margin-top:10px;"></div>
+    <button class="btn btn-primary" id="uploadPhotosBtn" onclick="uploadPhotos('${reqId}')" style="width:100%;margin-top:14px;">
+      📤 Upload
+    </button>
+  `);
+}
+
+function previewUploads(input) {
+  const grid = document.getElementById('photoPreviewGrid');
+  grid.innerHTML = '';
+  Array.from(input.files).forEach(file => {
+    if (file.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.className = 'photo-thumb';
+      img.src = URL.createObjectURL(file);
+      grid.appendChild(img);
+    } else {
+      const d = document.createElement('div');
+      d.style.cssText = 'aspect-ratio:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;';
+      d.textContent = '🎥';
+      grid.appendChild(d);
+    }
+  });
+}
+
+async function uploadPhotos(reqId) {
+  const files = document.getElementById('photoFiles')?.files;
+  const photoType = document.getElementById('photoType')?.value || 'detail';
+  if (!files || files.length === 0) { showToast('Chưa có file nào', 'err'); return; }
+
+  const btn = document.getElementById('uploadPhotosBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang upload...';
+
+  const fd = new FormData();
+  Array.from(files).forEach(f => fd.append('photos', f));
+  fd.append('photo_type', photoType);
+
+  try {
+    const r = await fetch(`${API}/api/admin/inspection/requests/${reqId}/photos`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showToast(`Đã upload ${data.count} ảnh thành công`, 'ok');
+      closeModal();
+    } else {
+      showToast(data.error || 'Lỗi upload', 'err');
+      btn.disabled = false; btn.textContent = '📤 Upload';
+    }
+  } catch(e) {
+    showToast('Lỗi kết nối', 'err');
+    btn.disabled = false; btn.textContent = '📤 Upload';
+  }
+}
+
+// ── MODAL / LIGHTBOX HELPERS ──
+function openModal(html) {
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalBg').style.display = 'flex';
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalBg')) return;
+  document.getElementById('modalBg').style.display = 'none';
+}
+function openLightbox(url) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+
+// ── TOAST ──
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeLightbox();
+    document.getElementById('modalBg').style.display = 'none';
+  }
+});
+
+init();
+</script>
+</body>
+</html>

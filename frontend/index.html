@@ -1173,6 +1173,7 @@ function render(){
     {id:"freelance",icon:"👨‍💻",label:"Freelance"},
     {id:"logistics",icon:"🚚",label:"Logistics"},
     {id:"trust_center",icon:"🛡️",label:"Trust Center"},
+    {id:"inspection",icon:"🔬",label:"Inspection"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1199,6 +1200,8 @@ function render(){
           ?"window.location.href='/logistics'"
           :p.id==="trust_center"
           ?"window.location.href='/trust'"
+          :p.id==="inspection"
+          ?"window.location.href='/inspection'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

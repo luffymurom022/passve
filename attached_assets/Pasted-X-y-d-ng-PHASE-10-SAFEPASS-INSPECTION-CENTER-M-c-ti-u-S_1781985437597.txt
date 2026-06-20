@@ -1,0 +1,207 @@
+Xây dựng PHASE 10: SAFEPASS INSPECTION CENTER
+
+Mục tiêu:
+
+SafePass trở thành bên trung gian kiểm định hàng hóa trước khi giao cho người mua.
+
+=================================================
+
+TẠO MODULE MỚI
+
+INSPECTION CENTER
+
+=================================================
+
+1. INSPECTION REQUEST
+
+Người mua hoặc người bán có thể chọn:
+
+"Yêu cầu kiểm định"
+
+trước khi hoàn tất giao dịch.
+
+=================================================
+
+2. INSPECTION TYPES
+
+- Điện thoại
+- Laptop
+- Máy ảnh
+- Đồng hồ
+- Giày
+- Túi xách
+- Đồ sưu tầm
+- Linh kiện điện tử
+- Đồ công nghệ
+
+=================================================
+
+3. INSPECTION WORKFLOW
+
+Bước 1:
+
+Người bán gửi hàng đến trung tâm.
+
+Bước 2:
+
+Nhân viên SafePass kiểm tra.
+
+Bước 3:
+
+Tạo báo cáo.
+
+Bước 4:
+
+Người mua xem kết quả.
+
+Bước 5:
+
+Tiếp tục giao dịch hoặc từ chối.
+
+=================================================
+
+4. INSPECTION REPORT
+
+Hiển thị:
+
+- Tình trạng tổng thể
+- Hình ảnh thực tế
+- Video kiểm tra
+- Điểm đánh giá
+
+Ví dụ:
+
+Ngoại hình:
+9/10
+
+Pin:
+92%
+
+Màn hình:
+Tốt
+
+Camera:
+Tốt
+
+Loa:
+Tốt
+
+=================================================
+
+5. PHOTO EVIDENCE
+
+Upload:
+
+- Ảnh chi tiết
+- Ảnh lỗi
+- Ảnh phụ kiện
+
+=================================================
+
+6. VIDEO EVIDENCE
+
+Upload video kiểm tra sản phẩm.
+
+=================================================
+
+7. AUTHENTICITY CHECK
+
+Đánh dấu:
+
+✓ Chính hãng
+
+✓ Đúng mô tả
+
+✓ Đúng phụ kiện
+
+✓ Không phát hiện lỗi nghiêm trọng
+
+=================================================
+
+8. INSPECTION BADGE
+
+Sản phẩm đạt kiểm định nhận:
+
+SAFEPASS VERIFIED
+
+Hiển thị trên sản phẩm.
+
+=================================================
+
+9. INSPECTION FEES
+
+Cấu hình phí theo danh mục.
+
+Ví dụ:
+
+Điện thoại:
+50.000đ
+
+Laptop:
+100.000đ
+
+Đồng hồ:
+200.000đ
+
+=================================================
+
+10. INSPECTION TRACKING
+
+Trạng thái:
+
+- Chờ nhận hàng
+- Đang kiểm định
+- Đã hoàn tất
+- Đã gửi báo cáo
+
+=================================================
+
+11. INSPECTION DASHBOARD
+
+Hiển thị:
+
+- Tổng lượt kiểm định
+- Doanh thu kiểm định
+- Tỷ lệ đạt
+- Tỷ lệ từ chối
+
+=================================================
+
+12. ADMIN INSPECTION CENTER
+
+Admin có thể:
+
+- Tạo báo cáo
+- Upload hình ảnh
+- Upload video
+- Cập nhật kết quả
+- Quản lý nhân viên kiểm định
+
+=================================================
+
+13. UI
+
+Phong cách:
+
+StockX
+GOAT
+Back Market
+
+Responsive
+
+Dark Mode
+
+=================================================
+
+THÊM MENU MỚI
+
+"Inspection Center"
+
+Không ảnh hưởng:
+
+- Marketplace
+- Logistics
+- Trust Center
+- Escrow
+- Wallet
+- Admin

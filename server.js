@@ -6474,6 +6474,235 @@ app.get('/api/admin/trust/users', adminAuth, async (req, res) => {
   res.json({ users: data || [] });
 });
 
+// ══════════════════════════════════════════════════════════
+// PHASE 10 — INSPECTION CENTER
+// ══════════════════════════════════════════════════════════
+
+// ── SERVE inspection.html ──
+app.get('/inspection', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'inspection.html'));
+});
+
+// ── MULTER for inspection media ──
+const inspectionUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB (video support)
+  fileFilter: (req, file, cb) => {
+    const ok = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/');
+    if (!ok) return cb(new Error('Chỉ chấp nhận ảnh hoặc video'));
+    cb(null, true);
+  }
+});
+
+// ── Init inspection-media bucket ──
+(async () => {
+  try {
+    await supabase.storage.createBucket('inspection-media', { public: true });
+  } catch(e) { /* bucket already exists */ }
+})();
+
+// ── GET /api/inspection/fees ──
+app.get('/api/inspection/fees', async (req, res) => {
+  const { data, error } = await supabase.from('inspection_fees').select('*').order('fee');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ fees: data || [] });
+});
+
+// ── POST /api/inspection/request — create new inspection request ──
+app.post('/api/inspection/request', auth, async (req, res) => {
+  const { order_id, seller_id, category, item_title, item_description } = req.body;
+  if (!category || !item_title) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+
+  const { data: feeRow } = await supabase.from('inspection_fees').select('fee').eq('category', category).single();
+  const fee = feeRow?.fee || 50000;
+
+  const { data, error } = await supabase.from('inspection_requests').insert({
+    requester_id: req.user.id,
+    order_id: order_id || null,
+    seller_id: seller_id || null,
+    category,
+    item_title: sanitize(item_title),
+    item_description: sanitize(item_description || ''),
+    fee,
+    status: 'pending_shipment'
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ request: data });
+});
+
+// ── GET /api/inspection/my-requests ──
+app.get('/api/inspection/my-requests', auth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('inspection_requests')
+    .select('*, inspection_reports(*), inspection_photos(*)')
+    .eq('requester_id', req.user.id)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ requests: data || [] });
+});
+
+// ── GET /api/inspection/requests/:id ──
+app.get('/api/inspection/requests/:id', auth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('inspection_requests')
+    .select('*, inspection_reports(*), inspection_photos(*), users!inspection_requests_requester_id_fkey(id,name)')
+    .eq('id', req.params.id)
+    .single();
+  if (error) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (data.requester_id !== req.user.id && !req.user.is_admin) {
+    return res.status(403).json({ error: 'Không có quyền truy cập' });
+  }
+  res.json(data);
+});
+
+// ── POST /api/inspection/requests/:id/accept — buyer accepts result ──
+app.post('/api/inspection/requests/:id/accept', auth, async (req, res) => {
+  const { data } = await supabase.from('inspection_requests').select('requester_id,status').eq('id', req.params.id).single();
+  if (!data) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (data.requester_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (data.status !== 'completed') return res.status(400).json({ error: 'Chưa hoàn tất kiểm định' });
+  res.json({ success: true, message: 'Đã chấp nhận kết quả kiểm định' });
+});
+
+// ── POST /api/inspection/requests/:id/reject — buyer rejects result ──
+app.post('/api/inspection/requests/:id/reject', auth, async (req, res) => {
+  const { data } = await supabase.from('inspection_requests').select('requester_id,status').eq('id', req.params.id).single();
+  if (!data) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (data.requester_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('inspection_requests').update({ status: 'rejected_by_buyer' }).eq('id', req.params.id);
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/inspection/requests ──
+app.get('/api/admin/inspection/requests', adminAuth, async (req, res) => {
+  const { status } = req.query;
+  let q = supabase.from('inspection_requests')
+    .select('*, inspection_reports(*), users!inspection_requests_requester_id_fkey(id,name,phone)')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (status && status !== 'all') q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ requests: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/inspection/requests/:id/status — update status ──
+app.post('/api/admin/inspection/requests/:id/status', adminAuth, async (req, res) => {
+  const { status, tracking_code, notes } = req.body;
+  const validStatuses = ['pending_shipment','received','inspecting','completed','cancelled'];
+  if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+
+  const update = { status, notes: notes || null };
+  if (status === 'received') update.received_at = new Date().toISOString();
+  if (status === 'completed') update.completed_at = new Date().toISOString();
+  if (tracking_code) update.tracking_code = tracking_code;
+  if (req.adminUser?.id) update.inspector_id = req.adminUser.id;
+
+  const { error } = await supabase.from('inspection_requests').update(update).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/inspection/requests/:id/report — create/update report ──
+app.post('/api/admin/inspection/requests/:id/report', adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { overall_score, overall_condition, is_authentic, matches_description,
+          accessories_complete, no_major_defects, checklist, inspector_notes, video_url } = req.body;
+
+  const safepass_verified = !!(is_authentic && matches_description && no_major_defects && overall_score >= 7);
+
+  const reportData = {
+    request_id: id,
+    overall_score: parseInt(overall_score) || 0,
+    overall_condition: overall_condition || 'good',
+    is_authentic: !!is_authentic,
+    matches_description: !!matches_description,
+    accessories_complete: !!accessories_complete,
+    no_major_defects: !!no_major_defects,
+    safepass_verified,
+    checklist: checklist || {},
+    inspector_notes: inspector_notes || '',
+    video_url: video_url || null,
+    updated_at: new Date().toISOString()
+  };
+
+  const { data: existing } = await supabase.from('inspection_reports').select('id').eq('request_id', id).single();
+  let error;
+  if (existing) {
+    ({ error } = await supabase.from('inspection_reports').update(reportData).eq('request_id', id));
+  } else {
+    ({ error } = await supabase.from('inspection_reports').insert(reportData));
+  }
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  await supabase.from('inspection_requests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+  res.json({ success: true, safepass_verified });
+});
+
+// ── ADMIN: POST /api/admin/inspection/requests/:id/photos — upload photos ──
+app.post('/api/admin/inspection/requests/:id/photos', adminAuth, inspectionUpload.array('photos', 20), async (req, res) => {
+  const { id } = req.params;
+  const { photo_type = 'detail' } = req.body;
+
+  if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'Chưa có file' });
+
+  const uploads = [];
+  for (const file of req.files) {
+    const ext = file.mimetype.split('/')[1];
+    const isVideo = file.mimetype.startsWith('video/');
+    const folder = isVideo ? 'videos' : 'photos';
+    const path = `${folder}/${id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    await supabase.storage.from('inspection-media').upload(path, file.buffer, { contentType: file.mimetype, upsert: false });
+    const { data: { publicUrl } } = supabase.storage.from('inspection-media').getPublicUrl(path);
+
+    if (isVideo) {
+      await supabase.from('inspection_reports').update({ video_url: publicUrl }).eq('request_id', id);
+    } else {
+      uploads.push({ request_id: id, photo_url: publicUrl, photo_type });
+    }
+  }
+
+  if (uploads.length > 0) {
+    await supabase.from('inspection_photos').insert(uploads);
+  }
+
+  res.json({ success: true, count: uploads.length });
+});
+
+// ── ADMIN: DELETE /api/admin/inspection/photos/:photoId ──
+app.delete('/api/admin/inspection/photos/:photoId', adminAuth, async (req, res) => {
+  const { error } = await supabase.from('inspection_photos').delete().eq('id', req.params.photoId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: PUT /api/admin/inspection/fees/:category — update fee ──
+app.put('/api/admin/inspection/fees/:category', adminAuth, async (req, res) => {
+  const { fee } = req.body;
+  if (!fee || fee < 0) return res.status(400).json({ error: 'Phí không hợp lệ' });
+  const { error } = await supabase.from('inspection_fees').update({ fee: parseInt(fee), updated_at: new Date().toISOString() }).eq('category', req.params.category);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/inspection/dashboard ──
+app.get('/api/admin/inspection/dashboard', adminAuth, async (req, res) => {
+  const { data: reqs } = await supabase.from('inspection_requests').select('status,fee,paid');
+  const { data: reports } = await supabase.from('inspection_reports').select('safepass_verified,overall_condition');
+
+  const total = (reqs||[]).length;
+  const completed = (reqs||[]).filter(r => r.status === 'completed').length;
+  const revenue = (reqs||[]).filter(r => r.paid).reduce((s, r) => s + (r.fee||0), 0);
+  const verified = (reports||[]).filter(r => r.safepass_verified).length;
+  const passRate = completed > 0 ? Math.round((verified / completed) * 100) : 0;
+  const byStatus = {};
+  (reqs||[]).forEach(r => { byStatus[r.status] = (byStatus[r.status]||0) + 1; });
+
+  res.json({ total, completed, revenue, verified, passRate, byStatus });
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
