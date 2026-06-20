@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafePass — Delivery Network</title>
+<style>
+:root{
+  --bg:#07090f;--bg2:#0d1117;--bg3:#141921;--card:#111720;--card2:#161e2a;
+  --border:#1e2a3a;--border2:#243042;
+  --brand:#3d8ef8;--brandL:rgba(61,142,248,.08);--brandM:rgba(61,142,248,.18);
+  --ok:#34d89e;--okBg:rgba(52,216,158,.08);
+  --warn:#f59e0b;--warnBg:rgba(245,158,11,.08);
+  --red:#f0566a;--redBg:rgba(240,86,106,.08);
+  --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);
+  --cyan:#00e5ff;--cyanBg:rgba(0,229,255,.07);
+  --gold:#fbbf24;--goldBg:rgba(251,191,36,.08);
+  --sub:#8892a4;--hint:#4a5568;--txt:#e2e8f0;
+  --glow:0 0 20px rgba(61,142,248,.25);
+  --radius:14px;--radius-sm:9px;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;}
+button{cursor:pointer;font-family:var(--font);}
+input,select,textarea{font-family:var(--font);}
+a{color:var(--brand);}
+
+.app{max-width:1100px;margin:0 auto;padding:0 16px 80px;}
+
+.header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,9,15,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo-txt{font-size:18px;font-weight:800;color:var(--txt);}
+.logo-txt span{color:var(--brand);}
+.back-btn{padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--sub);font-size:13px;font-weight:600;transition:all .2s;}
+.back-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brandL);}
+.spacer{flex:1;}
+.user-chip{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;background:var(--card);border:1px solid var(--border);font-size:13px;font-weight:600;}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+
+.tabs{display:flex;gap:4px;padding:16px 0 4px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:9px 18px;border-radius:var(--radius-sm);border:1px solid transparent;background:transparent;color:var(--sub);font-size:13px;font-weight:600;white-space:nowrap;transition:all .2s;}
+.tab:hover{color:var(--txt);background:var(--card);}
+.tab.active{background:var(--brandM);border-color:rgba(61,142,248,.3);color:var(--brand);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-title{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:680px){.grid2{grid-template-columns:1fr;}.grid3,.grid4{grid-template-columns:1fr 1fr;}}
+@media(max-width:420px){.grid4{grid-template-columns:1fr 1fr;}.grid3{grid-template-columns:1fr;}}
+
+.stat-box{padding:16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);text-align:center;}
+.stat-box .s-val{font-size:24px;font-weight:900;font-family:var(--mono);}
+.stat-box .s-lbl{font-size:11px;color:var(--sub);margin-top:3px;font-weight:600;}
+
+/* STATUS CHIPS */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.chip-ok{background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.2);}
+.chip-warn{background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,158,11,.2);}
+.chip-brand{background:var(--brandL);color:var(--brand);border:1px solid rgba(61,142,248,.2);}
+.chip-purple{background:var(--purpleBg);color:var(--purple);border:1px solid rgba(155,135,245,.2);}
+.chip-red{background:var(--redBg);color:var(--red);border:1px solid rgba(240,86,106,.2);}
+.chip-muted{background:var(--bg3);color:var(--hint);border:1px solid var(--border);}
+.chip-cyan{background:var(--cyanBg);color:var(--cyan);border:1px solid rgba(0,229,255,.2);}
+.chip-gold{background:var(--goldBg);color:var(--gold);border:1px solid rgba(251,191,36,.2);}
+
+/* DRIVER CARD */
+.driver-card{
+  background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;
+  transition:border-color .2s;
+}
+.driver-card:hover{border-color:var(--border2);}
+.driver-avatar{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--purple));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0;}
+.driver-info{flex:1;}
+.driver-name{font-size:15px;font-weight:800;margin-bottom:3px;}
+.driver-meta{font-size:12px;color:var(--sub);margin-bottom:6px;}
+
+/* STATUS DOT */
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+.dot-online{background:var(--ok);}
+.dot-offline{background:var(--hint);}
+.dot-delivering{background:var(--brand);}
+.dot-suspended{background:var(--red);}
+
+/* DELIVERY ROW */
+.del-row{
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card2);padding:14px 16px;margin-bottom:8px;cursor:pointer;
+  transition:border-color .2s;
+}
+.del-row:hover{border-color:var(--border2);}
+.del-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;}
+.del-icon{width:38px;height:38px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.del-info{flex:1;}
+.del-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.del-meta{font-size:11px;color:var(--sub);}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:20px;}
+.timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--border);}
+.tl-item{position:relative;margin-bottom:14px;}
+.tl-item::before{content:'';position:absolute;left:-16px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--border);border:2px solid var(--bg3);}
+.tl-item.done::before{background:var(--ok);border-color:var(--okBg);}
+.tl-item.active::before{background:var(--brand);border-color:var(--brandM);box-shadow:var(--glow);}
+.tl-item .tl-label{font-size:13px;font-weight:700;}
+.tl-item .tl-time{font-size:11px;color:var(--hint);margin-top:1px;}
+
+/* DRIVER APP MODE */
+.driver-app{
+  background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);
+  overflow:hidden;
+}
+.driver-app-header{
+  background:linear-gradient(135deg,#0d1f3c,#0d2240);
+  padding:16px 20px;border-bottom:1px solid var(--border);
+}
+.driver-earnings-bar{
+  display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);
+}
+.earnings-item{flex:1;text-align:center;}
+.earnings-val{font-size:18px;font-weight:900;font-family:var(--mono);color:var(--ok);}
+.earnings-lbl{font-size:10px;color:var(--hint);margin-top:2px;font-weight:600;}
+
+/* LEVEL BADGES */
+.level-driver{background:var(--bg3);color:var(--sub);border:1px solid var(--border);}
+.level-senior{background:var(--brandL);color:var(--brand);border:1px solid rgba(61,142,248,.3);}
+.level-partner{background:var(--purpleBg);color:var(--purple);border:1px solid rgba(155,135,245,.3);}
+.level-premium{background:var(--goldBg);color:var(--gold);border:1px solid rgba(251,191,36,.3);}
+
+/* MAP SIMULATION */
+.map-sim{
+  background:linear-gradient(135deg,#0a1628,#0d2240);
+  border-radius:var(--radius);border:1px solid var(--border);
+  height:200px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.map-sim::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 40%,rgba(61,142,248,.08) 0%,transparent 60%),
+             radial-gradient(circle at 70% 70%,rgba(52,216,158,.05) 0%,transparent 50%);
+}
+.map-pulse{
+  width:16px;height:16px;border-radius:50%;background:var(--brand);
+  box-shadow:0 0 0 0 rgba(61,142,248,.4);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,142,248,.4);}70%{box-shadow:0 0 0 14px rgba(61,142,248,0);}100%{box-shadow:0 0 0 0 rgba(61,142,248,0);}}
+
+/* RATING STARS */
+.stars{display:flex;gap:2px;}
+.star{font-size:14px;}
+.star.filled{color:var(--gold);}
+.star.empty{color:var(--border2);}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:none;transition:all .2s;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{background:#2d7de8;box-shadow:var(--glow);}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--sub);}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand);}
+.btn-ok{background:transparent;border:1px solid rgba(52,216,158,.35);color:var(--ok);}
+.btn-ok:hover{background:var(--okBg);}
+.btn-danger{background:transparent;border:1px solid rgba(240,86,106,.35);color:var(--red);}
+.btn-danger:hover{background:var(--redBg);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-xs{padding:4px 9px;font-size:11px;}
+
+/* FORM */
+.field-label{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px;}
+.field-input{width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--txt);font-size:13px;transition:border-color .2s;outline:none;}
+.field-input:focus{border-color:var(--brand);}
+.field-input::placeholder{color:var(--hint);}
+textarea.field-input{resize:vertical;min-height:70px;line-height:1.6;}
+select.field-input option{background:var(--bg3);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.modal-close{margin-left:auto;background:transparent;border:none;color:var(--hint);font-size:18px;cursor:pointer;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;z-index:9999;transition:transform .3s;pointer-events:none;background:var(--card);border:1px solid var(--border);color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:rgba(52,216,158,.4);color:var(--ok);}
+.toast.err{border-color:rgba(240,86,106,.4);color:var(--red);}
+.toast.info{border-color:rgba(61,142,248,.4);color:var(--brand);}
+
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{text-align:center;padding:48px 20px;color:var(--hint);}
+.empty .e-icon{font-size:40px;margin-bottom:12px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .25s ease both;}
+
+/* PROGRESS BAR */
+.progress-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;background:var(--ok);transition:width .5s;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HEADER -->
+  <div class="header">
+    <a href="/" class="logo">
+      <svg width="30" height="30" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00f5ff"/><stop offset="40%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#9b87f5"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="#030912"/><path d="M32 8L52 17L52 37Q52 52 32 58Q12 52 12 37L12 17Z" fill="rgba(0,245,255,.04)" stroke="url(#g)" stroke-width="1.5"/><text x="32" y="38" text-anchor="middle" font-size="14" font-weight="800" fill="url(#g)" font-family="JetBrains Mono,monospace">SP</text></svg>
+      <span class="logo-txt">Safe<span>Pass</span></span>
+    </a>
+    <button class="back-btn" onclick="history.back()">← Quay lại</button>
+    <div class="spacer"></div>
+    <div class="user-chip">
+      <div class="avatar" id="userAvatar">?</div>
+      <span id="userName">Đang tải...</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div style="padding:28px 0 4px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span style="font-size:26px;">🚴</span>
+      <h1 style="font-size:24px;font-weight:900;">Delivery Network</h1>
+      <span style="padding:3px 10px;border-radius:20px;background:var(--cyanBg);color:var(--cyan);font-size:11px;font-weight:800;border:1px solid rgba(0,229,255,.2);">SafePass Express</span>
+    </div>
+    <p style="color:var(--sub);font-size:14px;">Mạng lưới giao hàng riêng của SafePass — nhanh, an toàn, theo dõi thời gian thực</p>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview')">🗺️ Tổng quan</button>
+    <button class="tab" onclick="switchTab('send')">📦 Gửi hàng</button>
+    <button class="tab" onclick="switchTab('track')">📍 Theo dõi</button>
+    <button class="tab" onclick="switchTab('driver')">🏍️ Tài xế</button>
+    <button class="tab" onclick="switchTab('register')">➕ Đăng ký tài xế</button>
+    <button class="tab admin-only" onclick="switchTab('admin')" style="display:none;">⚙️ Admin</button>
+  </div>
+
+  <div id="content" style="padding-top:12px;"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modalBg" class="modal-bg" style="display:none;" onclick="closeModal(event)">
+  <div class="modal" id="modalBox" onclick="event.stopPropagation()"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('safepass_token');
+let currentUser = null;
+let myDriver = null;
+let myDeliveries = [];
+let hubs = [];
+
+const VND = n => new Intl.NumberFormat('vi-VN').format(n || 0) + 'đ';
+const fmtDate = d => d ? new Date(d).toLocaleString('vi-VN') : '—';
+const fmtDateShort = d => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+
+const DEL_STATUS = {
+  pending:     { label:'Chờ phân công',    cls:'chip-warn',   icon:'⏳' },
+  assigned:    { label:'Đã phân tài xế',   cls:'chip-brand',  icon:'👤' },
+  picking_up:  { label:'Đang đến lấy',     cls:'chip-purple', icon:'🏍️' },
+  picked:      { label:'Đã lấy hàng',      cls:'chip-cyan',   icon:'📦' },
+  delivering:  { label:'Đang giao',        cls:'chip-brand',  icon:'🚀' },
+  delivered:   { label:'Đã giao thành công', cls:'chip-ok',   icon:'✅' },
+  failed:      { label:'Giao thất bại',    cls:'chip-red',    icon:'❌' },
+  cancelled:   { label:'Đã huỷ',           cls:'chip-muted',  icon:'⛔' },
+  returned:    { label:'Đã hoàn hàng',     cls:'chip-red',    icon:'↩️' },
+};
+
+const DRV_STATUS = {
+  online:     { label:'Online',       cls:'chip-ok',   dot:'dot-online' },
+  offline:    { label:'Offline',      cls:'chip-muted',dot:'dot-offline' },
+  delivering: { label:'Đang giao',    cls:'chip-brand',dot:'dot-delivering' },
+  suspended:  { label:'Tạm khoá',     cls:'chip-red',  dot:'dot-suspended' },
+};
+
+const LEVEL_INFO = {
+  driver:  { label:'Driver',         cls:'level-driver',  icon:'🏍️', minDel:0 },
+  senior:  { label:'Senior Driver',  cls:'level-senior',  icon:'⭐', minDel:100 },
+  partner: { label:'Partner Driver', cls:'level-partner', icon:'💜', minDel:500 },
+  premium: { label:'Premium Driver', cls:'level-premium', icon:'👑', minDel:2000 },
+};
+
+const VEHICLE_ICON = { motorbike:'🏍️', car:'🚗', truck:'🚚', bicycle:'🚲' };
+
+// ── INIT ──
+async function init() {
+  if (!token) { window.location.href = '/'; return; }
+  try {
+    const r = await fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) { window.location.href = '/'; return; }
+    currentUser = await r.json();
+    document.getElementById('userAvatar').textContent = (currentUser.name||'?').slice(0,2).toUpperCase();
+    document.getElementById('userName').textContent = currentUser.name || 'Người dùng';
+    if (currentUser.is_admin) document.querySelector('.admin-only').style.display = '';
+    await Promise.all([loadHubs(), loadMyDriverProfile(), loadMyDeliveries()]);
+    renderTab('overview');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function loadHubs() {
+  try {
+    const r = await fetch(`${API}/api/delivery/hubs`);
+    if (r.ok) hubs = (await r.json()).hubs || [];
+  } catch(e) {}
+}
+
+async function loadMyDriverProfile() {
+  try {
+    const r = await fetch(`${API}/api/delivery/my-driver`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) myDriver = await r.json();
+  } catch(e) {}
+}
+
+async function loadMyDeliveries() {
+  try {
+    const r = await fetch(`${API}/api/delivery/my-orders`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) myDeliveries = (await r.json()).orders || [];
+  } catch(e) {}
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabs = ['overview','send','track','driver','register','admin'];
+  document.querySelectorAll('.tab')[tabs.indexOf(tab)]?.classList.add('active');
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  const el = document.getElementById('content');
+  if (tab === 'overview') el.innerHTML = buildOverview();
+  else if (tab === 'send') el.innerHTML = buildSendForm();
+  else if (tab === 'track') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div></div>'; renderTrack(); }
+  else if (tab === 'driver') renderDriverTab();
+  else if (tab === 'register') el.innerHTML = buildRegisterForm();
+  else if (tab === 'admin') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div></div>'; loadAdminPanel(); }
+}
+
+// ── OVERVIEW ──
+function buildOverview() {
+  const online = 0; // loaded from API dynamically
+  return `<div class="fade-up">
+    <!-- Network Stats -->
+    <div class="grid4" style="margin-bottom:12px;">
+      <div class="stat-box"><div class="s-val" style="color:var(--brand);">${hubs.length}</div><div class="s-lbl">Delivery Hubs</div></div>
+      <div class="stat-box"><div class="s-val" style="color:var(--ok);" id="onlineDriverCount">—</div><div class="s-lbl">Tài xế online</div></div>
+      <div class="stat-box"><div class="s-val" style="color:var(--warn);" id="activeDelCount">—</div><div class="s-lbl">Đơn đang giao</div></div>
+      <div class="stat-box"><div class="s-val" style="color:var(--purple);">4</div><div class="s-lbl">Thành phố</div></div>
+    </div>
+
+    <!-- Hubs -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">🏢 Mạng lưới Delivery Hub</div>
+      <div class="grid2">
+        ${hubs.map(h => `
+          <div style="padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:40px;height:40px;border-radius:9px;background:var(--brandM);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏢</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;">${h.name}</div>
+              <div style="font-size:11px;color:var(--sub);margin-top:2px;">${h.city}</div>
+              <div style="font-size:10px;color:var(--hint);margin-top:2px;font-family:var(--mono);">${h.code}</div>
+            </div>
+            <span class="chip chip-ok" style="margin-left:auto;flex-shrink:0;">Active</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Service features -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">⚡ Tính năng nổi bật</div>
+      <div class="grid3">
+        ${[
+          ['📍','Theo dõi thực tế','Biết tài xế đang ở đâu theo thời gian thực'],
+          ['🛡️','Bảo hiểm hàng','Toàn bộ đơn SafePass Express đều được bảo hiểm'],
+          ['⚡','Giao hoả tốc','Giao trong 2 giờ nội thành các thành phố lớn'],
+          ['🔒','OTP xác nhận','Xác nhận giao hàng bằng mã OTP an toàn'],
+          ['📸','Ảnh giao hàng','Tài xế chụp ảnh bằng chứng giao thành công'],
+          ['💳','COD hỗ trợ','Thu hộ tiền mặt cho đơn hàng'],
+        ].map(([icon,title,desc]) => `
+          <div style="padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);">
+            <div style="font-size:22px;margin-bottom:6px;">${icon}</div>
+            <div style="font-size:13px;font-weight:700;margin-bottom:3px;">${title}</div>
+            <div style="font-size:11px;color:var(--sub);line-height:1.5;">${desc}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Driver levels -->
+    <div class="card">
+      <div class="card-title">🏆 Cấp bậc tài xế</div>
+      <div class="grid4">
+        ${Object.entries(LEVEL_INFO).map(([k,v]) => `
+          <div style="text-align:center;padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);">
+            <div style="font-size:24px;margin-bottom:6px;">${v.icon}</div>
+            <span class="chip ${v.cls}" style="font-size:11px;">${v.label}</span>
+            <div style="font-size:11px;color:var(--hint);margin-top:6px;">${v.minDel > 0 ? v.minDel.toLocaleString() + '+ đơn' : 'Bắt đầu'}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="switchTab('send')" style="flex:1;padding:12px;">📦 Gửi hàng ngay</button>
+      <button class="btn btn-ghost" onclick="switchTab('register')" style="flex:1;padding:12px;">🏍️ Đăng ký làm tài xế</button>
+    </div>
+  </div>`;
+}
+
+// ── SEND FORM ──
+function buildSendForm() {
+  return `<div class="fade-up">
+    <div class="card">
+      <div class="card-title">📍 Thông tin điểm lấy hàng</div>
+      <div style="display:grid;gap:10px;">
+        <div>
+          <label class="field-label">Địa chỉ lấy hàng *</label>
+          <input class="field-input" id="pickupAddr" placeholder="Số nhà, tên đường, phường/xã..."/>
+        </div>
+        <div class="grid2">
+          <div>
+            <label class="field-label">Thành phố *</label>
+            <select class="field-input" id="pickupCity">
+              <option value="Hồ Chí Minh">Hồ Chí Minh</option>
+              <option value="Hà Nội">Hà Nội</option>
+              <option value="Đà Nẵng">Đà Nẵng</option>
+              <option value="Cần Thơ">Cần Thơ</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Liên hệ lấy hàng</label>
+            <input class="field-input" id="pickupContact" placeholder="0901234567"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">📬 Thông tin điểm giao hàng</div>
+      <div style="display:grid;gap:10px;">
+        <div>
+          <label class="field-label">Địa chỉ giao hàng *</label>
+          <input class="field-input" id="deliveryAddr" placeholder="Địa chỉ người nhận..."/>
+        </div>
+        <div class="grid2">
+          <div>
+            <label class="field-label">Thành phố *</label>
+            <select class="field-input" id="deliveryCity">
+              <option value="Hồ Chí Minh">Hồ Chí Minh</option>
+              <option value="Hà Nội">Hà Nội</option>
+              <option value="Đà Nẵng">Đà Nẵng</option>
+              <option value="Cần Thơ">Cần Thơ</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Liên hệ người nhận *</label>
+            <input class="field-input" id="deliveryContact" placeholder="0901234567"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">📦 Thông tin hàng hóa</div>
+      <div style="display:grid;gap:10px;">
+        <div>
+          <label class="field-label">Mô tả hàng *</label>
+          <input class="field-input" id="itemDesc" placeholder="VD: Điện thoại, quần áo, tài liệu..."/>
+        </div>
+        <div class="grid3">
+          <div>
+            <label class="field-label">Giá trị hàng (đ)</label>
+            <input class="field-input" id="itemValue" type="number" placeholder="500000"/>
+          </div>
+          <div>
+            <label class="field-label">Cân nặng (kg)</label>
+            <input class="field-input" id="itemWeight" type="number" step="0.1" placeholder="0.5"/>
+          </div>
+          <div>
+            <label class="field-label">COD - Thu hộ (đ)</label>
+            <input class="field-input" id="codAmount" type="number" placeholder="0"/>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="isFragile" style="width:16px;height:16px;accent-color:var(--brand);"/>
+          <label for="isFragile" style="font-size:13px;font-weight:600;cursor:pointer;">⚠️ Hàng dễ vỡ — cần đóng gói cẩn thận</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fee estimate -->
+    <div class="card" style="margin-top:12px;background:var(--brandL);border-color:rgba(61,142,248,.2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--brand);">💰 Phí giao hàng ước tính</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:2px;">Phí thực tế được tính khi xác nhận đơn</div>
+        </div>
+        <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:var(--brand);">25.000đ+</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="submitDeliveryOrder()" style="width:100%;margin-top:14px;padding:13px;font-size:15px;">
+      🚀 Tạo đơn giao hàng
+    </button>
+  </div>`;
+}
+
+async function submitDeliveryOrder() {
+  const pickupAddr = document.getElementById('pickupAddr')?.value?.trim();
+  const pickupCity = document.getElementById('pickupCity')?.value;
+  const deliveryAddr = document.getElementById('deliveryAddr')?.value?.trim();
+  const deliveryCity = document.getElementById('deliveryCity')?.value;
+  const deliveryContact = document.getElementById('deliveryContact')?.value?.trim();
+  const itemDesc = document.getElementById('itemDesc')?.value?.trim();
+
+  if (!pickupAddr || !deliveryAddr || !deliveryContact || !itemDesc) {
+    showToast('Vui lòng điền đủ thông tin bắt buộc', 'err'); return;
+  }
+
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang tạo đơn...';
+
+  try {
+    const r = await fetch(`${API}/api/delivery/create`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pickup_address: pickupAddr,
+        pickup_city: pickupCity,
+        pickup_contact: document.getElementById('pickupContact')?.value?.trim(),
+        delivery_address: deliveryAddr,
+        delivery_city: deliveryCity,
+        delivery_contact: deliveryContact,
+        item_description: itemDesc,
+        item_value: parseInt(document.getElementById('itemValue')?.value) || 0,
+        weight_kg: parseFloat(document.getElementById('itemWeight')?.value) || null,
+        cod_amount: parseInt(document.getElementById('codAmount')?.value) || 0,
+        is_fragile: document.getElementById('isFragile')?.checked || false,
+      })
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showToast('Đã tạo đơn giao hàng thành công!', 'ok');
+      await loadMyDeliveries();
+      setTimeout(() => switchTab('track'), 800);
+    } else {
+      showToast(data.error || 'Lỗi tạo đơn', 'err');
+      btn.disabled = false; btn.innerHTML = '🚀 Tạo đơn giao hàng';
+    }
+  } catch(e) {
+    showToast('Lỗi kết nối', 'err');
+    btn.disabled = false; btn.innerHTML = '🚀 Tạo đơn giao hàng';
+  }
+}
+
+// ── TRACK TAB ──
+async function renderTrack() {
+  await loadMyDeliveries();
+  const el = document.getElementById('content');
+  if (!myDeliveries.length) {
+    el.innerHTML = `<div class="fade-up empty"><div class="e-icon">📭</div><p>Chưa có đơn giao hàng nào.<br/><br/><button class="btn btn-primary btn-sm" onclick="switchTab('send')">📦 Gửi hàng ngay</button></p></div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="fade-up">${myDeliveries.map(d => buildDeliveryRow(d)).join('')}</div>`;
+}
+
+function buildDeliveryRow(d) {
+  const st = DEL_STATUS[d.status] || { label: d.status, cls: 'chip-muted', icon: '?' };
+  const steps = ['pending','assigned','picking_up','picked','delivering','delivered'];
+  const stepIdx = steps.indexOf(d.status);
+  return `<div class="del-row" onclick="openDeliveryDetail('${d.id}')">
+    <div class="del-header">
+      <div class="del-icon">🚚</div>
+      <div class="del-info">
+        <div class="del-title">${d.item_description || 'Hàng hóa'}</div>
+        <div class="del-meta">📍 ${d.pickup_address?.substring(0,30)}... → 📬 ${d.delivery_address?.substring(0,30)}...</div>
+        <div class="del-meta" style="margin-top:2px;">${fmtDateShort(d.created_at)} · ${VND(d.delivery_fee)}</div>
+      </div>
+      <span class="chip ${st.cls}">${st.icon} ${st.label}</span>
+    </div>
+    <!-- Progress -->
+    ${d.status !== 'cancelled' && d.status !== 'failed' && d.status !== 'returned' ? `
+      <div style="display:flex;gap:3px;">
+        ${steps.map((s,i) => `<div style="flex:1;height:4px;border-radius:2px;background:${i<=stepIdx?'var(--ok)':'var(--border)'};"></div>`).join('')}
+      </div>` : ''}
+  </div>`;
+}
+
+function openDeliveryDetail(id) {
+  const d = myDeliveries.find(x => x.id === id);
+  if (!d) return;
+  const st = DEL_STATUS[d.status] || { label: d.status, cls: 'chip-muted', icon: '?' };
+  const steps = [
+    { key:'pending',    label:'Đơn được tạo',      time: d.created_at },
+    { key:'assigned',   label:'Tài xế nhận đơn',   time: d.assigned_at },
+    { key:'picking_up', label:'Tài xế đang đến lấy', time: null },
+    { key:'picked',     label:'Đã lấy hàng',       time: d.picked_at },
+    { key:'delivering', label:'Đang giao hàng',     time: null },
+    { key:'delivered',  label:'Giao thành công',   time: d.delivered_at },
+  ];
+  const stepKeys = steps.map(s => s.key);
+  const curIdx = stepKeys.indexOf(d.status);
+
+  openModal(`
+    <div class="modal-title">🚚 Chi tiết đơn giao hàng <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="margin-bottom:14px;"><span class="chip ${st.cls}">${st.icon} ${st.label}</span></div>
+
+    <!-- Map sim -->
+    <div class="map-sim" style="margin-bottom:14px;">
+      <div style="text-align:center;z-index:1;">
+        <div class="map-pulse" style="margin:0 auto 8px;"></div>
+        <div style="font-size:11px;color:var(--sub);">Vị trí tài xế đang cập nhật...</div>
+      </div>
+    </div>
+
+    <!-- Addresses -->
+    <div style="display:grid;gap:8px;margin-bottom:14px;">
+      <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--brand);">
+        <div style="font-size:10px;color:var(--hint);font-weight:700;">📍 ĐIỂM LẤY HÀNG</div>
+        <div style="font-size:13px;font-weight:700;margin-top:3px;">${d.pickup_address}</div>
+        <div style="font-size:11px;color:var(--sub);">${d.pickup_city}${d.pickup_contact ? ' · ' + d.pickup_contact : ''}</div>
+      </div>
+      <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--ok);">
+        <div style="font-size:10px;color:var(--hint);font-weight:700;">📬 ĐIỂM GIAO HÀNG</div>
+        <div style="font-size:13px;font-weight:700;margin-top:3px;">${d.delivery_address}</div>
+        <div style="font-size:11px;color:var(--sub);">${d.delivery_city} · ${d.delivery_contact}</div>
+      </div>
+    </div>
+
+    <!-- Info row -->
+    <div class="grid3" style="gap:8px;margin-bottom:14px;">
+      <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);text-align:center;">
+        <div style="font-size:10px;color:var(--hint);font-weight:700;">PHÍ</div>
+        <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--brand);">${VND(d.delivery_fee)}</div>
+      </div>
+      <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);text-align:center;">
+        <div style="font-size:10px;color:var(--hint);font-weight:700;">COD</div>
+        <div style="font-size:14px;font-weight:800;font-family:var(--mono);">${VND(d.cod_amount)}</div>
+      </div>
+      <div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);text-align:center;">
+        <div style="font-size:10px;color:var(--hint);font-weight:700;">KM</div>
+        <div style="font-size:14px;font-weight:800;font-family:var(--mono);">${d.distance_km ? d.distance_km + 'km' : '—'}</div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div style="margin-bottom:14px;">
+      <div class="card-title">⏱️ Timeline giao hàng</div>
+      <div class="timeline">
+        ${steps.map((step, i) => {
+          const done = i < curIdx || (d.status === 'delivered' && i <= curIdx);
+          const active = i === curIdx;
+          return `<div class="tl-item ${done?'done':''} ${active?'active':''}">
+            <div class="tl-label">${step.label}</div>
+            <div class="tl-time">${step.time ? fmtDate(step.time) : (active ? 'Đang thực hiện...' : '')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    ${d.proof_photo_url ? `<div style="margin-bottom:14px;">
+      <div class="card-title">📸 Ảnh giao hàng</div>
+      <img src="${d.proof_photo_url}" style="width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);" onclick="event.stopPropagation()"/>
+    </div>` : ''}
+
+    ${d.status === 'delivered' && !d._rated ? `<div style="margin-top:4px;">
+      <button class="btn btn-ghost btn-sm" onclick="openRatingModal('${d.id}')">⭐ Đánh giá tài xế</button>
+    </div>` : ''}
+  `);
+}
+
+function openRatingModal(deliveryId) {
+  openModal(`
+    <div class="modal-title">⭐ Đánh giá tài xế <button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${['attitude','speed','accuracy'].map((key, i) => {
+      const labels = ['😊 Thái độ', '⚡ Tốc độ', '🎯 Độ chính xác'];
+      return `<div style="margin-bottom:14px;">
+        <div class="field-label">${labels[i]}</div>
+        <div style="display:flex;gap:6px;" id="stars-${key}">
+          ${[1,2,3,4,5].map(n => `<span style="font-size:28px;cursor:pointer;" onclick="setStars('${key}',${n})">☆</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Nhận xét (tuỳ chọn)</label>
+      <textarea class="field-input" id="ratingComment" placeholder="Tài xế nhiệt tình, giao đúng giờ..."></textarea>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="submitRating('${deliveryId}')">⭐ Gửi đánh giá</button>
+  `);
+}
+
+const ratingScores = {};
+function setStars(key, val) {
+  ratingScores[key] = val;
+  const container = document.getElementById(`stars-${key}`);
+  if (!container) return;
+  container.querySelectorAll('span').forEach((s, i) => { s.textContent = i < val ? '⭐' : '☆'; });
+}
+
+async function submitRating(deliveryId) {
+  const attitude_score = ratingScores.attitude || 5;
+  const speed_score = ratingScores.speed || 5;
+  const accuracy_score = ratingScores.accuracy || 5;
+  const comment = document.getElementById('ratingComment')?.value?.trim();
+  try {
+    const r = await fetch(`${API}/api/delivery/${deliveryId}/rate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attitude_score, speed_score, accuracy_score, comment })
+    });
+    if (r.ok) { showToast('Đã gửi đánh giá, cảm ơn!', 'ok'); closeModal(); }
+    else { const d = await r.json(); showToast(d.error || 'Lỗi gửi đánh giá', 'err'); }
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+// ── DRIVER TAB ──
+function renderDriverTab() {
+  const el = document.getElementById('content');
+  if (!myDriver) {
+    el.innerHTML = `<div class="fade-up card" style="text-align:center;padding:32px;">
+      <div style="font-size:42px;margin-bottom:12px;">🏍️</div>
+      <h3 style="margin-bottom:8px;">Bạn chưa đăng ký làm tài xế</h3>
+      <p style="color:var(--sub);font-size:13px;margin-bottom:20px;">Đăng ký ngay để bắt đầu kiếm thu nhập cùng SafePass Delivery</p>
+      <button class="btn btn-primary" onclick="switchTab('register')">➕ Đăng ký tài xế ngay</button>
+    </div>`;
+    return;
+  }
+
+  const d = myDriver;
+  const st = DRV_STATUS[d.status] || { label: d.status, cls: 'chip-muted', dot: 'dot-offline' };
+  const lv = LEVEL_INFO[d.level] || LEVEL_INFO.driver;
+  const nextLevel = { driver:'senior', senior:'partner', partner:'premium', premium:null }[d.level];
+  const nextLv = nextLevel ? LEVEL_INFO[nextLevel] : null;
+  const progress = nextLv ? Math.min(100, Math.round(d.total_deliveries / nextLv.minDel * 100)) : 100;
+
+  el.innerHTML = `<div class="fade-up">
+    <!-- Driver App Header -->
+    <div class="driver-app">
+      <div class="driver-app-header">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="driver-avatar">${(d.full_name||'?').slice(0,2).toUpperCase()}</div>
+          <div>
+            <div style="font-size:17px;font-weight:800;">${d.full_name}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <span class="chip ${lv.cls}" style="font-size:11px;">${lv.icon} ${lv.label}</span>
+              <span class="chip ${st.cls}"><span class="status-dot ${st.dot}"></span>${st.label}</span>
+            </div>
+          </div>
+          <div style="margin-left:auto;">
+            <div style="font-size:11px;color:var(--hint);margin-bottom:4px;">Trạng thái</div>
+            <select class="field-input" style="padding:6px 10px;font-size:12px;width:auto;" onchange="updateDriverStatus(this.value)">
+              <option value="online" ${d.status==='online'?'selected':''}>🟢 Online</option>
+              <option value="offline" ${d.status==='offline'?'selected':''}>⚫ Offline</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- Earnings bar -->
+      <div class="driver-earnings-bar">
+        <div class="earnings-item"><div class="earnings-val">${d.total_deliveries}</div><div class="earnings-lbl">Tổng đơn</div></div>
+        <div class="earnings-item"><div class="earnings-val">${d.success_rate?.toFixed(1)||100}%</div><div class="earnings-lbl">Tỷ lệ thành công</div></div>
+        <div class="earnings-item"><div class="earnings-val" style="color:var(--gold);">⭐ ${d.rating?.toFixed(1)||'5.0'}</div><div class="earnings-lbl">Đánh giá</div></div>
+        <div class="earnings-item"><div class="earnings-val">${VND(d.wallet_balance)}</div><div class="earnings-lbl">Ví tài xế</div></div>
+      </div>
+    </div>
+
+    <!-- Level progress -->
+    ${nextLv ? `<div class="card" style="margin-top:12px;">
+      <div class="card-title">📈 Tiến độ lên cấp ${nextLv.icon} ${nextLv.label}</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:12px;color:var(--sub);">${d.total_deliveries} / ${nextLv.minDel} đơn</span>
+        <span style="font-size:12px;font-weight:700;color:var(--brand);">${progress}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;"></div></div>
+    </div>` : `<div class="card" style="margin-top:12px;text-align:center;padding:16px;">
+      <span style="font-size:24px;">👑</span>
+      <div style="font-size:14px;font-weight:800;margin-top:4px;">Cấp Premium — Đỉnh cao!</div>
+    </div>`}
+
+    <!-- Vehicle info -->
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">🚗 Thông tin phương tiện</div>
+      <div class="grid2">
+        ${[
+          ['Phương tiện', `${VEHICLE_ICON[d.vehicle_type]||'🚗'} ${d.vehicle_type}`],
+          ['Biển số', d.vehicle_plate || '—'],
+          ['Khu vực', d.service_areas?.join(', ') || 'Chưa đặt'],
+          ['Hub', hubs.find(h=>h.id===d.hub_id)?.name || '—'],
+        ].map(([k,v]) => `<div style="padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);">
+          <div style="font-size:10px;color:var(--hint);font-weight:700;">${k}</div>
+          <div style="font-size:13px;font-weight:700;margin-top:2px;">${v}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Today's orders placeholder -->
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">📋 Đơn hôm nay</div>
+      <div style="text-align:center;padding:24px;color:var(--hint);">
+        <div style="font-size:32px;margin-bottom:8px;">📭</div>
+        <p style="font-size:13px;">Chưa có đơn mới · Hệ thống sẽ tự phân công khi có đơn</p>
+      </div>
+    </div>
+
+    <!-- Withdraw -->
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn btn-ok btn-sm" onclick="openWithdrawModal()">💰 Rút tiền</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadEarningHistory()">📊 Lịch sử thu nhập</button>
+    </div>
+  </div>`;
+}
+
+async function updateDriverStatus(status) {
+  try {
+    const r = await fetch(`${API}/api/delivery/driver/status`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (r.ok) { showToast(`Trạng thái: ${status}`, 'info'); await loadMyDriverProfile(); }
+    else showToast('Lỗi cập nhật trạng thái', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+function openWithdrawModal() {
+  if (!myDriver) return;
+  openModal(`
+    <div class="modal-title">💰 Rút tiền <button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="padding:14px;border-radius:var(--radius-sm);background:var(--okBg);border:1px solid rgba(52,216,158,.2);margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--ok);">Số dư hiện tại</div>
+      <div style="font-size:28px;font-weight:900;font-family:var(--mono);color:var(--ok);">${VND(myDriver.wallet_balance)}</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Số tiền rút</label>
+      <input class="field-input" id="withdrawAmount" type="number" placeholder="Tối thiểu 50.000đ" max="${myDriver.wallet_balance}"/>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Số tài khoản ngân hàng</label>
+      <input class="field-input" id="withdrawBank" placeholder="VD: 0123456789 - VCB"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="submitWithdraw()">💸 Xác nhận rút tiền</button>
+  `);
+}
+
+async function submitWithdraw() {
+  const amount = parseInt(document.getElementById('withdrawAmount')?.value);
+  const bank = document.getElementById('withdrawBank')?.value?.trim();
+  if (!amount || amount < 50000) { showToast('Tối thiểu 50.000đ', 'err'); return; }
+  if (!bank) { showToast('Nhập số tài khoản', 'err'); return; }
+  try {
+    const r = await fetch(`${API}/api/delivery/driver/withdraw`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, bank_info: bank })
+    });
+    const data = await r.json();
+    if (r.ok) { showToast('Yêu cầu rút tiền đã được ghi nhận', 'ok'); closeModal(); loadMyDriverProfile(); }
+    else showToast(data.error || 'Lỗi rút tiền', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function loadEarningHistory() {
+  try {
+    const r = await fetch(`${API}/api/delivery/driver/earnings`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    const earnings = data.earnings || [];
+
+    openModal(`
+      <div class="modal-title">📊 Lịch sử thu nhập <button class="modal-close" onclick="closeModal()">✕</button></div>
+      ${earnings.length === 0 ? '<div class="empty"><div class="e-icon">📭</div><p>Chưa có lịch sử</p></div>' :
+        earnings.map(e => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);margin-bottom:6px;">
+            <div style="font-size:20px;">${e.type==='delivery_fee'?'💰':e.type==='bonus'?'🎁':e.type==='penalty'?'⚠️':e.type==='withdrawal'?'💸':'🔧'}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">${e.description||e.type}</div>
+              <div style="font-size:11px;color:var(--hint);">${fmtDateShort(e.created_at)}</div>
+            </div>
+            <div style="font-family:var(--mono);font-weight:800;color:${e.amount>=0?'var(--ok)':'var(--red)'};">${e.amount>=0?'+':''}${VND(e.amount)}</div>
+          </div>`).join('')}
+    `);
+  } catch(e) { showToast('Lỗi tải lịch sử', 'err'); }
+}
+
+// ── REGISTER FORM ──
+function buildRegisterForm() {
+  if (myDriver) return `<div class="fade-up card" style="text-align:center;padding:32px;">
+    <div style="font-size:42px;margin-bottom:12px;">✅</div>
+    <h3 style="margin-bottom:8px;">Bạn đã đăng ký làm tài xế</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:20px;">Truy cập tab "Tài xế" để xem thông tin</p>
+    <button class="btn btn-primary" onclick="switchTab('driver')">🏍️ Xem thông tin tài xế</button>
+  </div>`;
+
+  return `<div class="fade-up">
+    <div class="card">
+      <div class="card-title">👤 Thông tin cá nhân</div>
+      <div style="display:grid;gap:10px;">
+        <div class="grid2">
+          <div><label class="field-label">Họ và tên đầy đủ *</label><input class="field-input" id="drFullName" placeholder="Nguyễn Văn A"/></div>
+          <div><label class="field-label">Số điện thoại *</label><input class="field-input" id="drPhone" placeholder="0901234567"/></div>
+        </div>
+        <div><label class="field-label">Số CCCD *</label><input class="field-input" id="drCCCD" placeholder="012345678910"/></div>
+        <div><label class="field-label">Số GPLX</label><input class="field-input" id="drLicense" placeholder="Số giấy phép lái xe"/></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">🚗 Thông tin phương tiện</div>
+      <div style="display:grid;gap:10px;">
+        <div class="grid2">
+          <div>
+            <label class="field-label">Loại phương tiện *</label>
+            <select class="field-input" id="drVehicle">
+              <option value="motorbike">🏍️ Xe máy</option>
+              <option value="car">🚗 Ô tô</option>
+              <option value="truck">🚚 Xe tải</option>
+              <option value="bicycle">🚲 Xe đạp</option>
+            </select>
+          </div>
+          <div><label class="field-label">Biển số xe *</label><input class="field-input" id="drPlate" placeholder="59A-12345"/></div>
+        </div>
+        <div>
+          <label class="field-label">Hub gần nhất *</label>
+          <select class="field-input" id="drHub">
+            ${hubs.map(h => `<option value="${h.id}">${h.name} — ${h.city}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Khu vực hoạt động (các quận/huyện)</label>
+          <input class="field-input" id="drAreas" placeholder="VD: Quận 1, Quận 3, Bình Thạnh..."/>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;padding:14px;border-radius:var(--radius);background:var(--warnBg);border:1px solid rgba(245,158,11,.2);">
+      <div style="font-size:13px;font-weight:700;color:var(--warn);margin-bottom:6px;">📋 Cam kết tài xế</div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.6;">Bằng cách đăng ký, bạn cam kết cung cấp thông tin chính xác, tuân thủ quy định giao hàng SafePass và chịu trách nhiệm với hàng hóa trong quá trình giao.</div>
+    </div>
+
+    <button class="btn btn-primary" onclick="submitDriverRegister()" style="width:100%;margin-top:14px;padding:12px;font-size:15px;">
+      🏍️ Đăng ký làm tài xế SafePass
+    </button>
+  </div>`;
+}
+
+async function submitDriverRegister() {
+  const full_name = document.getElementById('drFullName')?.value?.trim();
+  const phone = document.getElementById('drPhone')?.value?.trim();
+  const cccd = document.getElementById('drCCCD')?.value?.trim();
+  const license_number = document.getElementById('drLicense')?.value?.trim();
+  const vehicle_type = document.getElementById('drVehicle')?.value;
+  const vehicle_plate = document.getElementById('drPlate')?.value?.trim();
+  const hub_id = document.getElementById('drHub')?.value;
+  const areasRaw = document.getElementById('drAreas')?.value?.trim();
+  const service_areas = areasRaw ? areasRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
+
+  if (!full_name || !phone || !cccd || !vehicle_plate || !hub_id) {
+    showToast('Vui lòng điền đủ thông tin bắt buộc', 'err'); return;
+  }
+
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang xử lý...';
+
+  try {
+    const r = await fetch(`${API}/api/delivery/driver/register`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name, phone, cccd, license_number, vehicle_type, vehicle_plate, hub_id, service_areas })
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showToast('Đăng ký tài xế thành công!', 'ok');
+      await loadMyDriverProfile();
+      setTimeout(() => switchTab('driver'), 800);
+    } else {
+      showToast(data.error || 'Lỗi đăng ký', 'err');
+      btn.disabled = false; btn.innerHTML = '🏍️ Đăng ký làm tài xế SafePass';
+    }
+  } catch(e) {
+    showToast('Lỗi kết nối', 'err');
+    btn.disabled = false; btn.innerHTML = '🏍️ Đăng ký làm tài xế SafePass';
+  }
+}
+
+// ── ADMIN PANEL ──
+async function loadAdminPanel() {
+  try {
+    const [dashR, drvR, delR] = await Promise.all([
+      fetch(`${API}/api/admin/delivery/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API}/api/admin/delivery/drivers`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API}/api/admin/delivery/orders?limit=50`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const dash = dashR.ok ? await dashR.json() : {};
+    const drivers = drvR.ok ? (await drvR.json()).drivers || [] : [];
+    const orders = delR.ok ? (await delR.json()).orders || [] : [];
+
+    document.getElementById('content').innerHTML = `<div class="fade-up">
+      <div class="grid4" style="margin-bottom:12px;">
+        <div class="stat-box"><div class="s-val" style="color:var(--brand);">${dash.totalDrivers||0}</div><div class="s-lbl">Tổng tài xế</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--ok);">${dash.onlineDrivers||0}</div><div class="s-lbl">Đang online</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--warn);">${dash.activeOrders||0}</div><div class="s-lbl">Đơn đang giao</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--gold);">${dash.successRate||0}%</div><div class="s-lbl">Tỷ lệ giao thành công</div></div>
+      </div>
+
+      <!-- Drivers table -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">🏍️ Tài xế (${drivers.length})</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${['all','online','offline','delivering','suspended'].map(s => `<button class="btn btn-ghost btn-xs" onclick="filterDrivers('${s}')">${s==='all'?'Tất cả':DRV_STATUS[s]?.label||s}</button>`).join('')}
+          </div>
+        </div>
+        <div id="driverList">
+          ${drivers.length === 0 ? '<div class="empty"><div class="e-icon">📭</div><p>Chưa có tài xế</p></div>' :
+            drivers.map(d => buildAdminDriverRow(d)).join('')}
+        </div>
+      </div>
+
+      <!-- Orders table -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">📦 Đơn giao hàng (${orders.length})</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${['all','pending','delivering','delivered'].map(s => `<button class="btn btn-ghost btn-xs" onclick="filterOrders('${s}')">${s==='all'?'Tất cả':DEL_STATUS[s]?.label||s}</button>`).join('')}
+          </div>
+        </div>
+        <div id="orderList">
+          ${orders.length === 0 ? '<div class="empty"><div class="e-icon">📭</div><p>Chưa có đơn</p></div>' :
+            orders.map(o => buildAdminOrderRow(o)).join('')}
+        </div>
+      </div>
+    </div>`;
+    window._allDrivers = drivers;
+    window._allOrders = orders;
+
+    // Update overview stats
+    setTimeout(() => {
+      const oc = document.getElementById('onlineDriverCount');
+      const ac = document.getElementById('activeDelCount');
+      if (oc) oc.textContent = dash.onlineDrivers || 0;
+      if (ac) ac.textContent = dash.activeOrders || 0;
+    }, 100);
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải admin panel</p></div>';
+  }
+}
+
+function filterDrivers(status) {
+  const list = (window._allDrivers||[]).filter(d => status === 'all' || d.status === status);
+  document.getElementById('driverList').innerHTML = list.length === 0
+    ? '<div class="empty"><div class="e-icon">📭</div><p>Không tìm thấy</p></div>'
+    : list.map(d => buildAdminDriverRow(d)).join('');
+}
+
+function filterOrders(status) {
+  const list = (window._allOrders||[]).filter(o => status === 'all' || o.status === status);
+  document.getElementById('orderList').innerHTML = list.length === 0
+    ? '<div class="empty"><div class="e-icon">📭</div><p>Không tìm thấy</p></div>'
+    : list.map(o => buildAdminOrderRow(o)).join('');
+}
+
+function buildAdminDriverRow(d) {
+  const st = DRV_STATUS[d.status] || { label: d.status, cls: 'chip-muted', dot: '' };
+  const lv = LEVEL_INFO[d.level] || LEVEL_INFO.driver;
+  return `<div class="driver-card" style="cursor:default;margin-bottom:8px;">
+    <div class="driver-avatar" style="width:40px;height:40px;font-size:15px;">${(d.full_name||'?').slice(0,2).toUpperCase()}</div>
+    <div class="driver-info">
+      <div class="driver-name" style="font-size:13px;">${d.full_name}</div>
+      <div class="driver-meta" style="margin-bottom:4px;">${d.phone} · ${VEHICLE_ICON[d.vehicle_type]||''} ${d.vehicle_plate||'—'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="chip ${st.cls}"><span class="status-dot ${st.dot}"></span>${st.label}</span>
+        <span class="chip ${lv.cls}">${lv.icon} ${lv.label}</span>
+        ${d.is_verified ? '<span class="chip chip-ok">✓ Đã xác minh</span>' : '<span class="chip chip-warn">⏳ Chờ xác minh</span>'}
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;">
+      <div style="font-size:13px;font-weight:700;font-family:var(--mono);">⭐ ${d.rating?.toFixed(1)||'5.0'}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:2px;">${d.total_deliveries} đơn</div>
+      <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:flex-end;">
+        ${!d.is_verified ? `<button class="btn btn-ok btn-xs" onclick="verifyDriver('${d.id}')">✓ Duyệt</button>` : ''}
+        ${d.status !== 'suspended' ? `<button class="btn btn-danger btn-xs" onclick="suspendDriver('${d.id}')">⏸️ Khoá</button>` : `<button class="btn btn-ok btn-xs" onclick="activateDriver('${d.id}')">▶️ Mở</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildAdminOrderRow(o) {
+  const st = DEL_STATUS[o.status] || { label: o.status, cls: 'chip-muted', icon: '?' };
+  return `<div class="del-row" style="cursor:default;">
+    <div class="del-header">
+      <div class="del-icon">🚚</div>
+      <div class="del-info">
+        <div class="del-title">${o.item_description || 'Hàng hóa'}</div>
+        <div class="del-meta">${o.pickup_city} → ${o.delivery_city} · ${VND(o.delivery_fee)}</div>
+        <div class="del-meta">${fmtDateShort(o.created_at)}</div>
+      </div>
+      <div style="text-align:right;">
+        <span class="chip ${st.cls}">${st.icon} ${st.label}</span>
+        ${o.status === 'pending' ? `<div style="margin-top:6px;"><button class="btn btn-primary btn-xs" onclick="autoAssign('${o.id}')">⚡ Phân công</button></div>` : ''}
+        ${['picking_up','picked','delivering'].includes(o.status) ? `<div style="margin-top:6px;"><button class="btn btn-ok btn-xs" onclick="markDelivered('${o.id}')">✅ Hoàn tất</button></div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function verifyDriver(id) {
+  try {
+    const r = await fetch(`${API}/api/admin/delivery/drivers/${id}/verify`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+    if (r.ok) { showToast('Đã xác minh tài xế', 'ok'); loadAdminPanel(); }
+    else showToast('Lỗi', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function suspendDriver(id) {
+  if (!confirm('Khoá tài xế này?')) return;
+  try {
+    const r = await fetch(`${API}/api/admin/delivery/drivers/${id}/suspend`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+    if (r.ok) { showToast('Đã khoá tài xế', 'info'); loadAdminPanel(); }
+    else showToast('Lỗi', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function activateDriver(id) {
+  try {
+    const r = await fetch(`${API}/api/admin/delivery/drivers/${id}/activate`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+    if (r.ok) { showToast('Đã mở khoá tài xế', 'ok'); loadAdminPanel(); }
+    else showToast('Lỗi', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function autoAssign(orderId) {
+  try {
+    const r = await fetch(`${API}/api/admin/delivery/orders/${orderId}/assign`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+    const data = await r.json();
+    if (r.ok) { showToast(`Đã phân công: ${data.driver_name||''}`, 'ok'); loadAdminPanel(); }
+    else showToast(data.error || 'Không có tài xế online', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function markDelivered(orderId) {
+  try {
+    const r = await fetch(`${API}/api/admin/delivery/orders/${orderId}/status`, {
+      method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ status:'delivered' })
+    });
+    if (r.ok) { showToast('Đã đánh dấu giao thành công', 'ok'); loadAdminPanel(); }
+    else showToast('Lỗi', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+// ── MODAL / TOAST ──
+function openModal(html) {
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalBg').style.display = 'flex';
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalBg')) return;
+  document.getElementById('modalBg').style.display = 'none';
+}
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove('show'), 3200);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('modalBg').style.display = 'none';
+});
+
+init();
+</script>
+</body>
+</html>

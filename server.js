@@ -6982,6 +6982,339 @@ app.put('/api/admin/warehouse/fees/:size_category', adminAuth, async (req, res) 
   res.json({ success: true });
 });
 
+// ══════════════════════════════════════════════════════════
+// PHASE 12 — DELIVERY NETWORK
+// ══════════════════════════════════════════════════════════
+
+// ── SERVE delivery.html ──
+app.get('/delivery', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'delivery.html'));
+});
+
+// ── GET /api/delivery/hubs — public hub list ──
+app.get('/api/delivery/hubs', async (req, res) => {
+  const { data, error } = await supabase.from('delivery_hubs').select('*').eq('status','active').order('city');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ hubs: data || [] });
+});
+
+// ── POST /api/delivery/create — user creates delivery order ──
+app.post('/api/delivery/create', auth, async (req, res) => {
+  const {
+    pickup_address, pickup_city, pickup_contact,
+    delivery_address, delivery_city, delivery_contact,
+    item_description, item_value, weight_kg, cod_amount, is_fragile,
+    order_id
+  } = req.body;
+  if (!pickup_address || !delivery_address || !delivery_city || !delivery_contact || !item_description)
+    return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+
+  // Estimate fee: 25k base + 5k per km (simulated)
+  const sameCityFee = pickup_city === delivery_city ? 25000 : 60000;
+  const fragile_surcharge = is_fragile ? 10000 : 0;
+  const delivery_fee = sameCityFee + fragile_surcharge;
+
+  const { data, error } = await supabase.from('delivery_orders').insert({
+    sender_id: req.user.id,
+    order_id: order_id || null,
+    pickup_address: sanitize(pickup_address),
+    pickup_city: pickup_city || 'Hồ Chí Minh',
+    pickup_contact: pickup_contact || null,
+    delivery_address: sanitize(delivery_address),
+    delivery_city: delivery_city || 'Hồ Chí Minh',
+    delivery_contact: delivery_contact,
+    item_description: sanitize(item_description),
+    item_value: parseInt(item_value) || 0,
+    weight_kg: weight_kg ? parseFloat(weight_kg) : null,
+    cod_amount: parseInt(cod_amount) || 0,
+    is_fragile: !!is_fragile,
+    delivery_fee,
+    status: 'pending'
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  await supabase.from('delivery_orders').update({ otp_code: otp }).eq('id', data.id);
+
+  // Tracking log
+  await supabase.from('delivery_tracking').insert({ delivery_id: data.id, status: 'pending', note: 'Đơn được tạo' });
+
+  res.json({ order: data, otp });
+});
+
+// ── GET /api/delivery/my-orders ──
+app.get('/api/delivery/my-orders', auth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('delivery_orders')
+    .select('*')
+    .eq('sender_id', req.user.id)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ orders: data || [] });
+});
+
+// ── GET /api/delivery/:id/tracking ──
+app.get('/api/delivery/:id/tracking', auth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('delivery_tracking')
+    .select('*')
+    .eq('delivery_id', req.params.id)
+    .order('recorded_at');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ tracking: data || [] });
+});
+
+// ── POST /api/delivery/:id/rate ──
+app.post('/api/delivery/:id/rate', auth, async (req, res) => {
+  const { attitude_score, speed_score, accuracy_score, comment } = req.body;
+  const { data: order } = await supabase.from('delivery_orders').select('driver_id,status').eq('id', req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (order.status !== 'delivered') return res.status(400).json({ error: 'Đơn chưa được giao' });
+  if (!order.driver_id) return res.status(400).json({ error: 'Chưa có tài xế' });
+
+  const overall = ((parseInt(attitude_score)||5) + (parseInt(speed_score)||5) + (parseInt(accuracy_score)||5)) / 3;
+
+  const { error } = await supabase.from('driver_ratings').insert({
+    delivery_id: req.params.id,
+    driver_id: order.driver_id,
+    rated_by: req.user.id,
+    attitude_score: parseInt(attitude_score) || 5,
+    speed_score: parseInt(speed_score) || 5,
+    accuracy_score: parseInt(accuracy_score) || 5,
+    overall_score: overall,
+    comment: sanitize(comment || '')
+  });
+
+  if (error && error.code === '23505') return res.status(400).json({ error: 'Bạn đã đánh giá đơn này rồi' });
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Update driver rating average
+  const { data: ratings } = await supabase.from('driver_ratings').select('overall_score').eq('driver_id', order.driver_id);
+  if (ratings?.length) {
+    const avg = ratings.reduce((s, r) => s + parseFloat(r.overall_score||5), 0) / ratings.length;
+    await supabase.from('drivers').update({ rating: Math.round(avg * 100) / 100 }).eq('id', order.driver_id);
+  }
+
+  res.json({ success: true });
+});
+
+// ── POST /api/delivery/driver/register ──
+app.post('/api/delivery/driver/register', auth, async (req, res) => {
+  const { full_name, phone, cccd, license_number, vehicle_type, vehicle_plate, hub_id, service_areas } = req.body;
+  if (!full_name || !phone || !cccd || !vehicle_plate || !hub_id)
+    return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+
+  const { data: existing } = await supabase.from('drivers').select('id').eq('user_id', req.user.id).single();
+  if (existing) return res.status(400).json({ error: 'Bạn đã đăng ký làm tài xế rồi' });
+
+  const { data, error } = await supabase.from('drivers').insert({
+    user_id: req.user.id,
+    full_name: sanitize(full_name),
+    phone,
+    cccd,
+    license_number: license_number || null,
+    vehicle_type: vehicle_type || 'motorbike',
+    vehicle_plate: vehicle_plate.toUpperCase(),
+    hub_id,
+    service_areas: service_areas || [],
+    status: 'offline',
+    level: 'driver'
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ driver: data });
+});
+
+// ── GET /api/delivery/my-driver ──
+app.get('/api/delivery/my-driver', auth, async (req, res) => {
+  const { data, error } = await supabase.from('drivers').select('*').eq('user_id', req.user.id).single();
+  if (error) return res.status(404).json({ error: 'Không tìm thấy hồ sơ tài xế' });
+  res.json(data);
+});
+
+// ── PUT /api/delivery/driver/status ──
+app.put('/api/delivery/driver/status', auth, async (req, res) => {
+  const { status } = req.body;
+  if (!['online','offline'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const { data: driver } = await supabase.from('drivers').select('id').eq('user_id', req.user.id).single();
+  if (!driver) return res.status(404).json({ error: 'Chưa đăng ký tài xế' });
+  await supabase.from('drivers').update({ status, last_seen: new Date().toISOString() }).eq('id', driver.id);
+  res.json({ success: true });
+});
+
+// ── POST /api/delivery/driver/withdraw ──
+app.post('/api/delivery/driver/withdraw', auth, async (req, res) => {
+  const { amount, bank_info } = req.body;
+  if (!amount || amount < 50000) return res.status(400).json({ error: 'Số tiền tối thiểu 50.000đ' });
+  const { data: driver } = await supabase.from('drivers').select('id,wallet_balance').eq('user_id', req.user.id).single();
+  if (!driver) return res.status(404).json({ error: 'Không tìm thấy hồ sơ tài xế' });
+  if (driver.wallet_balance < amount) return res.status(400).json({ error: 'Số dư không đủ' });
+
+  await supabase.from('drivers').update({ wallet_balance: driver.wallet_balance - amount }).eq('id', driver.id);
+  await supabase.from('driver_earnings').insert({
+    driver_id: driver.id,
+    type: 'withdrawal',
+    amount: -amount,
+    description: `Rút tiền → ${bank_info}`
+  });
+  res.json({ success: true });
+});
+
+// ── GET /api/delivery/driver/earnings ──
+app.get('/api/delivery/driver/earnings', auth, async (req, res) => {
+  const { data: driver } = await supabase.from('drivers').select('id').eq('user_id', req.user.id).single();
+  if (!driver) return res.status(404).json({ error: 'Không tìm thấy hồ sơ tài xế' });
+  const { data, error } = await supabase.from('driver_earnings').select('*').eq('driver_id', driver.id).order('created_at', { ascending: false }).limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ earnings: data || [] });
+});
+
+// ── ADMIN: GET /api/admin/delivery/dashboard ──
+app.get('/api/admin/delivery/dashboard', adminAuth, async (req, res) => {
+  const { data: drivers } = await supabase.from('drivers').select('status,level');
+  const { data: orders } = await supabase.from('delivery_orders').select('status,delivery_fee');
+
+  const totalDrivers = (drivers||[]).length;
+  const onlineDrivers = (drivers||[]).filter(d => d.status === 'online' || d.status === 'delivering').length;
+  const activeOrders = (orders||[]).filter(o => ['assigned','picking_up','picked','delivering'].includes(o.status)).length;
+  const delivered = (orders||[]).filter(o => o.status === 'delivered').length;
+  const total = (orders||[]).length;
+  const successRate = total > 0 ? Math.round(delivered / total * 100) : 0;
+  const totalRevenue = (orders||[]).filter(o => o.status === 'delivered').reduce((s,o) => s + (o.delivery_fee||0), 0);
+
+  const byLevel = {};
+  (drivers||[]).forEach(d => { byLevel[d.level] = (byLevel[d.level]||0) + 1; });
+
+  res.json({ totalDrivers, onlineDrivers, activeOrders, delivered, total, successRate, totalRevenue, byLevel });
+});
+
+// ── ADMIN: GET /api/admin/delivery/drivers ──
+app.get('/api/admin/delivery/drivers', adminAuth, async (req, res) => {
+  const { status } = req.query;
+  let q = supabase.from('drivers').select('*').order('created_at', { ascending: false }).limit(100);
+  if (status && status !== 'all') q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ drivers: data || [] });
+});
+
+// ── ADMIN: GET /api/admin/delivery/orders ──
+app.get('/api/admin/delivery/orders', adminAuth, async (req, res) => {
+  const { status, limit: lim } = req.query;
+  let q = supabase.from('delivery_orders').select('*, drivers(full_name,phone,vehicle_plate)').order('created_at', { ascending: false }).limit(parseInt(lim)||100);
+  if (status && status !== 'all') q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ orders: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/delivery/orders/:id/assign — smart auto-assign ──
+app.post('/api/admin/delivery/orders/:id/assign', adminAuth, async (req, res) => {
+  const { driver_id } = req.body; // optional: manual override
+
+  let targetDriver = null;
+  if (driver_id) {
+    const { data } = await supabase.from('drivers').select('id,full_name').eq('id', driver_id).single();
+    targetDriver = data;
+  } else {
+    // Auto-assign: pick first online, verified driver
+    const { data } = await supabase.from('drivers')
+      .select('id,full_name')
+      .eq('status', 'online')
+      .eq('is_verified', true)
+      .limit(1)
+      .single();
+    targetDriver = data;
+  }
+
+  if (!targetDriver) return res.status(400).json({ error: 'Không có tài xế online để phân công' });
+
+  const { error } = await supabase.from('delivery_orders').update({
+    driver_id: targetDriver.id,
+    status: 'assigned',
+    assigned_at: new Date().toISOString()
+  }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+
+  await supabase.from('drivers').update({ status: 'delivering' }).eq('id', targetDriver.id);
+  await supabase.from('delivery_tracking').insert({ delivery_id: req.params.id, status: 'assigned', note: `Phân công: ${targetDriver.full_name}` });
+
+  res.json({ success: true, driver_name: targetDriver.full_name });
+});
+
+// ── ADMIN: POST /api/admin/delivery/orders/:id/status ──
+app.post('/api/admin/delivery/orders/:id/status', adminAuth, async (req, res) => {
+  const { status, note, fail_reason } = req.body;
+  const valid = ['pending','assigned','picking_up','picked','delivering','delivered','failed','cancelled','returned'];
+  if (!valid.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+
+  const update = { status, updated_at: new Date().toISOString() };
+  if (status === 'picked') update.picked_at = new Date().toISOString();
+  if (status === 'delivered') update.delivered_at = new Date().toISOString();
+  if (fail_reason) update.fail_reason = fail_reason;
+
+  const { data: order, error } = await supabase.from('delivery_orders').update(update).eq('id', req.params.id).select('driver_id,delivery_fee').single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  await supabase.from('delivery_tracking').insert({ delivery_id: req.params.id, status, note: note || null });
+
+  // Credit driver on delivery
+  if (status === 'delivered' && order?.driver_id) {
+    const driverEarning = Math.round((order.delivery_fee || 0) * 0.8); // 80% to driver
+    const { data: drv } = await supabase.from('drivers').select('wallet_balance,total_deliveries').eq('id', order.driver_id).single();
+    if (drv) {
+      await supabase.from('drivers').update({
+        wallet_balance: drv.wallet_balance + driverEarning,
+        total_deliveries: drv.total_deliveries + 1,
+        status: 'online'
+      }).eq('id', order.driver_id);
+      await supabase.from('driver_earnings').insert({
+        driver_id: order.driver_id,
+        delivery_id: req.params.id,
+        type: 'delivery_fee',
+        amount: driverEarning,
+        description: `Giao đơn #${req.params.id.slice(0,8)}`
+      });
+    }
+  }
+
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/delivery/drivers/:id/verify ──
+app.post('/api/admin/delivery/drivers/:id/verify', adminAuth, async (req, res) => {
+  const { error } = await supabase.from('drivers').update({ is_verified: true }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/delivery/drivers/:id/suspend ──
+app.post('/api/admin/delivery/drivers/:id/suspend', adminAuth, async (req, res) => {
+  const { error } = await supabase.from('drivers').update({ status: 'suspended' }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/delivery/drivers/:id/activate ──
+app.post('/api/admin/delivery/drivers/:id/activate', adminAuth, async (req, res) => {
+  const { error } = await supabase.from('drivers').update({ status: 'offline' }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/delivery/drivers/:id/bonus ──
+app.post('/api/admin/delivery/drivers/:id/bonus', adminAuth, async (req, res) => {
+  const { amount, description } = req.body;
+  if (!amount) return res.status(400).json({ error: 'Thiếu số tiền' });
+  const { data: drv } = await supabase.from('drivers').select('wallet_balance').eq('id', req.params.id).single();
+  if (!drv) return res.status(404).json({ error: 'Không tìm thấy tài xế' });
+  await supabase.from('drivers').update({ wallet_balance: drv.wallet_balance + parseInt(amount) }).eq('id', req.params.id);
+  await supabase.from('driver_earnings').insert({ driver_id: req.params.id, type: 'bonus', amount: parseInt(amount), description: description||'Thưởng từ Admin' });
+  res.json({ success: true });
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

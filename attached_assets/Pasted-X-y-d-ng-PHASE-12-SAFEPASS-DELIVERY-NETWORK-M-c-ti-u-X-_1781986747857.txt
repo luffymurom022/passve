@@ -1,0 +1,235 @@
+Xây dựng PHASE 12: SAFEPASS DELIVERY NETWORK
+
+Mục tiêu:
+
+Xây dựng hệ thống giao hàng riêng của SafePass.
+
+Biến SafePass từ Marketplace thành nền tảng có mạng lưới giao nhận riêng.
+
+=================================================
+
+TẠO MODULE MỚI
+
+DELIVERY NETWORK
+
+=================================================
+
+1. DRIVER MANAGEMENT
+
+Quản lý tài xế.
+
+Thông tin:
+
+- Họ tên
+- Số điện thoại
+- CCCD
+- Biển số xe
+- Loại phương tiện
+- Khu vực hoạt động
+
+Trạng thái:
+
+- Online
+- Offline
+- Đang giao hàng
+
+=================================================
+
+2. DRIVER VERIFICATION
+
+Xác minh:
+
+- CCCD
+- GPLX
+- Khuôn mặt
+- Phương tiện
+
+=================================================
+
+3. DELIVERY ORDERS
+
+Hiển thị:
+
+- Điểm lấy hàng
+- Điểm giao hàng
+- Khoảng cách
+- Giá trị đơn
+
+=================================================
+
+4. DRIVER APP MODE
+
+Giao diện tài xế riêng.
+
+Bao gồm:
+
+- Danh sách đơn
+- Điều hướng
+- Trạng thái đơn
+- Thu nhập
+
+=================================================
+
+5. SMART ASSIGNMENT
+
+Tự động phân công đơn.
+
+Dựa trên:
+
+- Khoảng cách
+- Hiệu suất
+- Khu vực
+
+=================================================
+
+6. LIVE TRACKING
+
+Theo dõi thời gian thực.
+
+Hiển thị:
+
+- Vị trí tài xế
+- Tuyến đường
+- ETA
+
+=================================================
+
+7. DELIVERY TIMELINE
+
+Các trạng thái:
+
+- Chờ nhận đơn
+- Đang đến lấy hàng
+- Đã lấy hàng
+- Đang giao
+- Đã giao
+- Giao thất bại
+
+=================================================
+
+8. PROOF OF DELIVERY
+
+Tài xế upload:
+
+- Ảnh giao hàng
+- Chữ ký người nhận
+- OTP xác nhận
+
+=================================================
+
+9. DRIVER WALLET
+
+Ví tài xế.
+
+Hiển thị:
+
+- Thu nhập
+- Thưởng
+- Phạt
+- Rút tiền
+
+=================================================
+
+10. ROUTE OPTIMIZATION
+
+Tối ưu tuyến đường.
+
+Hiển thị:
+
+- Tổng km
+- Thời gian dự kiến
+- Số đơn trên tuyến
+
+=================================================
+
+11. DELIVERY HUB
+
+Quản lý:
+
+- Trạm giao nhận
+- Điểm tập kết
+- Kho trung chuyển
+
+=================================================
+
+12. CUSTOMER TRACKING
+
+Khách hàng theo dõi:
+
+- Bản đồ giao hàng
+- Vị trí tài xế
+- ETA
+
+=================================================
+
+13. DRIVER RATING
+
+Đánh giá:
+
+- Thái độ
+- Tốc độ
+- Độ chính xác
+
+=================================================
+
+14. DELIVERY ANALYTICS
+
+Hiển thị:
+
+- Tổng đơn
+- Tỷ lệ giao thành công
+- Tỷ lệ hoàn
+- Hiệu suất tài xế
+
+=================================================
+
+15. ADMIN DELIVERY CENTER
+
+Admin có thể:
+
+- Quản lý tài xế
+- Quản lý tuyến đường
+- Quản lý đơn hàng
+- Quản lý hub
+
+=================================================
+
+16. DELIVERY MEMBERSHIP
+
+Các cấp:
+
+- Driver
+- Senior Driver
+- Partner Driver
+- Premium Driver
+
+=================================================
+
+17. UI
+
+Phong cách:
+
+Shopee Express
+Grab Express
+Ahamove
+
+Responsive
+
+Dark Mode
+
+=================================================
+
+THÊM MENU MỚI
+
+"Delivery Network"
+
+Không ảnh hưởng:
+
+- Marketplace
+- Escrow
+- Logistics Hub
+- Inspection Center
+- Warehouse
+- Wallet
+- Trust Center
+- Admin
