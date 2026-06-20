@@ -1,0 +1,240 @@
+Xây dựng PHASE 14: SAFEPASS BUSINESS & MERCHANT CENTER
+
+Mục tiêu:
+
+Cho phép doanh nghiệp, cửa hàng và đại lý hoạt động chuyên nghiệp trên SafePass.
+
+=================================================
+
+TẠO MODULE MỚI
+
+BUSINESS & MERCHANT CENTER
+
+=================================================
+
+1. BUSINESS ACCOUNT
+
+Cho phép tạo:
+
+- Cá nhân
+- Cửa hàng
+- Doanh nghiệp
+- Đại lý ký gửi
+
+=================================================
+
+2. BUSINESS PROFILE
+
+Hiển thị:
+
+- Logo
+- Banner
+- Giới thiệu
+- Địa chỉ
+- Hotline
+- Website
+- Fanpage
+
+=================================================
+
+3. MERCHANT DASHBOARD
+
+Hiển thị:
+
+- Doanh thu
+- Đơn hàng
+- Tồn kho
+- Đánh giá
+- Tỷ lệ hoàn thành
+
+=================================================
+
+4. MULTI STAFF SYSTEM
+
+Chủ shop có thể tạo:
+
+- Admin
+- Manager
+- Staff
+
+Phân quyền riêng.
+
+=================================================
+
+5. INVENTORY MANAGEMENT
+
+Quản lý:
+
+- Hàng hóa
+- Tồn kho
+- Giá bán
+- Trạng thái
+
+=================================================
+
+6. CONSIGNMENT BUSINESS
+
+Hỗ trợ:
+
+- Nhận ký gửi
+- Quản lý ký gửi
+- Chia hoa hồng
+
+=================================================
+
+7. BUSINESS VERIFICATION
+
+Xác minh:
+
+- Giấy phép kinh doanh
+- MST
+- CCCD đại diện
+
+Hiển thị:
+
+✓ Verified Business
+
+=================================================
+
+8. BUSINESS BADGES
+
+Các cấp:
+
+- Verified Shop
+- Trusted Shop
+- Premium Shop
+- Gold Merchant
+- Diamond Merchant
+
+=================================================
+
+9. BUSINESS ANALYTICS
+
+Biểu đồ:
+
+- Doanh thu
+- Tăng trưởng
+- Đơn hàng
+- Lợi nhuận
+
+=================================================
+
+10. BUSINESS WALLET
+
+Ví riêng cho doanh nghiệp.
+
+Hiển thị:
+
+- Số dư
+- Doanh thu
+- Phí dịch vụ
+
+=================================================
+
+11. BUSINESS ESCROW
+
+Doanh nghiệp sử dụng:
+
+- Escrow
+- Inspection
+- Logistics
+- Warehouse
+
+=================================================
+
+12. BUSINESS SHIPPING
+
+Kết nối trực tiếp với:
+
+- Logistics Hub
+- Delivery Network
+
+=================================================
+
+13. BUSINESS STORE PAGE
+
+Mỗi shop có:
+
+safepass.vn/store/shop-name
+
+Hiển thị:
+
+- Sản phẩm
+- Đánh giá
+- Uy tín
+- Huy hiệu
+
+=================================================
+
+14. FRANCHISE MANAGEMENT
+
+Cho phép:
+
+- Nhiều chi nhánh
+- Nhiều kho
+- Nhiều nhân viên
+
+=================================================
+
+15. BUSINESS API READY
+
+Chuẩn bị kết nối:
+
+- ERP
+- POS
+- CRM
+
+trong tương lai.
+
+=================================================
+
+16. BUSINESS RANKING
+
+Top:
+
+- Shop uy tín
+- Shop doanh thu cao
+- Shop được yêu thích
+
+=================================================
+
+17. ADMIN BUSINESS CENTER
+
+Admin có thể:
+
+- Duyệt doanh nghiệp
+- Duyệt giấy phép
+- Khóa doanh nghiệp
+- Quản lý huy hiệu
+
+=================================================
+
+18. UI
+
+Phong cách:
+
+Shopee Mall
+Lazada Mall
+TikTok Shop Mall
+
+Responsive
+
+Dark Mode
+
+=================================================
+
+THÊM MENU MỚI
+
+"Business Center"
+
+Không ảnh hưởng:
+
+- Marketplace
+- Escrow
+- Logistics
+- Inspection
+- Warehouse
+- Delivery
+- Trust Center
+- AI Risk Center
+- Admin

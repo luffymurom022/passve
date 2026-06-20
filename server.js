@@ -5497,6 +5497,455 @@ app.get('/business', (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
+// PHASE 14: MERCHANT CENTER ROUTES
+// ══════════════════════════════════════════════════════════
+
+// ── MERCHANT DASHBOARD ──
+app.get('/api/merchant/dashboard', businessAuth, async (req, res) => {
+  try {
+    const bizId = req.biz.bizId;
+    const [{ data: biz }, { data: inv }, { data: consigns }] = await Promise.all([
+      supabase.from('business_accounts').select('*').eq('id', bizId).single(),
+      supabase.from('merchant_inventory').select('id,name,stock,price,status').eq('business_id', bizId).eq('status', 'active').order('stock', { ascending: true }),
+      supabase.from('merchant_consignments').select('id,item_name,seller_name,status').eq('business_id', bizId).order('created_at', { ascending: false }).limit(5)
+    ]);
+    const lowStock = (inv || []).filter(i => i.stock <= 10).slice(0, 5);
+    res.json({
+      ok: true,
+      data: {
+        total_revenue: biz?.total_revenue || 0,
+        total_orders: biz?.total_orders || 0,
+        wallet_balance: biz?.wallet_balance || 0,
+        avg_rating: biz?.avg_rating || null,
+        review_count: biz?.review_count || 0,
+        completion_rate: Math.round((biz?.completion_rate || 0) * 100),
+        inventory_count: (inv || []).length,
+        low_stock: lowStock,
+        recent_consignments: consigns || []
+      }
+    });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── MERCHANT PROFILE ──
+app.get('/api/merchant/profile', businessAuth, async (req, res) => {
+  try {
+    const { data: biz } = await supabase.from('business_accounts')
+      .select('id,company_name,email,phone,website,status,plan,account_type,logo_url,banner_url,bio,address,hotline,fanpage,store_slug,badge,is_verified_business,verification_status,wallet_balance,total_revenue,total_orders,completion_rate,avg_rating,review_count,rank_score,total_fees,created_at')
+      .eq('id', req.biz.bizId).single();
+    if (!biz) return res.status(404).json({ error: 'Không tìm thấy' });
+    res.json({ profile: biz });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.put('/api/merchant/profile', businessAuth, async (req, res) => {
+  try {
+    const { company_name, bio, store_slug, address, hotline, website, fanpage, logo_url, banner_url, account_type } = req.body;
+    const payload = {};
+    if (company_name !== undefined) payload.company_name = sanitize(company_name);
+    if (bio !== undefined) payload.bio = sanitize(bio);
+    if (address !== undefined) payload.address = sanitize(address);
+    if (hotline !== undefined) payload.hotline = sanitize(hotline);
+    if (website !== undefined) payload.website = website;
+    if (fanpage !== undefined) payload.fanpage = fanpage;
+    if (logo_url !== undefined) payload.logo_url = logo_url;
+    if (banner_url !== undefined) payload.banner_url = banner_url;
+    if (account_type && ['individual','store','business','consignment'].includes(account_type)) payload.account_type = account_type;
+    if (store_slug) {
+      const slug = store_slug.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      if (slug.length >= 2) {
+        const { data: dup } = await supabase.from('business_accounts').select('id').eq('store_slug', slug).neq('id', req.biz.bizId).single();
+        if (dup) return res.status(409).json({ error: 'Slug đã được dùng, hãy chọn slug khác' });
+        payload.store_slug = slug;
+      }
+    }
+    const { data: updated, error } = await supabase.from('business_accounts').update(payload).eq('id', req.biz.bizId).select().single();
+    if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+    const { password_hash: _ph, ...safe } = updated;
+    res.json({ ok: true, profile: safe });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── MERCHANT INVENTORY ──
+app.get('/api/merchant/inventory', businessAuth, async (req, res) => {
+  const { data: items } = await supabase.from('merchant_inventory')
+    .select('*').eq('business_id', req.biz.bizId).order('created_at', { ascending: false });
+  res.json({ items: items || [] });
+});
+
+app.post('/api/merchant/inventory', businessAuth, async (req, res) => {
+  try {
+    const { name, sku, description, price, stock, category, image_url, status } = req.body;
+    if (!name) return res.status(400).json({ error: 'Tên sản phẩm là bắt buộc' });
+    const { data: item, error } = await supabase.from('merchant_inventory').insert({
+      business_id: req.biz.bizId,
+      name: sanitize(name), sku: sku || null, description: sanitize(description || ''),
+      price: parseInt(price) || 0, stock: parseInt(stock) || 0,
+      category: category || 'general', image_url: image_url || null,
+      status: status || 'active'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Thêm sản phẩm thất bại' });
+    res.status(201).json({ ok: true, item });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.put('/api/merchant/inventory/:id', businessAuth, async (req, res) => {
+  try {
+    const { name, sku, description, price, stock, category, status } = req.body;
+    const payload = { updated_at: new Date().toISOString() };
+    if (name) payload.name = sanitize(name);
+    if (sku !== undefined) payload.sku = sku;
+    if (description !== undefined) payload.description = sanitize(description);
+    if (price !== undefined) payload.price = parseInt(price) || 0;
+    if (stock !== undefined) payload.stock = parseInt(stock) || 0;
+    if (category) payload.category = category;
+    if (status) payload.status = status;
+    const { error } = await supabase.from('merchant_inventory').update(payload).eq('id', req.params.id).eq('business_id', req.biz.bizId);
+    if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.delete('/api/merchant/inventory/:id', businessAuth, async (req, res) => {
+  const { error } = await supabase.from('merchant_inventory').delete().eq('id', req.params.id).eq('business_id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Xóa thất bại' });
+  res.json({ ok: true });
+});
+
+// ── MERCHANT CONSIGNMENTS ──
+app.get('/api/merchant/consignments', businessAuth, async (req, res) => {
+  try {
+    const bizId = req.biz.bizId;
+    const { data: items } = await supabase.from('merchant_consignments')
+      .select('*').eq('business_id', bizId).order('created_at', { ascending: false });
+    const all = items || [];
+    const stats = {
+      pending: all.filter(i => i.status === 'pending').length,
+      accepted: all.filter(i => i.status === 'accepted').length,
+      listed: all.filter(i => i.status === 'listed').length,
+      sold: all.filter(i => i.status === 'sold').length,
+      total_commission: all.filter(i => i.status === 'sold').reduce((s, i) => s + (i.commission_earned || 0), 0)
+    };
+    res.json({ items: all, stats });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.post('/api/merchant/consignments', businessAuth, async (req, res) => {
+  try {
+    const { seller_name, seller_phone, item_name, description, quantity, asking_price, selling_price, commission_rate, notes } = req.body;
+    if (!seller_name || !item_name) return res.status(400).json({ error: 'Tên người ký gửi và tên hàng là bắt buộc' });
+    const { data: item, error } = await supabase.from('merchant_consignments').insert({
+      business_id: req.biz.bizId,
+      seller_name: sanitize(seller_name), seller_phone: seller_phone || null,
+      item_name: sanitize(item_name), description: sanitize(description || ''),
+      quantity: parseInt(quantity) || 1,
+      asking_price: parseInt(asking_price) || 0, selling_price: parseInt(selling_price) || 0,
+      commission_rate: parseFloat(commission_rate) || 0.1,
+      notes: sanitize(notes || ''), status: 'pending'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Thêm ký gửi thất bại' });
+    res.status(201).json({ ok: true, item });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.patch('/api/merchant/consignments/:id', businessAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ['pending','accepted','listed','sold','returned'];
+    if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+    const { data: con } = await supabase.from('merchant_consignments').select('*').eq('id', req.params.id).eq('business_id', req.biz.bizId).single();
+    if (!con) return res.status(404).json({ error: 'Không tìm thấy' });
+    const update = { status };
+    if (status === 'sold') {
+      update.commission_earned = Math.round((con.selling_price || 0) * (con.commission_rate || 0.1));
+    }
+    const { error } = await supabase.from('merchant_consignments').update(update).eq('id', req.params.id).eq('business_id', req.biz.bizId);
+    if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── MERCHANT STAFF ──
+app.get('/api/merchant/staff', businessAuth, async (req, res) => {
+  const { data: staff } = await supabase.from('merchant_staff')
+    .select('*').eq('business_id', req.biz.bizId).order('created_at', { ascending: false });
+  res.json({ staff: staff || [] });
+});
+
+app.post('/api/merchant/staff', businessAuth, async (req, res) => {
+  try {
+    const { name, phone, email, role } = req.body;
+    if (!name) return res.status(400).json({ error: 'Tên nhân viên là bắt buộc' });
+    const validRoles = ['admin','manager','staff'];
+    const staffRole = validRoles.includes(role) ? role : 'staff';
+    const { data: member, error } = await supabase.from('merchant_staff').insert({
+      business_id: req.biz.bizId, name: sanitize(name),
+      phone: phone || null, email: email || null, role: staffRole
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Thêm nhân viên thất bại' });
+    res.status(201).json({ ok: true, member });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.patch('/api/merchant/staff/:id', businessAuth, async (req, res) => {
+  const { status, role } = req.body;
+  const update = {};
+  if (status && ['active','inactive'].includes(status)) update.status = status;
+  if (role && ['admin','manager','staff'].includes(role)) update.role = role;
+  const { error } = await supabase.from('merchant_staff').update(update).eq('id', req.params.id).eq('business_id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+  res.json({ ok: true });
+});
+
+app.delete('/api/merchant/staff/:id', businessAuth, async (req, res) => {
+  const { error } = await supabase.from('merchant_staff').delete().eq('id', req.params.id).eq('business_id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Xóa thất bại' });
+  res.json({ ok: true });
+});
+
+// ── MERCHANT FRANCHISES ──
+app.get('/api/merchant/franchises', businessAuth, async (req, res) => {
+  const { data: branches } = await supabase.from('merchant_franchises')
+    .select('*').eq('business_id', req.biz.bizId).order('created_at', { ascending: false });
+  res.json({ branches: branches || [] });
+});
+
+app.post('/api/merchant/franchises', businessAuth, async (req, res) => {
+  try {
+    const { branch_name, address, manager_name, manager_phone } = req.body;
+    if (!branch_name) return res.status(400).json({ error: 'Tên chi nhánh là bắt buộc' });
+    const { data: branch, error } = await supabase.from('merchant_franchises').insert({
+      business_id: req.biz.bizId, branch_name: sanitize(branch_name),
+      address: sanitize(address || ''), manager_name: sanitize(manager_name || ''),
+      manager_phone: manager_phone || null
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Thêm chi nhánh thất bại' });
+    res.status(201).json({ ok: true, branch });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.patch('/api/merchant/franchises/:id', businessAuth, async (req, res) => {
+  const { status } = req.body;
+  if (!['active','inactive'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const { error } = await supabase.from('merchant_franchises').update({ status }).eq('id', req.params.id).eq('business_id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+  res.json({ ok: true });
+});
+
+app.delete('/api/merchant/franchises/:id', businessAuth, async (req, res) => {
+  const { error } = await supabase.from('merchant_franchises').delete().eq('id', req.params.id).eq('business_id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Xóa thất bại' });
+  res.json({ ok: true });
+});
+
+// ── MERCHANT WALLET ──
+app.get('/api/merchant/wallet', businessAuth, async (req, res) => {
+  try {
+    const [{ data: biz }, { data: txns }] = await Promise.all([
+      supabase.from('business_accounts').select('wallet_balance,total_revenue,total_fees,total_orders').eq('id', req.biz.bizId).single(),
+      supabase.from('merchant_wallet_txns').select('*').eq('business_id', req.biz.bizId).order('created_at', { ascending: false }).limit(50)
+    ]);
+    res.json({ wallet: biz || {}, transactions: txns || [] });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── MERCHANT ANALYTICS ──
+app.get('/api/merchant/analytics', businessAuth, async (req, res) => {
+  try {
+    const bizId = req.biz.bizId;
+    const [{ data: biz }, { data: inv }, { data: consigns }, { data: txns }] = await Promise.all([
+      supabase.from('business_accounts').select('total_revenue,total_orders,avg_rating,review_count').eq('id', bizId).single(),
+      supabase.from('merchant_inventory').select('name,price,stock,status').eq('business_id', bizId).order('stock', { ascending: false }).limit(10),
+      supabase.from('merchant_consignments').select('status,commission_earned').eq('business_id', bizId),
+      supabase.from('merchant_wallet_txns').select('type,amount,created_at').eq('business_id', bizId)
+    ]);
+    const all = consigns || [];
+    const conStatus = { pending: all.filter(c=>c.status==='pending').length, accepted: all.filter(c=>c.status==='accepted').length, listed: all.filter(c=>c.status==='listed').length, sold: all.filter(c=>c.status==='sold').length };
+    const totalCommission = all.filter(c=>c.status==='sold').reduce((s,c)=>s+(c.commission_earned||0),0);
+    // Monthly revenue (last 12 months)
+    const monthly_revenue = Array(12).fill(0);
+    const monthly_orders = Array(12).fill(0);
+    (txns || []).filter(t=>t.type==='revenue').forEach(t => {
+      const m = new Date(t.created_at).getMonth();
+      monthly_revenue[m] += t.amount || 0;
+    });
+    res.json({ data: {
+      total_revenue: biz?.total_revenue || 0, total_orders: biz?.total_orders || 0,
+      avg_rating: biz?.avg_rating || null, review_count: biz?.review_count || 0,
+      total_commission: totalCommission, consignment_status: conStatus,
+      top_inventory: (inv || []).slice(0, 5), monthly_revenue, monthly_orders
+    }});
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── MERCHANT VERIFICATION ──
+app.get('/api/merchant/verification', businessAuth, async (req, res) => {
+  const { data: v } = await supabase.from('merchant_verifications')
+    .select('*').eq('business_id', req.biz.bizId).order('submitted_at', { ascending: false }).limit(1).single();
+  res.json({ verification: v || null });
+});
+
+app.post('/api/merchant/verification', businessAuth, async (req, res) => {
+  try {
+    const { license_number, tax_id, representative_name, license_url, id_card_url } = req.body;
+    if (!license_number || !tax_id || !representative_name) return res.status(400).json({ error: 'Điền đủ thông tin bắt buộc' });
+    const { data: existing } = await supabase.from('merchant_verifications').select('id,status').eq('business_id', req.biz.bizId).eq('status', 'pending').single();
+    if (existing) return res.status(409).json({ error: 'Hồ sơ đang chờ xét duyệt, không thể nộp lại' });
+    const { data: v, error } = await supabase.from('merchant_verifications').insert({
+      business_id: req.biz.bizId, license_number: sanitize(license_number),
+      tax_id: sanitize(tax_id), representative_name: sanitize(representative_name),
+      license_url: license_url || null, id_card_url: id_card_url || null, status: 'pending'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Nộp hồ sơ thất bại' });
+    await supabase.from('business_accounts').update({ verification_status: 'pending' }).eq('id', req.biz.bizId);
+    res.status(201).json({ ok: true, verification: v });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── MERCHANT RANKINGS ──
+app.get('/api/merchant/rankings', businessAuth, async (req, res) => {
+  try {
+    const { data: top } = await supabase.from('business_accounts')
+      .select('id,company_name,store_slug,badge,avg_rating,review_count,total_orders,total_revenue,rank_score,account_type')
+      .eq('status', 'active').order('rank_score', { ascending: false }).limit(20);
+    const myId = req.biz.bizId;
+    const ranked = (top || []).map((b, i) => ({ ...b, rank: i + 1 }));
+    const myRank = ranked.find(b => b.id === myId) || null;
+    res.json({ rankings: ranked, my_rank: myRank });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── PUBLIC STORE PAGE ──
+app.get('/store/:slug', async (req, res) => {
+  const slug = req.params.slug.toLowerCase();
+  const { data: biz } = await supabase.from('business_accounts')
+    .select('id,company_name,bio,logo_url,banner_url,address,hotline,website,fanpage,badge,is_verified_business,avg_rating,review_count,total_orders')
+    .eq('store_slug', slug).eq('status', 'active').single();
+  if (!biz) return res.status(404).send('<!DOCTYPE html><html><body style="background:#06090f;color:#fff;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;"><div style="text-align:center;"><div style="font-size:48px;">🔍</div><h2>Shop không tồn tại</h2><p style="color:#6b7a99;">URL này chưa được đăng ký trên SafePass</p><a href="/" style="color:#f97316;">← Về trang chủ</a></div></body></html>');
+  const { data: inv } = await supabase.from('merchant_inventory').select('id,name,price,stock,category,image_url').eq('business_id', biz.id).eq('status', 'active').order('created_at', { ascending: false }).limit(24);
+  const { data: reviews } = await supabase.from('merchant_reviews').select('reviewer_name,rating,comment,created_at').eq('business_id', biz.id).order('created_at', { ascending: false }).limit(10);
+  const badgeMap = { none:'',verified:'✅ Verified Shop',trusted:'💙 Trusted Shop',premium:'💜 Premium Shop',gold:'🥇 Gold Merchant',diamond:'💎 Diamond Merchant' };
+  const items = inv || [];
+  const revs = reviews || [];
+  const html = `<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${biz.company_name} — SafePass Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#05080f;--card:#0d1220;--brand:#f97316;--text:#e8edf5;--sub:#6b7a99;--border:rgba(255,255,255,.07);--green:#10b981;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+.banner{width:100%;height:240px;object-fit:cover;background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(61,142,248,.1));display:block;}
+.banner-ph{width:100%;height:240px;background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(61,142,248,.08));display:flex;align-items:center;justify-content:center;font-size:60px;}
+.container{max-width:1100px;margin:0 auto;padding:0 20px;}
+.profile-row{display:flex;align-items:flex-end;gap:20px;margin-top:-32px;padding:0 20px 20px;position:relative;}
+.logo{width:80px;height:80px;border-radius:16px;border:4px solid var(--bg);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;flex-shrink:0;}
+.logo img{width:100%;height:100%;object-fit:cover;}
+.shop-name{font-size:24px;font-weight:800;}
+.shop-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--sub);margin-top:6px;}
+.badge-pill{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(16,185,129,.15);color:var(--green);}
+.nav{background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 20px;display:flex;gap:24px;}
+.nav-link{padding:14px 0;font-size:13px;font-weight:600;color:var(--sub);border-bottom:2px solid transparent;cursor:pointer;}
+.nav-link.active{color:var(--brand);border-bottom-color:var(--brand);}
+.section{padding:24px 0;}
+.section-title{font-size:16px;font-weight:700;margin-bottom:16px;}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;}
+.prod-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:.15s;}
+.prod-card:hover{border-color:var(--brand);}
+.prod-icon{font-size:36px;margin-bottom:10px;}
+.prod-name{font-size:13px;font-weight:700;margin-bottom:6px;}
+.prod-price{font-size:16px;font-weight:800;color:var(--brand);}
+.prod-stock{font-size:11px;color:var(--sub);margin-top:4px;}
+.review-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+.stars{color:#f59e0b;font-size:14px;}
+.footer{padding:32px 20px;text-align:center;color:var(--sub);font-size:12px;border-top:1px solid var(--border);margin-top:40px;}
+.footer a{color:var(--brand);}
+.stat-row{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px;}
+.stat-item{text-align:center;}
+.stat-item .val{font-size:20px;font-weight:800;}
+.stat-item .lbl{font-size:11px;color:var(--sub);}
+</style>
+</head><body>
+${biz.banner_url?`<img src="${biz.banner_url}" class="banner" onerror="this.outerHTML='<div class=banner-ph>🏬</div>'"/>`:`<div class="banner-ph">🏬</div>`}
+<div class="container">
+  <div class="profile-row">
+    <div class="logo">${biz.logo_url?`<img src="${biz.logo_url}" onerror="this.outerHTML='🏬'"/>`:'🏬'}</div>
+    <div style="flex:1;padding-bottom:4px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="shop-name">${biz.company_name}</div>
+        ${biz.is_verified_business?'<span class="badge-pill">✅ Verified Business</span>':''}
+        ${biz.badge&&biz.badge!=='none'?`<span class="badge-pill">${badgeMap[biz.badge]||''}</span>`:''}
+      </div>
+      <div class="shop-meta">
+        <span>⭐ ${biz.avg_rating||'—'} (${biz.review_count||0} đánh giá)</span>
+        <span>📦 ${biz.total_orders||0} đơn hàng</span>
+        ${biz.address?`<span>📍 ${biz.address}</span>`:''}
+        ${biz.hotline?`<span>📞 ${biz.hotline}</span>`:''}
+      </div>
+    </div>
+    <a href="/" style="padding:10px 20px;background:var(--brand);color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;flex-shrink:0;">Liên hệ qua SafePass</a>
+  </div>
+  ${biz.bio?`<div style="padding:0 20px 20px;font-size:14px;color:#9ca3af;">${biz.bio}</div>`:''}
+</div>
+<div class="nav"><div class="nav-inner"><div class="nav-link active">📦 Sản phẩm (${items.length})</div><div class="nav-link">⭐ Đánh giá (${revs.length})</div></div></div>
+<div class="container">
+  <div class="section">
+    <div class="section-title">📦 Sản phẩm đang bán</div>
+    ${items.length?`<div class="prod-grid">${items.map(i=>`<div class="prod-card"><div class="prod-icon">📦</div><div class="prod-name">${i.name}</div><div class="prod-price">${Number(i.price||0).toLocaleString('vi-VN')} ₫</div><div class="prod-stock">Còn ${i.stock}</div></div>`).join('')}</div>`:'<div style="text-align:center;padding:40px;color:var(--sub);">Chưa có sản phẩm</div>'}
+  </div>
+  ${revs.length?`<div class="section"><div class="section-title">⭐ Đánh giá từ khách hàng</div>${revs.map(r=>`<div class="review-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="font-weight:700;font-size:13px;">${r.reviewer_name||'Khách hàng'}</div><div class="stars">${'★'.repeat(r.rating||5)}</div></div><div style="font-size:13px;color:#9ca3af;">${r.comment||''}</div></div>`).join('')}</div>`:''}
+</div>
+<div class="footer"><a href="/">SafePass</a> — Nền tảng escrow an toàn · <a href="/store/${slug}">safepass.vn/store/${slug}</a></div>
+</body></html>`;
+  res.send(html);
+});
+
+// ── ADMIN — MERCHANT MANAGEMENT ──
+app.get('/api/admin/merchant/verifications', adminAuth, async (req, res) => {
+  const { data: verifs } = await supabase.from('merchant_verifications')
+    .select('*, business_accounts(company_name,email)')
+    .order('submitted_at', { ascending: false });
+  res.json({ verifications: verifs || [] });
+});
+
+app.patch('/api/admin/merchant/verifications/:id', adminAuth, async (req, res) => {
+  try {
+    const { status, admin_note } = req.body;
+    if (!['approved','rejected'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+    const { data: v } = await supabase.from('merchant_verifications').select('business_id').eq('id', req.params.id).single();
+    if (!v) return res.status(404).json({ error: 'Không tìm thấy' });
+    await supabase.from('merchant_verifications').update({ status, admin_note: admin_note || null, reviewed_at: new Date().toISOString() }).eq('id', req.params.id);
+    await supabase.from('business_accounts').update({ verification_status: status, is_verified_business: status === 'approved', badge: status === 'approved' ? 'verified' : undefined }).eq('id', v.business_id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.patch('/api/admin/merchant/:id/badge', adminAuth, async (req, res) => {
+  const { badge } = req.body;
+  const validBadges = ['none','verified','trusted','premium','gold','diamond'];
+  if (!validBadges.includes(badge)) return res.status(400).json({ error: 'Huy hiệu không hợp lệ' });
+  const { error } = await supabase.from('business_accounts').update({ badge }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/merchant/all', adminAuth, async (req, res) => {
+  const { data: merchants } = await supabase.from('business_accounts')
+    .select('id,company_name,email,account_type,badge,is_verified_business,verification_status,status,total_revenue,total_orders,avg_rating,rank_score,created_at')
+    .order('created_at', { ascending: false });
+  res.json({ merchants: merchants || [] });
+});
+
+app.patch('/api/admin/merchant/:id/status', adminAuth, async (req, res) => {
+  const { status } = req.body;
+  if (!['active','suspended','pending'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const { error } = await supabase.from('business_accounts').update({ status }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+  res.json({ ok: true });
+});
+
+// ══════════════════════════════════════════════════════════
 //  SAFEPASS FREELANCE — Fiverr/Upwork-style Marketplace
 // ══════════════════════════════════════════════════════════
 

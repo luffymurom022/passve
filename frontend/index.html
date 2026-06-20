@@ -1177,6 +1177,7 @@ function render(){
     {id:"warehouse",icon:"🏭",label:"Warehouse"},
     {id:"delivery",icon:"🚴",label:"Delivery"},
     {id:"risk",icon:"🤖",label:"AI Risk"},
+    {id:"business_center",icon:"🏬",label:"Business"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1211,6 +1212,8 @@ function render(){
           ?"window.location.href='/delivery'"
           :p.id==="risk"
           ?"window.location.href='/risk'"
+          :p.id==="business_center"
+          ?"window.location.href='/business'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

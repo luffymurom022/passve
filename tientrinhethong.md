@@ -884,3 +884,36 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 > **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `logistics_migration.sql`
 
 *Cập nhật lần cuối: 2026-06-20*
+
+---
+
+## ✅ PHASE 14: BUSINESS & MERCHANT CENTER — HOÀN THÀNH 2026-06-20
+
+| Tính năng | Ngày |
+|-----------|------|
+| **Business Account** — 4 loại: individual / store / business / consignment | 2026-06-20 |
+| **Business Profile** — logo, banner, bio, địa chỉ, hotline, website, fanpage, store_slug | 2026-06-20 |
+| **Merchant Dashboard** — doanh thu, đơn hàng, tồn kho, đánh giá, tỷ lệ hoàn thành, ví | 2026-06-20 |
+| **Multi Staff System** — Admin / Manager / Staff, phân quyền rõ ràng | 2026-06-20 |
+| **Inventory Management** — CRUD hàng hóa, tồn kho, giá, SKU, danh mục, trạng thái | 2026-06-20 |
+| **Consignment Business** — nhận ký gửi, quản lý, chia hoa hồng, theo dõi trạng thái | 2026-06-20 |
+| **Business Verification** — nộp GPKD, MST, CCCD; admin duyệt/từ chối; cập nhật badge | 2026-06-20 |
+| **Business Badges** — none → verified → trusted → premium → gold → diamond | 2026-06-20 |
+| **Business Analytics** — Chart.js: doanh thu/đơn hàng theo tháng, ký gửi theo trạng thái | 2026-06-20 |
+| **Business Wallet** — số dư, doanh thu, phí dịch vụ, lịch sử giao dịch | 2026-06-20 |
+| **Business Store Page** — `/store/:slug` — public page với banner, logo, sản phẩm, đánh giá | 2026-06-20 |
+| **Franchise Management** — nhiều chi nhánh, địa chỉ, quản lý từng chi nhánh | 2026-06-20 |
+| **Business API Ready** — ERP/POS/CRM section trong API Center (roadmap) | 2026-06-20 |
+| **Business Rankings** — top uy tín, top doanh thu; vị trí của shop hiện tại | 2026-06-20 |
+| **Admin Business Center** — duyệt verification, gán badge, khóa/mở tài khoản | 2026-06-20 |
+| **Nav "🏬 Business"** thêm vào index.html → `/business` | 2026-06-20 |
+| **UI** — Shopee Mall / Lazada Mall style, dark mode, responsive, sidebar navigation | 2026-06-20 |
+| **SQL Migration** — `business_phase14_migration.sql` (chạy trong Supabase SQL Editor) | 2026-06-20 |
+
+**Tables mới:** `merchant_staff`, `merchant_inventory`, `merchant_consignments`, `merchant_verifications`, `merchant_wallet_txns`, `merchant_franchises`, `merchant_reviews`
+
+**Columns mới trong `business_accounts`:** `account_type`, `logo_url`, `banner_url`, `bio`, `address`, `hotline`, `fanpage`, `store_slug`, `badge`, `is_verified_business`, `verification_status`, `wallet_balance`, `total_revenue`, `total_orders`, `completion_rate`, `avg_rating`, `review_count`, `rank_score`, `total_fees`
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `business_phase14_migration.sql`
+
+*Cập nhật lần cuối: 2026-06-20*
