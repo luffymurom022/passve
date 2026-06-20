@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafePass — AI Risk Center</title>
+<style>
+:root{
+  --bg:#07090f;--bg2:#0d1117;--bg3:#141921;--card:#111720;--card2:#161e2a;
+  --border:#1e2a3a;--border2:#243042;
+  --brand:#3d8ef8;--brandL:rgba(61,142,248,.08);--brandM:rgba(61,142,248,.18);
+  --ok:#34d89e;--okBg:rgba(52,216,158,.08);
+  --warn:#f59e0b;--warnBg:rgba(245,158,11,.08);
+  --red:#f0566a;--redBg:rgba(240,86,106,.08);
+  --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);
+  --cyan:#00e5ff;--cyanBg:rgba(0,229,255,.07);
+  --gold:#fbbf24;--goldBg:rgba(251,191,36,.08);
+  --sub:#8892a4;--hint:#4a5568;--txt:#e2e8f0;
+  --glow:0 0 20px rgba(61,142,248,.25);
+  --radius:14px;--radius-sm:9px;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;}
+button{cursor:pointer;font-family:var(--font);}
+input,select,textarea{font-family:var(--font);}
+
+.app{max-width:1100px;margin:0 auto;padding:0 16px 80px;}
+
+.header{position:sticky;top:0;z-index:100;background:rgba(7,9,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo-txt{font-size:18px;font-weight:800;color:var(--txt);}
+.logo-txt span{color:var(--brand);}
+.back-btn{padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--sub);font-size:13px;font-weight:600;transition:all .2s;}
+.back-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brandL);}
+.spacer{flex:1;}
+.user-chip{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;background:var(--card);border:1px solid var(--border);font-size:13px;font-weight:600;}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+
+.tabs{display:flex;gap:4px;padding:16px 0 4px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:9px 18px;border-radius:var(--radius-sm);border:1px solid transparent;background:transparent;color:var(--sub);font-size:13px;font-weight:600;white-space:nowrap;transition:all .2s;}
+.tab:hover{color:var(--txt);background:var(--card);}
+.tab.active{background:var(--brandM);border-color:rgba(61,142,248,.3);color:var(--brand);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-title{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:680px){.grid2{grid-template-columns:1fr;}.grid3,.grid4{grid-template-columns:1fr 1fr;}}
+
+.stat-box{padding:16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);text-align:center;}
+.stat-box .s-val{font-size:24px;font-weight:900;font-family:var(--mono);}
+.stat-box .s-lbl{font-size:11px;color:var(--sub);margin-top:3px;font-weight:600;}
+
+/* RISK SCORE RING */
+.risk-ring{position:relative;width:120px;height:120px;flex-shrink:0;}
+.risk-ring svg{transform:rotate(-90deg);}
+.risk-ring-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.risk-ring-num{font-size:28px;font-weight:900;font-family:var(--mono);}
+.risk-ring-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+
+/* RISK LEVEL COLORS */
+.risk-safe{color:var(--ok);}
+.risk-medium{color:var(--warn);}
+.risk-high{color:#ff6b35;}
+.risk-critical{color:var(--red);}
+.risk-safe-bg{background:var(--okBg);border-color:rgba(52,216,158,.2);}
+.risk-medium-bg{background:var(--warnBg);border-color:rgba(245,158,11,.2);}
+.risk-high-bg{background:rgba(255,107,53,.08);border-color:rgba(255,107,53,.2);}
+.risk-critical-bg{background:var(--redBg);border-color:rgba(240,86,106,.2);}
+
+/* CHIPS */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.chip-ok{background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.2);}
+.chip-warn{background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,158,11,.2);}
+.chip-red{background:var(--redBg);color:var(--red);border:1px solid rgba(240,86,106,.2);}
+.chip-orange{background:rgba(255,107,53,.08);color:#ff6b35;border:1px solid rgba(255,107,53,.2);}
+.chip-brand{background:var(--brandL);color:var(--brand);border:1px solid rgba(61,142,248,.2);}
+.chip-purple{background:var(--purpleBg);color:var(--purple);border:1px solid rgba(155,135,245,.2);}
+.chip-muted{background:var(--bg3);color:var(--hint);border:1px solid var(--border);}
+.chip-cyan{background:var(--cyanBg);color:var(--cyan);border:1px solid rgba(0,229,255,.2);}
+
+/* ALERT CARD */
+.alert-card{
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px 16px;margin-bottom:8px;
+  display:flex;align-items:flex-start;gap:12px;
+  transition:border-color .2s;
+}
+.alert-card.sev-critical{border-left:3px solid var(--red);background:var(--redBg);}
+.alert-card.sev-high{border-left:3px solid #ff6b35;background:rgba(255,107,53,.04);}
+.alert-card.sev-medium{border-left:3px solid var(--warn);background:var(--warnBg);}
+.alert-card.sev-low{border-left:3px solid var(--brand);}
+.alert-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.alert-info{flex:1;}
+.alert-title{font-size:13px;font-weight:700;margin-bottom:3px;}
+.alert-desc{font-size:12px;color:var(--sub);line-height:1.5;}
+.alert-meta{font-size:11px;color:var(--hint);margin-top:4px;}
+
+/* SCORE GAUGE BAR */
+.score-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:4px;}
+.score-fill{height:100%;border-radius:4px;transition:width .6s;}
+
+/* SIGNAL ROW */
+.signal-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);margin-bottom:6px;}
+.signal-icon{font-size:16px;flex-shrink:0;}
+.signal-label{flex:1;font-size:12px;font-weight:600;}
+.signal-val{font-size:12px;font-family:var(--mono);}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:none;transition:all .2s;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{background:#2d7de8;box-shadow:var(--glow);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--sub);}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand);}
+.btn-danger{background:transparent;border:1px solid rgba(240,86,106,.35);color:var(--red);}
+.btn-danger:hover{background:var(--redBg);}
+.btn-ok{background:transparent;border:1px solid rgba(52,216,158,.35);color:var(--ok);}
+.btn-ok:hover{background:var(--okBg);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-xs{padding:4px 9px;font-size:11px;}
+
+/* FORM */
+.field-label{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px;}
+.field-input{width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg3);color:var(--txt);font-size:13px;outline:none;transition:border-color .2s;}
+.field-input:focus{border-color:var(--brand);}
+.field-input::placeholder{color:var(--hint);}
+select.field-input option{background:var(--bg3);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.modal-close{margin-left:auto;background:transparent;border:none;color:var(--hint);font-size:18px;cursor:pointer;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;z-index:9999;transition:transform .3s;pointer-events:none;background:var(--card);border:1px solid var(--border);color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:rgba(52,216,158,.4);color:var(--ok);}
+.toast.err{border-color:rgba(240,86,106,.4);color:var(--red);}
+.toast.info{border-color:rgba(61,142,248,.4);color:var(--brand);}
+
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:48px 20px;color:var(--hint);}
+.empty .e-icon{font-size:40px;margin-bottom:12px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .25s ease both;}
+
+/* AI SCAN ANIMATION */
+@keyframes scanLine{0%{top:0}100%{top:100%}}
+.ai-scan{position:relative;overflow:hidden;}
+.ai-scan::after{content:'';position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scanLine 2s linear infinite;opacity:.5;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <a href="/" class="logo">
+      <svg width="30" height="30" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00f5ff"/><stop offset="40%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#9b87f5"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="#030912"/><path d="M32 8L52 17L52 37Q52 52 32 58Q12 52 12 37L12 17Z" fill="rgba(0,245,255,.04)" stroke="url(#g)" stroke-width="1.5"/><text x="32" y="38" text-anchor="middle" font-size="14" font-weight="800" fill="url(#g)" font-family="JetBrains Mono,monospace">SP</text></svg>
+      <span class="logo-txt">Safe<span>Pass</span></span>
+    </a>
+    <button class="back-btn" onclick="history.back()">← Quay lại</button>
+    <div class="spacer"></div>
+    <div class="user-chip">
+      <div class="avatar" id="userAvatar">?</div>
+      <span id="userName">Đang tải...</span>
+    </div>
+  </div>
+
+  <div style="padding:28px 0 4px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span style="font-size:26px;">🤖</span>
+      <h1 style="font-size:24px;font-weight:900;">AI Risk Center</h1>
+      <span style="padding:3px 10px;border-radius:20px;background:var(--cyanBg);color:var(--cyan);font-size:11px;font-weight:800;border:1px solid rgba(0,229,255,.2);">Anti-Fraud Engine v1</span>
+    </div>
+    <p style="color:var(--sub);font-size:14px;">Hệ thống AI phân tích rủi ro và chống lừa đảo toàn diện — bảo vệ mọi giao dịch trên SafePass</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('my')">🛡️ Rủi ro của tôi</button>
+    <button class="tab" onclick="switchTab('alerts')">⚠️ Cảnh báo</button>
+    <button class="tab" onclick="switchTab('insights')">📊 AI Insights</button>
+    <button class="tab admin-only" onclick="switchTab('admin')" style="display:none;">⚙️ Admin</button>
+  </div>
+
+  <div id="content" style="padding-top:12px;"></div>
+</div>
+
+<div id="modalBg" class="modal-bg" style="display:none;" onclick="closeModal(event)">
+  <div class="modal" id="modalBox" onclick="event.stopPropagation()"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('safepass_token');
+let currentUser = null;
+let myRisk = null;
+
+const VND = n => new Intl.NumberFormat('vi-VN').format(n || 0) + 'đ';
+const pct = n => Math.min(100, Math.max(0, n || 0));
+
+const RISK_LEVELS = {
+  safe:     { label:'Safe',     cls:'chip-ok',      color:'#34d89e', textCls:'risk-safe',     bgCls:'risk-safe-bg',     range:'0–20',  icon:'✅' },
+  medium:   { label:'Medium',   cls:'chip-warn',    color:'#f59e0b', textCls:'risk-medium',   bgCls:'risk-medium-bg',   range:'21–50', icon:'⚠️' },
+  high:     { label:'High',     cls:'chip-orange',  color:'#ff6b35', textCls:'risk-high',     bgCls:'risk-high-bg',     range:'51–80', icon:'🔶' },
+  critical: { label:'Critical', cls:'chip-red',     color:'#f0566a', textCls:'risk-critical', bgCls:'risk-critical-bg', range:'81–100',icon:'🚨' },
+};
+
+const SEVERITY_ICONS = { low:'💙', medium:'⚠️', high:'🔶', critical:'🚨' };
+const ALERT_TYPE_ICONS = { user:'👤', product:'📦', transaction:'💳', delivery:'🚚', account:'🔐', system:'⚙️' };
+
+function riskColor(score) {
+  if (score <= 20) return '#34d89e';
+  if (score <= 50) return '#f59e0b';
+  if (score <= 80) return '#ff6b35';
+  return '#f0566a';
+}
+
+function riskLevel(score) {
+  if (score <= 20) return 'safe';
+  if (score <= 50) return 'medium';
+  if (score <= 80) return 'high';
+  return 'critical';
+}
+
+// ── INIT ──
+async function init() {
+  if (!token) { window.location.href = '/'; return; }
+  try {
+    const r = await fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) { window.location.href = '/'; return; }
+    currentUser = await r.json();
+    document.getElementById('userAvatar').textContent = (currentUser.name||'?').slice(0,2).toUpperCase();
+    document.getElementById('userName').textContent = currentUser.name || 'Người dùng';
+    if (currentUser.is_admin) document.querySelector('.admin-only').style.display = '';
+    await loadMyRisk();
+    renderTab('my');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function loadMyRisk() {
+  try {
+    const r = await fetch(`${API}/api/risk/my-profile`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) myRisk = await r.json();
+  } catch(e) {}
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabs = ['my','alerts','insights','admin'];
+  document.querySelectorAll('.tab')[tabs.indexOf(tab)]?.classList.add('active');
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  const el = document.getElementById('content');
+  if (tab === 'my') el.innerHTML = buildMyRisk();
+  else if (tab === 'alerts') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div></div>'; loadMyAlerts(); }
+  else if (tab === 'insights') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div></div>'; loadInsights(); }
+  else if (tab === 'admin') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div></div>'; loadAdminPanel(); }
+}
+
+// ── MY RISK TAB ──
+function buildMyRisk() {
+  const rp = myRisk || { risk_score: 0, risk_level: 'safe', dispute_rate: 0, refund_rate: 0, avg_review_score: 5, total_transactions: 0, flagged: false };
+  const score = rp.risk_score || 0;
+  const level = RISK_LEVELS[rp.risk_level] || RISK_LEVELS.safe;
+  const color = riskColor(score);
+  const circumference = 2 * Math.PI * 45;
+  const dash = circumference - (score / 100) * circumference;
+
+  const recommendations = [];
+  if (score > 20) recommendations.push({ icon:'🛡️', text:'Sử dụng Escrow cho các giao dịch giá trị lớn' });
+  if (score > 40) recommendations.push({ icon:'🔬', text:'Yêu cầu kiểm định hàng trước khi thanh toán' });
+  if (score > 60) recommendations.push({ icon:'🪪', text:'Hoàn thành xác minh KYC để cải thiện điểm' });
+  if (score <= 20) recommendations.push({ icon:'✅', text:'Tài khoản của bạn đang ở mức an toàn tốt' });
+
+  return `<div class="fade-up">
+    <!-- Risk Score Card -->
+    <div class="card" style="display:flex;align-items:center;gap:20px;margin-bottom:12px;flex-wrap:wrap;">
+      <div class="risk-ring ai-scan">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="45" fill="none" stroke="var(--border)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="45" fill="none" stroke="${color}" stroke-width="10"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${dash}"
+            stroke-linecap="round" style="transition:stroke-dashoffset .8s ease;"/>
+        </svg>
+        <div class="risk-ring-val">
+          <span class="risk-ring-num" style="color:${color};">${score}</span>
+          <span class="risk-ring-lbl" style="color:${color};">/ 100</span>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:22px;font-weight:900;margin-bottom:6px;">
+          ${level.icon} Mức độ: <span class="${level.textCls}">${level.label}</span>
+        </div>
+        <div style="font-size:13px;color:var(--sub);margin-bottom:10px;">Dải: ${level.range} · Cập nhật: ${myRisk?.last_analyzed ? new Date(myRisk.last_analyzed).toLocaleDateString('vi-VN') : 'Chưa có'}</div>
+        <span class="chip ${level.cls}" style="font-size:12px;padding:5px 14px;">${level.label} Risk</span>
+        ${rp.flagged ? '<span class="chip chip-red" style="margin-left:8px;font-size:12px;">🚩 Đã gắn cờ</span>' : ''}
+        <div style="margin-top:12px;">
+          <button class="btn btn-primary btn-sm" onclick="analyzeNow()">🤖 Phân tích lại ngay</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Signals -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">📡 Tín hiệu rủi ro</div>
+      ${[
+        ['💬','Tỷ lệ tranh chấp', pct(rp.dispute_rate * 100) + '%', rp.dispute_rate > 0.2 ? 'risk-high':'risk-safe', rp.dispute_rate * 100],
+        ['↩️','Tỷ lệ hoàn tiền',  pct(rp.refund_rate * 100) + '%',  rp.refund_rate > 0.3  ? 'risk-high':'risk-safe', rp.refund_rate * 100],
+        ['⭐','Đánh giá trung bình', (rp.avg_review_score||5).toFixed(1) + '/5', rp.avg_review_score < 3 ? 'risk-high':'risk-safe', (rp.avg_review_score||5)/5*100],
+        ['🔐','Đăng nhập đáng ngờ', (rp.suspicious_logins||0) + ' lần', rp.suspicious_logins > 3 ? 'risk-high':'risk-safe', Math.min(100, (rp.suspicious_logins||0)*10)],
+        ['📦','Tổng giao dịch', (rp.total_transactions||0) + ' đơn', 'risk-safe', 100],
+      ].map(([icon, label, val, cls, barPct]) => `
+        <div class="signal-row">
+          <div class="signal-icon">${icon}</div>
+          <div class="signal-label">${label}</div>
+          <div style="flex:1;max-width:120px;">
+            <div class="score-bar"><div class="score-fill" style="width:${barPct}%;background:${barPct > 60 ? 'var(--red)' : barPct > 30 ? 'var(--warn)' : 'var(--ok)'}"></div></div>
+          </div>
+          <div class="signal-val ${cls}">${val}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">💡 AI Đề xuất</div>
+      ${recommendations.map(r => `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);margin-bottom:6px;">
+          <span style="font-size:18px;">${r.icon}</span>
+          <span style="font-size:13px;font-weight:600;">${r.text}</span>
+        </div>`).join('')}
+    </div>
+
+    <!-- How score works -->
+    <div class="card">
+      <div class="card-title">🧠 Cách tính Risk Score</div>
+      <div class="grid2">
+        ${[
+          ['🔶 0–20','Safe','Tài khoản tin cậy, ít rủi ro, được ưu tiên'],
+          ['⚠️ 21–50','Medium Risk','Một số tín hiệu nhỏ, cần theo dõi'],
+          ['🔴 51–80','High Risk','Nhiều dấu hiệu đáng ngờ, hạn chế tính năng'],
+          ['🚨 81–100','Critical','Rủi ro rất cao, có thể bị khoá tài khoản'],
+        ].map(([score, label, desc]) => `
+          <div style="padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);">
+            <div style="font-size:13px;font-weight:800;margin-bottom:4px;">${score} — ${label}</div>
+            <div style="font-size:11px;color:var(--sub);line-height:1.5;">${desc}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function analyzeNow() {
+  showToast('AI đang phân tích...', 'info');
+  try {
+    const r = await fetch(`${API}/api/risk/analyze`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    if (r.ok) {
+      myRisk = data.profile;
+      showToast(`Hoàn tất! Risk Score: ${data.profile.risk_score}`, 'ok');
+      renderTab('my');
+    } else showToast(data.error || 'Lỗi phân tích', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+// ── ALERTS TAB ──
+async function loadMyAlerts() {
+  try {
+    const r = await fetch(`${API}/api/risk/my-alerts`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    const alerts = data.alerts || [];
+    const el = document.getElementById('content');
+    if (!alerts.length) {
+      el.innerHTML = `<div class="fade-up empty"><div class="e-icon">✅</div><p>Không có cảnh báo nào.<br/>Tài khoản của bạn đang hoạt động bình thường.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="fade-up">${alerts.map(a => buildAlertCard(a)).join('')}</div>`;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải dữ liệu</p></div>';
+  }
+}
+
+function buildAlertCard(a) {
+  const sev = a.severity || 'medium';
+  const typeIcon = ALERT_TYPE_ICONS[a.alert_type] || '⚠️';
+  const sevIcon = SEVERITY_ICONS[sev] || '⚠️';
+  const statusChip = { open:'chip-red', reviewing:'chip-warn', resolved:'chip-ok', dismissed:'chip-muted', actioned:'chip-purple' }[a.status] || 'chip-muted';
+  return `<div class="alert-card sev-${sev}">
+    <div class="alert-icon">${sevIcon}</div>
+    <div class="alert-info">
+      <div class="alert-title">${typeIcon} ${a.title}</div>
+      <div class="alert-desc">${a.description || ''}</div>
+      <div class="alert-meta">${new Date(a.created_at).toLocaleString('vi-VN')}</div>
+    </div>
+    <span class="chip ${statusChip}">${a.status}</span>
+  </div>`;
+}
+
+// ── INSIGHTS TAB ──
+async function loadInsights() {
+  try {
+    const r = await fetch(`${API}/api/risk/insights`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = r.ok ? await r.json() : {};
+    const el = document.getElementById('content');
+
+    el.innerHTML = `<div class="fade-up">
+      <div class="grid4" style="margin-bottom:12px;">
+        <div class="stat-box"><div class="s-val" style="color:var(--ok);">${data.safeUsers||0}</div><div class="s-lbl">Safe Users</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--warn);">${data.mediumUsers||0}</div><div class="s-lbl">Medium Risk</div></div>
+        <div class="stat-box"><div class="s-val" style="color:#ff6b35;">${data.highUsers||0}</div><div class="s-lbl">High Risk</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--red);">${data.criticalUsers||0}</div><div class="s-lbl">Critical</div></div>
+      </div>
+      <div class="grid3" style="margin-bottom:12px;">
+        <div class="stat-box"><div class="s-val" style="color:var(--brand);">${data.openAlerts||0}</div><div class="s-lbl">Cảnh báo mở</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--gold);">${data.flaggedUsers||0}</div><div class="s-lbl">Đã gắn cờ</div></div>
+        <div class="stat-box"><div class="s-val" style="color:var(--ok);">${data.avgRiskScore||0}</div><div class="s-lbl">Điểm TB toàn hệ thống</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📈 Phân bố rủi ro người dùng</div>
+        ${[
+          { label:'Safe (0–20)', val:data.safeUsers||0, total:data.totalProfiles||1, color:'var(--ok)' },
+          { label:'Medium (21–50)', val:data.mediumUsers||0, total:data.totalProfiles||1, color:'var(--warn)' },
+          { label:'High (51–80)', val:data.highUsers||0, total:data.totalProfiles||1, color:'#ff6b35' },
+          { label:'Critical (81–100)', val:data.criticalUsers||0, total:data.totalProfiles||1, color:'var(--red)' },
+        ].map(({ label, val, total, color }) => {
+          const p = total > 0 ? Math.round(val/total*100) : 0;
+          return `<div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:13px;font-weight:600;">${label}</span>
+              <span style="font-size:12px;font-family:var(--mono);">${val} (${p}%)</span>
+            </div>
+            <div class="score-bar"><div class="score-fill" style="width:${p}%;background:${color};"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="card-title">🤖 AI Engine Status</div>
+        <div style="display:grid;gap:8px;">
+          ${[
+            ['🟢','Rule-based engine', 'Active', '8 rules loaded'],
+            ['🟢','Behavior analysis', 'Active', 'Real-time scoring'],
+            ['🟡','ML model',          'Planned', 'Training data being collected'],
+            ['🟡','Device fingerprint', 'Active', 'Session-based tracking'],
+          ].map(([dot, name, status, note]) => `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);">
+              <span style="font-size:14px;">${dot}</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${name}</div><div style="font-size:11px;color:var(--hint);">${note}</div></div>
+              <span class="chip ${status==='Active'?'chip-ok':status==='Planned'?'chip-warn':'chip-muted'}">${status}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải thống kê</p></div>';
+  }
+}
+
+// ── ADMIN PANEL ──
+async function loadAdminPanel() {
+  try {
+    const [alertR, profileR] = await Promise.all([
+      fetch(`${API}/api/admin/risk/alerts`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API}/api/admin/risk/high-risk-users`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const alerts = alertR.ok ? (await alertR.json()).alerts || [] : [];
+    const profiles = profileR.ok ? (await profileR.json()).profiles || [] : [];
+
+    document.getElementById('content').innerHTML = `<div class="fade-up">
+      <!-- High Risk Users -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">🚨 Người dùng rủi ro cao</div>
+          <button class="btn btn-primary btn-sm" onclick="runBatchAnalysis()">🤖 Phân tích toàn bộ</button>
+        </div>
+        ${profiles.length === 0 ? '<div class="empty" style="padding:20px;"><div class="e-icon">✅</div><p>Không có người dùng rủi ro cao</p></div>' :
+          profiles.map(p => buildAdminProfileRow(p)).join('')}
+      </div>
+
+      <!-- Open Alerts -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">⚠️ Cảnh báo cần xử lý (${alerts.filter(a=>a.status==='open').length})</div>
+          <div style="display:flex;gap:6px;">
+            ${['open','reviewing','resolved','all'].map(s => `<button class="btn btn-ghost btn-xs" onclick="filterAlerts('${s}')">${s==='all'?'Tất cả':s==='open'?'Mở':s==='reviewing'?'Đang xét':'Đã xử lý'}</button>`).join('')}
+          </div>
+        </div>
+        <div id="alertList">
+          ${alerts.length === 0 ? '<div class="empty" style="padding:20px;"><div class="e-icon">✅</div><p>Không có cảnh báo</p></div>' :
+            alerts.map(a => buildAdminAlertRow(a)).join('')}
+        </div>
+      </div>
+    </div>`;
+    window._allAlerts = alerts;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải admin panel</p></div>';
+  }
+}
+
+function buildAdminProfileRow(p) {
+  const lv = RISK_LEVELS[p.risk_level] || RISK_LEVELS.safe;
+  const color = riskColor(p.risk_score);
+  return `<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);margin-bottom:8px;">
+    <div style="width:50px;height:50px;border-radius:50%;background:var(--bg3);border:3px solid ${color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:${color};font-family:var(--mono);">${p.risk_score}</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;">${p.users?.name || 'Người dùng'} <span class="chip ${lv.cls}">${lv.label}</span></div>
+      <div style="font-size:11px;color:var(--sub);margin-top:2px;">${p.users?.phone||''} · Tranh chấp: ${((p.dispute_rate||0)*100).toFixed(0)}% · Đánh giá: ${(p.avg_review_score||5).toFixed(1)}</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${!p.flagged ? `<button class="btn btn-danger btn-xs" onclick="flagUser('${p.user_id}')">🚩 Gắn cờ</button>` : `<button class="btn btn-ok btn-xs" onclick="unflagUser('${p.user_id}')">✓ Bỏ cờ</button>`}
+      <button class="btn btn-ghost btn-xs" onclick="adminAnalyzeUser('${p.user_id}')">🤖 Phân tích</button>
+      <button class="btn btn-danger btn-xs" onclick="banUser('${p.user_id}')">🔒 Khoá</button>
+    </div>
+  </div>`;
+}
+
+function buildAdminAlertRow(a) {
+  const sev = a.severity || 'medium';
+  const sevIcon = SEVERITY_ICONS[sev] || '⚠️';
+  const typeIcon = ALERT_TYPE_ICONS[a.alert_type] || '⚠️';
+  const statusChip = { open:'chip-red', reviewing:'chip-warn', resolved:'chip-ok', dismissed:'chip-muted', actioned:'chip-purple' }[a.status] || 'chip-muted';
+  return `<div class="alert-card sev-${sev}" style="cursor:default;">
+    <div class="alert-icon">${sevIcon}</div>
+    <div class="alert-info">
+      <div class="alert-title">${typeIcon} ${a.title}</div>
+      <div class="alert-desc">${a.description || ''}</div>
+      <div class="alert-meta">${new Date(a.created_at).toLocaleString('vi-VN')}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+      <span class="chip ${statusChip}">${a.status}</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        ${a.status === 'open' ? `<button class="btn btn-ghost btn-xs" onclick="reviewAlert('${a.id}')">👁 Xét</button>` : ''}
+        ${['open','reviewing'].includes(a.status) ? `<button class="btn btn-ok btn-xs" onclick="resolveAlert('${a.id}')">✓ Xử lý</button>` : ''}
+        ${a.status === 'open' ? `<button class="btn btn-ghost btn-xs" onclick="dismissAlert('${a.id}')">✕ Bỏ qua</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function filterAlerts(status) {
+  const all = window._allAlerts || [];
+  const list = status === 'all' ? all : all.filter(a => a.status === status);
+  document.getElementById('alertList').innerHTML = list.length === 0
+    ? '<div class="empty" style="padding:20px;"><div class="e-icon">✅</div><p>Không có cảnh báo</p></div>'
+    : list.map(a => buildAdminAlertRow(a)).join('');
+}
+
+async function flagUser(userId) {
+  await adminPost(`/api/admin/risk/users/${userId}/flag`, {});
+  showToast('Đã gắn cờ người dùng', 'info'); loadAdminPanel();
+}
+async function unflagUser(userId) {
+  await adminPost(`/api/admin/risk/users/${userId}/unflag`, {});
+  showToast('Đã bỏ cờ', 'ok'); loadAdminPanel();
+}
+async function banUser(userId) {
+  if (!confirm('Khoá tài khoản này?')) return;
+  await adminPost(`/api/admin/risk/users/${userId}/ban`, {});
+  showToast('Đã khoá tài khoản', 'info'); loadAdminPanel();
+}
+async function adminAnalyzeUser(userId) {
+  const data = await adminPost(`/api/admin/risk/users/${userId}/analyze`, {});
+  if (data) showToast(`Điểm mới: ${data.risk_score}`, 'info');
+  loadAdminPanel();
+}
+async function reviewAlert(id) {
+  await adminPost(`/api/admin/risk/alerts/${id}/status`, { status: 'reviewing' });
+  showToast('Đang xem xét', 'info'); loadAdminPanel();
+}
+async function resolveAlert(id) {
+  await adminPost(`/api/admin/risk/alerts/${id}/status`, { status: 'resolved' });
+  showToast('Đã xử lý', 'ok'); loadAdminPanel();
+}
+async function dismissAlert(id) {
+  await adminPost(`/api/admin/risk/alerts/${id}/status`, { status: 'dismissed' });
+  showToast('Đã bỏ qua', 'info'); loadAdminPanel();
+}
+async function runBatchAnalysis() {
+  showToast('AI đang phân tích toàn bộ hệ thống...', 'info');
+  const r = await fetch(`${API}/api/admin/risk/batch-analyze`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+  const d = await r.json();
+  if (r.ok) { showToast(`Đã phân tích ${d.analyzed} người dùng`, 'ok'); loadAdminPanel(); }
+  else showToast('Lỗi phân tích', 'err');
+}
+
+async function adminPost(path, body) {
+  try {
+    const r = await fetch(`${API}${path}`, { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+    return r.ok ? await r.json() : null;
+  } catch(e) { showToast('Lỗi kết nối', 'err'); return null; }
+}
+
+function openModal(html) { document.getElementById('modalBox').innerHTML = html; document.getElementById('modalBg').style.display = 'flex'; }
+function closeModal(e) { if (e && e.target !== document.getElementById('modalBg')) return; document.getElementById('modalBg').style.display = 'none'; }
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 3200);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('modalBg').style.display = 'none'; });
+
+init();
+</script>
+</body>
+</html>

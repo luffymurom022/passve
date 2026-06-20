@@ -1,0 +1,205 @@
+Xây dựng PHASE 13: SAFEPASS AI ANTI-FRAUD & RISK ENGINE
+
+Mục tiêu:
+
+Xây dựng trung tâm AI chống lừa đảo và đánh giá rủi ro cho toàn bộ hệ sinh thái SafePass.
+
+=================================================
+
+TẠO MODULE MỚI
+
+AI RISK ENGINE
+
+=================================================
+
+1. RISK SCORE SYSTEM
+
+Mỗi người dùng có:
+
+Risk Score
+
+0 - 100
+
+Phân loại:
+
+0 - 20 Safe
+
+21 - 50 Medium Risk
+
+51 - 80 High Risk
+
+81 - 100 Critical
+
+=================================================
+
+2. USER BEHAVIOR ANALYSIS
+
+Phân tích:
+
+- Tần suất đăng bài
+- Tần suất giao dịch
+- Tỷ lệ hoàn tiền
+- Tỷ lệ tranh chấp
+- Đánh giá người dùng
+
+=================================================
+
+3. SCAM DETECTION
+
+Phát hiện:
+
+- Spam đăng bán
+- Tạo nhiều tài khoản
+- Giá bất thường
+- Mô tả đáng ngờ
+- Nội dung lừa đảo
+
+=================================================
+
+4. ACCOUNT MONITORING
+
+Theo dõi:
+
+- Thiết bị đăng nhập
+- IP bất thường
+- Quốc gia bất thường
+- Nhiều tài khoản cùng thiết bị
+
+=================================================
+
+5. PRODUCT RISK ANALYSIS
+
+AI đánh giá sản phẩm.
+
+Kiểm tra:
+
+- Giá quá thấp
+- Hình ảnh trùng lặp
+- Nội dung đáng ngờ
+- Tần suất chỉnh sửa
+
+=================================================
+
+6. TRANSACTION MONITORING
+
+Theo dõi:
+
+- Giá trị giao dịch lớn
+- Tăng trưởng bất thường
+- Hoạt động đáng ngờ
+
+=================================================
+
+7. DELIVERY FRAUD DETECTION
+
+Phát hiện:
+
+- Giao hàng giả
+- Xác nhận giao hàng sai
+- Hoàn hàng bất thường
+
+=================================================
+
+8. AI WARNING SYSTEM
+
+Hiển thị cảnh báo:
+
+⚠️ Seller Risk
+
+⚠️ Buyer Risk
+
+⚠️ Product Risk
+
+⚠️ Transaction Risk
+
+=================================================
+
+9. AI RECOMMENDATIONS
+
+Đề xuất:
+
+- Kiểm định bắt buộc
+- Escrow bắt buộc
+- Xác minh bổ sung
+
+=================================================
+
+10. FRAUD DASHBOARD
+
+Hiển thị:
+
+- Người dùng rủi ro
+- Giao dịch rủi ro
+- Sản phẩm rủi ro
+
+=================================================
+
+11. TRUST AI
+
+Tự động tăng hoặc giảm:
+
+- Trust Score
+- Seller Level
+- Buyer Level
+
+=================================================
+
+12. AI INSIGHTS
+
+Thống kê:
+
+- Tỷ lệ scam
+- Tỷ lệ tranh chấp
+- Tỷ lệ giao dịch thành công
+
+=================================================
+
+13. ADMIN AI CENTER
+
+Admin có thể:
+
+- Xem cảnh báo
+- Duyệt cảnh báo
+- Khóa tài khoản
+- Gắn cờ người dùng
+
+=================================================
+
+14. MACHINE LEARNING READY
+
+Thiết kế kiến trúc cho phép:
+
+- Huấn luyện dữ liệu sau này
+- Mở rộng AI Engine
+- Thêm mô hình AI trong tương lai
+
+=================================================
+
+15. UI
+
+Phong cách:
+
+Fintech Security Center
+
+Hiện đại
+
+Dark Mode
+
+Responsive
+
+=================================================
+
+THÊM MENU MỚI
+
+"AI Risk Center"
+
+Không ảnh hưởng:
+
+- Marketplace
+- Logistics
+- Inspection
+- Warehouse
+- Delivery
+- Escrow
+- Wallet
+- Trust Center

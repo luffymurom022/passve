@@ -7315,6 +7315,234 @@ app.post('/api/admin/delivery/drivers/:id/bonus', adminAuth, async (req, res) =>
   res.json({ success: true });
 });
 
+// ══════════════════════════════════════════════════════════
+// PHASE 13 — AI ANTI-FRAUD & RISK ENGINE
+// ══════════════════════════════════════════════════════════
+
+app.get('/risk', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'risk.html'));
+});
+
+// ── AI RISK SCORE CALCULATOR ──
+async function calculateRiskScore(userId) {
+  try {
+    const { data: user } = await supabase.from('users').select('id,is_banned,kyc_status,created_at').eq('id', userId).single();
+    if (!user) return null;
+
+    let score = 0;
+    const factors = {};
+
+    // 1. Dispute rate
+    const { count: totalOrders } = await supabase.from('orders').select('id', { count:'exact', head:true }).or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    const { count: disputeCount } = await supabase.from('disputes').select('id', { count:'exact', head:true }).or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    const disputeRate = totalOrders > 0 ? disputeCount / totalOrders : 0;
+    if (disputeRate > 0.2) { score += 20; factors.high_dispute_rate = true; }
+    else if (disputeRate > 0.1) score += 8;
+
+    // 2. Reviews average
+    const { data: reviews } = await supabase.from('reviews').select('rating').eq('seller_id', userId).limit(50);
+    const avgRating = reviews?.length ? reviews.reduce((s, r) => s + (r.rating||5), 0) / reviews.length : 5;
+    if (avgRating < 3) { score += 15; factors.low_review_score = true; }
+    else if (avgRating < 4) score += 5;
+
+    // 3. Account age (newer = slightly more risk)
+    const agedays = (Date.now() - new Date(user.created_at).getTime()) / 86400000;
+    if (agedays < 7) score += 10;
+    else if (agedays < 30) score += 5;
+
+    // 4. KYC status
+    if (user.kyc_status !== 'approved') score += 5;
+
+    // 5. High-value orders without KYC
+    const { count: largeOrders } = await supabase.from('orders').select('id', { count:'exact', head:true })
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`).gte('amount', 5000000);
+    if (largeOrders > 0 && user.kyc_status !== 'approved') { score += 20; factors.no_kyc_high_value = true; }
+
+    score = Math.min(100, Math.max(0, score));
+    const level = score <= 20 ? 'safe' : score <= 50 ? 'medium' : score <= 80 ? 'high' : 'critical';
+
+    const profileData = {
+      user_id: userId,
+      risk_score: score,
+      risk_level: level,
+      dispute_rate: disputeRate,
+      refund_rate: 0,
+      avg_review_score: avgRating,
+      total_transactions: totalOrders || 0,
+      ml_features: factors,
+      last_analyzed: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: existing } = await supabase.from('risk_profiles').select('id').eq('user_id', userId).single();
+    if (existing) {
+      await supabase.from('risk_profiles').update(profileData).eq('user_id', userId);
+    } else {
+      await supabase.from('risk_profiles').insert(profileData);
+    }
+
+    // Auto-create high-risk alert
+    if (level === 'critical' || level === 'high') {
+      const { data: existAlert } = await supabase.from('risk_alerts')
+        .select('id').eq('user_id', userId).eq('status', 'open').eq('alert_type', 'user').single();
+      if (!existAlert) {
+        await supabase.from('risk_alerts').insert({
+          user_id: userId,
+          alert_type: 'user',
+          severity: level === 'critical' ? 'critical' : 'high',
+          title: `Tài khoản ${level === 'critical' ? 'nguy hiểm cao' : 'rủi ro cao'} — Score ${score}`,
+          description: `Risk score: ${score}/100. Các yếu tố: ${Object.keys(factors).join(', ') || 'tổng hợp'}`,
+          entity_id: userId,
+          entity_type: 'user'
+        });
+      }
+    }
+
+    return { ...profileData, id: existing?.id };
+  } catch(e) {
+    console.error('[RiskEngine]', e.message);
+    return null;
+  }
+}
+
+// ── GET /api/risk/my-profile ──
+app.get('/api/risk/my-profile', auth, async (req, res) => {
+  const { data } = await supabase.from('risk_profiles').select('*').eq('user_id', req.user.id).single();
+  if (!data) {
+    // Create initial safe profile
+    const profile = await calculateRiskScore(req.user.id);
+    return res.json(profile || { risk_score: 0, risk_level: 'safe' });
+  }
+  res.json(data);
+});
+
+// ── POST /api/risk/analyze — user triggers self-analysis ──
+app.post('/api/risk/analyze', auth, async (req, res) => {
+  const profile = await calculateRiskScore(req.user.id);
+  if (!profile) return res.status(500).json({ error: 'Lỗi phân tích' });
+  res.json({ profile });
+});
+
+// ── GET /api/risk/my-alerts ──
+app.get('/api/risk/my-alerts', auth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('risk_alerts')
+    .select('*')
+    .eq('user_id', req.user.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ alerts: data || [] });
+});
+
+// ── GET /api/risk/insights — public stats ──
+app.get('/api/risk/insights', auth, async (req, res) => {
+  const { data: profiles } = await supabase.from('risk_profiles').select('risk_level,risk_score,flagged');
+  const { data: alerts } = await supabase.from('risk_alerts').select('status');
+
+  const safe = (profiles||[]).filter(p => p.risk_level === 'safe').length;
+  const medium = (profiles||[]).filter(p => p.risk_level === 'medium').length;
+  const high = (profiles||[]).filter(p => p.risk_level === 'high').length;
+  const critical = (profiles||[]).filter(p => p.risk_level === 'critical').length;
+  const flagged = (profiles||[]).filter(p => p.flagged).length;
+  const openAlerts = (alerts||[]).filter(a => a.status === 'open').length;
+  const total = (profiles||[]).length;
+  const avgScore = total > 0 ? Math.round((profiles||[]).reduce((s,p) => s+(p.risk_score||0), 0) / total) : 0;
+
+  res.json({ safeUsers:safe, mediumUsers:medium, highUsers:high, criticalUsers:critical,
+    flaggedUsers:flagged, openAlerts, totalProfiles:total, avgRiskScore:avgScore });
+});
+
+// ── ADMIN: GET /api/admin/risk/alerts ──
+app.get('/api/admin/risk/alerts', adminAuth, async (req, res) => {
+  const { status } = req.query;
+  let q = supabase.from('risk_alerts').select('*').order('created_at', { ascending: false }).limit(100);
+  if (status && status !== 'all') q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ alerts: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/risk/alerts/:id/status ──
+app.post('/api/admin/risk/alerts/:id/status', adminAuth, async (req, res) => {
+  const { status, notes } = req.body;
+  const valid = ['open','reviewing','resolved','dismissed','actioned'];
+  if (!valid.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const update = { status, reviewed_at: new Date().toISOString() };
+  if (req.adminUser?.id) update.reviewed_by = req.adminUser.id;
+  if (notes) update.reviewer_notes = notes;
+  const { error } = await supabase.from('risk_alerts').update(update).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/risk/high-risk-users ──
+app.get('/api/admin/risk/high-risk-users', adminAuth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('risk_profiles')
+    .select('*, users!risk_profiles_user_id_fkey(id,name,phone,is_banned)')
+    .in('risk_level', ['high','critical'])
+    .order('risk_score', { ascending: false })
+    .limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ profiles: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/risk/users/:userId/flag ──
+app.post('/api/admin/risk/users/:userId/flag', adminAuth, async (req, res) => {
+  await supabase.from('risk_profiles').update({ flagged: true, updated_at: new Date().toISOString() }).eq('user_id', req.params.userId);
+  await supabase.from('risk_alerts').insert({ user_id: req.params.userId, alert_type:'user', severity:'high', title:'Tài khoản bị gắn cờ bởi Admin', description:'Admin đã gắn cờ tài khoản này để theo dõi', entity_id: req.params.userId, entity_type:'user' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/risk/users/:userId/unflag ──
+app.post('/api/admin/risk/users/:userId/unflag', adminAuth, async (req, res) => {
+  await supabase.from('risk_profiles').update({ flagged: false, updated_at: new Date().toISOString() }).eq('user_id', req.params.userId);
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/risk/users/:userId/ban ──
+app.post('/api/admin/risk/users/:userId/ban', adminAuth, async (req, res) => {
+  const { reason } = req.body;
+  await supabase.from('users').update({ is_banned: true }).eq('id', req.params.userId);
+  await supabase.from('risk_profiles').update({ flagged: true, banned_reason: reason || 'Khoá bởi AI Risk Engine', updated_at: new Date().toISOString() }).eq('user_id', req.params.userId);
+  await supabase.from('risk_events').insert({ user_id: req.params.userId, event_type: 'account_banned', risk_delta: 50, event_data: { reason, banned_by: 'admin' } });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/risk/users/:userId/analyze ──
+app.post('/api/admin/risk/users/:userId/analyze', adminAuth, async (req, res) => {
+  const profile = await calculateRiskScore(req.params.userId);
+  if (!profile) return res.status(500).json({ error: 'Lỗi phân tích' });
+  res.json(profile);
+});
+
+// ── ADMIN: POST /api/admin/risk/batch-analyze ──
+app.post('/api/admin/risk/batch-analyze', adminAuth, async (req, res) => {
+  const { data: users } = await supabase.from('users').select('id').eq('is_banned', false).limit(100);
+  let analyzed = 0;
+  for (const u of (users || [])) {
+    await calculateRiskScore(u.id);
+    analyzed++;
+    await new Promise(r => setTimeout(r, 50)); // throttle
+  }
+  res.json({ success: true, analyzed });
+});
+
+// ── ADMIN: POST /api/admin/risk/alerts/create — manual alert ──
+app.post('/api/admin/risk/alerts/create', adminAuth, async (req, res) => {
+  const { user_id, alert_type, severity, title, description } = req.body;
+  if (!title || !alert_type) return res.status(400).json({ error: 'Thiếu thông tin' });
+  const { data, error } = await supabase.from('risk_alerts').insert({
+    user_id: user_id || null,
+    alert_type, severity: severity || 'medium', title: sanitize(title),
+    description: sanitize(description || ''),
+    auto_flagged: false
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ alert: data });
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
