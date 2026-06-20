@@ -364,6 +364,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item" onclick="switchTab('security')" data-tab="security">🛡️ Bảo Mật</div>
     <div class="mob-nav-item" onclick="switchTab('setup-guide')" data-tab="setup-guide">🚀 Setup</div>
     <div class="mob-nav-item" onclick="switchTab('oe-admin')" data-tab="oe-admin">🔐 Escrow</div>
+    <div class="mob-nav-item" onclick="switchTab('dam-admin')" data-tab="dam-admin">🏪 Tài Sản Số</div>
   </div>
 
   <div class="layout">
@@ -396,6 +397,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="nav-item" onclick="switchTab('security')" data-tab="security"><span class="nav-icon">🛡️</span> Bảo Mật <span class="nav-badge" id="security-badge" style="display:none">!</span></div>
       <div class="nav-item" onclick="switchTab('setup-guide')" data-tab="setup-guide"><span class="nav-icon">🚀</span> Setup Guide <span class="nav-badge" id="setup-badge" style="display:none">!</span></div>
       <div class="nav-item" onclick="switchTab('oe-admin')" data-tab="oe-admin"><span class="nav-icon">🔐</span> Open Escrow <span class="nav-badge" id="oe-badge" style="display:none">!</span></div>
+      <div class="nav-item" onclick="switchTab('dam-admin')" data-tab="dam-admin"><span class="nav-icon">🏪</span> Tài Sản Số <span class="nav-badge" id="dam-badge" style="display:none">0</span></div>
     </nav>
 
     <!-- MAIN -->
@@ -936,6 +938,59 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 </div>
 
+<!-- ════ PAGE: DAM ADMIN ════ -->
+<div class="page" id="page-dam-admin">
+  <div class="page-title">🏪 Tài Sản Số — Admin Center</div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px" id="dam-kpi-row">
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand)" id="dam-k-total">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Tổng đơn</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--warn)" id="dam-k-listings">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Tài sản đang bán</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--red)" id="dam-k-disputed">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Tranh chấp</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--ok)" id="dam-k-confirmed">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Hoàn tất</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--ok)" id="dam-k-volume">—</div><div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Doanh thu</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head" style="margin-bottom:14px">
+      <div><div class="card-title">📋 Danh sách đơn DAM</div><div class="card-sub" id="dam-list-count">Đang tải…</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="dam-filter-status" onchange="loadDamAdmin()" style="background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:7px 12px;border-radius:8px;font-size:12px;font-family:inherit">
+          <option value="">Tất cả</option>
+          <option value="funded">Đã khoá</option>
+          <option value="delivered">Đã bàn giao</option>
+          <option value="confirmed">Hoàn tất</option>
+          <option value="disputed">Tranh chấp</option>
+          <option value="refunded">Đã hoàn</option>
+        </select>
+        <button onclick="loadDamAdmin()" style="background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer">🔄 Refresh</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" style="min-width:800px">
+        <thead><tr><th>Mã đơn</th><th>Tài sản</th><th>Người mua</th><th>Người bán</th><th>Giá</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hành động</th></tr></thead>
+        <tbody id="dam-orders-tbody"><tr><td colspan="8" style="text-align:center;color:var(--sub);padding:24px">Đang tải…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Action Modal -->
+  <div id="dam-action-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:none;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#0d1f38;border:1px solid #1a2e4a;border-radius:16px;width:100%;max-width:440px;padding:24px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:16px">⚙️ Xử lý đơn DAM</div>
+      <div style="font-size:13px;color:#6b7fa3;margin-bottom:4px">Mã đơn</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px" id="dam-modal-id">—</div>
+      <div style="font-size:13px;color:#6b7fa3;margin-bottom:4px">Ghi chú admin</div>
+      <textarea id="dam-modal-notes" rows="3" style="width:100%;background:#0a1628;border:1px solid #1a2e4a;border-radius:8px;padding:9px;color:#e8edf5;font-size:13px;margin-bottom:14px;font-family:inherit;resize:vertical" placeholder="Ghi chú lý do xử lý…"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="damAction('release')" style="flex:1;padding:9px;border-radius:8px;border:none;background:rgba(0,200,150,.15);color:#00c896;font-weight:700;cursor:pointer;font-size:13px">✅ Giải ngân</button>
+        <button onclick="damAction('refund')"  style="flex:1;padding:9px;border-radius:8px;border:none;background:rgba(255,211,42,.12);color:#ffd32a;font-weight:700;cursor:pointer;font-size:13px">💰 Hoàn tiền</button>
+        <button onclick="damAction('cancel')"  style="flex:1;padding:9px;border-radius:8px;border:none;background:rgba(255,71,87,.12);color:#ff4757;font-weight:700;cursor:pointer;font-size:13px">❌ Hủy đơn</button>
+      </div>
+      <button onclick="closeDamModal()" style="width:100%;margin-top:10px;padding:9px;border-radius:8px;border:1px solid #1a2e4a;background:transparent;color:#6b7fa3;cursor:pointer;font-size:13px">Đóng</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════ PAGE: OPEN ESCROW ADMIN CENTER ════ -->
 <div class="page" id="page-oe-admin">
   <div class="page-title">🔐 Open Escrow — Admin Center</div>
@@ -1403,6 +1458,7 @@ function switchTab(tab) {
     case 'security': loadSecurity(); break;
     case 'setup-guide': loadSetupGuide(); break;
     case 'oe-admin': loadOeAdmin(); break;
+    case 'dam-admin': loadDamAdmin(); break;
   }
 }
 
@@ -3153,6 +3209,83 @@ async function setupCreateAdmin() {
     resultEl.style.color = 'var(--red)';
   }
 }
+
+// ════════════════════════════════════════════════
+//  DAM ADMIN
+// ════════════════════════════════════════════════
+let damCurrentOrderId = null;
+
+async function loadDamAdmin() {
+  const status = document.getElementById('dam-filter-status')?.value || '';
+  try {
+    const [stats, orders] = await Promise.all([
+      api('GET', '/admin/dam/stats'),
+      api('GET', '/admin/dam/orders' + (status ? '?status=' + status : ''))
+    ]);
+    // KPIs
+    document.getElementById('dam-k-total').textContent     = stats.total_orders || 0;
+    document.getElementById('dam-k-listings').textContent  = stats.active_listings || 0;
+    document.getElementById('dam-k-disputed').textContent  = (stats.by_status?.disputed || 0);
+    document.getElementById('dam-k-confirmed').textContent = (stats.by_status?.confirmed || 0);
+    document.getElementById('dam-k-volume').textContent    = fmtMoney(stats.volume || 0);
+
+    // Table
+    const STATUS_LBL = { pending_payment:'Chờ TT', funded:'Đã khoá', delivered:'Đã giao', confirmed:'Hoàn tất', disputed:'Tranh chấp', refunded:'Đã hoàn', cancelled:'Đã hủy' };
+    const STATUS_CL  = { funded:'var(--warn)', delivered:'var(--brand)', confirmed:'var(--ok)', disputed:'var(--red)', refunded:'var(--sub)', cancelled:'var(--sub)' };
+    const tbody = document.getElementById('dam-orders-tbody');
+    document.getElementById('dam-list-count').textContent = `${orders.length} đơn`;
+    if (!orders.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--sub);padding:24px">Chưa có đơn nào</td></tr>'; return; }
+    tbody.innerHTML = orders.map(o => {
+      const listing = o.dam_listings || {};
+      const lbl = STATUS_LBL[o.status] || o.status;
+      const clr = STATUS_CL[o.status] || 'var(--sub)';
+      const canAct = ['funded','delivered','disputed'].includes(o.status);
+      return `<tr>
+        <td style="font-family:monospace;font-size:11px">${o.id.slice(0,8).toUpperCase()}</td>
+        <td>${escHtml(listing.title || '—')}<br/><span style="font-size:10px;color:var(--sub)">${listing.category || ''} · ${listing.subcategory || ''}</span></td>
+        <td style="font-size:12px">${o.buyer_id?.slice(0,8)||'—'}</td>
+        <td style="font-size:12px">${o.seller_id?.slice(0,8)||'—'}</td>
+        <td style="font-weight:700;color:var(--brand)">${fmtMoney(o.price)}</td>
+        <td><span style="padding:3px 8px;border-radius:8px;font-size:11px;font-weight:700;color:${clr};background:rgba(255,255,255,.05)">${lbl}</span></td>
+        <td style="font-size:11px">${new Date(o.created_at).toLocaleDateString('vi-VN')}</td>
+        <td>${canAct ? `<button onclick="openDamModal('${o.id}')" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text);font-size:11px;cursor:pointer">⚙️ Xử lý</button>` : '—'}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    showToast('Lỗi tải DAM: ' + e.message, 'err');
+  }
+}
+
+function openDamModal(orderId) {
+  damCurrentOrderId = orderId;
+  document.getElementById('dam-modal-id').textContent = orderId.slice(0,8).toUpperCase();
+  document.getElementById('dam-modal-notes').value = '';
+  const modal = document.getElementById('dam-action-modal');
+  modal.style.display = 'flex';
+}
+
+function closeDamModal() {
+  document.getElementById('dam-action-modal').style.display = 'none';
+  damCurrentOrderId = null;
+}
+
+async function damAction(action) {
+  if (!damCurrentOrderId) return;
+  const notes = document.getElementById('dam-modal-notes')?.value || '';
+  const labels = { release:'Giải ngân', refund:'Hoàn tiền', cancel:'Hủy đơn' };
+  if (!confirm(`Xác nhận: ${labels[action]} cho đơn ${damCurrentOrderId.slice(0,8)}?`)) return;
+  try {
+    await api('POST', `/admin/dam/orders/${damCurrentOrderId}/action`, { action, notes });
+    closeDamModal();
+    showToast('✅ Đã thực hiện: ' + labels[action]);
+    loadDamAdmin();
+  } catch(e) {
+    showToast('Lỗi: ' + e.message, 'err');
+  }
+}
+
+function fmtMoney(n) { return Number(n||0).toLocaleString('vi-VN') + 'đ'; }
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 async function setupTestDb() {
   const resultEl = document.getElementById('setup-db-result');

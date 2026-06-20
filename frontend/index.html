@@ -1169,6 +1169,7 @@ function render(){
     {id:"service",icon:"💼",label:"Dịch Vụ"},
     {id:"profile",icon:"👤",label:"Hồ sơ"},
     {id:"open_escrow",icon:"🔐",label:"Open Escrow"},
+    {id:"dam",icon:"🏪",label:"Tài Sản Số"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1187,6 +1188,8 @@ function render(){
           ?"setState({page:'orders',orderBadge:0,activeOrder:null})"
           :p.id==="open_escrow"
           ?"window.location.href='/escrow.html'"
+          :p.id==="dam"
+          ?"window.location.href='/dam.html'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

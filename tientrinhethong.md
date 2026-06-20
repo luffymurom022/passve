@@ -704,6 +704,50 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 
 ---
 
+## 🏪 PHASE 6 — Chợ Tài Sản Số (Digital Asset Marketplace) *(HOÀN THÀNH)*
+> Hệ thống hoàn toàn độc lập — không ảnh hưởng Marketplace và Open Escrow hiện tại
+
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| SQL migration `dam_migration.sql` — 5 bảng: `dam_listings`, `dam_vault`, `dam_orders`, `dam_reviews`, `dam_audit_logs` | 2026-06-20 |
+| `GET /api/dam/listings` — browse với filter category/subcategory/search/sort/giá | 2026-06-20 |
+| `GET /api/dam/listings/:id` — chi tiết listing + seller stats + view count | 2026-06-20 |
+| `GET /api/dam/my/listings` — seller xem listing của mình | 2026-06-20 |
+| `POST /api/dam/listings` — tạo listing mới (5 danh mục, 25 loại tài sản) | 2026-06-20 |
+| `PUT /api/dam/listings/:id` — chỉnh sửa listing | 2026-06-20 |
+| `POST /api/dam/listings/:id/vault` — lưu credentials mã hóa AES-256-GCM | 2026-06-20 |
+| `POST /api/dam/orders` — mua tài sản → khóa escrow tự động | 2026-06-20 |
+| `GET /api/dam/orders/my` — danh sách đơn (buyer + seller) | 2026-06-20 |
+| `GET /api/dam/orders/:id` — chi tiết đơn + tên buyer/seller + review | 2026-06-20 |
+| `POST /api/dam/orders/:id/deliver` — seller xác nhận bàn giao | 2026-06-20 |
+| `GET /api/dam/orders/:id/vault` — buyer lấy credentials (chỉ sau khi delivered/confirmed) | 2026-06-20 |
+| `POST /api/dam/orders/:id/confirm` — buyer xác nhận → giải ngân (trừ 1% phí) | 2026-06-20 |
+| `POST /api/dam/orders/:id/dispute` — mở tranh chấp | 2026-06-20 |
+| `POST /api/dam/orders/:id/checklist` — cập nhật transfer checklist (5 mục) | 2026-06-20 |
+| `POST /api/dam/orders/:id/review` — đánh giá 1-5 sao sau khi confirmed | 2026-06-20 |
+| `GET /api/dam/seller/:id/profile` — hồ sơ người bán + stats + listings + reviews | 2026-06-20 |
+| `GET /api/admin/dam/stats` — thống kê tổng quan DAM | 2026-06-20 |
+| `GET /api/admin/dam/orders` — admin xem tất cả đơn (filter status) | 2026-06-20 |
+| `POST /api/admin/dam/orders/:id/action` — giải ngân / hoàn tiền / hủy đơn | 2026-06-20 |
+| Frontend `dam.html` — trang standalone fintech-style marketplace | 2026-06-20 |
+| Frontend: Sidebar 5 danh mục + 25 subcategory | 2026-06-20 |
+| Frontend: Browse grid — listing cards với badge danh mục, giá, lượt xem | 2026-06-20 |
+| Frontend: Listing detail — thông tin tài sản, seller profile mini, buy flow | 2026-06-20 |
+| Frontend: Escrow order room — timeline 4 bước, actions theo role | 2026-06-20 |
+| Frontend: Account Vault — reveal sau escrow, blur password, copy button | 2026-06-20 |
+| Frontend: Transfer checklist — 5 mục tick, lưu DB real-time | 2026-06-20 |
+| Frontend: Review form — 5 sao + bình luận | 2026-06-20 |
+| Frontend: Seller profile — stats, listings đang bán, đánh giá gần đây | 2026-06-20 |
+| Frontend: Trang đăng bán — form + vault setup trong 1 trang | 2026-06-20 |
+| Frontend: My orders + My listings cho buyer/seller | 2026-06-20 |
+| Admin panel: Tab "🏪 Tài Sản Số" trong admin.html — KPI + bảng đơn + xử lý | 2026-06-20 |
+| index.html: Nav "🏪 Tài Sản Số" → redirect `/dam.html` | 2026-06-20 |
+| Audit logs: mọi thao tác quan trọng (buy, vault, deliver, confirm, dispute) đều ghi log | 2026-06-20 |
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `dam_migration.sql`
+
+---
+
 ## 📌 Ghi Chú Kỹ Thuật
 
 | Mục | Chi tiết |

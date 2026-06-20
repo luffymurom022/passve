@@ -3,3 +3,4 @@
 - [SafePass build order](safepass-build-order.md) — always read tientrinhethong.md first; build [ ] items in file order; token stores (emailOtpStore, resetTokenStore) are in-memory Maps in server.js.
 - [SafePass ws import](safepass-ws-import.md) — ws package ES module: use `import ws, { WebSocketServer } from 'ws'` then `new WebSocketServer({noServer:true})`; `ws.Server` does NOT exist on the default export.
 - [SafePass admin auth](safepass-admin-auth.md) — admin JWT system: admins table + admin_logs table in Supabase; adminAuth middleware accepts Bearer JWT or legacy x-admin-secret; first admin via /api/admin/auth/setup with ADMIN_SECRET; migration.sql must be run before admin login works.
+- [SafePass DAM phase6](safepass-dam.md) — Phase 6 DAM standalone system: dam.html + /api/dam/* routes + dam_migration.sql; encryption uses encryptField/decryptField; init() must call renderApp() before async API to avoid spinner freeze.

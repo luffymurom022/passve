@@ -4749,6 +4749,353 @@ wss2.on('connection', async (socket, req) => {
   socket.on('close', () => oeWsLeave(escrowId, socket));
 });
 
+// ════════════════════════════════════════════════════════════════
+//  PHASE 6 — DIGITAL ASSET MARKETPLACE (DAM)
+// ════════════════════════════════════════════════════════════════
+
+// ── Multer for listing images ──
+const damStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, '/tmp'),
+  filename: (req, file, cb) => cb(null, `dam_${Date.now()}_${file.originalname}`)
+});
+const damUpload = multer({ storage: damStorage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+async function damAudit(orderId, listingId, userId, action, details, ip) {
+  await supabase.from('dam_audit_logs').insert({
+    order_id: orderId||null, listing_id: listingId||null,
+    user_id: userId, action, details: details||{}, ip_address: ip||''
+  });
+}
+
+// ── BROWSE LISTINGS ──
+app.get('/api/dam/listings', async (req, res) => {
+  const { category, subcategory, min_price, max_price, search, sort = 'newest', limit = 24, offset = 0 } = req.query;
+  let q = supabase.from('dam_listings').select('*, users!dam_listings_seller_id_fkey(name,phone)').eq('status','active');
+  if (category)    q = q.eq('category', category);
+  if (subcategory) q = q.eq('subcategory', subcategory);
+  if (min_price)   q = q.gte('price', parseInt(min_price));
+  if (max_price)   q = q.lte('price', parseInt(max_price));
+  if (search)      q = q.ilike('title', `%${search}%`);
+  if (sort === 'price_asc')  q = q.order('price', { ascending: true });
+  else if (sort === 'price_desc') q = q.order('price', { ascending: false });
+  else q = q.order('created_at', { ascending: false });
+  q = q.range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── LISTING DETAIL ──
+app.get('/api/dam/listings/:id', async (req, res) => {
+  const { data: listing, error } = await supabase.from('dam_listings')
+    .select('*, users!dam_listings_seller_id_fkey(name,phone)')
+    .eq('id', req.params.id).eq('status','active').single();
+  if (error || !listing) return res.status(404).json({ error: 'Không tìm thấy' });
+  await supabase.from('dam_listings').update({ view_count: (listing.view_count||0)+1 }).eq('id', req.params.id);
+  // Seller stats
+  const { count: sold } = await supabase.from('dam_orders').select('*',{count:'exact',head:true}).eq('seller_id',listing.seller_id).eq('status','confirmed');
+  const { count: total } = await supabase.from('dam_orders').select('*',{count:'exact',head:true}).eq('seller_id',listing.seller_id).not('status','in','("cancelled","refunded")');
+  const { data: reviews } = await supabase.from('dam_reviews').select('rating').eq('seller_id',listing.seller_id);
+  const avgRating = reviews?.length ? (reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1) : null;
+  listing.seller_stats = { sold: sold||0, total: total||0, rating: avgRating, review_count: reviews?.length||0 };
+  res.json(listing);
+});
+
+// ── MY LISTINGS ──
+app.get('/api/dam/my/listings', auth, async (req, res) => {
+  const { data, error } = await supabase.from('dam_listings')
+    .select('*').eq('seller_id', req.user.id).neq('status','deleted')
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── CREATE LISTING ──
+app.post('/api/dam/listings', auth, async (req, res) => {
+  const { title, description, category, subcategory, price, image_url, asset_info } = req.body;
+  if (!title || !category || !subcategory || !price || price < 10000)
+    return res.status(400).json({ error: 'Thiếu thông tin hoặc giá tối thiểu 10.000đ' });
+  const { data, error } = await supabase.from('dam_listings').insert({
+    seller_id: req.user.id, title, description, category, subcategory,
+    price: parseInt(price), image_url: image_url||null, asset_info: asset_info||null
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await damAudit(null, data.id, req.user.id, 'listing_created', { title, category, subcategory, price }, req.ip);
+  res.json(data);
+});
+
+// ── UPDATE LISTING ──
+app.put('/api/dam/listings/:id', auth, async (req, res) => {
+  const { data: listing } = await supabase.from('dam_listings').select('seller_id').eq('id',req.params.id).single();
+  if (!listing) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { title, description, price, image_url, asset_info, status } = req.body;
+  const update = { updated_at: new Date() };
+  if (title !== undefined)      update.title = title;
+  if (description !== undefined) update.description = description;
+  if (price !== undefined)      update.price = parseInt(price);
+  if (image_url !== undefined)  update.image_url = image_url;
+  if (asset_info !== undefined) update.asset_info = asset_info;
+  if (status && ['active','paused','deleted'].includes(status)) update.status = status;
+  await supabase.from('dam_listings').update(update).eq('id',req.params.id);
+  res.json({ ok: true });
+});
+
+// ── SAVE VAULT CREDENTIALS ──
+app.post('/api/dam/listings/:id/vault', auth, async (req, res) => {
+  const { data: listing } = await supabase.from('dam_listings').select('seller_id').eq('id',req.params.id).single();
+  if (!listing || listing.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { username, password, email, backup_codes, notes } = req.body;
+  const enc = (v) => v ? encryptField(v) : null;
+  const existing = await supabase.from('dam_vault').select('id').eq('listing_id',req.params.id).single();
+  if (existing.data) {
+    await supabase.from('dam_vault').update({
+      username_enc: enc(username), password_enc: enc(password),
+      email_enc: enc(email), backup_codes_enc: enc(backup_codes), notes_enc: enc(notes),
+      updated_at: new Date()
+    }).eq('listing_id', req.params.id);
+  } else {
+    await supabase.from('dam_vault').insert({
+      listing_id: req.params.id,
+      username_enc: enc(username), password_enc: enc(password),
+      email_enc: enc(email), backup_codes_enc: enc(backup_codes), notes_enc: enc(notes)
+    });
+  }
+  await damAudit(null, req.params.id, req.user.id, 'vault_saved', {}, req.ip);
+  res.json({ ok: true });
+});
+
+// ── BUY / CREATE ORDER ──
+app.post('/api/dam/orders', auth, async (req, res) => {
+  const { listing_id } = req.body;
+  const { data: listing } = await supabase.from('dam_listings').select('*').eq('id',listing_id).eq('status','active').single();
+  if (!listing) return res.status(404).json({ error: 'Tài sản không tồn tại hoặc đã bán' });
+  if (listing.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể mua tài sản của chính mình' });
+  const { data: buyer } = await supabase.from('users').select('balance').eq('id',req.user.id).single();
+  if (!buyer || buyer.balance < listing.price) return res.status(400).json({ error: `Số dư không đủ. Cần ${listing.price.toLocaleString()}đ` });
+  // Deduct from buyer, lock in escrow
+  await supabase.from('users').update({ balance: buyer.balance - listing.price, escrow: (buyer.escrow||0) + listing.price }).eq('id',req.user.id);
+  // Mark listing as sold
+  await supabase.from('dam_listings').update({ status:'sold', updated_at: new Date() }).eq('id', listing_id);
+  const { data: order, error } = await supabase.from('dam_orders').insert({
+    listing_id, buyer_id: req.user.id, seller_id: listing.seller_id,
+    price: listing.price, status: 'funded', funded_at: new Date()
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await supabase.from('transactions').insert({ user_id: req.user.id, type:'escrow_lock', amount: -listing.price, description:`DAM Escrow: ${listing.title}`, ref_id: order.id });
+  await damAudit(order.id, listing_id, req.user.id, 'order_funded', { price: listing.price }, req.ip);
+  res.json(order);
+});
+
+// ── MY ORDERS ──
+app.get('/api/dam/orders/my', auth, async (req, res) => {
+  const { data, error } = await supabase.from('dam_orders')
+    .select('*, dam_listings(title,category,subcategory,image_url)')
+    .or(`buyer_id.eq.${req.user.id},seller_id.eq.${req.user.id}`)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── ORDER DETAIL ──
+app.get('/api/dam/orders/:id', auth, async (req, res) => {
+  const { data: order, error } = await supabase.from('dam_orders')
+    .select('*, dam_listings(title,category,subcategory,image_url,description,asset_info)')
+    .eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id)
+    return res.status(403).json({ error: 'Không có quyền' });
+  // Enrich with names
+  const [{ data: buyer }, { data: seller }] = await Promise.all([
+    supabase.from('users').select('name,phone').eq('id',order.buyer_id).single(),
+    supabase.from('users').select('name,phone').eq('id',order.seller_id).single()
+  ]);
+  order.buyer_name  = buyer?.name || buyer?.phone || 'Buyer';
+  order.seller_name = seller?.name || seller?.phone || 'Seller';
+  // Check if reviewed
+  const { data: review } = await supabase.from('dam_reviews').select('*').eq('order_id',req.params.id).eq('reviewer_id',req.user.id).single();
+  order.my_review = review || null;
+  res.json(order);
+});
+
+// ── SELLER DELIVERS ──
+app.post('/api/dam/orders/:id/deliver', auth, async (req, res) => {
+  const { data: order } = await supabase.from('dam_orders').select('*').eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.seller_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Seller mới có quyền' });
+  if (order.status !== 'funded') return res.status(400).json({ error: 'Đơn chưa được thanh toán' });
+  await supabase.from('dam_orders').update({ status:'delivered', delivered_at: new Date(), updated_at: new Date() }).eq('id',req.params.id);
+  await damAudit(req.params.id, order.listing_id, req.user.id, 'delivered', {}, req.ip);
+  res.json({ ok: true });
+});
+
+// ── GET VAULT (buyer only, after delivered/confirmed) ──
+app.get('/api/dam/orders/:id/vault', auth, async (req, res) => {
+  const { data: order } = await supabase.from('dam_orders').select('*').eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Buyer mới xem được' });
+  if (!['delivered','confirmed'].includes(order.status)) return res.status(403).json({ error: 'Chưa bàn giao — vault chưa mở' });
+  const { data: vault } = await supabase.from('dam_vault').select('*').eq('listing_id',order.listing_id).single();
+  if (!vault) return res.json({ empty: true });
+  const dec = (v) => { try { return v ? decryptField(v) : null; } catch { return null; } };
+  await damAudit(req.params.id, order.listing_id, req.user.id, 'vault_accessed', {}, req.ip);
+  res.json({
+    username: dec(vault.username_enc),
+    password: dec(vault.password_enc),
+    email:    dec(vault.email_enc),
+    backup_codes: dec(vault.backup_codes_enc),
+    notes:    dec(vault.notes_enc)
+  });
+});
+
+// ── BUYER CONFIRMS ──
+app.post('/api/dam/orders/:id/confirm', auth, async (req, res) => {
+  const { data: order } = await supabase.from('dam_orders').select('*').eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Buyer mới xác nhận được' });
+  if (order.status !== 'delivered') return res.status(400).json({ error: 'Tài sản chưa được bàn giao' });
+  // Release escrow to seller (1% fee)
+  const fee = Math.round(order.price * 0.01);
+  const sellerGets = order.price - fee;
+  const [{ data: buyer }, { data: seller }] = await Promise.all([
+    supabase.from('users').select('escrow').eq('id',order.buyer_id).single(),
+    supabase.from('users').select('balance').eq('id',order.seller_id).single()
+  ]);
+  await Promise.all([
+    supabase.from('users').update({ escrow: Math.max(0,(buyer?.escrow||0)-order.price) }).eq('id',order.buyer_id),
+    supabase.from('users').update({ balance: (seller?.balance||0)+sellerGets }).eq('id',order.seller_id),
+    supabase.from('transactions').insert({ user_id: order.seller_id, type:'sale', amount: sellerGets, description:`DAM bán: ${order.listing_id}`, ref_id: order.id }),
+    supabase.from('dam_orders').update({ status:'confirmed', confirmed_at: new Date(), updated_at: new Date() }).eq('id',req.params.id)
+  ]);
+  await damAudit(req.params.id, order.listing_id, req.user.id, 'confirmed', { released: sellerGets }, req.ip);
+  res.json({ ok: true });
+});
+
+// ── DISPUTE ──
+app.post('/api/dam/orders/:id/dispute', auth, async (req, res) => {
+  const { reason } = req.body;
+  const { data: order } = await supabase.from('dam_orders').select('*').eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id && order.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['funded','delivered'].includes(order.status)) return res.status(400).json({ error: 'Không thể mở tranh chấp ở trạng thái này' });
+  if (!reason?.trim()) return res.status(400).json({ error: 'Vui lòng nhập lý do tranh chấp' });
+  await supabase.from('dam_orders').update({ status:'disputed', dispute_reason: reason, disputed_at: new Date(), updated_at: new Date() }).eq('id',req.params.id);
+  await damAudit(req.params.id, order.listing_id, req.user.id, 'disputed', { reason }, req.ip);
+  res.json({ ok: true });
+});
+
+// ── UPDATE CHECKLIST ──
+app.post('/api/dam/orders/:id/checklist', auth, async (req, res) => {
+  const { data: order } = await supabase.from('dam_orders').select('*').eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Buyer mới cập nhật được' });
+  const current = order.checklist || {};
+  const merged = { ...current, ...req.body };
+  await supabase.from('dam_orders').update({ checklist: merged, updated_at: new Date() }).eq('id',req.params.id);
+  await damAudit(req.params.id, order.listing_id, req.user.id, 'checklist_updated', merged, req.ip);
+  res.json({ ok: true, checklist: merged });
+});
+
+// ── SUBMIT REVIEW ──
+app.post('/api/dam/orders/:id/review', auth, async (req, res) => {
+  const { rating, comment } = req.body;
+  const { data: order } = await supabase.from('dam_orders').select('*').eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (order.buyer_id !== req.user.id) return res.status(403).json({ error: 'Chỉ Buyer mới đánh giá được' });
+  if (order.status !== 'confirmed') return res.status(400).json({ error: 'Hoàn thành giao dịch trước khi đánh giá' });
+  if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Điểm đánh giá phải từ 1-5' });
+  const existing = await supabase.from('dam_reviews').select('id').eq('order_id',req.params.id).eq('reviewer_id',req.user.id).single();
+  if (existing.data) return res.status(400).json({ error: 'Bạn đã đánh giá giao dịch này rồi' });
+  await supabase.from('dam_reviews').insert({ order_id: req.params.id, reviewer_id: req.user.id, seller_id: order.seller_id, rating: parseInt(rating), comment: comment||'' });
+  res.json({ ok: true });
+});
+
+// ── SELLER PROFILE ──
+app.get('/api/dam/seller/:id/profile', async (req, res) => {
+  const sellerId = req.params.id;
+  const [{ data: user }, listings, orders, reviews] = await Promise.all([
+    supabase.from('users').select('name,phone,created_at').eq('id',sellerId).single(),
+    supabase.from('dam_listings').select('id,title,category,subcategory,price,image_url,status,created_at').eq('seller_id',sellerId).eq('status','active').order('created_at',{ascending:false}).limit(20),
+    supabase.from('dam_orders').select('status').eq('seller_id',sellerId),
+    supabase.from('dam_reviews').select('rating,comment,created_at').eq('seller_id',sellerId).order('created_at',{ascending:false}).limit(20)
+  ]);
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy' });
+  const ord = orders.data || [];
+  const rev = reviews.data || [];
+  const confirmed = ord.filter(o=>o.status==='confirmed').length;
+  const disputed  = ord.filter(o=>o.status==='disputed').length;
+  const avgRating = rev.length ? (rev.reduce((s,r)=>s+r.rating,0)/rev.length).toFixed(1) : null;
+  res.json({
+    seller: { ...user, id: sellerId },
+    listings: listings.data || [],
+    reviews: rev,
+    stats: { total: ord.length, confirmed, disputed, avg_rating: avgRating, review_count: rev.length }
+  });
+});
+
+// ── ADMIN: LIST ALL ORDERS ──
+app.get('/api/admin/dam/orders', adminAuth, async (req, res) => {
+  const { status, search } = req.query;
+  let q = supabase.from('dam_orders')
+    .select('*, dam_listings(title,category,subcategory)')
+    .order('created_at',{ascending:false}).limit(200);
+  if (status) q = q.eq('status',status);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── ADMIN: STATS ──
+app.get('/api/admin/dam/stats', adminAuth, async (req, res) => {
+  const [orders, listings] = await Promise.all([
+    supabase.from('dam_orders').select('status,price'),
+    supabase.from('dam_listings').select('status')
+  ]);
+  const ord = orders.data || [];
+  const lst = listings.data || [];
+  const byStatus = {};
+  let volume = 0;
+  ord.forEach(o => { byStatus[o.status]=(byStatus[o.status]||0)+1; if(o.status==='confirmed') volume+=(o.price||0); });
+  res.json({ total_orders: ord.length, total_listings: lst.length, active_listings: lst.filter(l=>l.status==='active').length, volume, by_status: byStatus });
+});
+
+// ── ADMIN: ACTION ──
+app.post('/api/admin/dam/orders/:id/action', adminAuth, async (req, res) => {
+  const { action, notes } = req.body;
+  const { data: order } = await supabase.from('dam_orders').select('*').eq('id',req.params.id).single();
+  if (!order) return res.status(404).json({ error: 'Không tìm thấy' });
+  let update = { admin_notes: notes||'', admin_action_by: req.admin?.email||'admin', updated_at: new Date() };
+  if (action === 'release') {
+    const fee = Math.round(order.price * 0.01);
+    const sellerGets = order.price - fee;
+    const [{ data: buyer }, { data: seller }] = await Promise.all([
+      supabase.from('users').select('escrow').eq('id',order.buyer_id).single(),
+      supabase.from('users').select('balance').eq('id',order.seller_id).single()
+    ]);
+    await supabase.from('users').update({ escrow: Math.max(0,(buyer?.escrow||0)-order.price) }).eq('id',order.buyer_id);
+    await supabase.from('users').update({ balance: (seller?.balance||0)+sellerGets }).eq('id',order.seller_id);
+    await supabase.from('transactions').insert({ user_id: order.seller_id, type:'sale', amount: sellerGets, description:`Admin giải ngân DAM`, ref_id: order.id });
+    update.status = 'confirmed'; update.confirmed_at = new Date();
+  } else if (action === 'refund') {
+    const { data: buyer } = await supabase.from('users').select('balance,escrow').eq('id',order.buyer_id).single();
+    await supabase.from('users').update({ balance:(buyer?.balance||0)+order.price, escrow: Math.max(0,(buyer?.escrow||0)-order.price) }).eq('id',order.buyer_id);
+    await supabase.from('transactions').insert({ user_id: order.buyer_id, type:'refund', amount: order.price, description:`Admin hoàn tiền DAM`, ref_id: order.id });
+    await supabase.from('dam_listings').update({ status:'active', updated_at: new Date() }).eq('id',order.listing_id);
+    update.status = 'refunded';
+  } else if (action === 'cancel') {
+    update.status = 'cancelled';
+  } else {
+    return res.status(400).json({ error: 'Hành động không hợp lệ' });
+  }
+  await supabase.from('dam_orders').update(update).eq('id',req.params.id);
+  await damAudit(req.params.id, order.listing_id, null, `admin_${action}`, { notes }, req.ip);
+  res.json({ ok: true });
+});
+
+// ────────────────────────────────────────────────
+//  END OF PHASE 6 DAM ROUTES
+// ────────────────────────────────────────────────
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

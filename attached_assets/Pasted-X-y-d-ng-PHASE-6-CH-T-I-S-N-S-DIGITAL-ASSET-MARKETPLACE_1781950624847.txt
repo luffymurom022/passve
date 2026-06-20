@@ -1,0 +1,220 @@
+Xây dựng PHASE 6: CHỢ TÀI SẢN SỐ (DIGITAL ASSET MARKETPLACE)
+
+Dự án hiện đã có:
+
+- Đăng nhập / Đăng ký
+- Ví người dùng
+- Escrow
+- Marketplace
+- Open Escrow
+- Dispute Center
+- Admin Panel
+- KYC
+
+Tạo thêm một hệ thống hoàn toàn mới:
+
+DIGITAL ASSET MARKETPLACE
+
+====================================
+
+MỤC TIÊU
+
+Cho phép người dùng mua bán tài sản số an toàn thông qua Escrow.
+
+====================================
+
+DANH MỤC TÀI SẢN
+
+1. Tài khoản mạng xã hội
+
+- Facebook Page
+- Facebook Group
+- TikTok Account
+- YouTube Channel
+- Instagram Account
+- X Account
+
+------------------------------------
+
+2. Tài khoản AI
+
+- ChatGPT
+- Claude
+- Midjourney
+- Canva Pro
+- CapCut Pro
+
+------------------------------------
+
+3. Tài sản Website
+
+- Domain
+- Website
+- Landing Page
+- Blog
+
+------------------------------------
+
+4. Game Account
+
+- Liên Quân
+- Free Fire
+- Roblox
+- Steam
+- Valorant
+
+------------------------------------
+
+5. Digital Products
+
+- Source Code
+- Template
+- Prompt AI
+- Ebook
+- Course
+
+====================================
+
+TRANG ĐĂNG BÁN
+
+Người bán nhập:
+
+- Tiêu đề
+- Mô tả
+- Danh mục
+- Giá
+- Hình ảnh
+- Thông tin tài sản
+
+====================================
+
+ACCOUNT VAULT
+
+Tạo kho lưu trữ bảo mật.
+
+Người bán có thể lưu:
+
+- Username
+- Password
+- Email đăng nhập
+- Backup codes
+
+Dữ liệu phải được mã hóa.
+
+Chỉ giải mã khi giao dịch hoàn tất.
+
+====================================
+
+ESCROW TÀI SẢN SỐ
+
+Quy trình:
+
+1. Buyer thanh toán
+
+2. Tiền bị khóa trong Escrow
+
+3. Seller bàn giao tài sản
+
+4. Buyer xác nhận
+
+5. Hệ thống giải ngân
+
+====================================
+
+TRUNG TÂM CHUYỂN GIAO
+
+Hiển thị checklist:
+
+□ Đổi mật khẩu
+
+□ Đổi email khôi phục
+
+□ Đổi số điện thoại
+
+□ Xác nhận quyền sở hữu
+
+□ Hoàn tất bàn giao
+
+====================================
+
+HỆ THỐNG ĐÁNH GIÁ
+
+Sau giao dịch:
+
+- Chấm điểm 1-5 sao
+- Bình luận
+- Điểm uy tín
+
+====================================
+
+DIGITAL ASSET PROFILE
+
+Mỗi người bán có:
+
+- Tổng giao dịch
+- Tỷ lệ thành công
+- Điểm uy tín
+- Số dispute
+
+====================================
+
+ADMIN PANEL
+
+Admin có thể:
+
+- Kiểm tra tài sản
+- Xem lịch sử bàn giao
+- Khóa giao dịch
+- Hoàn tiền
+- Giải quyết tranh chấp
+
+====================================
+
+BẢO MẬT
+
+- Encrypt credentials
+- Audit logs
+- Ownership transfer history
+- Fraud monitoring
+
+====================================
+
+THỐNG KÊ
+
+Dashboard hiển thị:
+
+- Tổng giao dịch
+- Doanh thu
+- Tài sản đang bán
+- Tài sản đã bán
+- Tranh chấp
+
+====================================
+
+UI
+
+Phong cách:
+
+Fintech + Marketplace
+
+Lấy cảm hứng từ:
+
+- Escrow.com
+- Flippa
+- Fiverr
+
+Sử dụng:
+
+- Next.js
+- TypeScript
+- Tailwind
+
+Responsive mobile.
+
+Dark mode.
+
+Không được ảnh hưởng đến Marketplace và Open Escrow hiện tại.
+
+Thêm mục menu mới:
+
+"Tài Sản Số"
