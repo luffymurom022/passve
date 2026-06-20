@@ -361,6 +361,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item" onclick="switchTab('kyc')" data-tab="kyc">🪪 KYC <span class="mob-badge" id="mob-kyc-badge" style="display:none">0</span></div>
     <div class="mob-nav-item" onclick="switchTab('audit')" data-tab="audit">📜 Audit Log</div>
     <div class="mob-nav-item" onclick="switchTab('settings')" data-tab="settings">⚙️ Cài đặt</div>
+    <div class="mob-nav-item" onclick="switchTab('security')" data-tab="security">🛡️ Bảo Mật</div>
   </div>
 
   <div class="layout">
@@ -390,6 +391,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="sidebar-section">Hệ thống</div>
       <div class="nav-item" onclick="switchTab('audit')" data-tab="audit"><span class="nav-icon">📜</span> Audit Log</div>
       <div class="nav-item" onclick="switchTab('settings')" data-tab="settings"><span class="nav-icon">⚙️</span> Cài đặt</div>
+      <div class="nav-item" onclick="switchTab('security')" data-tab="security"><span class="nav-icon">🛡️</span> Bảo Mật <span class="nav-badge" id="security-badge" style="display:none">!</span></div>
     </nav>
 
     <!-- MAIN -->
@@ -930,6 +932,86 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 </div>
 
+<!-- ════ PAGE: SECURITY DASHBOARD ════ -->
+<div class="page" id="page-security">
+  <div class="page-title">🛡️ Bảo Mật Hệ Thống</div>
+
+  <!-- KPI ROW -->
+  <div class="stats-grid" id="sec-kpi" style="margin-bottom:20px">
+    <div class="stat-card" style="border-color:var(--redBorder)">
+      <div class="stat-label">🚫 IP Đang Bị Ban</div>
+      <div class="stat-val c-red" id="sec-banned">—</div>
+      <div class="stat-sub">tạm thời 30 phút</div>
+    </div>
+    <div class="stat-card" style="border-color:var(--warnBorder)">
+      <div class="stat-label">🍯 Honeypot Hits</div>
+      <div class="stat-val c-warn" id="sec-honeypot">—</div>
+      <div class="stat-sub">hacker dính bẫy</div>
+    </div>
+    <div class="stat-card" style="border-color:var(--purpleBorder)">
+      <div class="stat-label">🔍 IP Đang Theo Dõi</div>
+      <div class="stat-val c-purple" id="sec-tracked">—</div>
+      <div class="stat-sub">trong cửa sổ hiện tại</div>
+    </div>
+    <div class="stat-card" style="border-color:var(--okBorder)">
+      <div class="stat-label">🔑 Token Đã Thu Hồi</div>
+      <div class="stat-val c-ok" id="sec-revoked">—</div>
+      <div class="stat-sub">JWT bị vô hiệu hóa</div>
+    </div>
+  </div>
+
+  <!-- THREAT CHART + CONTROLS ROW -->
+  <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-start">
+    <!-- Threat breakdown -->
+    <div class="card" style="flex:1;min-width:280px">
+      <div class="card-head">
+        <div><div class="card-title">📊 Loại Tấn Công</div><div class="card-sub">50 sự kiện gần nhất</div></div>
+      </div>
+      <div id="sec-threat-chart" style="padding:0 4px 8px"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card" style="width:240px;flex-shrink:0">
+      <div class="card-head"><div class="card-title">⚡ Điều Khiển</div></div>
+      <div style="display:flex;flex-direction:column;gap:10px;padding-top:4px">
+        <button class="btn btn-brand" onclick="loadSecurity()" style="width:100%">🔄 Làm mới</button>
+        <button class="btn" style="width:100%;background:var(--redBg);border-color:var(--redBorder);color:var(--red)" onclick="secClearBans()">🗑️ Xóa ban hết hạn</button>
+        <div style="font-size:11px;color:var(--hint);margin-top:4px;line-height:1.5">Auto-refresh mỗi <strong style="color:var(--sub)">30s</strong></div>
+        <div style="font-size:11px;color:var(--hint)">Cập nhật lúc: <span id="sec-last-update" style="color:var(--sub);font-family:'JetBrains Mono',monospace">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENT LOG TABLE -->
+  <div class="card">
+    <div class="card-head">
+      <div><div class="card-title">🚨 Sự Kiện Bảo Mật Gần Đây</div><div class="card-sub">Real-time security events</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="sec-filter-type" onchange="renderSecEvents()" style="background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer">
+          <option value="">Tất cả</option>
+          <option value="ATTACK">ATTACK</option>
+          <option value="BAN">BAN</option>
+          <option value="HONEYPOT">HONEYPOT</option>
+          <option value="BLOCKED">BLOCKED</option>
+          <option value="BURST">BURST</option>
+          <option value="CSRF">CSRF</option>
+          <option value="LARGE_PAYLOAD">LARGE PAYLOAD</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="sec-events-table">
+        <thead><tr>
+          <th>Thời gian</th><th>Loại</th><th>IP</th><th>User</th><th>Chi tiết</th>
+        </tr></thead>
+        <tbody id="sec-events-body">
+          <tr><td colspan="5" style="text-align:center;color:var(--hint);padding:32px">Đang tải dữ liệu bảo mật…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════ TOAST ═══════════════ -->
 <div id="toast"></div>
 
@@ -1112,6 +1194,7 @@ function switchTab(tab) {
     case 'kyc': loadKyc(); break;
     case 'audit': loadAuditLog(); break;
     case 'settings': loadAdminList(); break;
+    case 'security': loadSecurity(); break;
   }
 }
 
@@ -2385,6 +2468,137 @@ if (adminToken) {
   });
 } else {
   document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════════
+//  🛡️ SECURITY DASHBOARD
+// ══════════════════════════════════════════════════
+let secData = null;
+let secAutoRefreshTimer = null;
+
+async function loadSecurity() {
+  try {
+    const data = await api('GET', '/admin/security-stats');
+    secData = data;
+    renderSecDashboard(data);
+    document.getElementById('sec-last-update').textContent =
+      new Date().toLocaleTimeString('vi-VN');
+
+    // Cập nhật badge nếu có IP bị ban
+    const badge = document.getElementById('security-badge');
+    if (data.bannedIPs > 0) {
+      badge.textContent = data.bannedIPs;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    // Auto-refresh mỗi 30s khi đang ở tab security
+    clearTimeout(secAutoRefreshTimer);
+    if (currentTab === 'security') {
+      secAutoRefreshTimer = setTimeout(loadSecurity, 30000);
+    }
+  } catch (e) {
+    toast('Lỗi tải dữ liệu bảo mật: ' + e.message, 'error');
+  }
+}
+
+function renderSecDashboard(data) {
+  // KPI
+  document.getElementById('sec-banned').textContent   = data.bannedIPs ?? 0;
+  document.getElementById('sec-honeypot').textContent = data.honeypotHits ?? 0;
+  document.getElementById('sec-tracked').textContent  = data.trackedIPs ?? 0;
+  document.getElementById('sec-revoked').textContent  = data.revokedTokens ?? 0;
+
+  // Threat type breakdown chart
+  renderThreatChart(data.recentEvents || []);
+
+  // Events table
+  renderSecEvents();
+}
+
+function renderThreatChart(events) {
+  const counts = {};
+  for (const e of events) {
+    counts[e.type] = (counts[e.type] || 0) + 1;
+  }
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const total  = events.length || 1;
+
+  const COLORS = {
+    ATTACK: 'var(--red)',
+    BAN: 'var(--warn)',
+    HONEYPOT: '#f97316',
+    BLOCKED: 'var(--red)',
+    BURST: 'var(--warn)',
+    CSRF: 'var(--purple)',
+    LARGE_PAYLOAD: 'var(--brand)',
+    INFO: 'var(--ok)',
+  };
+
+  const TYPE_ICONS = {
+    ATTACK: '⚡', BAN: '🚫', HONEYPOT: '🍯', BLOCKED: '🔴',
+    BURST: '💥', CSRF: '🔗', LARGE_PAYLOAD: '📦', INFO: 'ℹ️',
+  };
+
+  if (sorted.length === 0) {
+    document.getElementById('sec-threat-chart').innerHTML =
+      '<div style="text-align:center;color:var(--hint);padding:24px;font-size:13px">✅ Không có sự kiện bảo mật nào</div>';
+    return;
+  }
+
+  document.getElementById('sec-threat-chart').innerHTML = sorted.map(([type, count]) => {
+    const pct   = Math.round((count / total) * 100);
+    const color = COLORS[type] || 'var(--sub)';
+    const icon  = TYPE_ICONS[type] || '📌';
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${icon} ${type}</span>
+          <span style="font-size:12px;color:var(--sub);font-family:'JetBrains Mono',monospace">${count} (${pct}%)</span>
+        </div>
+        <div style="height:8px;background:var(--card3);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width .5s ease"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderSecEvents() {
+  if (!secData) return;
+  const events  = secData.recentEvents || [];
+  const filter  = document.getElementById('sec-filter-type')?.value || '';
+  const filtered = filter ? events.filter(e => e.type === filter) : events;
+
+  const TYPE_COLOR = {
+    ATTACK: 'var(--red)', BAN: 'var(--warn)', HONEYPOT: '#f97316',
+    BLOCKED: 'var(--red)', BURST: 'var(--warn)', CSRF: 'var(--purple)',
+    LARGE_PAYLOAD: 'var(--brand)', INFO: 'var(--ok)',
+  };
+
+  const tbody = document.getElementById('sec-events-body');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--hint);padding:32px">Không có sự kiện nào</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.slice(0, 100).map(ev => {
+    const color = TYPE_COLOR[ev.type] || 'var(--sub)';
+    const ts    = new Date(ev.ts).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'medium' });
+    const detail = (ev.detail || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
+      <tr>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap">${ts}</td>
+        <td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${color};background:${color}22;border:1px solid ${color}44">${ev.type}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sub)">${ev.ip || '—'}</td>
+        <td style="font-size:12px;color:var(--hint)">${ev.userId ? ev.userId.slice(0,8)+'…' : '—'}</td>
+        <td style="font-size:12px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${detail}">${detail || '—'}</td>
+      </tr>`;
+  }).join('');
+}
+
+async function secClearBans() {
+  toast('Chức năng xóa ban chỉ tự xóa sau 30 phút theo cơ chế tự động.', 'warn');
 }
 </script>
 </body>

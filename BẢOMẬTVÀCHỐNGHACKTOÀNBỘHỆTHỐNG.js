@@ -21,10 +21,15 @@ const honeypotHits = new Set();         // IPs that hit honeypot routes
 const IP_CONFIG = {
   MAX_REQUESTS_PER_MINUTE: 120,
   MAX_REQUESTS_PER_SECOND: 10,
-  MAX_UA_VARIATIONS: 5,               // same IP with too many user-agents = bot
-  BAN_DURATION_MS: 30 * 60 * 1000,   // 30 min
+  MAX_UA_VARIATIONS: 5,
+  BAN_DURATION_MS: 30 * 60 * 1000,
   HONEYPOT_INSTANT_BAN: true
 }
+
+// IPs luôn được tin tưởng — không bao giờ bị ban (localhost, Replit proxy)
+const TRUSTED_IPS = new Set([
+  '127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost', '0.0.0.0'
+]);
 
 function getClientIP(req) {
   return (
@@ -327,6 +332,9 @@ function validateOrigin(req) {
 function middlewareIPShield(req, res, next) {
   const ip = getClientIP(req);
   const ua = req.headers['user-agent'] || '';
+
+  // Whitelist localhost / Replit internal proxy — không bao giờ bị chặn
+  if (TRUSTED_IPS.has(ip)) return next();
 
   const banInfo = isIPBanned(ip);
   if (banInfo.banned) {
