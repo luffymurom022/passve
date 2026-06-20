@@ -5496,6 +5496,456 @@ app.get('/business', (req, res) => {
   res.sendFile(join(__dirname, 'frontend', 'business.html'));
 });
 
+// ══════════════════════════════════════════════════════════
+//  SAFEPASS FREELANCE — Fiverr/Upwork-style Marketplace
+// ══════════════════════════════════════════════════════════
+
+const FL_FEE_RATE = 0.05; // 5% platform fee
+
+async function flLogActivity(contractId, actorId, actorName, action, detail = '') {
+  try {
+    await supabase.from('fl_activities').insert({ contract_id: contractId, actor_id: actorId, actor_name: actorName, action, detail });
+  } catch(e) {}
+}
+
+// ── Categories ──
+const FL_CATEGORIES = [
+  { id: 'design',    label: 'Thiết Kế',     icon: '🎨', subs: ['Logo','Banner','UI/UX','Illustration'] },
+  { id: 'video',     label: 'Video',         icon: '🎬', subs: ['Edit Video','YouTube','TikTok','Motion'] },
+  { id: 'marketing', label: 'Marketing',     icon: '📢', subs: ['Facebook Ads','Google Ads','SEO','Content'] },
+  { id: 'ai',        label: 'AI & Automation',icon: '🤖', subs: ['Prompt AI','Chatbot','Automation','Data'] },
+  { id: 'code',      label: 'Lập Trình',     icon: '💻', subs: ['Website','Mobile App','Game','API'] },
+  { id: 'writing',   label: 'Viết Nội Dung', icon: '✍️', subs: ['Blog','Kịch bản','Copywriting','Dịch thuật'] }
+];
+
+app.get('/api/freelance/categories', (req, res) => res.json({ categories: FL_CATEGORIES }));
+
+// ── Freelancer Profiles ──
+app.get('/api/freelance/profiles', async (req, res) => {
+  const { category, q, limit = 20, page = 1 } = req.query;
+  let query = supabase.from('fl_profiles').select('*, users!inner(id,name,phone,is_verified)').eq('is_available', true);
+  if (category) query = query.eq('category', category);
+  if (q) query = query.ilike('display_name', `%${q}%`);
+  query = query.order('avg_rating', { ascending: false }).range((page-1)*limit, page*limit-1);
+  const { data, error } = await query;
+  res.json({ profiles: data || [] });
+});
+
+app.get('/api/freelance/profiles/:userId', async (req, res) => {
+  const { data: profile } = await supabase.from('fl_profiles').select('*, users!inner(id,name,is_verified,avg_rating,review_count)').eq('user_id', req.params.userId).single();
+  if (!profile) return res.status(404).json({ error: 'Không tìm thấy profile' });
+  const { data: gigs } = await supabase.from('fl_gigs').select('*').eq('seller_id', req.params.userId).eq('status', 'active').limit(6);
+  const { data: reviews } = await supabase.from('fl_reviews').select('*, users!reviewer_id(name)').eq('reviewee_id', req.params.userId).order('created_at', { ascending: false }).limit(10);
+  res.json({ profile, gigs: gigs||[], reviews: reviews||[] });
+});
+
+app.get('/api/freelance/profiles/me', auth, async (req, res) => {
+  const { data } = await supabase.from('fl_profiles').select('*').eq('user_id', req.user.id).single();
+  res.json({ profile: data || null });
+});
+
+app.put('/api/freelance/profiles/me', auth, async (req, res) => {
+  try {
+    const { display_name, tagline, bio, skills, category, experience_years, country, language, hourly_rate, avatar_url, portfolio_url, is_available } = req.body;
+    const { data: existing } = await supabase.from('fl_profiles').select('id').eq('user_id', req.user.id).single();
+    const payload = {
+      user_id: req.user.id,
+      display_name: sanitize(display_name||''),
+      tagline: sanitize(tagline||''),
+      bio: sanitize(bio||''),
+      skills: Array.isArray(skills) ? skills.map(s=>sanitize(s)) : [],
+      category: category||'code',
+      experience_years: parseInt(experience_years)||0,
+      country: sanitize(country||'Vietnam'),
+      language: sanitize(language||'Vietnamese'),
+      hourly_rate: parseInt(hourly_rate)||0,
+      avatar_url: avatar_url||null,
+      portfolio_url: portfolio_url||null,
+      is_available: is_available !== false,
+      updated_at: new Date().toISOString()
+    };
+    let result;
+    if (existing) {
+      result = await supabase.from('fl_profiles').update(payload).eq('id', existing.id).select().single();
+    } else {
+      result = await supabase.from('fl_profiles').insert(payload).select().single();
+    }
+    if (result.error) return res.status(500).json({ error: 'Lưu profile thất bại' });
+    res.json({ ok: true, profile: result.data });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── Gigs ──
+app.get('/api/freelance/gigs', async (req, res) => {
+  const { category, q, min_price, max_price, sort = 'rating', limit = 24, page = 1 } = req.query;
+  let query = supabase.from('fl_gigs').select('*, users!seller_id(id,name,is_verified)').eq('status', 'active');
+  if (category) query = query.eq('category', category);
+  if (q) query = query.ilike('title', `%${q}%`);
+  if (min_price) query = query.gte('price', parseInt(min_price));
+  if (max_price) query = query.lte('price', parseInt(max_price));
+  if (sort === 'price_asc') query = query.order('price', { ascending: true });
+  else if (sort === 'price_desc') query = query.order('price', { ascending: false });
+  else if (sort === 'newest') query = query.order('created_at', { ascending: false });
+  else query = query.order('avg_rating', { ascending: false });
+  query = query.range((page-1)*limit, page*limit-1);
+  const { data, count } = await query;
+  res.json({ gigs: data||[], total: count||0, page: parseInt(page), limit: parseInt(limit) });
+});
+
+app.get('/api/freelance/gigs/mine', auth, async (req, res) => {
+  const { data } = await supabase.from('fl_gigs').select('*').eq('seller_id', req.user.id).order('created_at', { ascending: false });
+  res.json({ gigs: data||[] });
+});
+
+app.get('/api/freelance/gigs/:id', async (req, res) => {
+  const { data: gig } = await supabase.from('fl_gigs').select('*, users!seller_id(id,name,is_verified,avg_rating,review_count)').eq('id', req.params.id).single();
+  if (!gig) return res.status(404).json({ error: 'Không tìm thấy gig' });
+  await supabase.from('fl_gigs').update({ view_count: (gig.view_count||0)+1 }).eq('id', gig.id);
+  const { data: reviews } = await supabase.from('fl_reviews').select('*, users!reviewer_id(name)').eq('gig_id', gig.id).order('created_at', { ascending: false }).limit(10);
+  res.json({ gig, reviews: reviews||[] });
+});
+
+app.post('/api/freelance/gigs', auth, async (req, res) => {
+  try {
+    const { title, description, category, subcategory, price, delivery_days, revisions, image_url, images, tags } = req.body;
+    if (!title || !category || !price) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+    const { data: gig, error } = await supabase.from('fl_gigs').insert({
+      seller_id: req.user.id,
+      title: sanitize(title), description: sanitize(description||''),
+      category, subcategory: subcategory||null, price: parseInt(price),
+      delivery_days: parseInt(delivery_days)||3, revisions: parseInt(revisions)||1,
+      image_url: image_url||null, images: Array.isArray(images)?images:[],
+      tags: Array.isArray(tags)?tags.map(t=>sanitize(t)):[], status: 'active'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Tạo gig thất bại' });
+    res.status(201).json({ ok: true, gig });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.patch('/api/freelance/gigs/:id', auth, async (req, res) => {
+  const { data: gig } = await supabase.from('fl_gigs').select('seller_id').eq('id', req.params.id).single();
+  if (!gig || gig.seller_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const allowed = ['title','description','price','delivery_days','revisions','image_url','images','tags','status'];
+  const updates = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+  updates.updated_at = new Date().toISOString();
+  const { data, error } = await supabase.from('fl_gigs').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+  res.json({ ok: true, gig: data });
+});
+
+// ── Job Postings ──
+app.get('/api/freelance/jobs', async (req, res) => {
+  const { category, q, status = 'open', limit = 20, page = 1 } = req.query;
+  let query = supabase.from('fl_jobs').select('*, users!client_id(id,name,is_verified)').eq('status', status);
+  if (category) query = query.eq('category', category);
+  if (q) query = query.ilike('title', `%${q}%`);
+  query = query.order('created_at', { ascending: false }).range((page-1)*limit, page*limit-1);
+  const { data } = await query;
+  res.json({ jobs: data||[] });
+});
+
+app.get('/api/freelance/jobs/mine', auth, async (req, res) => {
+  const { data } = await supabase.from('fl_jobs').select('*').eq('client_id', req.user.id).order('created_at', { ascending: false });
+  res.json({ jobs: data||[] });
+});
+
+app.get('/api/freelance/jobs/:id', async (req, res) => {
+  const { data: job } = await supabase.from('fl_jobs').select('*, users!client_id(id,name,is_verified)').eq('id', req.params.id).single();
+  if (!job) return res.status(404).json({ error: 'Không tìm thấy job' });
+  await supabase.from('fl_jobs').update({ view_count: (job.view_count||0)+1 }).eq('id', job.id);
+  const { data: proposals } = await supabase.from('fl_proposals').select('*, users!freelancer_id(id,name,is_verified,avg_rating,review_count)').eq('job_id', job.id).order('created_at', { ascending: false });
+  res.json({ job, proposals: proposals||[] });
+});
+
+app.post('/api/freelance/jobs', auth, async (req, res) => {
+  try {
+    const { title, description, category, skills_required, budget_min, budget_max, budget_type, deadline } = req.body;
+    if (!title || !category) return res.status(400).json({ error: 'Thiếu tiêu đề và danh mục' });
+    const { data: job, error } = await supabase.from('fl_jobs').insert({
+      client_id: req.user.id, title: sanitize(title), description: sanitize(description||''),
+      category, skills_required: Array.isArray(skills_required)?skills_required:[],
+      budget_min: parseInt(budget_min)||0, budget_max: parseInt(budget_max)||0,
+      budget_type: budget_type||'fixed', deadline: deadline||null, status: 'open'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Đăng job thất bại' });
+    res.status(201).json({ ok: true, job });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── Proposals ──
+app.post('/api/freelance/jobs/:jobId/proposals', auth, async (req, res) => {
+  try {
+    const { price, delivery_days, cover_letter } = req.body;
+    if (!price || !delivery_days) return res.status(400).json({ error: 'Thiếu giá và thời gian' });
+    const { data: job } = await supabase.from('fl_jobs').select('client_id,status').eq('id', req.params.jobId).single();
+    if (!job) return res.status(404).json({ error: 'Job không tồn tại' });
+    if (job.status !== 'open') return res.status(400).json({ error: 'Job đã đóng' });
+    if (job.client_id === req.user.id) return res.status(400).json({ error: 'Không thể tự apply job của mình' });
+    const { data: existing } = await supabase.from('fl_proposals').select('id').eq('job_id', req.params.jobId).eq('freelancer_id', req.user.id).single();
+    if (existing) return res.status(409).json({ error: 'Bạn đã gửi proposal rồi' });
+    const { data: proposal, error } = await supabase.from('fl_proposals').insert({
+      job_id: req.params.jobId, freelancer_id: req.user.id,
+      price: parseInt(price), delivery_days: parseInt(delivery_days),
+      cover_letter: sanitize(cover_letter||''), status: 'pending'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Gửi proposal thất bại' });
+    await supabase.from('fl_jobs').update({ proposal_count: supabase.rpc ? undefined : undefined }).eq('id', req.params.jobId);
+    res.status(201).json({ ok: true, proposal });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.patch('/api/freelance/proposals/:id/accept', auth, async (req, res) => {
+  try {
+    const { data: proposal } = await supabase.from('fl_proposals')
+      .select('*, fl_jobs!inner(client_id, title, description)').eq('id', req.params.id).single();
+    if (!proposal) return res.status(404).json({ error: 'Proposal không tồn tại' });
+    if (proposal.fl_jobs.client_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    // Check buyer wallet
+    const { data: client } = await supabase.from('users').select('wallet_balance').eq('id', req.user.id).single();
+    const totalWithFee = Math.floor(proposal.price * (1 + FL_FEE_RATE));
+    if ((client?.wallet_balance||0) < totalWithFee) return res.status(400).json({ error: `Số dư không đủ. Cần ${totalWithFee.toLocaleString('vi')}đ (bao gồm phí 5%)` });
+    // Deduct from client wallet
+    await supabase.from('users').update({ wallet_balance: client.wallet_balance - totalWithFee }).eq('id', req.user.id);
+    // Create contract
+    const { data: contract, error } = await supabase.from('fl_contracts').insert({
+      job_id: proposal.job_id, proposal_id: proposal.id,
+      client_id: req.user.id, freelancer_id: proposal.freelancer_id,
+      title: proposal.fl_jobs.title, description: proposal.fl_jobs.description,
+      total_amount: proposal.price, escrow_amount: totalWithFee,
+      platform_fee: totalWithFee - proposal.price,
+      status: 'active',
+      deadline: new Date(Date.now() + proposal.delivery_days * 86400000).toISOString().split('T')[0]
+    }).select().single();
+    if (error) { await supabase.from('users').update({ wallet_balance: client.wallet_balance }).eq('id', req.user.id); return res.status(500).json({ error: 'Tạo contract thất bại' }); }
+    // Update proposal & job status
+    await supabase.from('fl_proposals').update({ status: 'accepted' }).eq('id', proposal.id);
+    await supabase.from('fl_jobs').update({ status: 'in_progress' }).eq('id', proposal.job_id);
+    // Log transaction
+    await supabase.from('transactions').insert({ user_id: req.user.id, type: 'escrow_lock', amount: -totalWithFee, description: `Khóa Escrow Freelance: ${contract.title}`, ref_id: contract.id });
+    await flLogActivity(contract.id, req.user.id, 'Client', 'contract_started', 'Hợp đồng đã bắt đầu — tiền đã được khóa Escrow');
+    // Notify freelancer
+    await supabase.from('notifications').insert({ user_id: proposal.freelancer_id, type: 'fl_hired', title: '🎉 Bạn được thuê!', body: `${proposal.fl_jobs.title} — ${proposal.price.toLocaleString('vi')}đ`, link: `/freelance.html#contract-${contract.id}` });
+    res.json({ ok: true, contract });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.patch('/api/freelance/proposals/:id/reject', auth, async (req, res) => {
+  const { data: proposal } = await supabase.from('fl_proposals').select('*, fl_jobs!inner(client_id)').eq('id', req.params.id).single();
+  if (!proposal || proposal.fl_jobs.client_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('fl_proposals').update({ status: 'rejected' }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+// ── Order a Gig directly ──
+app.post('/api/freelance/gigs/:gigId/order', auth, async (req, res) => {
+  try {
+    const { data: gig } = await supabase.from('fl_gigs').select('*, users!seller_id(id,name)').eq('id', req.params.gigId).eq('status','active').single();
+    if (!gig) return res.status(404).json({ error: 'Gig không tồn tại' });
+    if (gig.seller_id === req.user.id) return res.status(400).json({ error: 'Không thể tự mua gig của mình' });
+    const { data: client } = await supabase.from('users').select('wallet_balance,name').eq('id', req.user.id).single();
+    const totalWithFee = Math.floor(gig.price * (1 + FL_FEE_RATE));
+    if ((client?.wallet_balance||0) < totalWithFee) return res.status(400).json({ error: `Số dư không đủ. Cần ${totalWithFee.toLocaleString('vi')}đ` });
+    await supabase.from('users').update({ wallet_balance: client.wallet_balance - totalWithFee }).eq('id', req.user.id);
+    const { data: contract, error } = await supabase.from('fl_contracts').insert({
+      gig_id: gig.id, client_id: req.user.id, freelancer_id: gig.seller_id,
+      title: gig.title, description: gig.description||'',
+      total_amount: gig.price, escrow_amount: totalWithFee,
+      platform_fee: totalWithFee - gig.price, status: 'active',
+      deadline: new Date(Date.now() + gig.delivery_days * 86400000).toISOString().split('T')[0]
+    }).select().single();
+    if (error) { await supabase.from('users').update({ wallet_balance: client.wallet_balance }).eq('id', req.user.id); return res.status(500).json({ error: 'Đặt gig thất bại' }); }
+    await supabase.from('fl_gigs').update({ order_count: (gig.order_count||0)+1 }).eq('id', gig.id);
+    await supabase.from('transactions').insert({ user_id: req.user.id, type: 'escrow_lock', amount: -totalWithFee, description: `Khóa Escrow Gig: ${gig.title}`, ref_id: contract.id });
+    await flLogActivity(contract.id, req.user.id, client.name||'Client', 'contract_started', 'Đơn hàng mới — tiền đã khóa Escrow');
+    await supabase.from('notifications').insert({ user_id: gig.seller_id, type: 'fl_order', title: '🛒 Đơn hàng mới!', body: `${gig.title} — ${gig.price.toLocaleString('vi')}đ`, link: `/freelance.html#contract-${contract.id}` });
+    res.status(201).json({ ok: true, contract });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── Contracts ──
+app.get('/api/freelance/contracts', auth, async (req, res) => {
+  const { role = 'all' } = req.query;
+  let query = supabase.from('fl_contracts').select('*, client:users!client_id(id,name), freelancer:users!freelancer_id(id,name,is_verified)');
+  if (role === 'client') query = query.eq('client_id', req.user.id);
+  else if (role === 'freelancer') query = query.eq('freelancer_id', req.user.id);
+  else query = query.or(`client_id.eq.${req.user.id},freelancer_id.eq.${req.user.id}`);
+  query = query.order('created_at', { ascending: false });
+  const { data } = await query;
+  res.json({ contracts: data||[] });
+});
+
+app.get('/api/freelance/contracts/:id', auth, async (req, res) => {
+  const { data: contract } = await supabase.from('fl_contracts')
+    .select('*, client:users!client_id(id,name,is_verified), freelancer:users!freelancer_id(id,name,is_verified)')
+    .eq('id', req.params.id).single();
+  if (!contract) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (contract.client_id !== req.user.id && contract.freelancer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  const [{ data: milestones }, { data: messages }, { data: files }, { data: activities }] = await Promise.all([
+    supabase.from('fl_milestones').select('*').eq('contract_id', contract.id).order('order_index'),
+    supabase.from('fl_messages').select('*').eq('contract_id', contract.id).order('created_at'),
+    supabase.from('fl_files').select('*').eq('contract_id', contract.id).order('created_at', { ascending: false }),
+    supabase.from('fl_activities').select('*').eq('contract_id', contract.id).order('created_at')
+  ]);
+  res.json({ contract, milestones: milestones||[], messages: messages||[], files: files||[], activities: activities||[] });
+});
+
+// ── Milestones ──
+app.post('/api/freelance/contracts/:id/milestones', auth, async (req, res) => {
+  const { data: contract } = await supabase.from('fl_contracts').select('client_id,freelancer_id').eq('id', req.params.id).single();
+  if (!contract || (contract.client_id !== req.user.id && contract.freelancer_id !== req.user.id)) return res.status(403).json({ error: 'Không có quyền' });
+  const { title, description, amount, due_date, order_index } = req.body;
+  if (!title || !amount) return res.status(400).json({ error: 'Thiếu tiêu đề và giá trị' });
+  const { data: ms, error } = await supabase.from('fl_milestones').insert({
+    contract_id: req.params.id, title: sanitize(title), description: sanitize(description||''),
+    amount: parseInt(amount), due_date: due_date||null, order_index: parseInt(order_index)||0, status: 'pending'
+  }).select().single();
+  if (error) return res.status(500).json({ error: 'Tạo milestone thất bại' });
+  const { data: u } = await supabase.from('users').select('name').eq('id', req.user.id).single();
+  await flLogActivity(req.params.id, req.user.id, u?.name||'User', 'milestone_created', `Milestone "${title}" đã được tạo`);
+  res.status(201).json({ ok: true, milestone: ms });
+});
+
+app.patch('/api/freelance/milestones/:id/submit', auth, async (req, res) => {
+  const { data: ms } = await supabase.from('fl_milestones').select('*, fl_contracts!inner(freelancer_id,client_id,title)').eq('id', req.params.id).single();
+  if (!ms || ms.fl_contracts.freelancer_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('fl_milestones').update({ status: 'submitted', submitted_at: new Date().toISOString() }).eq('id', req.params.id);
+  await supabase.from('fl_contracts').update({ status: 'submitted' }).eq('id', ms.contract_id);
+  const { data: u } = await supabase.from('users').select('name').eq('id', req.user.id).single();
+  await flLogActivity(ms.contract_id, req.user.id, u?.name||'Freelancer', 'milestone_submitted', `Nộp milestone: "${ms.title}"`);
+  await supabase.from('notifications').insert({ user_id: ms.fl_contracts.client_id, type: 'fl_submitted', title: '📋 Freelancer đã nộp bài', body: ms.fl_contracts.title, link: `/freelance.html#contract-${ms.contract_id}` });
+  res.json({ ok: true });
+});
+
+app.patch('/api/freelance/milestones/:id/approve', auth, async (req, res) => {
+  try {
+    const { data: ms } = await supabase.from('fl_milestones').select('*, fl_contracts!inner(client_id,freelancer_id,total_amount,escrow_amount,platform_fee,title)').eq('id', req.params.id).single();
+    if (!ms || ms.fl_contracts.client_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    if (ms.status !== 'submitted') return res.status(400).json({ error: 'Milestone chưa được nộp' });
+    // Check if all milestones done → release full escrow; else partial
+    const { data: allMs } = await supabase.from('fl_milestones').select('id,status,amount').eq('contract_id', ms.contract_id);
+    const remaining = allMs ? allMs.filter(m => m.id !== ms.id && m.status !== 'approved') : [];
+    await supabase.from('fl_milestones').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', ms.id);
+    if (remaining.length === 0) {
+      // Release full escrow to freelancer
+      const payout = ms.fl_contracts.total_amount;
+      await supabase.from('users').update({ wallet_balance: supabase.rpc ? undefined : undefined }).eq('id', ms.fl_contracts.freelancer_id);
+      const { data: fl } = await supabase.from('users').select('wallet_balance').eq('id', ms.fl_contracts.freelancer_id).single();
+      await supabase.from('users').update({ wallet_balance: (fl?.wallet_balance||0) + payout }).eq('id', ms.fl_contracts.freelancer_id);
+      await supabase.from('fl_contracts').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', ms.contract_id);
+      await supabase.from('transactions').insert({ user_id: ms.fl_contracts.freelancer_id, type: 'fl_payout', amount: payout, description: `Thanh toán Freelance: ${ms.fl_contracts.title}`, ref_id: ms.contract_id });
+      // Update freelancer stats
+      const { data: flProfile } = await supabase.from('fl_profiles').select('total_projects,total_earned').eq('user_id', ms.fl_contracts.freelancer_id).single();
+      if (flProfile) await supabase.from('fl_profiles').update({ total_projects: (flProfile.total_projects||0)+1, total_earned: (flProfile.total_earned||0)+payout }).eq('user_id', ms.fl_contracts.freelancer_id);
+      await flLogActivity(ms.contract_id, req.user.id, 'Client', 'contract_completed', `Dự án hoàn tất — ${payout.toLocaleString('vi')}đ đã giải ngân cho freelancer`);
+      await supabase.from('notifications').insert({ user_id: ms.fl_contracts.freelancer_id, type: 'fl_paid', title: '💰 Thanh toán thành công!', body: `${payout.toLocaleString('vi')}đ đã vào ví`, link: `/freelance.html#contract-${ms.contract_id}` });
+    } else {
+      await flLogActivity(ms.contract_id, req.user.id, 'Client', 'milestone_approved', `Duyệt milestone: "${ms.title}"`);
+    }
+    res.json({ ok: true, contract_completed: remaining.length === 0 });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── Contract Messages ──
+app.get('/api/freelance/contracts/:id/messages', auth, async (req, res) => {
+  const { data: contract } = await supabase.from('fl_contracts').select('client_id,freelancer_id').eq('id', req.params.id).single();
+  if (!contract || (contract.client_id !== req.user.id && contract.freelancer_id !== req.user.id)) return res.status(403).json({ error: 'Không có quyền' });
+  const { data } = await supabase.from('fl_messages').select('*').eq('contract_id', req.params.id).order('created_at');
+  res.json({ messages: data||[] });
+});
+
+app.post('/api/freelance/contracts/:id/messages', auth, async (req, res) => {
+  const { data: contract } = await supabase.from('fl_contracts').select('client_id,freelancer_id').eq('id', req.params.id).single();
+  if (!contract || (contract.client_id !== req.user.id && contract.freelancer_id !== req.user.id)) return res.status(403).json({ error: 'Không có quyền' });
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Tin nhắn trống' });
+  const { data: u } = await supabase.from('users').select('name').eq('id', req.user.id).single();
+  const { data: msg } = await supabase.from('fl_messages').insert({ contract_id: req.params.id, sender_id: req.user.id, sender_name: u?.name||'User', text: sanitize(text) }).select().single();
+  const otherId = contract.client_id === req.user.id ? contract.freelancer_id : contract.client_id;
+  sendToUser(otherId, { type: 'fl_msg', contractId: req.params.id, message: msg });
+  res.status(201).json({ ok: true, message: msg });
+});
+
+// ── Reviews ──
+app.post('/api/freelance/contracts/:id/review', auth, async (req, res) => {
+  try {
+    const { data: contract } = await supabase.from('fl_contracts').select('*').eq('id', req.params.id).single();
+    if (!contract) return res.status(404).json({ error: 'Không tìm thấy' });
+    if (contract.client_id !== req.user.id) return res.status(403).json({ error: 'Chỉ client mới được đánh giá' });
+    if (contract.status !== 'completed') return res.status(400).json({ error: 'Contract chưa hoàn tất' });
+    const { data: existing } = await supabase.from('fl_reviews').select('id').eq('contract_id', req.params.id).single();
+    if (existing) return res.status(409).json({ error: 'Đã đánh giá rồi' });
+    const { rating, comment } = req.body;
+    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating phải từ 1-5' });
+    const { data: review, error } = await supabase.from('fl_reviews').insert({
+      contract_id: req.params.id, gig_id: contract.gig_id||null,
+      reviewer_id: req.user.id, reviewee_id: contract.freelancer_id,
+      rating: parseInt(rating), comment: sanitize(comment||'')
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Đánh giá thất bại' });
+    // Recompute freelancer avg_rating
+    const { data: allReviews } = await supabase.from('fl_reviews').select('rating').eq('reviewee_id', contract.freelancer_id);
+    if (allReviews?.length) {
+      const avg = allReviews.reduce((s,r)=>s+r.rating,0)/allReviews.length;
+      await supabase.from('fl_profiles').update({ avg_rating: avg.toFixed(2), review_count: allReviews.length }).eq('user_id', contract.freelancer_id);
+      if (contract.gig_id) await supabase.from('fl_gigs').update({ avg_rating: avg.toFixed(2), review_count: allReviews.length }).eq('id', contract.gig_id);
+    }
+    res.status(201).json({ ok: true, review });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── Leaderboard ──
+app.get('/api/freelance/leaderboard', async (req, res) => {
+  const { by = 'rating', limit = 20 } = req.query;
+  let orderCol = 'avg_rating';
+  if (by === 'projects') orderCol = 'total_projects';
+  else if (by === 'earned') orderCol = 'total_earned';
+  const { data } = await supabase.from('fl_profiles')
+    .select('*, users!inner(id,name,is_verified)')
+    .order(orderCol, { ascending: false }).limit(parseInt(limit));
+  res.json({ leaderboard: data||[], by });
+});
+
+// ── Admin Freelance ──
+app.get('/api/admin/freelance/stats', adminAuth, async (req, res) => {
+  const [{ count: totalGigs }, { count: totalJobs }, { count: totalContracts }, { count: activeContracts }] = await Promise.all([
+    supabase.from('fl_gigs').select('*', { count: 'exact', head: true }),
+    supabase.from('fl_jobs').select('*', { count: 'exact', head: true }),
+    supabase.from('fl_contracts').select('*', { count: 'exact', head: true }),
+    supabase.from('fl_contracts').select('*', { count: 'exact', head: true }).in('status', ['active','submitted'])
+  ]);
+  res.json({ total_gigs: totalGigs||0, total_jobs: totalJobs||0, total_contracts: totalContracts||0, active_contracts: activeContracts||0 });
+});
+
+app.get('/api/admin/freelance/contracts', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('fl_contracts')
+    .select('*, client:users!client_id(id,name), freelancer:users!freelancer_id(id,name)')
+    .order('created_at', { ascending: false }).limit(100);
+  res.json({ contracts: data||[] });
+});
+
+// ── Contract Files Upload ──
+app.post('/api/freelance/contracts/:id/files', auth, async (req, res) => {
+  const { data: contract } = await supabase.from('fl_contracts').select('client_id,freelancer_id').eq('id', req.params.id).single();
+  if (!contract || (contract.client_id !== req.user.id && contract.freelancer_id !== req.user.id)) return res.status(403).json({ error: 'Không có quyền' });
+  const { file_name, file_url, file_size, milestone_id } = req.body;
+  if (!file_name || !file_url) return res.status(400).json({ error: 'Thiếu tên file và URL' });
+  const { data: u } = await supabase.from('users').select('name').eq('id', req.user.id).single();
+  const { data: file, error } = await supabase.from('fl_files').insert({
+    contract_id: req.params.id, uploader_id: req.user.id,
+    uploader_name: u?.name||'User', file_name: sanitize(file_name),
+    file_url, file_size: file_size||null, milestone_id: milestone_id||null
+  }).select().single();
+  if (error) return res.status(500).json({ error: 'Upload thất bại' });
+  await flLogActivity(req.params.id, req.user.id, u?.name||'User', 'file_uploaded', `Đã upload: ${file_name}`);
+  res.status(201).json({ ok: true, file });
+});
+
+// ── SERVE freelance.html ──
+app.get('/freelance', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'freelance.html'));
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

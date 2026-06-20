@@ -1,0 +1,257 @@
+Xây dựng SAFEPASS FREELANCE
+
+Dự án hiện đã có:
+
+- Authentication
+- Wallet
+- Escrow
+- Marketplace
+- Open Escrow
+- Dispute Center
+- Admin Panel
+- Trust Score cơ bản
+
+Tạo thêm một hệ thống mới:
+
+SAFEPASS FREELANCE
+
+===================================
+
+MỤC TIÊU
+
+Cho phép khách hàng thuê freelancer và thanh toán an toàn thông qua Escrow.
+
+Tương tự:
+
+- Fiverr
+- Upwork
+- Freelancer
+
+Nhưng tích hợp sẵn Escrow của SafePass.
+
+===================================
+
+1. FREELANCER PROFILE
+
+Thông tin:
+
+- Avatar
+- Tên hiển thị
+- Kỹ năng
+- Mô tả bản thân
+- Kinh nghiệm
+- Quốc gia
+- Ngôn ngữ
+
+Thống kê:
+
+- Tổng dự án
+- Tỷ lệ hoàn thành
+- Điểm đánh giá
+- Doanh thu
+
+===================================
+
+2. DANH MỤC DỊCH VỤ
+
+Thiết kế
+
+- Logo
+- Banner
+- UI UX
+
+Video
+
+- Edit video
+- YouTube
+- TikTok
+
+Marketing
+
+- Facebook Ads
+- Google Ads
+- SEO
+
+AI
+
+- Prompt AI
+- Chatbot
+- Automation
+
+Code
+
+- Website
+- Mobile App
+- Game
+
+Viết nội dung
+
+- Blog
+- Kịch bản
+- Copywriting
+
+===================================
+
+3. GIG SYSTEM
+
+Freelancer tạo dịch vụ.
+
+Bao gồm:
+
+- Tiêu đề
+- Mô tả
+- Giá
+- Thời gian hoàn thành
+- Số lần chỉnh sửa
+- Hình ảnh
+
+===================================
+
+4. JOB POSTING
+
+Khách hàng đăng việc.
+
+Thông tin:
+
+- Tiêu đề
+- Mô tả
+- Ngân sách
+- Deadline
+- Kỹ năng yêu cầu
+
+===================================
+
+5. PROPOSAL SYSTEM
+
+Freelancer gửi đề xuất.
+
+Bao gồm:
+
+- Giá đề xuất
+- Thời gian hoàn thành
+- Lời giới thiệu
+
+Khách hàng có thể:
+
+- Chấp nhận
+- Từ chối
+- Trao đổi
+
+===================================
+
+6. ESCROW FREELANCE
+
+Khi thuê:
+
+Khách hàng nạp tiền.
+
+Tiền bị khóa trong Escrow.
+
+Freelancer không nhận được tiền ngay.
+
+===================================
+
+7. MILESTONE SYSTEM
+
+Cho phép chia dự án thành nhiều giai đoạn.
+
+Ví dụ:
+
+Milestone 1
+Thiết kế giao diện
+
+Milestone 2
+Lập trình
+
+Milestone 3
+Bàn giao
+
+Mỗi milestone có:
+
+- Giá trị
+- Deadline
+- Trạng thái
+
+===================================
+
+8. WORKSPACE DỰ ÁN
+
+Trong mỗi dự án có:
+
+- Chat
+- Upload file
+- Timeline
+- Milestone progress
+- Activity logs
+
+===================================
+
+9. REVIEW SYSTEM
+
+Sau khi hoàn thành:
+
+- Đánh giá sao
+- Bình luận
+- Điểm uy tín
+
+===================================
+
+10. LEADERBOARD
+
+Top Freelancer
+
+Theo:
+
+- Doanh thu
+- Đánh giá
+- Số dự án
+
+===================================
+
+11. ADMIN PANEL
+
+Admin có thể:
+
+- Xem dự án
+- Xem tranh chấp
+- Khóa tài khoản
+- Hoàn tiền
+- Giải ngân
+
+===================================
+
+12. UI
+
+Phong cách:
+
+Modern Freelance Marketplace
+
+Lấy cảm hứng từ:
+
+- Fiverr
+- Upwork
+- Contra
+
+Sử dụng:
+
+- Next.js
+- TypeScript
+- Tailwind
+
+Mobile Responsive
+
+Dark Mode
+
+===================================
+
+THÊM MENU MỚI
+
+"Freelance"
+
+Không được làm ảnh hưởng các module hiện tại:
+
+- Marketplace
+- Open Escrow
+- Wallet
+- Dispute
+- Admin

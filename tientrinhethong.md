@@ -798,4 +798,45 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 
 > **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `business_migration.sql`
 
+---
+
+## 👨‍💻 PHASE 8 — SafePass Freelance (Fiverr/Upwork-style Marketplace) *(HOÀN THÀNH)*
+> Hệ thống hoàn toàn độc lập — không ảnh hưởng các module hiện tại
+
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| SQL migration `freelance_migration.sql` — 10 bảng: `fl_profiles`, `fl_gigs`, `fl_jobs`, `fl_proposals`, `fl_contracts`, `fl_milestones`, `fl_files`, `fl_messages`, `fl_activities`, `fl_reviews` | 2026-06-20 |
+| Freelancer Profile — `GET/PUT /api/freelance/profiles/me`, `GET /api/freelance/profiles/:userId` — avatar, bio, skills, tagline, experience, country, language, hourly_rate | 2026-06-20 |
+| Browse Profiles — `GET /api/freelance/profiles` — filter by category, search by name | 2026-06-20 |
+| 6 Danh mục: Thiết Kế, Video, Marketing, AI & Automation, Lập Trình, Viết Nội Dung | 2026-06-20 |
+| Gig System — `GET/POST /api/freelance/gigs`, `PATCH /api/freelance/gigs/:id`, `GET /api/freelance/gigs/mine` — browse filter/sort | 2026-06-20 |
+| Order Gig — `POST /api/freelance/gigs/:gigId/order` — lock tiền escrow ngay khi đặt hàng | 2026-06-20 |
+| Job Board — `GET/POST /api/freelance/jobs`, `GET /api/freelance/jobs/mine`, `GET /api/freelance/jobs/:id` | 2026-06-20 |
+| Proposal System — `POST /api/freelance/jobs/:jobId/proposals`, `PATCH .../accept`, `PATCH .../reject` | 2026-06-20 |
+| Contract System — `GET /api/freelance/contracts`, `GET /api/freelance/contracts/:id` — tạo khi proposal được accept hoặc gig được order | 2026-06-20 |
+| Milestone System — `POST /api/freelance/contracts/:id/milestones`, `PATCH /api/freelance/milestones/:id/submit`, `PATCH .../approve` — tự động giải ngân khi hoàn tất | 2026-06-20 |
+| Workspace Chat — `GET/POST /api/freelance/contracts/:id/messages` — real-time via WebSocket | 2026-06-20 |
+| File Upload — `POST /api/freelance/contracts/:id/files` — tên file + URL link | 2026-06-20 |
+| Activity Timeline — `fl_activities` tự động ghi log mọi hành động trong contract | 2026-06-20 |
+| Review System — `POST /api/freelance/contracts/:id/review` — auto recompute avg_rating cho freelancer và gig | 2026-06-20 |
+| Leaderboard — `GET /api/freelance/leaderboard` — sắp xếp by rating / projects / earned | 2026-06-20 |
+| Admin Routes — `GET /api/admin/freelance/stats`, `GET /api/admin/freelance/contracts` | 2026-06-20 |
+| Escrow tích hợp — 5% platform fee, khóa tiền ngay khi thuê, giải ngân khi milestone approved | 2026-06-20 |
+| Frontend `frontend/freelance.html` — Freelance Marketplace tại `/freelance` | 2026-06-20 |
+| Frontend: Hero section với search bar, stats | 2026-06-20 |
+| Frontend: Browse Gigs — category bar, sidebar filter (sort/price), gig cards grid | 2026-06-20 |
+| Frontend: Gig Detail — gallery, seller info, reviews, Order Box với escrow button | 2026-06-20 |
+| Frontend: Job Board — list jobs, filter by category, Job Detail với proposal form | 2026-06-20 |
+| Frontend: Job Detail — accept/reject proposals (client), submit proposal (freelancer) | 2026-06-20 |
+| Frontend: Freelancer Profiles — browse + detail page với gigs và reviews | 2026-06-20 |
+| Frontend: Leaderboard — tabs: Đánh Giá / Số Dự Án / Doanh Thu | 2026-06-20 |
+| Frontend: Workspace — contract sidebar, Chat / Milestones / Files / Timeline tabs | 2026-06-20 |
+| Frontend: My Gigs — manage gigs (pause/resume/edit) | 2026-06-20 |
+| Frontend: My Profile — edit freelancer profile form | 2026-06-20 |
+| Frontend: Post Gig modal — title, category, price, delivery days, revisions, image | 2026-06-20 |
+| Frontend: Post Job modal — title, category, budget range, deadline, skills | 2026-06-20 |
+| Nav link "👨‍💻 Freelance" trong index.html — dẫn đến `/freelance` | 2026-06-20 |
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `freelance_migration.sql`
+
 *Cập nhật lần cuối: 2026-06-20*
