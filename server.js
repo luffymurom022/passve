@@ -6201,6 +6201,279 @@ app.get('/logistics', (req, res) => {
   res.sendFile(join(__dirname, 'frontend', 'logistics.html'));
 });
 
+// ══════════════════════════════════════════════════════════
+// PHASE 9 — TRUST CENTER & VERIFIED SELLER NETWORK
+// ══════════════════════════════════════════════════════════
+
+// ── SERVE trust.html ──
+app.get('/trust', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'trust.html'));
+});
+
+// ── HELPER: compute trust score from stats ──
+async function recalculateTrustScore(userId) {
+  try {
+    const { data: user } = await supabase.from('users').select('created_at,is_verified').eq('id', userId).single();
+    const { data: ts } = await supabase.from('trust_scores').select('*').eq('user_id', userId).single();
+    const { data: orders } = await supabase.from('orders').select('status,buyer_id,seller_id').or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    const { data: reviews } = await supabase.from('reviews').select('rating').eq('seller_id', userId);
+    const { data: disputes } = await supabase.from('orders').select('id').eq('status','disputed').or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+
+    const totalOrders = (orders||[]).length;
+    const completedOrders = (orders||[]).filter(o => o.status === 'completed').length;
+    const disputeCount = (disputes||[]).length;
+    const avgRating = reviews && reviews.length ? reviews.reduce((s,r) => s + r.rating, 0) / reviews.length : 0;
+
+    const completionRate = totalOrders > 0 ? completedOrders / totalOrders : 0;
+    const disputeRate = totalOrders > 0 ? disputeCount / totalOrders : 0;
+
+    const joinsMs = user?.created_at ? Date.now() - new Date(user.created_at).getTime() : 0;
+    const monthsActive = joinsMs / (1000 * 60 * 60 * 24 * 30);
+
+    let score = 100;
+    score += Math.min(completedOrders * 8, 250);
+    score += Math.round(completionRate * 150);
+    score += Math.round(avgRating * 30);
+    score += Math.min(Math.floor(monthsActive) * 5, 100);
+    score -= Math.round(disputeRate * 200);
+    score -= disputeCount * 15;
+    if (ts?.id_verified) score += 80;
+    if (ts?.phone_verified) score += 50;
+    if (ts?.email_verified) score += 30;
+    if (ts?.address_verified) score += 40;
+    if (ts?.face_verified) score += 50;
+
+    score = Math.max(0, Math.min(1000, Math.round(score)));
+
+    let level = 'bronze';
+    if (score >= 800) level = 'diamond';
+    else if (score >= 600) level = 'platinum';
+    else if (score >= 400) level = 'gold';
+    else if (score >= 200) level = 'silver';
+
+    let risk_level = 'low';
+    if (disputeRate > 0.3 || score < 150) risk_level = 'high';
+    else if (disputeRate > 0.1 || score < 300) risk_level = 'medium';
+
+    const isPremium = (ts?.id_verified && ts?.phone_verified && completedOrders >= 10 && avgRating >= 4.5);
+    const isTop = (completedOrders >= 50 && avgRating >= 4.8 && score >= 700);
+
+    await supabase.from('trust_scores').upsert({
+      user_id: userId,
+      score,
+      level,
+      risk_level,
+      total_transactions: totalOrders,
+      successful_transactions: completedOrders,
+      dispute_count: disputeCount,
+      avg_rating: Math.round(avgRating * 100) / 100,
+      is_premium_seller: !!isPremium,
+      is_top_seller: !!isTop,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+
+    return { score, level, risk_level };
+  } catch(e) {
+    return null;
+  }
+}
+
+// ── GET /api/trust/me ──
+app.get('/api/trust/me', auth, async (req, res) => {
+  const userId = req.user.id;
+  await recalculateTrustScore(userId);
+  const { data: ts } = await supabase.from('trust_scores').select('*').eq('user_id', userId).single();
+  const { data: docs } = await supabase.from('verification_documents').select('doc_type,status,submitted_at,reviewed_at,admin_note').eq('user_id', userId).order('submitted_at', { ascending: false });
+  const { data: history } = await supabase.from('reputation_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30);
+  res.json({ trust: ts || { score: 100, level: 'bronze', risk_level: 'low' }, documents: docs || [], history: history || [] });
+});
+
+// ── GET /api/trust/profile/:userId ──
+app.get('/api/trust/profile/:userId', async (req, res) => {
+  const { userId } = req.params;
+  await recalculateTrustScore(userId);
+  const { data: user } = await supabase.from('users').select('id,name,created_at,is_verified').eq('id', userId).single();
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy' });
+  const { data: ts } = await supabase.from('trust_scores').select('*').eq('user_id', userId).single();
+  res.json({ user, trust: ts || { score: 100, level: 'bronze', risk_level: 'low' } });
+});
+
+// ── GET /api/trust/leaderboard ──
+app.get('/api/trust/leaderboard', async (req, res) => {
+  const { type = 'trust' } = req.query;
+  let q = supabase.from('trust_scores').select('*, users!trust_scores_user_id_fkey(id,name,created_at)');
+  if (type === 'seller') {
+    q = q.order('successful_transactions', { ascending: false });
+  } else if (type === 'buyer') {
+    q = q.order('total_transactions', { ascending: false });
+  } else {
+    q = q.order('score', { ascending: false });
+  }
+  const { data, error } = await q.limit(20);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ leaderboard: data || [] });
+});
+
+// ── POST /api/trust/verify/document — upload CCCD/passport/license ──
+const trustDocUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Chỉ chấp nhận file ảnh'));
+    cb(null, true);
+  }
+});
+
+app.post('/api/trust/verify/document', auth, trustDocUpload.fields([
+  { name: 'front', maxCount: 1 },
+  { name: 'back', maxCount: 1 }
+]), async (req, res) => {
+  const { doc_type } = req.body;
+  if (!['cccd','passport','driver_license'].includes(doc_type)) {
+    return res.status(400).json({ error: 'Loại tài liệu không hợp lệ' });
+  }
+  const frontFile = req.files?.front?.[0];
+  if (!frontFile) return res.status(400).json({ error: 'Vui lòng upload ảnh mặt trước' });
+
+  const frontPath = `identity/${req.user.id}/${doc_type}_front_${Date.now()}.${frontFile.mimetype.split('/')[1]}`;
+  const { error: upErr } = await supabase.storage.from('kyc-documents').upload(frontPath, frontFile.buffer, { contentType: frontFile.mimetype, upsert: true });
+  if (upErr) return res.status(500).json({ error: 'Lỗi upload ảnh' });
+  const { data: { publicUrl: frontUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(frontPath);
+
+  let backUrl = null;
+  const backFile = req.files?.back?.[0];
+  if (backFile) {
+    const backPath = `identity/${req.user.id}/${doc_type}_back_${Date.now()}.${backFile.mimetype.split('/')[1]}`;
+    await supabase.storage.from('kyc-documents').upload(backPath, backFile.buffer, { contentType: backFile.mimetype, upsert: true });
+    const { data: { publicUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(backPath);
+    backUrl = publicUrl;
+  }
+
+  await supabase.from('verification_documents').upsert({
+    user_id: req.user.id,
+    doc_type,
+    file_url: frontUrl,
+    file_url_2: backUrl,
+    status: 'pending',
+    submitted_at: new Date().toISOString(),
+    admin_note: null,
+    reviewed_at: null,
+    reviewed_by: null
+  }, { onConflict: 'user_id,doc_type' }).catch(() => {
+    supabase.from('verification_documents').insert({
+      user_id: req.user.id, doc_type, file_url: frontUrl, file_url_2: backUrl, status: 'pending'
+    });
+  });
+  res.json({ success: true, message: 'Đã gửi tài liệu — đang chờ duyệt' });
+});
+
+// ── POST /api/trust/verify/address ──
+app.post('/api/trust/verify/address', auth, trustDocUpload.single('document'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Vui lòng upload tài liệu địa chỉ' });
+  const path = `address/${req.user.id}/address_${Date.now()}.${req.file.mimetype.split('/')[1]}`;
+  const { error } = await supabase.storage.from('kyc-documents').upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+  if (error) return res.status(500).json({ error: 'Lỗi upload' });
+  const { data: { publicUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(path);
+  await supabase.from('verification_documents').insert({ user_id: req.user.id, doc_type: 'address', file_url: publicUrl, status: 'pending' });
+  res.json({ success: true, message: 'Đã gửi tài liệu địa chỉ — đang chờ duyệt' });
+});
+
+// ── POST /api/trust/verify/face ──
+app.post('/api/trust/verify/face', auth, trustDocUpload.fields([
+  { name: 'portrait', maxCount: 1 },
+  { name: 'selfie', maxCount: 1 }
+]), async (req, res) => {
+  const portrait = req.files?.portrait?.[0];
+  if (!portrait) return res.status(400).json({ error: 'Vui lòng upload ảnh chân dung' });
+  const path = `face/${req.user.id}/portrait_${Date.now()}.${portrait.mimetype.split('/')[1]}`;
+  await supabase.storage.from('kyc-documents').upload(path, portrait.buffer, { contentType: portrait.mimetype, upsert: true });
+  const { data: { publicUrl: portraitUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(path);
+
+  let selfieUrl = null;
+  const selfie = req.files?.selfie?.[0];
+  if (selfie) {
+    const sp = `face/${req.user.id}/selfie_${Date.now()}.${selfie.mimetype.split('/')[1]}`;
+    await supabase.storage.from('kyc-documents').upload(sp, selfie.buffer, { contentType: selfie.mimetype, upsert: true });
+    const { data: { publicUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(sp);
+    selfieUrl = publicUrl;
+  }
+
+  await supabase.from('verification_documents').insert({ user_id: req.user.id, doc_type: 'face', file_url: portraitUrl, file_url_2: selfieUrl, status: 'pending' });
+  res.json({ success: true, message: 'Đã gửi ảnh khuôn mặt — đang chờ duyệt' });
+});
+
+// ── POST /api/trust/verify/email ──
+app.post('/api/trust/verify/email-status', auth, async (req, res) => {
+  const { data: ts } = await supabase.from('trust_scores').select('email_verified').eq('user_id', req.user.id).single();
+  const { data: user } = await supabase.from('users').select('email,email_verified').eq('id', req.user.id).single();
+  const verified = !!(user?.email_verified || ts?.email_verified);
+  if (verified) {
+    await supabase.from('trust_scores').upsert({ user_id: req.user.id, email_verified: true }, { onConflict: 'user_id' });
+    await supabase.from('reputation_history').insert({ user_id: req.user.id, event_type: 'email_verified', delta: 30, description: 'Xác minh email thành công' });
+  }
+  res.json({ verified, email: user?.email || null });
+});
+
+// ── ADMIN: GET /api/admin/trust/verifications ──
+app.get('/api/admin/trust/verifications', adminAuth, async (req, res) => {
+  const { status = 'pending', doc_type } = req.query;
+  let q = supabase.from('verification_documents')
+    .select('*, users!verification_documents_user_id_fkey(id,name,phone)')
+    .order('submitted_at', { ascending: true });
+  if (status && status !== 'all') q = q.eq('status', status);
+  if (doc_type) q = q.eq('doc_type', doc_type);
+  const { data, error } = await q.limit(100);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ verifications: data || [] });
+});
+
+// ── ADMIN: POST /api/admin/trust/verifications/:id/approve ──
+app.post('/api/admin/trust/verifications/:id/approve', adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { data: doc } = await supabase.from('verification_documents').select('*').eq('id', id).single();
+  if (!doc) return res.status(404).json({ error: 'Không tìm thấy' });
+
+  await supabase.from('verification_documents').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', id);
+
+  const field = doc.doc_type === 'cccd' || doc.doc_type === 'passport' || doc.doc_type === 'driver_license'
+    ? 'id_verified'
+    : doc.doc_type === 'address' ? 'address_verified'
+    : doc.doc_type === 'face' ? 'face_verified' : null;
+
+  if (field) {
+    await supabase.from('trust_scores').upsert({ user_id: doc.user_id, [field]: true }, { onConflict: 'user_id' });
+    const eventMap = { id_verified: 'identity_verified', address_verified: 'address_verified', face_verified: 'face_verified' };
+    const deltaMap = { id_verified: 80, address_verified: 40, face_verified: 50 };
+    await supabase.from('reputation_history').insert({ user_id: doc.user_id, event_type: eventMap[field] || 'identity_verified', delta: deltaMap[field] || 50, description: `Xác minh ${doc.doc_type} được duyệt` });
+    await recalculateTrustScore(doc.user_id);
+  }
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/trust/verifications/:id/reject ──
+app.post('/api/admin/trust/verifications/:id/reject', adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { note } = req.body;
+  const { data: doc } = await supabase.from('verification_documents').select('user_id').eq('id', id).single();
+  if (!doc) return res.status(404).json({ error: 'Không tìm thấy' });
+  await supabase.from('verification_documents').update({ status: 'rejected', reviewed_at: new Date().toISOString(), admin_note: note || 'Tài liệu không hợp lệ' }).eq('id', id);
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/trust/users ──
+app.get('/api/admin/trust/users', adminAuth, async (req, res) => {
+  const { level, risk } = req.query;
+  let q = supabase.from('trust_scores')
+    .select('*, users!trust_scores_user_id_fkey(id,name,phone,created_at)')
+    .order('score', { ascending: false })
+    .limit(100);
+  if (level) q = q.eq('level', level);
+  if (risk) q = q.eq('risk_level', risk);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ users: data || [] });
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

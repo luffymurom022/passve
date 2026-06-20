@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafePass — Trust Center</title>
+<style>
+:root{
+  --bg:#07090f;--bg2:#0d1117;--bg3:#141921;--card:#111720;--card2:#161e2a;
+  --border:#1e2a3a;--border2:#243042;
+  --brand:#3d8ef8;--brandL:rgba(61,142,248,.08);--brandM:rgba(61,142,248,.18);
+  --ok:#34d89e;--okBg:rgba(52,216,158,.08);
+  --warn:#f59e0b;--warnBg:rgba(245,158,11,.08);
+  --red:#f0566a;--redBg:rgba(240,86,106,.08);
+  --purple:#9b87f5;--purpleBg:rgba(155,135,245,.08);
+  --cyan:#00e5ff;--cyanBg:rgba(0,229,255,.07);
+  --gold:#fbbf24;--goldBg:rgba(251,191,36,.08);
+  --diamond:#a78bfa;--diamondBg:rgba(167,139,250,.08);
+  --sub:#8892a4;--hint:#4a5568;--txt:#e2e8f0;
+  --glow:0 0 20px rgba(61,142,248,.25);
+  --radius:14px;--radius-sm:9px;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;}
+button{cursor:pointer;font-family:var(--font);}
+input,select,textarea{font-family:var(--font);}
+
+/* LAYOUT */
+.app{max-width:1200px;margin:0 auto;padding:0 16px 80px;}
+
+/* HEADER */
+.header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,9,15,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo-txt{font-size:18px;font-weight:800;color:var(--txt);}
+.logo-txt span{color:var(--brand);}
+.back-btn{
+  display:flex;align-items:center;gap:6px;padding:7px 14px;
+  border-radius:var(--radius-sm);border:1px solid var(--border2);
+  background:transparent;color:var(--sub);font-size:13px;font-weight:600;
+  transition:all .2s;
+}
+.back-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brandL);}
+.spacer{flex:1;}
+.user-chip{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 12px;border-radius:20px;
+  background:var(--card);border:1px solid var(--border);
+  font-size:13px;font-weight:600;
+}
+.avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,var(--brand),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;color:#fff;
+}
+
+/* TABS */
+.tabs{display:flex;gap:4px;padding:16px 0 0;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  padding:9px 18px;border-radius:var(--radius-sm);border:1px solid transparent;
+  background:transparent;color:var(--sub);font-size:13px;font-weight:600;
+  white-space:nowrap;transition:all .2s;
+}
+.tab:hover{color:var(--txt);background:var(--card);}
+.tab.active{background:var(--brandM);border-color:rgba(61,142,248,.3);color:var(--brand);}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card+.card{margin-top:12px;}
+.card-title{font-size:14px;font-weight:700;color:var(--sub);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}.grid3{grid-template-columns:1fr 1fr;}}
+
+/* TRUST SCORE RING */
+.score-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.score-ring{position:relative;width:140px;height:140px;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring-inner{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.score-num{font-size:32px;font-weight:900;font-family:var(--mono);}
+.score-max{font-size:11px;color:var(--hint);font-family:var(--mono);}
+
+/* LEVEL BADGE */
+.level-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 14px;border-radius:20px;font-size:13px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.level-bronze{background:rgba(180,100,40,.15);color:#cd7f32;border:1px solid rgba(205,127,50,.3);}
+.level-silver{background:rgba(150,150,160,.12);color:#c0c0c0;border:1px solid rgba(192,192,192,.25);}
+.level-gold{background:var(--goldBg);color:var(--gold);border:1px solid rgba(251,191,36,.3);}
+.level-platinum{background:var(--cyanBg);color:var(--cyan);border:1px solid rgba(0,229,255,.25);}
+.level-diamond{background:var(--diamondBg);color:var(--diamond);border:1px solid rgba(167,139,250,.35);}
+
+/* RISK BADGE */
+.risk-low{background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.25);}
+.risk-medium{background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,158,11,.25);}
+.risk-high{background:var(--redBg);color:var(--red);border:1px solid rgba(240,86,106,.25);}
+
+/* BADGES */
+.badge-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.vbadge{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:20px;
+  font-size:12px;font-weight:700;
+}
+.vbadge.earned{background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.2);}
+.vbadge.locked{background:var(--bg3);color:var(--hint);border:1px solid var(--border);opacity:.55;}
+
+/* VERIFY ITEMS */
+.verify-item{
+  display:flex;align-items:center;gap:14px;
+  padding:16px;border-radius:var(--radius);
+  border:1px solid var(--border);background:var(--card2);
+  margin-bottom:10px;
+}
+.verify-icon{font-size:22px;flex-shrink:0;}
+.verify-info{flex:1;}
+.verify-info h4{font-size:14px;font-weight:700;margin-bottom:3px;}
+.verify-info p{font-size:12px;color:var(--sub);line-height:1.5;}
+.verify-status{flex-shrink:0;}
+.status-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
+}
+.status-verified{background:var(--okBg);color:var(--ok);border:1px solid rgba(52,216,158,.2);}
+.status-pending{background:var(--warnBg);color:var(--warn);border:1px solid rgba(245,158,11,.2);}
+.status-rejected{background:var(--redBg);color:var(--red);border:1px solid rgba(240,86,106,.2);}
+.status-none{background:var(--bg3);color:var(--hint);border:1px solid var(--border);}
+
+/* UPLOAD FORM */
+.upload-form{
+  margin-top:10px;padding:14px;border-radius:var(--radius-sm);
+  background:var(--bg3);border:1px solid var(--border);
+}
+.upload-label{
+  display:block;font-size:11px;font-weight:600;color:var(--sub);margin-bottom:6px;
+}
+.file-input-wrap{
+  position:relative;border:1px dashed var(--border2);border-radius:var(--radius-sm);
+  padding:12px;text-align:center;cursor:pointer;transition:border-color .2s;
+}
+.file-input-wrap:hover{border-color:var(--brand);}
+.file-input-wrap input{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.file-input-wrap .fi-icon{font-size:24px;margin-bottom:4px;}
+.file-input-wrap .fi-txt{font-size:12px;color:var(--hint);}
+.file-preview{
+  width:100%;height:90px;object-fit:cover;border-radius:6px;
+  border:1px solid var(--border);display:none;
+}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:none;transition:all .2s;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{background:#2d7de8;box-shadow:var(--glow);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--sub);}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* STAT BOXES */
+.stat-box{
+  padding:16px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--card);text-align:center;
+}
+.stat-box .s-val{font-size:22px;font-weight:900;font-family:var(--mono);}
+.stat-box .s-lbl{font-size:11px;color:var(--sub);margin-top:3px;font-weight:600;}
+
+/* LEADERBOARD */
+.lb-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--card2);
+  margin-bottom:8px;transition:border-color .2s;
+}
+.lb-row:hover{border-color:var(--border2);}
+.lb-rank{width:28px;text-align:center;font-size:13px;font-weight:800;font-family:var(--mono);color:var(--hint);}
+.lb-rank.r1{color:var(--gold);}
+.lb-rank.r2{color:#c0c0c0;}
+.lb-rank.r3{color:#cd7f32;}
+.lb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;}
+.lb-info{flex:1;}
+.lb-name{font-size:14px;font-weight:700;}
+.lb-meta{font-size:11px;color:var(--sub);margin-top:2px;}
+.lb-score{font-size:16px;font-weight:900;font-family:var(--mono);color:var(--brand);}
+
+/* HISTORY */
+.hist-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 0;border-bottom:1px solid var(--border);
+}
+.hist-item:last-child{border-bottom:none;}
+.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.hist-info{flex:1;}
+.hist-desc{font-size:13px;font-weight:600;}
+.hist-date{font-size:11px;color:var(--hint);margin-top:2px;}
+.hist-delta{font-size:13px;font-weight:800;font-family:var(--mono);flex-shrink:0;}
+.delta-pos{color:var(--ok);}
+.delta-neg{color:var(--red);}
+.delta-zero{color:var(--hint);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;
+  z-index:9999;transition:transform .3s;pointer-events:none;
+  background:var(--card);border:1px solid var(--border);color:var(--txt);
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:rgba(52,216,158,.4);color:var(--ok);}
+.toast.err{border-color:rgba(240,86,106,.4);color:var(--red);}
+
+/* PROGRESS BAR */
+.progress-bar{height:8px;border-radius:4px;background:var(--bg3);overflow:hidden;margin:8px 0;}
+.progress-fill{height:100%;border-radius:4px;transition:width .5s;}
+
+/* SPINNER */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Animate in */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .3s ease both;}
+
+/* ADMIN PANEL */
+.admin-verify-card{
+  padding:14px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--card2);margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;
+}
+.admin-doc-img{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;}
+.admin-doc-info{flex:1;}
+.admin-doc-info h4{font-size:13px;font-weight:700;margin-bottom:4px;}
+.admin-doc-info p{font-size:11px;color:var(--sub);line-height:1.5;}
+.admin-actions{display:flex;gap:6px;margin-top:8px;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:var(--hint);}
+.empty .e-icon{font-size:40px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+
+/* SCROLLABLE SECTION */
+.section{margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HEADER -->
+  <div class="header">
+    <a href="/" class="logo">
+      <svg width="30" height="30" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="hS" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00f5ff"/><stop offset="40%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#9b87f5"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="#030912"/><path d="M32 8L52 17L52 37Q52 52 32 58Q12 52 12 37L12 17Z" fill="rgba(0,245,255,.04)" stroke="url(#hS)" stroke-width="1.5"/><text x="32" y="38" text-anchor="middle" font-size="14" font-weight="800" fill="url(#hS)" font-family="JetBrains Mono,monospace">SP</text></svg>
+      <span class="logo-txt">Safe<span>Pass</span></span>
+    </a>
+    <button class="back-btn" onclick="history.back()">← Quay lại</button>
+    <div class="spacer"></div>
+    <div class="user-chip" id="userChip">
+      <div class="avatar" id="userAvatar">?</div>
+      <span id="userName">Đang tải...</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div style="padding:28px 0 4px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span style="font-size:26px;">🛡️</span>
+      <h1 style="font-size:24px;font-weight:900;">Trust Center</h1>
+    </div>
+    <p style="color:var(--sub);font-size:14px;">Hệ thống xác thực danh tính & điểm uy tín SafePass</p>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs" id="tabsEl">
+    <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('verify')">🔐 Xác minh</button>
+    <button class="tab" onclick="switchTab('history')">📜 Lịch sử</button>
+    <button class="tab" onclick="switchTab('leaderboard')">🏆 Bảng xếp hạng</button>
+    <button class="tab admin-only" onclick="switchTab('admin')" style="display:none;">⚙️ Admin</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content" style="padding-top:16px;"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('safepass_token');
+let currentUser = null;
+let trustData = null;
+let currentTab = 'dashboard';
+
+// ── INIT ──
+async function init() {
+  if (!token) { window.location.href = '/'; return; }
+  try {
+    const r = await fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) { window.location.href = '/'; return; }
+    currentUser = await r.json();
+    document.getElementById('userAvatar').textContent = (currentUser.name||'?').slice(0,2).toUpperCase();
+    document.getElementById('userName').textContent = currentUser.name || 'Người dùng';
+    if (currentUser.is_admin) document.querySelector('.admin-only').style.display = '';
+    await loadTrustData();
+    renderTab(currentTab);
+  } catch(e) {
+    showToast('Lỗi kết nối', 'err');
+  }
+}
+
+async function loadTrustData() {
+  try {
+    const r = await fetch(`${API}/api/trust/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) trustData = await r.json();
+  } catch(e) {}
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['dashboard','verify','history','leaderboard','admin'];
+    t.classList.toggle('active', ids[i] === tab);
+  });
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  const el = document.getElementById('content');
+  el.innerHTML = '';
+  if (tab === 'dashboard') el.innerHTML = buildDashboard();
+  else if (tab === 'verify') el.innerHTML = buildVerify();
+  else if (tab === 'history') el.innerHTML = buildHistory();
+  else if (tab === 'leaderboard') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div><p>Đang tải...</p></div>'; loadLeaderboard(); }
+  else if (tab === 'admin') { el.innerHTML = '<div class="empty"><div class="e-icon"><span class="spinner"></span></div><p>Đang tải...</p></div>'; loadAdminVerifications(); }
+  bindUploadPreviews();
+}
+
+// ── LEVEL CONFIG ──
+const LEVELS = {
+  bronze: { label: 'Bronze', icon: '🥉', min: 0, max: 199, color: '#cd7f32' },
+  silver: { label: 'Silver', icon: '🥈', min: 200, max: 399, color: '#c0c0c0' },
+  gold: { label: 'Gold', icon: '🥇', min: 400, max: 599, color: '#fbbf24' },
+  platinum: { label: 'Platinum', icon: '💎', min: 600, max: 799, color: '#00e5ff' },
+  diamond: { label: 'Diamond', icon: '💠', min: 800, max: 1000, color: '#a78bfa' },
+};
+const RISK_LABELS = { low: 'Thấp', medium: 'Trung bình', high: 'Cao' };
+
+// ── DASHBOARD ──
+function buildDashboard() {
+  const ts = trustData?.trust || {};
+  const score = ts.score || 100;
+  const level = ts.level || 'bronze';
+  const lv = LEVELS[level];
+  const risk = ts.risk_level || 'low';
+
+  const pct = score / 1000;
+  const r = 60, circ = 2 * Math.PI * r;
+  const dash = pct * circ;
+
+  const levelColors = { bronze:'#cd7f32', silver:'#c0c0c0', gold:'#fbbf24', platinum:'#00e5ff', diamond:'#a78bfa' };
+  const lc = levelColors[level] || '#3d8ef8';
+
+  const nextLv = { bronze:'silver', silver:'gold', gold:'platinum', platinum:'diamond', diamond:null };
+  const next = nextLv[level];
+  const nextMin = next ? LEVELS[next].min : 1000;
+  const prevMin = lv.min;
+  const progressInLevel = next ? Math.round(((score - prevMin) / (nextMin - prevMin)) * 100) : 100;
+
+  const badges = [
+    { icon: '📱', label: 'Phone Verified', earned: ts.phone_verified },
+    { icon: '📧', label: 'Email Verified', earned: ts.email_verified },
+    { icon: '🪪', label: 'CCCD Verified', earned: ts.id_verified },
+    { icon: '🏠', label: 'Address Verified', earned: ts.address_verified },
+    { icon: '🤳', label: 'Face Verified', earned: ts.face_verified },
+    { icon: '⭐', label: 'Premium Seller', earned: ts.is_premium_seller },
+    { icon: '🏆', label: 'Top Seller', earned: ts.is_top_seller },
+  ];
+
+  const completionRate = ts.total_transactions > 0
+    ? Math.round((ts.successful_transactions / ts.total_transactions) * 100) : 0;
+
+  return `
+  <div class="fade-up">
+    <!-- Score + Level -->
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:24px;align-items:center;">
+      <div class="score-ring-wrap">
+        <div class="score-ring">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="10"/>
+            <circle cx="70" cy="70" r="${r}" fill="none" stroke="${lc}" stroke-width="10"
+              stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
+              stroke-linecap="round"
+              style="filter:drop-shadow(0 0 8px ${lc}60);transition:stroke-dasharray .5s;"/>
+          </svg>
+          <div class="score-ring-inner">
+            <div class="score-num" style="color:${lc};">${score}</div>
+            <div class="score-max">/1000</div>
+          </div>
+        </div>
+        <span class="level-badge level-${level}">${lv.icon} ${lv.label}</span>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:13px;color:var(--sub);margin-bottom:6px;font-weight:600;">
+            ${next ? `Đến ${LEVELS[next].label}: còn ${nextMin - score} điểm` : '🏆 Cấp độ cao nhất!'}
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${progressInLevel}%;background:${lc};box-shadow:0 0 8px ${lc}50;"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <span class="status-chip risk-${risk}">⚡ Rủi ro: ${RISK_LABELS[risk]}</span>
+          ${ts.is_premium_seller ? '<span class="status-chip status-verified">⭐ Premium Seller</span>' : ''}
+          ${ts.is_top_seller ? '<span class="status-chip status-verified">🏆 Top Seller</span>' : ''}
+        </div>
+        <p style="font-size:12px;color:var(--hint);line-height:1.6;">
+          Điểm uy tín được tính dựa trên lịch sử giao dịch, xác minh danh tính và đánh giá từ người dùng khác.
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="grid3 section">
+      <div class="stat-box">
+        <div class="s-val" style="color:var(--brand);">${ts.total_transactions || 0}</div>
+        <div class="s-lbl">Tổng giao dịch</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-val" style="color:var(--ok);">${completionRate}%</div>
+        <div class="s-lbl">Tỷ lệ thành công</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-val" style="color:var(--gold);">${ts.avg_rating ? ts.avg_rating.toFixed(1) : '0.0'}</div>
+        <div class="s-lbl">Đánh giá TB</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-val" style="color:var(--red);">${ts.dispute_count || 0}</div>
+        <div class="s-lbl">Tranh chấp</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-val" style="color:var(--purple);">${ts.successful_transactions || 0}</div>
+        <div class="s-lbl">Giao dịch thành công</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-val" style="color:var(--cyan);">${ts.refund_count || 0}</div>
+        <div class="s-lbl">Hoàn tiền</div>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="card section">
+      <div class="card-title">🏅 Huy hiệu xác thực</div>
+      <div class="badge-grid">
+        ${badges.map(b => `
+          <div class="vbadge ${b.earned ? 'earned' : 'locked'}">
+            ${b.icon} ${b.label} ${b.earned ? '✓' : '🔒'}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card section">
+      <div class="card-title">⚡ Tăng điểm nhanh</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="switchTab('verify')">🪪 Xác minh danh tính +80đ</button>
+        <button class="btn btn-ghost btn-sm" onclick="switchTab('verify')">🤳 Xác minh khuôn mặt +50đ</button>
+        <button class="btn btn-ghost btn-sm" onclick="switchTab('verify')">🏠 Xác minh địa chỉ +40đ</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.location.href='/'">🛒 Hoàn thành giao dịch +8đ</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── VERIFICATION ──
+function buildVerify() {
+  const ts = trustData?.trust || {};
+  const docs = trustData?.documents || [];
+
+  const getDocStatus = (type) => {
+    const d = docs.find(x => ['cccd','passport','driver_license'].includes(x.doc_type) && type === 'id' ? true : x.doc_type === type);
+    if (!d) return 'none';
+    return d.status;
+  };
+
+  const idDoc = docs.find(x => ['cccd','passport','driver_license'].includes(x.doc_type));
+  const idStatus = idDoc ? idDoc.status : 'none';
+  const addrDoc = docs.find(x => x.doc_type === 'address');
+  const addrStatus = addrDoc ? addrDoc.status : 'none';
+  const faceDoc = docs.find(x => x.doc_type === 'face');
+  const faceStatus = faceDoc ? faceDoc.status : 'none';
+
+  function statusChip(status, verified) {
+    if (verified) return '<span class="status-chip status-verified">✓ Đã xác minh</span>';
+    if (status === 'pending') return '<span class="status-chip status-pending">⏳ Đang chờ duyệt</span>';
+    if (status === 'rejected') return '<span class="status-chip status-rejected">✗ Bị từ chối</span>';
+    return '<span class="status-chip status-none">Chưa xác minh</span>';
+  }
+
+  function uploadForm(id, fields) {
+    return `<div class="upload-form" id="form-${id}" style="display:none;">
+      ${fields.map(f => `
+        <div style="margin-bottom:10px;">
+          <label class="upload-label">${f.label}</label>
+          <div class="file-input-wrap" onclick="this.querySelector('input').click()">
+            <input type="file" accept="image/*" name="${f.name}" data-form="${id}" onchange="previewFile(this,'prev-${id}-${f.name}')"/>
+            <img class="file-preview" id="prev-${id}-${f.name}"/>
+            <div class="fi-icon">📷</div>
+            <div class="fi-txt">Nhấn để chọn ảnh (JPG/PNG, tối đa 10MB)</div>
+          </div>
+        </div>
+      `).join('')}
+      <button class="btn btn-primary btn-sm" onclick="submitVerify('${id}')">
+        Gửi xác minh
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('form-${id}').style.display='none'" style="margin-left:6px;">Huỷ</button>
+    </div>`;
+  }
+
+  const canUploadId = !ts.id_verified && idStatus !== 'pending';
+  const canUploadAddr = !ts.address_verified && addrStatus !== 'pending';
+  const canUploadFace = !ts.face_verified && faceStatus !== 'pending';
+
+  return `<div class="fade-up">
+    <!-- Phone -->
+    <div class="verify-item">
+      <div class="verify-icon">📱</div>
+      <div class="verify-info">
+        <h4>Số điện thoại</h4>
+        <p>Xác minh qua OTP — số điện thoại của bạn đã được dùng để đăng ký</p>
+      </div>
+      <div class="verify-status">
+        ${statusChip('none', true)}
+      </div>
+    </div>
+
+    <!-- Identity Document -->
+    <div class="verify-item" style="flex-wrap:wrap;">
+      <div class="verify-icon">🪪</div>
+      <div class="verify-info">
+        <h4>Giấy tờ tuỳ thân (+80 điểm)</h4>
+        <p>CCCD, Hộ chiếu hoặc Giấy phép lái xe. Tải lên ảnh mặt trước (và mặt sau nếu có).</p>
+        ${idDoc?.admin_note && idStatus === 'rejected' ? `<p style="color:var(--red);margin-top:4px;font-size:11px;">Lý do từ chối: ${idDoc.admin_note}</p>` : ''}
+        ${canUploadId ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="toggleForm('id')">📤 Upload tài liệu</button>` : ''}
+        ${uploadForm('id', [
+          { name: 'front', label: 'Mặt trước *' },
+          { name: 'back', label: 'Mặt sau (nếu có)' }
+        ])}
+      </div>
+      <div class="verify-status">${statusChip(idStatus, ts.id_verified)}</div>
+    </div>
+    ${canUploadId ? `<div style="padding:0 0 0 50px;margin-top:-4px;margin-bottom:10px;">
+      <select id="doc_type_sel" style="padding:7px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--card2);color:var(--txt);font-size:13px;">
+        <option value="cccd">CCCD / CMND</option>
+        <option value="passport">Hộ chiếu</option>
+        <option value="driver_license">Giấy phép lái xe</option>
+      </select>
+    </div>` : ''}
+
+    <!-- Address -->
+    <div class="verify-item" style="flex-wrap:wrap;">
+      <div class="verify-icon">🏠</div>
+      <div class="verify-info">
+        <h4>Địa chỉ (+40 điểm)</h4>
+        <p>Hoá đơn điện nước, sao kê ngân hàng hoặc giấy tờ có địa chỉ trong 3 tháng gần đây.</p>
+        ${addrDoc?.admin_note && addrStatus === 'rejected' ? `<p style="color:var(--red);margin-top:4px;font-size:11px;">Lý do từ chối: ${addrDoc.admin_note}</p>` : ''}
+        ${canUploadAddr ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="toggleForm('address')">📤 Upload tài liệu</button>` : ''}
+        ${uploadForm('address', [{ name: 'document', label: 'Tài liệu địa chỉ *' }])}
+      </div>
+      <div class="verify-status">${statusChip(addrStatus, ts.address_verified)}</div>
+    </div>
+
+    <!-- Face -->
+    <div class="verify-item" style="flex-wrap:wrap;">
+      <div class="verify-icon">🤳</div>
+      <div class="verify-info">
+        <h4>Xác minh khuôn mặt (+50 điểm)</h4>
+        <p>Upload ảnh chân dung rõ ràng và ảnh selfie cầm giấy tờ tuỳ thân.</p>
+        ${faceDoc?.admin_note && faceStatus === 'rejected' ? `<p style="color:var(--red);margin-top:4px;font-size:11px;">Lý do từ chối: ${faceDoc.admin_note}</p>` : ''}
+        ${canUploadFace ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="toggleForm('face')">📤 Upload ảnh</button>` : ''}
+        ${uploadForm('face', [
+          { name: 'portrait', label: 'Ảnh chân dung *' },
+          { name: 'selfie', label: 'Selfie cầm giấy tờ' }
+        ])}
+      </div>
+      <div class="verify-status">${statusChip(faceStatus, ts.face_verified)}</div>
+    </div>
+
+    <!-- Email -->
+    <div class="verify-item">
+      <div class="verify-icon">📧</div>
+      <div class="verify-info">
+        <h4>Email (+30 điểm)</h4>
+        <p>Xác minh email của bạn thông qua trang Hồ sơ → Cập nhật email.</p>
+      </div>
+      <div class="verify-status">${statusChip('none', ts.email_verified)}</div>
+    </div>
+
+    <!-- Note -->
+    <div style="margin-top:16px;padding:14px;border-radius:var(--radius);background:var(--brandL);border:1px solid rgba(61,142,248,.2);">
+      <p style="font-size:12px;color:var(--sub);line-height:1.7;">
+        🔒 <strong style="color:var(--txt);">Bảo mật tuyệt đối:</strong> Tài liệu của bạn chỉ được dùng để xác minh danh tính và không được chia sẻ với bên thứ ba. Quá trình duyệt thường mất 1-3 ngày làm việc.
+      </p>
+    </div>
+  </div>`;
+}
+
+// ── HISTORY ──
+function buildHistory() {
+  const history = trustData?.history || [];
+  const eventColors = {
+    transaction_complete: 'var(--ok)',
+    transaction_cancel: 'var(--red)',
+    dispute_lost: 'var(--red)',
+    dispute_won: 'var(--ok)',
+    review_received: 'var(--gold)',
+    identity_verified: 'var(--brand)',
+    phone_verified: 'var(--brand)',
+    email_verified: 'var(--brand)',
+    address_verified: 'var(--brand)',
+    face_verified: 'var(--brand)',
+    account_age_bonus: 'var(--purple)',
+    refund_issued: 'var(--warn)',
+    score_recalculated: 'var(--hint)',
+  };
+
+  if (!history.length) return `<div class="fade-up empty"><div class="e-icon">📜</div><p>Chưa có lịch sử uy tín</p></div>`;
+
+  return `<div class="fade-up">
+    <div class="card">
+      <div class="card-title">📜 Lịch sử điểm uy tín</div>
+      ${history.map(h => {
+        const col = eventColors[h.event_type] || 'var(--hint)';
+        const d = h.delta > 0 ? `<span class="hist-delta delta-pos">+${h.delta}</span>` : h.delta < 0 ? `<span class="hist-delta delta-neg">${h.delta}</span>` : `<span class="hist-delta delta-zero">~</span>`;
+        return `<div class="hist-item">
+          <div class="hist-dot" style="background:${col};box-shadow:0 0 6px ${col};"></div>
+          <div class="hist-info">
+            <div class="hist-desc">${h.description || h.event_type}</div>
+            <div class="hist-date">${new Date(h.created_at).toLocaleString('vi-VN')} · Score sau: <span style="font-family:var(--mono);font-weight:700;">${h.score_after}</span></div>
+          </div>
+          ${d}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ── LEADERBOARD ──
+async function loadLeaderboard() {
+  let activeType = 'trust';
+
+  async function render(type) {
+    activeType = type;
+    try {
+      const r = await fetch(`${API}/api/trust/leaderboard?type=${type}`);
+      const data = await r.json();
+      const lb = data.leaderboard || [];
+
+      const medals = { 0:'🥇', 1:'🥈', 2:'🥉' };
+      const rankClass = { 0:'r1', 1:'r2', 2:'r3' };
+
+      document.getElementById('content').innerHTML = `<div class="fade-up">
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="btn ${type==='trust'?'btn-primary':'btn-ghost'} btn-sm" onclick="loadLeaderboard().then(()=>renderType('trust'))">🛡️ Trust Score</button>
+          <button class="btn ${type==='seller'?'btn-primary':'btn-ghost'} btn-sm" onclick="renderType('seller')">💼 Top Seller</button>
+          <button class="btn ${type==='buyer'?'btn-primary':'btn-ghost'} btn-sm" onclick="renderType('buyer')">🛒 Top Buyer</button>
+        </div>
+        ${lb.length === 0 ? '<div class="empty"><div class="e-icon">🏆</div><p>Chưa có dữ liệu</p></div>' :
+          lb.map((u, i) => {
+            const lv = LEVELS[u.level] || LEVELS.bronze;
+            const name = u.users?.name || 'Người dùng';
+            const initials = name.slice(0,2).toUpperCase();
+            const mainVal = type === 'trust' ? `${u.score} điểm` : type === 'seller' ? `${u.successful_transactions} giao dịch thành công` : `${u.total_transactions} giao dịch`;
+            return `<div class="lb-row">
+              <div class="lb-rank ${rankClass[i]||''}">${medals[i] || '#'+(i+1)}</div>
+              <div class="lb-avatar">${initials}</div>
+              <div class="lb-info">
+                <div class="lb-name">${name}</div>
+                <div class="lb-meta">${lv.icon} ${lv.label} · ${mainVal}</div>
+              </div>
+              <div class="lb-score" style="color:${lv.color||'var(--brand)'};">${u.score}</div>
+            </div>`;
+          }).join('')}
+      </div>`;
+      // patch renderType into scope
+      window.renderType = render;
+    } catch(e) {
+      document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải dữ liệu</p></div>';
+    }
+  }
+
+  window.renderType = render;
+  await render('trust');
+}
+
+// ── ADMIN VERIFICATIONS ──
+async function loadAdminVerifications() {
+  try {
+    const r = await fetch(`${API}/api/admin/trust/verifications?status=pending`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await r.json();
+    const verifs = data.verifications || [];
+
+    const docLabels = { cccd:'CCCD', passport:'Hộ chiếu', driver_license:'Bằng lái xe', address:'Địa chỉ', face:'Khuôn mặt' };
+
+    document.getElementById('content').innerHTML = `<div class="fade-up">
+      <div class="card-title" style="margin-bottom:12px;">⚙️ Duyệt xác minh (${verifs.length} chờ xử lý)</div>
+      ${verifs.length === 0 ? '<div class="empty"><div class="e-icon">✅</div><p>Không có yêu cầu nào đang chờ</p></div>' :
+        verifs.map(v => `
+          <div class="admin-verify-card">
+            <img class="admin-doc-img" src="${v.file_url}" onerror="this.style.display='none'" alt="doc"/>
+            <div class="admin-doc-info">
+              <h4>${v.users?.name || 'Người dùng'} · ${docLabels[v.doc_type] || v.doc_type}</h4>
+              <p>SĐT: ${v.users?.phone || '-'} · Gửi lúc: ${new Date(v.submitted_at).toLocaleString('vi-VN')}</p>
+              ${v.file_url_2 ? `<a href="${v.file_url_2}" target="_blank" style="font-size:11px;color:var(--brand);">Xem ảnh 2</a>` : ''}
+              <div class="admin-actions">
+                <button class="btn btn-primary btn-sm" onclick="adminApprove('${v.id}')">✓ Duyệt</button>
+                <button class="btn btn-ghost btn-sm" onclick="adminReject('${v.id}')">✗ Từ chối</button>
+                <a href="${v.file_url}" target="_blank" class="btn btn-ghost btn-sm">🔍 Xem full</a>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+    </div>`;
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="e-icon">⚠️</div><p>Lỗi tải dữ liệu admin</p></div>';
+  }
+}
+
+async function adminApprove(id) {
+  if (!confirm('Duyệt xác minh này?')) return;
+  try {
+    const r = await fetch(`${API}/api/admin/trust/verifications/${id}/approve`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }
+    });
+    if (r.ok) { showToast('Đã duyệt thành công', 'ok'); loadAdminVerifications(); }
+    else showToast('Lỗi duyệt', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+async function adminReject(id) {
+  const note = prompt('Lý do từ chối:');
+  if (note === null) return;
+  try {
+    const r = await fetch(`${API}/api/admin/trust/verifications/${id}/reject`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: note || 'Tài liệu không hợp lệ' })
+    });
+    if (r.ok) { showToast('Đã từ chối', 'ok'); loadAdminVerifications(); }
+    else showToast('Lỗi', 'err');
+  } catch(e) { showToast('Lỗi kết nối', 'err'); }
+}
+
+// ── UPLOAD HELPERS ──
+function toggleForm(id) {
+  const f = document.getElementById(`form-${id}`);
+  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function previewFile(input, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const prev = document.getElementById(previewId);
+  if (!prev) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+    prev.parentNode.querySelector('.fi-icon').style.display = 'none';
+    prev.parentNode.querySelector('.fi-txt').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function bindUploadPreviews() {}
+
+async function submitVerify(formId) {
+  const form = document.getElementById(`form-${formId}`);
+  if (!form) return;
+
+  const fd = new FormData();
+  const inputs = form.querySelectorAll('input[type=file]');
+  let hasFile = false;
+
+  inputs.forEach(inp => {
+    if (inp.files[0]) { fd.append(inp.name, inp.files[0]); hasFile = true; }
+  });
+
+  if (!hasFile) { showToast('Vui lòng chọn ít nhất 1 file ảnh', 'err'); return; }
+
+  let url = '';
+  if (formId === 'id') {
+    const docType = document.getElementById('doc_type_sel')?.value || 'cccd';
+    fd.append('doc_type', docType);
+    url = `${API}/api/trust/verify/document`;
+  } else if (formId === 'address') {
+    url = `${API}/api/trust/verify/address`;
+  } else if (formId === 'face') {
+    url = `${API}/api/trust/verify/face`;
+  }
+
+  const btn = form.querySelector('button[onclick*="submitVerify"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang gửi...'; }
+
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showToast(data.message || 'Đã gửi thành công', 'ok');
+      await loadTrustData();
+      renderTab('verify');
+    } else {
+      showToast(data.error || 'Lỗi gửi tài liệu', 'err');
+      if (btn) { btn.disabled = false; btn.textContent = 'Gửi xác minh'; }
+    }
+  } catch(e) {
+    showToast('Lỗi kết nối', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Gửi xác minh'; }
+  }
+}
+
+// ── TOAST ──
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => { t.classList.remove('show'); }, 3000);
+}
+
+init();
+</script>
+</body>
+</html>

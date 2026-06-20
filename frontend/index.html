@@ -1172,6 +1172,7 @@ function render(){
     {id:"dam",icon:"🏪",label:"Tài Sản Số"},
     {id:"freelance",icon:"👨‍💻",label:"Freelance"},
     {id:"logistics",icon:"🚚",label:"Logistics"},
+    {id:"trust_center",icon:"🛡️",label:"Trust Center"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1196,6 +1197,8 @@ function render(){
           ?"window.location.href='/freelance'"
           :p.id==="logistics"
           ?"window.location.href='/logistics'"
+          :p.id==="trust_center"
+          ?"window.location.href='/trust'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}
