@@ -978,3 +978,25 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 | **Không cần migration SQL** — Phase 16 chỉ aggregate dữ liệu từ các bảng đã có | 2026-06-20 |
 
 *Cập nhật lần cuối: 2026-06-20*
+
+---
+
+## ✅ PHASE 17: SAFEPASS SUPER APP — HOÀN THÀNH 2026-06-20
+
+| Tính năng | Ngày |
+|-----------|------|
+| **`frontend/superapp.html`** — Mobile-first Super App (Shopee + Grab + Chợ Tốt style), dark mode, max-width 480px | 2026-06-20 |
+| **Tab Trang chủ** — Banner carousel tự động 4s, grid 8 dịch vụ, sản phẩm đang bán (API), gợi ý thông minh, đại lý gần bạn | 2026-06-20 |
+| **Tab Chợ** — Browse listings, filter theo 7 category, sort (mới/giá tăng/giá giảm), phân trang, search từ top bar | 2026-06-20 |
+| **Tab Dịch vụ** — 6 service card (Escrow/Kiểm định/Vận chuyển/Kho/Giao nhận/Merchant/Franchise) + Bản đồ Leaflet.js ecosystem | 2026-06-20 |
+| **Tab Tôi** — Profile header, Wallet card (nạp/rút/chuyển), Trust Score bar, 5 stat mini, danh sách đơn hàng, biểu đồ Chart.js 6 tháng, cài đặt | 2026-06-20 |
+| **Tab Doanh nghiệp** — Biz header với 3 stat, 6 module card (Merchant/Franchise/Logistics/Warehouse/Delivery/Inspection), quick actions | 2026-06-20 |
+| **🤖 AI Assistant** — Floating FAB, chat panel slide-up, rule-based KB (8 chủ đề), typing animation, quick reply chips | 2026-06-20 |
+| **Bản đồ Hệ sinh thái** — Leaflet.js + OpenStreetMap, filter theo loại điểm (Kho/Đại lý/Nhận hàng/Kiểm định), markers màu theo loại | 2026-06-20 |
+| **`GET /superapp`** — serve superapp.html | 2026-06-20 |
+| **`GET /api/superapp/map`** — điểm kho + hub + đại lý với tọa độ (jitter cho dữ liệu chưa có lat/lng) | 2026-06-20 |
+| **`GET /api/superapp/stats`** — thống kê nền tảng public | 2026-06-20 |
+| **Nav "⚡ Super App"** thêm vào index.html → `/superapp` | 2026-06-20 |
+| **Không cần migration SQL** — Phase 17 aggregate từ tất cả bảng đã có | 2026-06-20 |
+
+*Cập nhật lần cuối: 2026-06-20*

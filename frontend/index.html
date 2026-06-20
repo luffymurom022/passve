@@ -1180,6 +1180,7 @@ function render(){
     {id:"business_center",icon:"🏬",label:"Business"},
     {id:"franchise_network",icon:"🤝",label:"Franchise"},
     {id:"ecosystem",icon:"🌐",label:"Ecosystem"},
+    {id:"superapp",icon:"⚡",label:"Super App"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1220,6 +1221,8 @@ function render(){
           ?"window.location.href='/franchise'"
           :p.id==="ecosystem"
           ?"window.location.href='/ecosystem'"
+          :p.id==="superapp"
+          ?"window.location.href='/superapp'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

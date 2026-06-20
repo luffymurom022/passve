@@ -7993,6 +7993,74 @@ app.post('/api/admin/risk/alerts/create', adminAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// PHASE 17: SAFEPASS SUPER APP
+// ═══════════════════════════════════════════════════════════
+
+// Serve Super App page
+app.get('/superapp', (req, res) => {
+  res.sendFile(new URL('./frontend/superapp.html', import.meta.url).pathname);
+});
+
+// ── Super App: Map points ──
+app.get('/api/superapp/map', async (req, res) => {
+  const [warehouses, hubs, partners] = await Promise.all([
+    supabase.from('warehouses').select('id,name,address,province,lat,lng').eq('is_active', true),
+    supabase.from('delivery_hubs').select('id,name,address,province').eq('is_active', true),
+    supabase.from('franchise_partners').select('id,business_name,full_name,province,lat,lng,service_receiving,service_inspection').eq('status','active').limit(30)
+  ]);
+
+  const viCoords = {
+    'TP. Hồ Chí Minh':[10.762622,106.660172],'Hà Nội':[21.027763,105.834160],
+    'Đà Nẵng':[16.054407,108.202167],'Cần Thơ':[10.045162,105.746857],
+    'Hải Phòng':[20.844912,106.688084],'Bình Dương':[11.131938,106.676873],
+    'Đồng Nai':[10.945374,106.824257],'Khánh Hòa':[12.238791,109.196749]
+  };
+  function jitter(v,r=0.15){return v+(Math.random()-0.5)*r;}
+
+  const points = [];
+  (warehouses.data||[]).forEach(w=>{
+    const base=viCoords[w.province]||[16.047,108.206];
+    points.push({id:w.id,name:w.name,address:w.address,province:w.province,
+      type:'warehouse',lat:w.lat||jitter(base[0]),lng:w.lng||jitter(base[1])});
+  });
+  (hubs.data||[]).forEach(h=>{
+    const base=viCoords[h.province]||[16.047,108.206];
+    points.push({id:h.id,name:h.name,address:h.address,province:h.province,
+      type:'delivery',lat:jitter(base[0]),lng:jitter(base[1])});
+  });
+  (partners.data||[]).slice(0,20).forEach(p=>{
+    points.push({id:p.id,
+      name:p.business_name||p.full_name,province:p.province,
+      type:p.service_inspection?'inspection':'receiving',
+      lat:jitter((viCoords[p.province]||[16.047,108.206])[0]),
+      lng:jitter((viCoords[p.province]||[16.047,108.206])[1])});
+  });
+
+  res.json({ points });
+});
+
+// ── Super App: Platform Stats (public) ──
+app.get('/api/superapp/stats', async (req, res) => {
+  const [users, orders, listings, franchises, drivers, warehouses] = await Promise.all([
+    supabase.from('users').select('id',{count:'exact'}),
+    supabase.from('orders').select('id,amount'),
+    supabase.from('tickets').select('id',{count:'exact'}).eq('status','active'),
+    supabase.from('franchise_partners').select('id',{count:'exact'}).eq('status','active'),
+    supabase.from('drivers').select('id',{count:'exact'}).eq('status','active'),
+    supabase.from('warehouses').select('id',{count:'exact'}).eq('is_active',true)
+  ]);
+  const totalEscrow = (orders.data||[]).reduce((s,o)=>s+(o.amount||0),0);
+  res.json({
+    users: users.count||0,
+    active_listings: listings.count||0,
+    total_escrow: totalEscrow,
+    franchise_partners: franchises.count||0,
+    active_drivers: drivers.count||0,
+    warehouses: warehouses.count||0
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
 // PHASE 16: SAFEPASS ECOSYSTEM
 // ═══════════════════════════════════════════════════════════
 
