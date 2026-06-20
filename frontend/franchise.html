@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafePass Franchise Network</title>
+<!-- Leaflet Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0b0f1a;--card:#131929;--border:#1e2d45;--brand:#3d8ef8;--brand2:#a78bfa;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--orange:#f97316;
+  --txt:#e2e8f0;--sub:#64748b;--radius:12px;
+  --glow:0 0 20px rgba(61,142,248,.2);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;font-size:14px;min-height:100vh;}
+a{color:var(--brand);text-decoration:none;}
+
+/* ── Layout ── */
+.app-shell{display:flex;min-height:100vh;}
+.sidebar{width:220px;background:var(--card);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:0;position:fixed;top:0;left:0;height:100vh;z-index:100;
+  transition:transform .25s;}
+.sidebar-logo{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sidebar-logo .logo-text{font-size:15px;font-weight:800;}
+.sidebar-logo .logo-text span{color:var(--brand);}
+.sidebar-logo .badge{background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;letter-spacing:.5px;}
+.sidebar-nav{flex:1;overflow-y:auto;padding:10px 0;}
+.nav-section{padding:10px 16px 4px;font-size:9px;font-weight:700;color:var(--sub);
+  text-transform:uppercase;letter-spacing:1px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;
+  border-left:3px solid transparent;transition:all .15s;font-size:13px;color:var(--sub);}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--txt);}
+.nav-item.active{color:var(--brand);border-left-color:var(--brand);background:rgba(61,142,248,.08);}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border);}
+.tier-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;}
+.tier-basic{background:rgba(100,116,139,.2);color:#94a3b8;}
+.tier-silver{background:rgba(148,163,184,.2);color:#cbd5e1;}
+.tier-gold{background:rgba(245,158,11,.15);color:#f59e0b;}
+.tier-platinum{background:rgba(167,139,250,.15);color:#a78bfa;}
+
+.main{margin-left:220px;flex:1;padding:24px;min-height:100vh;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:12px;}
+.topbar h1{font-size:18px;font-weight:700;}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;
+  font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{background:#2d7ef0;box-shadow:var(--glow);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-success{background:var(--green);color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--border);}
+.btn-ghost:hover{background:rgba(255,255,255,.1);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-title{font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;
+  letter-spacing:.6px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;display:flex;flex-direction:column;gap:6px;}
+.stat-icon{font-size:24px;}
+.stat-label{font-size:11px;color:var(--sub);font-weight:600;}
+.stat-value{font-size:22px;font-weight:800;}
+.stat-sub{font-size:11px;color:var(--sub);}
+
+/* Table */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:var(--sub);
+  border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;}
+td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green);}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red);}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--yellow);}
+.badge-blue{background:rgba(61,142,248,.15);color:var(--brand);}
+.badge-gray{background:rgba(100,116,139,.15);color:var(--sub);}
+.badge-purple{background:rgba(167,139,250,.15);color:var(--brand2);}
+
+/* Form */
+.form-group{margin-bottom:16px;}
+.form-label{font-size:12px;font-weight:600;color:var(--sub);margin-bottom:6px;display:block;}
+.form-input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:8px;padding:9px 12px;color:var(--txt);font-size:13px;outline:none;transition:border .15s;}
+.form-input:focus{border-color:var(--brand);}
+.form-input option{background:var(--card);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.checkbox-row{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.checkbox-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand);}
+
+/* Auth screen */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 30% 20%,rgba(61,142,248,.08) 0%,transparent 60%),var(--bg);}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:40px;width:420px;max-width:95vw;}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-logo .title{font-size:22px;font-weight:800;margin-top:10px;}
+.auth-logo .subtitle{font-size:13px;color:var(--sub);margin-top:4px;}
+.auth-tabs{display:flex;gap:0;background:rgba(255,255,255,.04);border-radius:8px;
+  padding:4px;margin-bottom:24px;}
+.auth-tab{flex:1;padding:8px;text-align:center;cursor:pointer;border-radius:6px;
+  font-size:13px;font-weight:600;color:var(--sub);transition:all .15s;}
+.auth-tab.active{background:var(--brand);color:#fff;}
+.auth-divider{text-align:center;color:var(--sub);font-size:12px;margin:16px 0;position:relative;}
+.auth-divider::before,.auth-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border);}
+.auth-divider::before{left:0;} .auth-divider::after{right:0;}
+.service-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.service-check{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;}
+.service-check input{accent-color:var(--brand);}
+
+/* Map */
+#map{height:480px;border-radius:12px;border:1px solid var(--border);z-index:1;}
+.map-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;}
+.map-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);}
+.map-dot{width:12px;height:12px;border-radius:50%;}
+
+/* Page sections */
+.page{display:none;} .page.active{display:block;}
+
+/* Transaction card */
+.txn-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:10px;}
+.txn-card:hover{border-color:rgba(61,142,248,.3);}
+.txn-info{flex:1;}
+.txn-ref{font-size:11px;color:var(--sub);font-family:monospace;}
+.txn-name{font-size:13px;font-weight:600;margin:2px 0;}
+.txn-meta{font-size:11px;color:var(--sub);}
+.txn-amount{text-align:right;}
+.txn-fee{font-weight:700;color:var(--green);}
+
+/* Announcement */
+.ann-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:16px;margin-bottom:10px;}
+.ann-pin{font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:4px;}
+.ann-title{font-weight:700;margin-bottom:6px;}
+.ann-body{font-size:12px;color:var(--sub);line-height:1.6;}
+
+/* Admin tables */
+.partner-row{cursor:pointer;}
+.partner-row:hover td{background:rgba(61,142,248,.05);}
+
+/* Profile form */
+.avatar-upload{width:80px;height:80px;border-radius:50%;background:var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;
+  margin:0 auto 16px;border:2px dashed var(--brand);}
+
+/* Floating actions */
+.fab{position:fixed;bottom:28px;right:28px;z-index:200;}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .grid-4,.grid-3{grid-template-columns:1fr 1fr;}
+  .grid-2{grid-template-columns:1fr;}
+  .form-row,.form-row-3{grid-template-columns:1fr;}
+}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#1e293b;border:1px solid var(--border);color:var(--txt);
+  padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;
+  opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* Loading */
+.spinner{text-align:center;padding:40px;color:var(--sub);}
+.dot-spin{display:inline-block;width:32px;height:32px;border:3px solid var(--border);
+  border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Map filter bar */
+.map-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.map-filter-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);
+  background:var(--card);color:var(--sub);cursor:pointer;font-size:12px;transition:all .15s;}
+.map-filter-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+
+/* Star rating */
+.stars{color:var(--yellow);}
+
+/* Progress bar */
+.progress-bar{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));
+  border-radius:3px;transition:width .5s;}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════ AUTH SCREEN ══════════════ -->
+<div id="authScreen" class="auth-wrap">
+<div class="auth-box">
+  <div class="auth-logo">
+    <div style="font-size:40px;">🤝</div>
+    <div class="title">SafePass <span style="color:var(--brand)">Franchise</span></div>
+    <div class="subtitle">Mạng lưới đại lý toàn quốc</div>
+  </div>
+  <div class="auth-tabs">
+    <div class="auth-tab active" onclick="switchAuthTab('login')">Đăng nhập</div>
+    <div class="auth-tab" onclick="switchAuthTab('register')">Đăng ký đại lý</div>
+  </div>
+
+  <!-- Login -->
+  <div id="loginForm">
+    <div class="form-group">
+      <label class="form-label">Số điện thoại</label>
+      <input class="form-input" id="loginPhone" placeholder="0901234567" type="tel"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mật khẩu</label>
+      <input class="form-input" id="loginPass" placeholder="••••••••" type="password"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doLogin()">Đăng nhập</button>
+    <p style="text-align:center;margin-top:14px;font-size:12px;color:var(--sub);">
+      Chưa có tài khoản? <a href="#" onclick="switchAuthTab('register')">Đăng ký ngay</a>
+    </p>
+  </div>
+
+  <!-- Register -->
+  <div id="registerForm" style="display:none;">
+    <div class="form-group">
+      <label class="form-label">Loại đối tác</label>
+      <select class="form-input" id="regType">
+        <option value="individual">Cá nhân</option>
+        <option value="store">Cửa hàng</option>
+        <option value="business">Doanh nghiệp</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Họ tên / Tên đại diện</label>
+        <input class="form-input" id="regName" placeholder="Nguyễn Văn A"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tên cửa hàng / Doanh nghiệp</label>
+        <input class="form-input" id="regBizName" placeholder="(Nếu có)"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Số điện thoại</label>
+        <input class="form-input" id="regPhone" placeholder="0901234567" type="tel"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="regEmail" placeholder="email@example.com"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tỉnh / Thành phố</label>
+      <select class="form-input" id="regProvince">
+        <option value="">-- Chọn tỉnh/thành --</option>
+        <option>TP. Hồ Chí Minh</option><option>Hà Nội</option><option>Đà Nẵng</option>
+        <option>Hải Phòng</option><option>Cần Thơ</option><option>Bình Dương</option>
+        <option>Đồng Nai</option><option>Long An</option><option>An Giang</option>
+        <option>Bà Rịa - Vũng Tàu</option><option>Bắc Giang</option><option>Bắc Kạn</option>
+        <option>Bạc Liêu</option><option>Bắc Ninh</option><option>Bến Tre</option>
+        <option>Bình Định</option><option>Bình Phước</option><option>Bình Thuận</option>
+        <option>Cà Mau</option><option>Cao Bằng</option><option>Đắk Lắk</option>
+        <option>Đắk Nông</option><option>Điện Biên</option><option>Đồng Tháp</option>
+        <option>Gia Lai</option><option>Hà Giang</option><option>Hà Nam</option>
+        <option>Hà Tĩnh</option><option>Hải Dương</option><option>Hậu Giang</option>
+        <option>Hòa Bình</option><option>Hưng Yên</option><option>Khánh Hòa</option>
+        <option>Kiên Giang</option><option>Kon Tum</option><option>Lai Châu</option>
+        <option>Lâm Đồng</option><option>Lạng Sơn</option><option>Lào Cai</option>
+        <option>Nam Định</option><option>Nghệ An</option><option>Ninh Bình</option>
+        <option>Ninh Thuận</option><option>Phú Thọ</option><option>Phú Yên</option>
+        <option>Quảng Bình</option><option>Quảng Nam</option><option>Quảng Ngãi</option>
+        <option>Quảng Ninh</option><option>Quảng Trị</option><option>Sóc Trăng</option>
+        <option>Sơn La</option><option>Tây Ninh</option><option>Thái Bình</option>
+        <option>Thái Nguyên</option><option>Thanh Hóa</option><option>Thừa Thiên Huế</option>
+        <option>Tiền Giang</option><option>Trà Vinh</option><option>Tuyên Quang</option>
+        <option>Vĩnh Long</option><option>Vĩnh Phúc</option><option>Yên Bái</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Địa chỉ cụ thể</label>
+      <input class="form-input" id="regAddress" placeholder="Số nhà, đường, phường/xã"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Dịch vụ muốn cung cấp</label>
+      <div class="service-checks">
+        <label class="service-check"><input type="checkbox" id="svc_receiving" checked> 📦 Nhận hàng</label>
+        <label class="service-check"><input type="checkbox" id="svc_consignment"> 🏷️ Ký gửi</label>
+        <label class="service-check"><input type="checkbox" id="svc_inspection"> 🔬 Kiểm định</label>
+        <label class="service-check"><input type="checkbox" id="svc_delivery"> 🚴 Giao nhận</label>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Mật khẩu</label>
+        <input class="form-input" id="regPass" placeholder="Tối thiểu 8 ký tự" type="password"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Xác nhận mật khẩu</label>
+        <input class="form-input" id="regPass2" placeholder="Nhập lại mật khẩu" type="password"/>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doRegister()">Đăng ký đại lý</button>
+  </div>
+
+  <div style="margin-top:20px;text-align:center;">
+    <a href="/" style="font-size:12px;color:var(--sub);">← Về SafePass</a>
+    &nbsp;·&nbsp;
+    <a href="#" onclick="showAdminLogin()" style="font-size:12px;color:var(--sub);">Quản trị viên</a>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════ ADMIN LOGIN MODAL ══════════════ -->
+<div id="adminLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:1000;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:32px;width:360px;">
+    <h3 style="margin-bottom:20px;">🔐 Admin Franchise Center</h3>
+    <div class="form-group">
+      <label class="form-label">Admin Token</label>
+      <input class="form-input" id="adminToken" type="password" placeholder="Bearer token"/>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="doAdminLogin()">Đăng nhập</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('adminLoginModal').style.display='none'">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="mainApp" class="app-shell" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span style="font-size:26px;">🤝</span>
+      <div>
+        <div class="logo-text">Safe<span>Pass</span></div>
+        <div style="margin-top:2px;"><span class="badge" id="partnerTierBadge">BASIC</span></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Tổng quan</div>
+      <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="showPage('announcements')"><span class="icon">📢</span> Thông báo</div>
+      <div class="nav-section">Hoạt động</div>
+      <div class="nav-item" onclick="showPage('transactions')"><span class="icon">📦</span> Giao dịch</div>
+      <div class="nav-item" onclick="showPage('service-points')"><span class="icon">📍</span> Điểm dịch vụ</div>
+      <div class="nav-item" onclick="showPage('earnings')"><span class="icon">💰</span> Thu nhập</div>
+      <div class="nav-section">Thông tin</div>
+      <div class="nav-item" onclick="showPage('profile')"><span class="icon">👤</span> Hồ sơ đại lý</div>
+      <div class="nav-item" onclick="showPage('map')"><span class="icon">🗺️</span> Bản đồ mạng lưới</div>
+      <div class="nav-item" onclick="showPage('rankings')"><span class="icon">🏆</span> Xếp hạng</div>
+      <div id="adminNavSection" style="display:none;">
+        <div class="nav-section">Quản trị</div>
+        <div class="nav-item" onclick="showPage('admin-partners')"><span class="icon">👥</span> Duyệt đối tác</div>
+        <div class="nav-item" onclick="showPage('admin-stats')"><span class="icon">📈</span> Thống kê hệ thống</div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:8px;" id="partnerNameDisplay">...</div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="doLogout()">Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="topbar">
+        <div>
+          <h1>📊 Dashboard</h1>
+          <p style="color:var(--sub);font-size:12px;margin-top:2px;">Tổng quan hoạt động đại lý</p>
+        </div>
+        <button class="btn btn-primary" onclick="showPage('transactions');openNewTxnModal()">+ Giao dịch mới</button>
+      </div>
+      <!-- Status alert -->
+      <div id="statusAlert" style="display:none;margin-bottom:16px;"></div>
+      <!-- Stats -->
+      <div class="grid-4" style="margin-bottom:20px;" id="dashStats">
+        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Ví đại lý</div><div class="stat-value" id="ds-wallet">0₫</div><div class="stat-sub">Số dư hiện tại</div></div>
+        <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">Tổng giao dịch</div><div class="stat-value" id="ds-txns">0</div><div class="stat-sub">Tất cả thời gian</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Tỷ lệ hoàn thành</div><div class="stat-value" id="ds-rate">0%</div><div class="stat-sub">Completion rate</div></div>
+        <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-label">Đánh giá trung bình</div><div class="stat-value" id="ds-rating">0.0</div><div class="stat-sub" id="ds-ratingCount">0 đánh giá</div></div>
+      </div>
+      <!-- Charts + Recent -->
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-title">📊 Giao dịch theo tháng</div>
+          <canvas id="txnChart" height="180"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">💵 Thu nhập theo tháng</div>
+          <canvas id="earningChart" height="180"></canvas>
+        </div>
+      </div>
+      <!-- Recent transactions -->
+      <div class="card">
+        <div class="card-title">🕐 Giao dịch gần nhất</div>
+        <div id="recentTxns"><div class="spinner"><div class="dot-spin"></div><br/>Đang tải...</div></div>
+      </div>
+    </div>
+
+    <!-- ── ANNOUNCEMENTS ── -->
+    <div class="page" id="page-announcements">
+      <div class="topbar"><h1>📢 Thông báo từ SafePass</h1></div>
+      <div id="annList"><div class="spinner"><div class="dot-spin"></div></div></div>
+    </div>
+
+    <!-- ── TRANSACTIONS ── -->
+    <div class="page" id="page-transactions">
+      <div class="topbar">
+        <h1>📦 Quản lý giao dịch</h1>
+        <button class="btn btn-primary" onclick="openNewTxnModal()">+ Giao dịch mới</button>
+      </div>
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="map-filter-btn active" onclick="filterTxns('all',this)">Tất cả</button>
+        <button class="map-filter-btn" onclick="filterTxns('pending',this)">Chờ xử lý</button>
+        <button class="map-filter-btn" onclick="filterTxns('processing',this)">Đang xử lý</button>
+        <button class="map-filter-btn" onclick="filterTxns('completed',this)">Hoàn thành</button>
+        <button class="map-filter-btn" onclick="filterTxns('receiving',this)">📦 Nhận hàng</button>
+        <button class="map-filter-btn" onclick="filterTxns('consignment',this)">🏷️ Ký gửi</button>
+        <button class="map-filter-btn" onclick="filterTxns('inspection',this)">🔬 Kiểm định</button>
+        <button class="map-filter-btn" onclick="filterTxns('delivery',this)">🚴 Giao nhận</button>
+      </div>
+      <div id="txnList"><div class="spinner"><div class="dot-spin"></div></div></div>
+    </div>
+
+    <!-- ── SERVICE POINTS ── -->
+    <div class="page" id="page-service-points">
+      <div class="topbar">
+        <h1>📍 Điểm dịch vụ</h1>
+        <button class="btn btn-primary" onclick="openNewPointModal()">+ Thêm điểm</button>
+      </div>
+      <div id="spList"><div class="spinner"><div class="dot-spin"></div></div></div>
+    </div>
+
+    <!-- ── EARNINGS ── -->
+    <div class="page" id="page-earnings">
+      <div class="topbar"><h1>💰 Thu nhập & Hoa hồng</h1></div>
+      <div class="grid-3" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-label">Tổng thu nhập</div><div class="stat-value" id="earn-total">0₫</div></div>
+        <div class="stat-card"><div class="stat-icon">💼</div><div class="stat-label">Số dư ví</div><div class="stat-value" id="earn-wallet">0₫</div></div>
+        <div class="stat-card"><div class="stat-icon">📤</div><div class="stat-label">Đã rút</div><div class="stat-value" id="earn-withdrawn">0₫</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;">
+          💳 Lịch sử thu nhập
+        </div>
+        <div id="earnList"><div class="spinner"><div class="dot-spin"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE ── -->
+    <div class="page" id="page-profile">
+      <div class="topbar"><h1>👤 Hồ sơ đại lý</h1></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Thông tin cơ bản</div>
+          <div id="profileForm"><div class="spinner"><div class="dot-spin"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dịch vụ & Tình trạng</div>
+          <div id="profileStatus"><div class="spinner"><div class="dot-spin"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MAP ── -->
+    <div class="page" id="page-map">
+      <div class="topbar"><h1>🗺️ Bản đồ mạng lưới</h1></div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="map-filters" id="mapFilters">
+          <button class="map-filter-btn active" onclick="filterMap('all',this)">🌐 Tất cả</button>
+          <button class="map-filter-btn" onclick="filterMap('receiving',this)">📦 Nhận hàng</button>
+          <button class="map-filter-btn" onclick="filterMap('consignment',this)">🏷️ Ký gửi</button>
+          <button class="map-filter-btn" onclick="filterMap('inspection',this)">🔬 Kiểm định</button>
+          <button class="map-filter-btn" onclick="filterMap('delivery',this)">🚴 Giao nhận</button>
+        </div>
+        <div id="map"></div>
+        <div class="map-legend">
+          <div class="map-legend-item"><div class="map-dot" style="background:#3d8ef8"></div> Nhận hàng</div>
+          <div class="map-legend-item"><div class="map-dot" style="background:#a78bfa"></div> Ký gửi</div>
+          <div class="map-legend-item"><div class="map-dot" style="background:#22c55e"></div> Kiểm định</div>
+          <div class="map-legend-item"><div class="map-dot" style="background:#f59e0b"></div> Giao nhận</div>
+          <div class="map-legend-item"><div class="map-dot" style="background:#ef4444"></div> Full service</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Danh sách đại lý đang hoạt động</div>
+        <div id="mapPartnerList"><div class="spinner"><div class="dot-spin"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ── RANKINGS ── -->
+    <div class="page" id="page-rankings">
+      <div class="topbar"><h1>🏆 Xếp hạng đại lý</h1></div>
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-title">🥇 Top thu nhập</div>
+          <div id="rankEarnings"><div class="spinner"><div class="dot-spin"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📦 Top giao dịch</div>
+          <div id="rankTxns"><div class="spinner"><div class="dot-spin"></div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⭐ Top đánh giá</div>
+        <div id="rankRatings"><div class="spinner"><div class="dot-spin"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: PARTNERS ── -->
+    <div class="page" id="page-admin-partners">
+      <div class="topbar"><h1>👥 Duyệt & Quản lý đối tác</h1></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="map-filter-btn active" onclick="adminFilterPartners('pending',this)">⏳ Chờ duyệt</button>
+        <button class="map-filter-btn" onclick="adminFilterPartners('active',this)">✅ Đang hoạt động</button>
+        <button class="map-filter-btn" onclick="adminFilterPartners('suspended',this)">🚫 Đình chỉ</button>
+        <button class="map-filter-btn" onclick="adminFilterPartners('rejected',this)">❌ Từ chối</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Đối tác</th><th>Loại</th><th>Tỉnh/Thành</th><th>Dịch vụ</th>
+              <th>Giao dịch</th><th>Tier</th><th>Trạng thái</th><th>Thao tác</th>
+            </tr></thead>
+            <tbody id="adminPartnerTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: STATS ── -->
+    <div class="page" id="page-admin-stats">
+      <div class="topbar"><h1>📈 Thống kê hệ thống Franchise</h1></div>
+      <div class="grid-4" style="margin-bottom:20px;">
+        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-label">Tổng đại lý</div><div class="stat-value" id="as-total">0</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Đang hoạt động</div><div class="stat-value" id="as-active">0</div></div>
+        <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Chờ duyệt</div><div class="stat-value" id="as-pending">0</div></div>
+        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Tổng doanh thu</div><div class="stat-value" id="as-revenue">0₫</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🗺️ Theo tỉnh/thành</div>
+          <canvas id="adminProvinceChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">🏷️ Theo loại dịch vụ</div>
+          <canvas id="adminServiceChart" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+<!-- New Transaction Modal -->
+<div id="newTxnModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:500;align-items:center;justify-content:center;overflow-y:auto;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:28px;width:520px;max-width:95vw;margin:20px auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3>📦 Giao dịch mới</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('newTxnModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Loại giao dịch</label>
+      <select class="form-input" id="txnType">
+        <option value="receiving">📦 Nhận hàng</option>
+        <option value="consignment">🏷️ Ký gửi</option>
+        <option value="inspection">🔬 Kiểm định</option>
+        <option value="delivery">🚴 Giao nhận</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tên người gửi</label>
+        <input class="form-input" id="txnSenderName" placeholder="Nguyễn Văn A"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">SĐT người gửi</label>
+        <input class="form-input" id="txnSenderPhone" placeholder="0901234567"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tên người nhận</label>
+        <input class="form-input" id="txnReceiverName" placeholder="Trần Thị B"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">SĐT người nhận</label>
+        <input class="form-input" id="txnReceiverPhone" placeholder="0987654321"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mô tả hàng hóa</label>
+      <input class="form-input" id="txnItemDesc" placeholder="Mô tả ngắn hàng hóa"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Giá trị hàng (₫)</label>
+        <input class="form-input" id="txnItemValue" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phí dịch vụ (₫)</label>
+        <input class="form-input" id="txnServiceFee" type="number" placeholder="0"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ghi chú</label>
+      <input class="form-input" id="txnNotes" placeholder="Ghi chú thêm (tùy chọn)"/>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal('newTxnModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="createTransaction()">Tạo giao dịch</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Service Point Modal -->
+<div id="newPointModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:28px;width:480px;max-width:95vw;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3>📍 Thêm điểm dịch vụ</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('newPointModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tên điểm dịch vụ</label>
+      <input class="form-input" id="spName" placeholder="Cửa hàng Nguyễn Văn A"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Loại điểm dịch vụ</label>
+      <select class="form-input" id="spType">
+        <option value="receiving">📦 Điểm nhận hàng</option>
+        <option value="consignment">🏷️ Điểm ký gửi</option>
+        <option value="inspection">🔬 Điểm kiểm định</option>
+        <option value="delivery">🚴 Điểm giao nhận</option>
+        <option value="full">⭐ Full service</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Địa chỉ</label>
+      <input class="form-input" id="spAddress" placeholder="Số nhà, đường, phường/xã"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tỉnh/Thành</label>
+        <input class="form-input" id="spProvince" placeholder="TP. Hồ Chí Minh"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quận/Huyện</label>
+        <input class="form-input" id="spDistrict" placeholder="Quận 1"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Hotline</label>
+        <input class="form-input" id="spHotline" placeholder="0901234567"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Giờ hoạt động</label>
+        <input class="form-input" id="spHours" placeholder="8:00 - 20:00" value="8:00 - 20:00"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal('newPointModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="createServicePoint()">Thêm điểm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCRIPT ══════════════ -->
+<script>
+const API = '/api/franchise';
+let token = localStorage.getItem('franchise_token');
+let partnerData = null;
+let isAdmin = false;
+let adminTokenVal = null;
+let mapInstance = null;
+let mapMarkers = [];
+let allMapPoints = [];
+let txnFilter = 'all';
+let txnData = [];
+let txnChart = null, earnChart = null;
+
+// ── Helpers ──
+function fmt(n){if(!n)return'0₫';return Number(n).toLocaleString('vi-VN')+'₫';}
+function fmtShort(n){if(n>=1e9)return(n/1e9).toFixed(1)+'tỷ';if(n>=1e6)return(n/1e6).toFixed(1)+'tr';if(n>=1e3)return(n/1e3).toFixed(0)+'k';return n||0;}
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.borderColor=type==='error'?'var(--red)':type==='success'?'var(--green)':'var(--brand)';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
+}
+function closeModal(id){document.getElementById(id).style.display='none';}
+function openModal(id){document.getElementById(id).style.display='flex';}
+function headers(){return{'Content-Type':'application/json','Authorization':'Bearer '+token};}
+function adminHeaders(){return{'Content-Type':'application/json','Authorization':'Bearer '+adminTokenVal};}
+
+function statusBadge(s){
+  const map={pending:'badge-yellow',active:'badge-green',suspended:'badge-red',
+    rejected:'badge-red',processing:'badge-blue',completed:'badge-green',
+    cancelled:'badge-gray',returned:'badge-yellow'};
+  const labels={pending:'Chờ duyệt',active:'Hoạt động',suspended:'Đình chỉ',
+    rejected:'Từ chối',processing:'Đang xử lý',completed:'Hoàn thành',
+    cancelled:'Đã hủy',returned:'Hoàn trả'};
+  return`<span class="badge ${map[s]||'badge-gray'}">${labels[s]||s}</span>`;
+}
+function typeBadge(t){
+  const icons={receiving:'📦',consignment:'🏷️',inspection:'🔬',delivery:'🚴',full:'⭐'};
+  const labels={receiving:'Nhận hàng',consignment:'Ký gửi',inspection:'Kiểm định',
+    delivery:'Giao nhận',full:'Full service'};
+  return`<span class="badge badge-blue">${icons[t]||'📦'} ${labels[t]||t}</span>`;
+}
+function tierBadge(t){
+  const c={basic:'tier-basic',silver:'tier-silver',gold:'tier-gold',platinum:'tier-platinum'};
+  return`<span class="tier-badge ${c[t]||'tier-basic'}">${(t||'basic').toUpperCase()}</span>`;
+}
+
+// ── Auth ──
+function switchAuthTab(tab){
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>{
+    el.classList.toggle('active',
+      (tab==='login'&&i===0)||(tab==='register'&&i===1));
+  });
+  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display=tab==='register'?'block':'none';
+}
+
+async function doLogin(){
+  const phone=document.getElementById('loginPhone').value.trim();
+  const password=document.getElementById('loginPass').value;
+  if(!phone||!password){toast('Vui lòng điền đầy đủ','error');return;}
+  const r=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({phone,password})});
+  const d=await r.json();
+  if(!r.ok){toast(d.error||'Đăng nhập thất bại','error');return;}
+  token=d.token; localStorage.setItem('franchise_token',token);
+  partnerData=d.partner; initApp();
+}
+
+async function doRegister(){
+  const phone=document.getElementById('regPhone').value.trim();
+  const password=document.getElementById('regPass').value;
+  const pass2=document.getElementById('regPass2').value;
+  const province=document.getElementById('regProvince').value;
+  if(!phone||!password||!province){toast('Vui lòng điền đầy đủ','error');return;}
+  if(password!==pass2){toast('Mật khẩu không khớp','error');return;}
+  if(password.length<8){toast('Mật khẩu tối thiểu 8 ký tự','error');return;}
+  const body={
+    partner_type:document.getElementById('regType').value,
+    full_name:document.getElementById('regName').value.trim(),
+    business_name:document.getElementById('regBizName').value.trim(),
+    phone, password, email:document.getElementById('regEmail').value.trim(),
+    province, address:document.getElementById('regAddress').value.trim(),
+    service_receiving:document.getElementById('svc_receiving').checked,
+    service_consignment:document.getElementById('svc_consignment').checked,
+    service_inspection:document.getElementById('svc_inspection').checked,
+    service_delivery:document.getElementById('svc_delivery').checked,
+  };
+  const r=await fetch(API+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)});
+  const d=await r.json();
+  if(!r.ok){toast(d.error||'Đăng ký thất bại','error');return;}
+  token=d.token; localStorage.setItem('franchise_token',token);
+  partnerData=d.partner; initApp();
+}
+
+function doLogout(){
+  localStorage.removeItem('franchise_token');
+  token=null; partnerData=null;
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  toast('Đã đăng xuất');
+}
+
+function showAdminLogin(){
+  document.getElementById('adminLoginModal').style.display='flex';
+}
+function doAdminLogin(){
+  adminTokenVal=document.getElementById('adminToken').value.trim();
+  if(!adminTokenVal){toast('Nhập token admin','error');return;}
+  isAdmin=true;
+  document.getElementById('adminLoginModal').style.display='none';
+  document.getElementById('adminNavSection').style.display='block';
+  toast('Admin mode đã bật','success');
+  showPage('admin-partners');
+}
+
+// ── Init ──
+function initApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('mainApp').style.display='flex';
+  if(partnerData){
+    document.getElementById('partnerNameDisplay').textContent=
+      partnerData.business_name||partnerData.full_name||'Đại lý';
+    document.getElementById('partnerTierBadge').textContent=
+      (partnerData.tier||'basic').toUpperCase();
+    document.getElementById('partnerTierBadge').className=
+      'badge tier-'+(partnerData.tier||'basic');
+    // Show status alert if pending/suspended
+    if(partnerData.status==='pending'){
+      const a=document.getElementById('statusAlert');
+      a.style.display='block';
+      a.innerHTML=`<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);
+        border-radius:10px;padding:14px 18px;color:var(--yellow);">
+        ⏳ <strong>Hồ sơ đang chờ duyệt.</strong> Admin sẽ xét duyệt trong 24-48 giờ.
+        Bạn vẫn có thể tạo giao dịch thử nghiệm.</div>`;
+    }
+  }
+  showPage('dashboard');
+}
+
+// ── Pages ──
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+name);
+  if(pg) pg.classList.add('active');
+  const ni=document.querySelector(`.nav-item[onclick*="${name}"]`);
+  if(ni) ni.classList.add('active');
+  // Load data for each page
+  const loaders={
+    'dashboard':loadDashboard,'announcements':loadAnnouncements,
+    'transactions':()=>loadTransactions(txnFilter),
+    'service-points':loadServicePoints,'earnings':loadEarnings,
+    'profile':loadProfile,'map':loadMap,'rankings':loadRankings,
+    'admin-partners':()=>adminLoadPartners('pending'),
+    'admin-stats':adminLoadStats,
+  };
+  if(loaders[name]) loaders[name]();
+}
+
+// ── Dashboard ──
+async function loadDashboard(){
+  try{
+    const r=await fetch(API+'/dashboard',{headers:headers()});
+    const d=await r.json();
+    if(!r.ok){toast(d.error,'error');return;}
+    document.getElementById('ds-wallet').textContent=fmt(d.wallet_balance);
+    document.getElementById('ds-txns').textContent=d.total_transactions||0;
+    document.getElementById('ds-rate').textContent=(d.completion_rate||0).toFixed(0)+'%';
+    document.getElementById('ds-rating').textContent=(d.avg_rating||0).toFixed(1);
+    document.getElementById('ds-ratingCount').textContent=(d.rating_count||0)+' đánh giá';
+    // Recent txns
+    const rec=d.recent_transactions||[];
+    document.getElementById('recentTxns').innerHTML=rec.length?
+      rec.map(t=>`<div class="txn-card">
+        <div class="txn-info">
+          <div class="txn-ref">${t.ref_code||''}</div>
+          <div class="txn-name">${t.sender_name||'?'} → ${t.receiver_name||'?'}</div>
+          <div class="txn-meta">${typeBadge(t.txn_type)} &nbsp; ${statusBadge(t.status)}</div>
+        </div>
+        <div class="txn-amount">
+          <div class="txn-fee">+${fmt(t.commission_earned)}</div>
+          <div style="font-size:11px;color:var(--sub);">${new Date(t.created_at).toLocaleDateString('vi-VN')}</div>
+        </div>
+      </div>`).join('')
+      :'<p style="color:var(--sub);text-align:center;padding:24px;">Chưa có giao dịch nào</p>';
+    // Charts
+    buildTxnChart(d.monthly_txns||[]);
+    buildEarnChart(d.monthly_earnings||[]);
+  }catch(e){toast('Lỗi tải dashboard','error');}
+}
+
+function buildTxnChart(data){
+  const ctx=document.getElementById('txnChart').getContext('2d');
+  if(txnChart)txnChart.destroy();
+  txnChart=new Chart(ctx,{type:'bar',data:{
+    labels:data.map(d=>d.month||d.label),
+    datasets:[{label:'Giao dịch',data:data.map(d=>d.count||0),
+      backgroundColor:'rgba(61,142,248,.5)',borderColor:'var(--brand)',borderWidth:2,borderRadius:6}]
+  },options:{responsive:true,plugins:{legend:{display:false}},scales:{
+    y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b'}},
+    x:{grid:{display:false},ticks:{color:'#64748b'}}
+  }}});
+}
+function buildEarnChart(data){
+  const ctx=document.getElementById('earningChart').getContext('2d');
+  if(earnChart)earnChart.destroy();
+  earnChart=new Chart(ctx,{type:'line',data:{
+    labels:data.map(d=>d.month||d.label),
+    datasets:[{label:'Thu nhập (₫)',data:data.map(d=>d.amount||0),
+      borderColor:'var(--green)',backgroundColor:'rgba(34,197,94,.1)',
+      fill:true,tension:.4,pointBackgroundColor:'var(--green)'}]
+  },options:{responsive:true,plugins:{legend:{display:false}},scales:{
+    y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b',callback:v=>fmtShort(v)}},
+    x:{grid:{display:false},ticks:{color:'#64748b'}}
+  }}});
+}
+
+// ── Announcements ──
+async function loadAnnouncements(){
+  const r=await fetch(API+'/announcements',{headers:headers()});
+  const d=await r.json();
+  document.getElementById('annList').innerHTML=(d.announcements||[]).map(a=>`
+    <div class="ann-card">
+      ${a.is_pinned?'<div class="ann-pin">📌 GHIM</div>':''}
+      <div class="ann-title">${a.title}</div>
+      <div class="ann-body">${a.content}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:8px;">${new Date(a.created_at).toLocaleDateString('vi-VN')}</div>
+    </div>`).join('')||'<p style="color:var(--sub);padding:24px;text-align:center;">Không có thông báo</p>';
+}
+
+// ── Transactions ──
+async function loadTransactions(filter='all'){
+  txnFilter=filter;
+  const r=await fetch(API+'/transactions?filter='+filter,{headers:headers()});
+  const d=await r.json();
+  txnData=d.transactions||[];
+  renderTxns(txnData);
+}
+function renderTxns(data){
+  document.getElementById('txnList').innerHTML=data.length?
+    data.map(t=>`<div class="txn-card">
+      <div class="txn-info">
+        <div class="txn-ref">🔖 ${t.ref_code||''}</div>
+        <div class="txn-name">${t.item_description||'Không rõ hàng hóa'}</div>
+        <div class="txn-meta">${typeBadge(t.txn_type)} ${statusBadge(t.status)}
+          &nbsp; <span style="font-size:11px;">${t.sender_name||''} → ${t.receiver_name||''}</span>
+        </div>
+      </div>
+      <div class="txn-amount">
+        <div class="txn-fee">+${fmt(t.commission_earned)}</div>
+        <div style="font-size:11px;color:var(--sub);">Phí: ${fmt(t.service_fee)}</div>
+        <div style="font-size:11px;color:var(--sub);">${new Date(t.created_at).toLocaleDateString('vi-VN')}</div>
+      </div>
+      ${t.status==='pending'||t.status==='processing'?`
+        <div>
+          ${t.status==='pending'?`<button class="btn btn-ghost btn-sm" onclick="updateTxn('${t.id}','processing')">Xử lý</button>`:''}
+          <button class="btn btn-success btn-sm" onclick="updateTxn('${t.id}','completed')">✓ Hoàn thành</button>
+          <button class="btn btn-danger btn-sm" style="margin-top:4px;" onclick="updateTxn('${t.id}','cancelled')">✕</button>
+        </div>`:''}
+    </div>`).join('')
+    :'<p style="color:var(--sub);text-align:center;padding:24px;">Không có giao dịch</p>';
+}
+function filterTxns(f,btn){
+  document.querySelectorAll('#page-transactions .map-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadTransactions(f);
+}
+async function updateTxn(id,status){
+  const r=await fetch(API+'/transactions/'+id,{method:'PATCH',headers:headers(),
+    body:JSON.stringify({status})});
+  if(r.ok){toast('Cập nhật thành công','success');loadTransactions(txnFilter);loadDashboard();}
+  else toast('Lỗi cập nhật','error');
+}
+function openNewTxnModal(){openModal('newTxnModal');}
+async function createTransaction(){
+  const body={
+    txn_type:document.getElementById('txnType').value,
+    sender_name:document.getElementById('txnSenderName').value.trim(),
+    sender_phone:document.getElementById('txnSenderPhone').value.trim(),
+    receiver_name:document.getElementById('txnReceiverName').value.trim(),
+    receiver_phone:document.getElementById('txnReceiverPhone').value.trim(),
+    item_description:document.getElementById('txnItemDesc').value.trim(),
+    item_value:Number(document.getElementById('txnItemValue').value)||0,
+    service_fee:Number(document.getElementById('txnServiceFee').value)||0,
+    notes:document.getElementById('txnNotes').value.trim(),
+  };
+  const r=await fetch(API+'/transactions',{method:'POST',headers:headers(),body:JSON.stringify(body)});
+  const d=await r.json();
+  if(r.ok){toast('Tạo giao dịch thành công!','success');closeModal('newTxnModal');
+    loadTransactions(txnFilter);loadDashboard();}
+  else toast(d.error||'Lỗi tạo giao dịch','error');
+}
+
+// ── Service Points ──
+async function loadServicePoints(){
+  const r=await fetch(API+'/service-points',{headers:headers()});
+  const d=await r.json();
+  const pts=d.service_points||[];
+  document.getElementById('spList').innerHTML=pts.length?
+    `<div class="grid-3">${pts.map(p=>`
+      <div class="card" style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          ${typeBadge(p.point_type)} ${statusBadge(p.status)}
+        </div>
+        <div style="font-weight:700;margin-bottom:4px;">${p.name}</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">📍 ${p.address}, ${p.province}</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">⏰ ${p.operating_hours||'8:00-20:00'}</div>
+        ${p.hotline?`<div style="font-size:12px;color:var(--sub);">📞 ${p.hotline}</div>`:''}
+        <div style="margin-top:10px;background:rgba(255,255,255,.04);border-radius:6px;padding:8px;">
+          <div style="font-size:11px;color:var(--sub);">Tải hiện tại</div>
+          <div class="progress-bar" style="margin-top:4px;">
+            <div class="progress-fill" style="width:${Math.min(100,(p.current_load/p.capacity)*100||0)}%"></div>
+          </div>
+          <div style="font-size:10px;color:var(--sub);margin-top:3px;">${p.current_load||0}/${p.capacity||100}</div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="toggleSpStatus('${p.id}','${p.status==='active'?'inactive':'active'}')">
+            ${p.status==='active'?'Tắt':'Bật'}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSp('${p.id}')">Xóa</button>
+        </div>
+      </div>`).join('')}</div>`
+    :'<p style="color:var(--sub);text-align:center;padding:40px;">Chưa có điểm dịch vụ nào. Thêm điểm mới để bắt đầu!</p>';
+}
+function openNewPointModal(){openModal('newPointModal');}
+async function createServicePoint(){
+  const body={
+    name:document.getElementById('spName').value.trim(),
+    point_type:document.getElementById('spType').value,
+    address:document.getElementById('spAddress').value.trim(),
+    province:document.getElementById('spProvince').value.trim(),
+    district:document.getElementById('spDistrict').value.trim(),
+    hotline:document.getElementById('spHotline').value.trim(),
+    operating_hours:document.getElementById('spHours').value.trim(),
+  };
+  const r=await fetch(API+'/service-points',{method:'POST',headers:headers(),body:JSON.stringify(body)});
+  const d=await r.json();
+  if(r.ok){toast('Đã thêm điểm dịch vụ!','success');closeModal('newPointModal');loadServicePoints();}
+  else toast(d.error||'Lỗi','error');
+}
+async function toggleSpStatus(id,status){
+  const r=await fetch(API+'/service-points/'+id,{method:'PATCH',headers:headers(),body:JSON.stringify({status})});
+  if(r.ok){toast('Cập nhật thành công','success');loadServicePoints();}
+}
+async function deleteSp(id){
+  if(!confirm('Xóa điểm dịch vụ này?'))return;
+  await fetch(API+'/service-points/'+id,{method:'DELETE',headers:headers()});
+  toast('Đã xóa','success');loadServicePoints();
+}
+
+// ── Earnings ──
+async function loadEarnings(){
+  const r=await fetch(API+'/earnings',{headers:headers()});
+  const d=await r.json();
+  document.getElementById('earn-total').textContent=fmt(d.total_earnings);
+  document.getElementById('earn-wallet').textContent=fmt(d.wallet_balance);
+  document.getElementById('earn-withdrawn').textContent=fmt(d.total_withdrawn);
+  const items=d.earnings||[];
+  document.getElementById('earnList').innerHTML=items.length?
+    `<div class="table-wrap"><table>
+      <thead><tr><th>Thời gian</th><th>Loại</th><th>Mô tả</th><th>Số tiền</th><th>Số dư sau</th></tr></thead>
+      <tbody>${items.map(e=>{
+        const typeLabel={commission:'Hoa hồng',bonus:'Thưởng',penalty:'Phạt',
+          withdrawal:'Rút tiền',deposit:'Nạp tiền',adjustment:'Điều chỉnh'};
+        const c=e.earning_type==='commission'||e.earning_type==='bonus'||e.earning_type==='deposit'
+          ?'var(--green)':'var(--red)';
+        const sign=e.earning_type==='withdrawal'||e.earning_type==='penalty'?'-':'+';
+        return`<tr>
+          <td style="font-size:11px;">${new Date(e.created_at).toLocaleString('vi-VN')}</td>
+          <td><span class="badge badge-blue">${typeLabel[e.earning_type]||e.earning_type}</span></td>
+          <td>${e.description||'—'}</td>
+          <td style="color:${c};font-weight:700;">${sign}${fmt(e.amount)}</td>
+          <td style="color:var(--sub);">${fmt(e.balance_after)}</td>
+        </tr>`;}).join('')}</tbody>
+    </table></div>`
+    :'<p style="color:var(--sub);text-align:center;padding:24px;">Chưa có giao dịch tài chính</p>';
+}
+
+// ── Profile ──
+async function loadProfile(){
+  if(!partnerData){
+    const r=await fetch(API+'/profile',{headers:headers()});
+    const d=await r.json();
+    partnerData=d.partner;
+  }
+  const p=partnerData;
+  document.getElementById('profileForm').innerHTML=`
+    <div class="form-group">
+      <label class="form-label">Loại đối tác</label>
+      <select class="form-input" id="pType">
+        <option ${p.partner_type==='individual'?'selected':''} value="individual">Cá nhân</option>
+        <option ${p.partner_type==='store'?'selected':''} value="store">Cửa hàng</option>
+        <option ${p.partner_type==='business'?'selected':''} value="business">Doanh nghiệp</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Họ tên</label>
+        <input class="form-input" id="pName" value="${p.full_name||''}"/></div>
+      <div class="form-group"><label class="form-label">Tên cửa hàng/DN</label>
+        <input class="form-input" id="pBizName" value="${p.business_name||''}"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Email</label>
+        <input class="form-input" id="pEmail" value="${p.email||''}"/></div>
+      <div class="form-group"><label class="form-label">Hotline</label>
+        <input class="form-input" id="pHotline" value="${p.hotline||''}"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Địa chỉ</label>
+      <input class="form-input" id="pAddress" value="${p.address||''}"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tỉnh/Thành</label>
+        <input class="form-input" id="pProvince" value="${p.province||''}"/></div>
+      <div class="form-group"><label class="form-label">Quận/Huyện</label>
+        <input class="form-input" id="pDistrict" value="${p.district||''}"/></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveProfile()">Lưu thay đổi</button>
+  `;
+  document.getElementById('profileStatus').innerHTML=`
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:6px;">Trạng thái tài khoản</div>
+      ${statusBadge(p.status)}
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:6px;">Cấp độ đại lý</div>
+      ${tierBadge(p.tier)}
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:6px;">Dịch vụ đăng ký</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${p.service_receiving?'<span class="badge badge-blue">📦 Nhận hàng</span>':''}
+        ${p.service_consignment?'<span class="badge badge-purple">🏷️ Ký gửi</span>':''}
+        ${p.service_inspection?'<span class="badge badge-green">🔬 Kiểm định</span>':''}
+        ${p.service_delivery?'<span class="badge badge-yellow">🚴 Giao nhận</span>':''}
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><div style="font-size:11px;color:var(--sub);">Tổng giao dịch</div>
+          <div style="font-weight:700;">${p.total_transactions||0}</div></div>
+        <div><div style="font-size:11px;color:var(--sub);">Tổng thu nhập</div>
+          <div style="font-weight:700;">${fmt(p.total_earnings)}</div></div>
+        <div><div style="font-size:11px;color:var(--sub);">Hoàn thành</div>
+          <div style="font-weight:700;">${(p.completion_rate||0).toFixed(0)}%</div></div>
+        <div><div style="font-size:11px;color:var(--sub);">Đánh giá</div>
+          <div style="font-weight:700;">⭐ ${(p.avg_rating||0).toFixed(1)}</div></div>
+      </div>
+    </div>
+    ${p.rejection_note?`<div style="margin-top:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+      border-radius:8px;padding:12px;font-size:12px;color:var(--red);">
+      ❌ Lý do từ chối: ${p.rejection_note}</div>`:''}
+  `;
+}
+async function saveProfile(){
+  const body={
+    partner_type:document.getElementById('pType').value,
+    full_name:document.getElementById('pName').value.trim(),
+    business_name:document.getElementById('pBizName').value.trim(),
+    email:document.getElementById('pEmail').value.trim(),
+    hotline:document.getElementById('pHotline').value.trim(),
+    address:document.getElementById('pAddress').value.trim(),
+    province:document.getElementById('pProvince').value.trim(),
+    district:document.getElementById('pDistrict').value.trim(),
+  };
+  const r=await fetch(API+'/profile',{method:'PUT',headers:headers(),body:JSON.stringify(body)});
+  if(r.ok){toast('Đã lưu hồ sơ!','success');const d=await r.json();partnerData=d.partner;}
+  else toast('Lỗi lưu hồ sơ','error');
+}
+
+// ── Map ──
+async function loadMap(){
+  const r=await fetch(API+'/map');
+  const d=await r.json();
+  allMapPoints=d.service_points||[];
+  // Init Leaflet map (Vietnam center)
+  if(!mapInstance){
+    mapInstance=L.map('map').setView([16.5,107.5],6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap contributors',maxZoom:18
+    }).addTo(mapInstance);
+  }
+  renderMapMarkers(allMapPoints);
+  // Partner list
+  const partners=d.partners||[];
+  document.getElementById('mapPartnerList').innerHTML=partners.length?
+    `<div class="table-wrap"><table>
+      <thead><tr><th>Đại lý</th><th>Loại</th><th>Tỉnh/Thành</th><th>Dịch vụ</th><th>Giao dịch</th><th>Tier</th></tr></thead>
+      <tbody>${partners.slice(0,20).map(p=>`<tr>
+        <td><div style="font-weight:600;">${p.business_name||p.full_name}</div>
+          <div style="font-size:11px;color:var(--sub);">${p.hotline||p.phone}</div></td>
+        <td><span class="badge badge-blue">${{individual:'Cá nhân',store:'Cửa hàng',business:'Doanh nghiệp'}[p.partner_type]||p.partner_type}</span></td>
+        <td>${p.province}</td>
+        <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
+          ${p.service_receiving?'<span class="badge badge-blue" style="font-size:9px;">📦</span>':''}
+          ${p.service_consignment?'<span class="badge badge-purple" style="font-size:9px;">🏷️</span>':''}
+          ${p.service_inspection?'<span class="badge badge-green" style="font-size:9px;">🔬</span>':''}
+          ${p.service_delivery?'<span class="badge badge-yellow" style="font-size:9px;">🚴</span>':''}
+        </div></td>
+        <td>${p.total_transactions||0}</td>
+        <td>${tierBadge(p.tier)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`
+    :'<p style="color:var(--sub);text-align:center;padding:24px;">Chưa có đại lý nào đang hoạt động</p>';
+  setTimeout(()=>mapInstance&&mapInstance.invalidateSize(),200);
+}
+
+const markerColors={receiving:'#3d8ef8',consignment:'#a78bfa',inspection:'#22c55e',
+  delivery:'#f59e0b',full:'#ef4444'};
+function renderMapMarkers(pts){
+  mapMarkers.forEach(m=>m.remove());
+  mapMarkers=[];
+  pts.forEach(pt=>{
+    const lat=pt.lat||(10+Math.random()*6);
+    const lng=pt.lng||(104+Math.random()*6);
+    const color=markerColors[pt.point_type]||'#3d8ef8';
+    const icon=L.divIcon({className:'',html:`<div style="width:14px;height:14px;border-radius:50%;
+      background:${color};border:2px solid #fff;box-shadow:0 0 6px ${color};"></div>`,iconSize:[14,14]});
+    const m=L.marker([lat,lng],{icon}).addTo(mapInstance);
+    m.bindPopup(`<b>${pt.name}</b><br>${pt.address}<br>${pt.province}<br>⏰ ${pt.operating_hours||'8:00-20:00'}`);
+    mapMarkers.push(m);
+  });
+}
+function filterMap(type,btn){
+  document.querySelectorAll('.map-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered=type==='all'?allMapPoints:allMapPoints.filter(p=>p.point_type===type);
+  renderMapMarkers(filtered);
+}
+
+// ── Rankings ──
+async function loadRankings(){
+  const r=await fetch(API+'/rankings',{headers:headers()});
+  const d=await r.json();
+  const renderRank=(arr,field,fmt2)=>arr.length?
+    arr.map((p,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;
+      border-bottom:1px solid rgba(255,255,255,.04);">
+      <div style="font-size:18px;width:28px;text-align:center;">${['🥇','🥈','🥉'][i]||'#'+(i+1)}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;">${p.business_name||p.full_name}</div>
+        <div style="font-size:11px;color:var(--sub);">${p.province} · ${tierBadge(p.tier)}</div>
+      </div>
+      <div style="font-weight:700;color:var(--green);">${fmt2(p[field])}</div>
+    </div>`).join('')
+    :'<p style="color:var(--sub);text-align:center;padding:24px;">Chưa có dữ liệu</p>';
+  document.getElementById('rankEarnings').innerHTML=renderRank(d.by_earnings,'total_earnings',fmt);
+  document.getElementById('rankTxns').innerHTML=renderRank(d.by_txns,'total_transactions',n=>n+' giao dịch');
+  document.getElementById('rankRatings').innerHTML=renderRank(d.by_ratings,'avg_rating',n=>'⭐ '+Number(n).toFixed(1));
+}
+
+// ── Admin ──
+let adminFilter='pending';
+async function adminLoadPartners(status='pending'){
+  adminFilter=status;
+  const r=await fetch('/api/admin/franchise/partners?status='+status,{headers:adminHeaders()});
+  if(!r.ok){toast('Lỗi quyền truy cập admin','error');return;}
+  const d=await r.json();
+  const partners=d.partners||[];
+  document.getElementById('adminPartnerTable').innerHTML=partners.map(p=>`<tr class="partner-row">
+    <td>
+      <div style="font-weight:600;">${p.business_name||p.full_name}</div>
+      <div style="font-size:11px;color:var(--sub);">${p.phone} · ${p.email||''}</div>
+    </td>
+    <td><span class="badge badge-blue">${{individual:'Cá nhân',store:'Cửa hàng',business:'DN'}[p.partner_type]||p.partner_type}</span></td>
+    <td>${p.province}</td>
+    <td><div style="display:flex;gap:3px;">
+      ${p.service_receiving?'<span title="Nhận hàng">📦</span>':''}
+      ${p.service_consignment?'<span title="Ký gửi">🏷️</span>':''}
+      ${p.service_inspection?'<span title="Kiểm định">🔬</span>':''}
+      ${p.service_delivery?'<span title="Giao nhận">🚴</span>':''}
+    </div></td>
+    <td>${p.total_transactions||0}</td>
+    <td>${tierBadge(p.tier)}</td>
+    <td>${statusBadge(p.status)}</td>
+    <td>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${p.status==='pending'?`
+          <button class="btn btn-success btn-sm" onclick="adminUpdatePartner('${p.id}','active')">✓ Duyệt</button>
+          <button class="btn btn-danger btn-sm" onclick="adminRejectPartner('${p.id}')">✕ Từ chối</button>`:''}
+        ${p.status==='active'?`
+          <button class="btn btn-danger btn-sm" onclick="adminUpdatePartner('${p.id}','suspended')">Đình chỉ</button>`:''}
+        ${p.status==='suspended'?`
+          <button class="btn btn-success btn-sm" onclick="adminUpdatePartner('${p.id}','active')">Kích hoạt</button>`:''}
+        <select class="form-input" style="font-size:11px;padding:4px;" onchange="adminSetTier('${p.id}',this.value)">
+          <option value="">Đổi tier...</option>
+          <option value="basic">Basic</option>
+          <option value="silver">Silver</option>
+          <option value="gold">Gold</option>
+          <option value="platinum">Platinum</option>
+        </select>
+      </div>
+    </td>
+  </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--sub);padding:24px;">Không có đối tác nào</td></tr>';
+}
+function adminFilterPartners(status,btn){
+  document.querySelectorAll('#page-admin-partners .map-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  adminLoadPartners(status);
+}
+async function adminUpdatePartner(id,status){
+  const r=await fetch('/api/admin/franchise/partners/'+id,{method:'PATCH',
+    headers:adminHeaders(),body:JSON.stringify({status})});
+  if(r.ok){toast('Đã cập nhật','success');adminLoadPartners(adminFilter);}
+  else toast('Lỗi','error');
+}
+async function adminRejectPartner(id){
+  const note=prompt('Lý do từ chối:');
+  if(note===null)return;
+  const r=await fetch('/api/admin/franchise/partners/'+id,{method:'PATCH',
+    headers:adminHeaders(),body:JSON.stringify({status:'rejected',rejection_note:note})});
+  if(r.ok){toast('Đã từ chối','success');adminLoadPartners(adminFilter);}
+}
+async function adminSetTier(id,tier){
+  if(!tier)return;
+  const r=await fetch('/api/admin/franchise/partners/'+id+'/tier',{method:'PATCH',
+    headers:adminHeaders(),body:JSON.stringify({tier})});
+  if(r.ok){toast('Đã cập nhật tier','success');adminLoadPartners(adminFilter);}
+}
+async function adminLoadStats(){
+  const r=await fetch('/api/admin/franchise/stats',{headers:adminHeaders()});
+  if(!r.ok){toast('Lỗi quyền','error');return;}
+  const d=await r.json();
+  document.getElementById('as-total').textContent=d.total_partners||0;
+  document.getElementById('as-active').textContent=d.active_partners||0;
+  document.getElementById('as-pending').textContent=d.pending_partners||0;
+  document.getElementById('as-revenue').textContent=fmt(d.total_revenue||0);
+  // Province chart
+  const prov=d.by_province||[];
+  new Chart(document.getElementById('adminProvinceChart'),{type:'bar',data:{
+    labels:prov.map(p=>p.province).slice(0,10),
+    datasets:[{label:'Đại lý',data:prov.map(p=>p.count).slice(0,10),
+      backgroundColor:'rgba(61,142,248,.5)',borderRadius:6}]
+  },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b'}},
+      y:{grid:{display:false},ticks:{color:'#64748b'}}}}});
+  // Service chart
+  const svc=d.by_service||[];
+  new Chart(document.getElementById('adminServiceChart'),{type:'doughnut',data:{
+    labels:svc.map(s=>s.service),
+    datasets:[{data:svc.map(s=>s.count),
+      backgroundColor:['rgba(61,142,248,.7)','rgba(167,139,250,.7)','rgba(34,197,94,.7)','rgba(245,158,11,.7)']}]
+  },options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8'}}}}});
+}
+
+// ── Boot ──
+(async()=>{
+  if(token){
+    try{
+      const r=await fetch(API+'/profile',{headers:headers()});
+      if(r.ok){const d=await r.json();partnerData=d.partner;initApp();}
+      else{localStorage.removeItem('franchise_token');token=null;}
+    }catch(e){localStorage.removeItem('franchise_token');token=null;}
+  }
+})();
+</script>
+</body>
+</html>

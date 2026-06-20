@@ -7992,6 +7992,306 @@ app.post('/api/admin/risk/alerts/create', adminAuth, async (req, res) => {
   res.json({ alert: data });
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 15: FRANCHISE NETWORK
+// ═══════════════════════════════════════════════════════════
+
+// Serve franchise page
+app.get('/franchise', (req, res) => {
+  res.sendFile(new URL('./frontend/franchise.html', import.meta.url).pathname);
+});
+
+// Franchise Auth Middleware
+const franchiseAuth = async (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
+    if (decoded.type !== 'franchise') return res.status(401).json({ error: 'Invalid token type' });
+    req.partner = decoded;
+    next();
+  } catch (e) { return res.status(401).json({ error: 'Token invalid or expired' }); }
+}
+
+// ── Register ──
+app.post('/api/franchise/auth/register', async (req, res) => {
+  const { partner_type, full_name, business_name, phone, password, email,
+    address, province, district, ward,
+    service_receiving, service_consignment, service_inspection, service_delivery } = req.body;
+  if (!full_name || !phone || !password || !province || !address)
+    return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+  if (password.length < 8) return res.status(400).json({ error: 'Mật khẩu tối thiểu 8 ký tự' });
+  const { data: existing } = await supabase.from('franchise_partners').select('id').eq('phone', phone).single();
+  if (existing) return res.status(409).json({ error: 'Số điện thoại đã được đăng ký' });
+  const password_hash = await bcrypt.hash(password, 10);
+  const { data: partner, error } = await supabase.from('franchise_partners').insert({
+    partner_type: partner_type || 'individual',
+    full_name: sanitize(full_name), business_name: sanitize(business_name || ''),
+    phone: phone.trim(), password_hash, email: email || null,
+    address: sanitize(address), province: sanitize(province),
+    district: district || null, ward: ward || null,
+    service_receiving: service_receiving !== false,
+    service_consignment: !!service_consignment,
+    service_inspection: !!service_inspection,
+    service_delivery: !!service_delivery,
+    status: 'pending', tier: 'basic'
+  }).select('id,full_name,business_name,phone,email,province,address,partner_type,tier,status,service_receiving,service_consignment,service_inspection,service_delivery').single();
+  if (error) return res.status(500).json({ error: error.message });
+  const token = jwt.sign({ partnerId: partner.id, phone: partner.phone, type: 'franchise' }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  res.json({ token, partner });
+});
+
+// ── Login ──
+app.post('/api/franchise/auth/login', async (req, res) => {
+  const { phone, password } = req.body;
+  if (!phone || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
+  const { data: partner, error } = await supabase.from('franchise_partners')
+    .select('*').eq('phone', phone.trim()).single();
+  if (error || !partner) return res.status(401).json({ error: 'Sai số điện thoại hoặc mật khẩu' });
+  if (partner.status === 'suspended') return res.status(403).json({ error: 'Tài khoản đã bị đình chỉ' });
+  const ok = await bcrypt.compare(password, partner.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Sai số điện thoại hoặc mật khẩu' });
+  const token = jwt.sign({ partnerId: partner.id, phone: partner.phone, type: 'franchise' }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  const { password_hash, ...safe } = partner;
+  res.json({ token, partner: safe });
+});
+
+// ── Profile ──
+app.get('/api/franchise/profile', franchiseAuth, async (req, res) => {
+  const { data: partner } = await supabase.from('franchise_partners')
+    .select('id,full_name,business_name,phone,email,hotline,address,province,district,ward,partner_type,tier,status,service_receiving,service_consignment,service_inspection,service_delivery,wallet_balance,total_earnings,total_transactions,completion_rate,avg_rating,rating_count,rejection_note,created_at')
+    .eq('id', req.partner.partnerId).single();
+  if (!partner) return res.status(404).json({ error: 'Không tìm thấy đại lý' });
+  res.json({ partner });
+});
+
+app.put('/api/franchise/profile', franchiseAuth, async (req, res) => {
+  const { full_name, business_name, email, hotline, address, province, district, ward, partner_type } = req.body;
+  const { data: partner, error } = await supabase.from('franchise_partners')
+    .update({ full_name: sanitize(full_name || ''), business_name: sanitize(business_name || ''),
+      email, hotline, address: sanitize(address || ''), province: sanitize(province || ''),
+      district, ward, partner_type, updated_at: new Date().toISOString() })
+    .eq('id', req.partner.partnerId).select('id,full_name,business_name,phone,email,hotline,address,province,district,partner_type,tier,status').single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ partner });
+});
+
+// ── Dashboard ──
+app.get('/api/franchise/dashboard', franchiseAuth, async (req, res) => {
+  const pid = req.partner.partnerId;
+  const { data: partner } = await supabase.from('franchise_partners')
+    .select('wallet_balance,total_earnings,total_transactions,completion_rate,avg_rating,rating_count').eq('id', pid).single();
+  // Recent transactions
+  const { data: recent } = await supabase.from('franchise_transactions')
+    .select('id,ref_code,txn_type,sender_name,receiver_name,commission_earned,service_fee,status,created_at')
+    .eq('partner_id', pid).order('created_at', { ascending: false }).limit(5);
+  // Monthly txns (last 6 months)
+  const monthly_txns = [];
+  const monthly_earnings = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const m = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+    const { data: txns } = await supabase.from('franchise_transactions')
+      .select('id,commission_earned').eq('partner_id', pid)
+      .gte('created_at', m + '-01').lt('created_at', m + '-32');
+    monthly_txns.push({ month: label, count: txns?.length || 0 });
+    monthly_earnings.push({ month: label, amount: txns?.reduce((s, t) => s + (t.commission_earned || 0), 0) || 0 });
+  }
+  res.json({ ...(partner || {}), recent_transactions: recent || [], monthly_txns, monthly_earnings });
+});
+
+// ── Announcements ──
+app.get('/api/franchise/announcements', franchiseAuth, async (req, res) => {
+  const { data } = await supabase.from('franchise_announcements')
+    .select('*').order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
+  res.json({ announcements: data || [] });
+});
+
+// ── Transactions ──
+app.get('/api/franchise/transactions', franchiseAuth, async (req, res) => {
+  const { filter = 'all' } = req.query;
+  let q = supabase.from('franchise_transactions').select('*').eq('partner_id', req.partner.partnerId);
+  if (['pending','processing','completed','cancelled','returned'].includes(filter)) q = q.eq('status', filter);
+  else if (['receiving','consignment','inspection','delivery'].includes(filter)) q = q.eq('txn_type', filter);
+  const { data } = await q.order('created_at', { ascending: false });
+  res.json({ transactions: data || [] });
+});
+
+app.post('/api/franchise/transactions', franchiseAuth, async (req, res) => {
+  const { txn_type, sender_name, sender_phone, receiver_name, receiver_phone,
+    item_description, item_value, service_fee, notes, service_point_id } = req.body;
+  if (!txn_type) return res.status(400).json({ error: 'Thiếu loại giao dịch' });
+  const commission_rate = 0.05;
+  const commission_earned = Math.floor((service_fee || 0) * commission_rate);
+  const { data, error } = await supabase.from('franchise_transactions').insert({
+    partner_id: req.partner.partnerId, txn_type,
+    sender_name: sanitize(sender_name || ''), sender_phone,
+    receiver_name: sanitize(receiver_name || ''), receiver_phone,
+    item_description: sanitize(item_description || ''),
+    item_value: item_value || 0, service_fee: service_fee || 0,
+    commission_rate, commission_earned, notes, service_point_id: service_point_id || null,
+    status: 'pending'
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ transaction: data });
+});
+
+app.patch('/api/franchise/transactions/:id', franchiseAuth, async (req, res) => {
+  const { status } = req.body;
+  const { data: txn } = await supabase.from('franchise_transactions').select('*')
+    .eq('id', req.params.id).eq('partner_id', req.partner.partnerId).single();
+  if (!txn) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+  const update = { status };
+  if (status === 'completed') update.completed_at = new Date().toISOString();
+  await supabase.from('franchise_transactions').update(update).eq('id', req.params.id);
+  // Update earnings & stats on completion
+  if (status === 'completed' && txn.commission_earned > 0) {
+    const { data: p } = await supabase.from('franchise_partners').select('wallet_balance,total_earnings,total_transactions').eq('id', req.partner.partnerId).single();
+    const newBalance = (p?.wallet_balance || 0) + txn.commission_earned;
+    await supabase.from('franchise_partners').update({
+      wallet_balance: newBalance,
+      total_earnings: (p?.total_earnings || 0) + txn.commission_earned,
+      total_transactions: (p?.total_transactions || 0) + 1
+    }).eq('id', req.partner.partnerId);
+    await supabase.from('franchise_earnings').insert({
+      partner_id: req.partner.partnerId, txn_id: txn.id,
+      earning_type: 'commission', amount: txn.commission_earned,
+      description: `Hoa hồng giao dịch ${txn.ref_code}`, balance_after: newBalance
+    });
+  }
+  res.json({ ok: true });
+});
+
+// ── Service Points ──
+app.get('/api/franchise/service-points', franchiseAuth, async (req, res) => {
+  const { data } = await supabase.from('franchise_service_points')
+    .select('*').eq('partner_id', req.partner.partnerId).order('created_at', { ascending: false });
+  res.json({ service_points: data || [] });
+});
+
+app.post('/api/franchise/service-points', franchiseAuth, async (req, res) => {
+  const { name, point_type, address, province, district, ward, hotline, operating_hours, capacity } = req.body;
+  if (!name || !address || !province) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+  const { data, error } = await supabase.from('franchise_service_points').insert({
+    partner_id: req.partner.partnerId,
+    name: sanitize(name), point_type: point_type || 'receiving',
+    address: sanitize(address), province: sanitize(province),
+    district, ward, hotline, operating_hours: operating_hours || '8:00 - 20:00',
+    capacity: capacity || 100, current_load: 0, status: 'active'
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ service_point: data });
+});
+
+app.patch('/api/franchise/service-points/:id', franchiseAuth, async (req, res) => {
+  const { status, current_load } = req.body;
+  const { error } = await supabase.from('franchise_service_points')
+    .update({ ...(status && { status }), ...(current_load !== undefined && { current_load }) })
+    .eq('id', req.params.id).eq('partner_id', req.partner.partnerId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+app.delete('/api/franchise/service-points/:id', franchiseAuth, async (req, res) => {
+  await supabase.from('franchise_service_points').delete()
+    .eq('id', req.params.id).eq('partner_id', req.partner.partnerId);
+  res.json({ ok: true });
+});
+
+// ── Earnings ──
+app.get('/api/franchise/earnings', franchiseAuth, async (req, res) => {
+  const pid = req.partner.partnerId;
+  const { data: partner } = await supabase.from('franchise_partners')
+    .select('wallet_balance,total_earnings').eq('id', pid).single();
+  const { data: earnings } = await supabase.from('franchise_earnings')
+    .select('*').eq('partner_id', pid).order('created_at', { ascending: false }).limit(50);
+  const withdrawn = (earnings || []).filter(e => e.earning_type === 'withdrawal')
+    .reduce((s, e) => s + e.amount, 0);
+  res.json({
+    wallet_balance: partner?.wallet_balance || 0,
+    total_earnings: partner?.total_earnings || 0,
+    total_withdrawn: withdrawn,
+    earnings: earnings || []
+  });
+});
+
+// ── Map (Public) ──
+app.get('/api/franchise/map', async (req, res) => {
+  const { data: points } = await supabase.from('franchise_service_points')
+    .select('id,name,address,province,district,point_type,operating_hours,hotline,lat,lng,status,current_load,capacity')
+    .eq('status', 'active');
+  const { data: partners } = await supabase.from('franchise_partners')
+    .select('id,full_name,business_name,phone,hotline,province,partner_type,tier,service_receiving,service_consignment,service_inspection,service_delivery,total_transactions,avg_rating,lat,lng')
+    .eq('status', 'active').order('rank_score', { ascending: false }).limit(100);
+  res.json({ service_points: points || [], partners: partners || [] });
+});
+
+// ── Rankings ──
+app.get('/api/franchise/rankings', franchiseAuth, async (req, res) => {
+  const base = 'id,full_name,business_name,province,tier,total_transactions,total_earnings,avg_rating,rating_count';
+  const { data: by_earnings } = await supabase.from('franchise_partners')
+    .select(base).eq('status', 'active').order('total_earnings', { ascending: false }).limit(10);
+  const { data: by_txns } = await supabase.from('franchise_partners')
+    .select(base).eq('status', 'active').order('total_transactions', { ascending: false }).limit(10);
+  const { data: by_ratings } = await supabase.from('franchise_partners')
+    .select(base).eq('status', 'active').gte('rating_count', 1).order('avg_rating', { ascending: false }).limit(10);
+  res.json({ by_earnings: by_earnings || [], by_txns: by_txns || [], by_ratings: by_ratings || [] });
+});
+
+// ── Admin: List Partners ──
+app.get('/api/admin/franchise/partners', adminAuth, async (req, res) => {
+  const { status = 'pending' } = req.query;
+  const { data: partners } = await supabase.from('franchise_partners')
+    .select('id,full_name,business_name,phone,email,province,partner_type,tier,status,service_receiving,service_consignment,service_inspection,service_delivery,total_transactions,total_earnings,avg_rating,created_at,rejection_note')
+    .eq('status', status).order('created_at', { ascending: false });
+  res.json({ partners: partners || [] });
+});
+
+// ── Admin: Update Partner Status ──
+app.patch('/api/admin/franchise/partners/:id', adminAuth, async (req, res) => {
+  const { status, rejection_note } = req.body;
+  const update = { status };
+  if (status === 'active') { update.approved_at = new Date().toISOString(); }
+  if (rejection_note) update.rejection_note = sanitize(rejection_note);
+  const { error } = await supabase.from('franchise_partners').update(update).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// ── Admin: Update Tier ──
+app.patch('/api/admin/franchise/partners/:id/tier', adminAuth, async (req, res) => {
+  const { tier } = req.body;
+  if (!['basic','silver','gold','platinum'].includes(tier)) return res.status(400).json({ error: 'Tier không hợp lệ' });
+  const { error } = await supabase.from('franchise_partners').update({ tier }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// ── Admin: Stats ──
+app.get('/api/admin/franchise/stats', adminAuth, async (req, res) => {
+  const { data: all } = await supabase.from('franchise_partners').select('id,status,province,service_receiving,service_consignment,service_inspection,service_delivery,total_earnings');
+  const total_partners = all?.length || 0;
+  const active_partners = all?.filter(p => p.status === 'active').length || 0;
+  const pending_partners = all?.filter(p => p.status === 'pending').length || 0;
+  const total_revenue = all?.reduce((s, p) => s + (p.total_earnings || 0), 0) || 0;
+  // By province
+  const provinceCounts = {};
+  (all || []).forEach(p => { provinceCounts[p.province] = (provinceCounts[p.province] || 0) + 1; });
+  const by_province = Object.entries(provinceCounts).map(([province, count]) => ({ province, count }))
+    .sort((a, b) => b.count - a.count);
+  // By service
+  const svcCounts = { 'Nhận hàng': 0, 'Ký gửi': 0, 'Kiểm định': 0, 'Giao nhận': 0 };
+  (all || []).forEach(p => {
+    if (p.service_receiving) svcCounts['Nhận hàng']++;
+    if (p.service_consignment) svcCounts['Ký gửi']++;
+    if (p.service_inspection) svcCounts['Kiểm định']++;
+    if (p.service_delivery) svcCounts['Giao nhận']++;
+  });
+  const by_service = Object.entries(svcCounts).map(([service, count]) => ({ service, count }));
+  res.json({ total_partners, active_partners, pending_partners, total_revenue, by_province, by_service });
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

@@ -1178,6 +1178,7 @@ function render(){
     {id:"delivery",icon:"🚴",label:"Delivery"},
     {id:"risk",icon:"🤖",label:"AI Risk"},
     {id:"business_center",icon:"🏬",label:"Business"},
+    {id:"franchise_network",icon:"🤝",label:"Franchise"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1214,6 +1215,8 @@ function render(){
           ?"window.location.href='/risk'"
           :p.id==="business_center"
           ?"window.location.href='/business'"
+          :p.id==="franchise_network"
+          ?"window.location.href='/franchise'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

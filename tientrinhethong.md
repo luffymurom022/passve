@@ -917,3 +917,35 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 > **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `business_phase14_migration.sql`
 
 *Cập nhật lần cuối: 2026-06-20*
+
+---
+
+## ✅ PHASE 15: SAFEPASS FRANCHISE NETWORK — HOÀN THÀNH 2026-06-20
+
+| Tính năng | Ngày |
+|-----------|------|
+| **Franchise System** — đăng ký cá nhân / cửa hàng / doanh nghiệp thành đối tác | 2026-06-20 |
+| **Partner Auth** — JWT riêng (type:'franchise'), đăng ký + đăng nhập bằng SĐT | 2026-06-20 |
+| **Partner Profile** — tên, địa chỉ, tỉnh, hotline, loại dịch vụ, cấp độ tier | 2026-06-20 |
+| **4 Loại Service Points** — nhận hàng / ký gửi / kiểm định / giao nhận / full service | 2026-06-20 |
+| **Service Point Management** — thêm/tắt/xóa điểm dịch vụ, theo dõi tải lượng | 2026-06-20 |
+| **Transaction Management** — tạo giao dịch, cập nhật trạng thái, 5 filter tab | 2026-06-20 |
+| **Partner Earnings** — hoa hồng tự động (5%), lịch sử ví, tổng thu nhập, đã rút | 2026-06-20 |
+| **Partner Map** — Leaflet.js + OpenStreetMap (miễn phí, không cần API key) | 2026-06-20 |
+| **Partner Dashboard** — Chart.js: giao dịch theo tháng + thu nhập theo tháng | 2026-06-20 |
+| **Partner Rankings** — top thu nhập / top giao dịch / top đánh giá | 2026-06-20 |
+| **Admin Franchise Center** — duyệt/từ chối/đình chỉ đối tác, đổi tier | 2026-06-20 |
+| **Admin Stats** — tổng đại lý, theo tỉnh (bar chart), theo dịch vụ (donut chart) | 2026-06-20 |
+| **Announcements** — thông báo từ admin, ghim, phân tier, 3 mẫu seeded | 2026-06-20 |
+| **Tier System** — basic → silver → gold → platinum | 2026-06-20 |
+| **Nav "🤝 Franchise"** thêm vào index.html → `/franchise` | 2026-06-20 |
+| **UI** — dark mode, Leaflet map, Chart.js, sidebar nav, responsive | 2026-06-20 |
+| **SQL Migration** — `franchise_network_migration.sql` (chạy trong Supabase SQL Editor) | 2026-06-20 |
+
+**Tables mới:** `franchise_partners`, `franchise_service_points`, `franchise_transactions`, `franchise_earnings`, `franchise_ratings`, `franchise_announcements`
+
+**API routes:** 18 routes — `/api/franchise/auth/*`, `/api/franchise/profile`, `/api/franchise/dashboard`, `/api/franchise/transactions`, `/api/franchise/service-points`, `/api/franchise/earnings`, `/api/franchise/map` (public), `/api/franchise/rankings`, `/api/admin/franchise/*`
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `franchise_network_migration.sql`
+
+*Cập nhật lần cuối: 2026-06-20*
