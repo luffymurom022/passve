@@ -5946,6 +5946,261 @@ app.get('/freelance', (req, res) => {
   res.sendFile(join(__dirname, 'frontend', 'freelance.html'));
 });
 
+// ══════════════════════════════════════════════════════════
+//  SAFEPASS LOGISTICS HUB
+// ══════════════════════════════════════════════════════════
+
+const LG_PROVINCES_SAME = ['Hồ Chí Minh','Hà Nội','Đà Nẵng','Cần Thơ','Hải Phòng'];
+const LG_SERVICE_TYPES = {
+  standard: { label: 'Tiêu chuẩn',  multiplier: 1.0, extra_days: 0 },
+  express:  { label: 'Nhanh',        multiplier: 1.5, extra_days: -1 },
+  same_day: { label: 'Hỏa tốc',      multiplier: 2.5, extra_days: -2 }
+}
+const LG_CARGO_FEES = { general:0, fragile:5000, electronics:10000, documents:0, food:5000, clothing:0 };
+const LG_INSURANCE_RATE = 0.005; // 0.5% of declared value
+
+function lgGenTrackingNumber() {
+  const ts = Date.now().toString().slice(-8);
+  const rand = Math.floor(Math.random()*9000+1000);
+  return `SP${ts}${rand}`;
+}
+
+async function lgCalcFee(from_province, to_province, weight, service_type = 'standard', declared_value = 0, has_insurance = false) {
+  let base = 20000, perKg = 5000, est_days = 2;
+  const { data: route } = await supabase.from('lg_routes')
+    .select('*').eq('from_province', from_province).eq('to_province', to_province).eq('is_active', true).single();
+  if (route) { base = route.base_fee; perKg = route.per_kg_fee; est_days = route.est_days; }
+  else if (from_province === to_province) { base = 15000; perKg = 3000; est_days = 1; }
+  else { base = 30000; perKg = 6000; est_days = 3; }
+  const svc = LG_SERVICE_TYPES[service_type] || LG_SERVICE_TYPES.standard;
+  const weightFee = Math.ceil(weight / 0.5) * perKg;
+  const subtotal = Math.floor((base + weightFee) * svc.multiplier);
+  const insurance_fee = has_insurance ? Math.floor(declared_value * LG_INSURANCE_RATE) : 0;
+  const total = subtotal + insurance_fee;
+  const delivery_days = Math.max(1, est_days + svc.extra_days);
+  const estimated_delivery = new Date(Date.now() + delivery_days * 86400000).toISOString().split('T')[0];
+  return { shipping_fee: subtotal, insurance_fee, total_fee: total, estimated_delivery, delivery_days };
+}
+
+async function lgAddEvent(shipmentId, status, location, description, created_by = 'system') {
+  await supabase.from('lg_tracking_events').insert({ shipment_id: shipmentId, status, location, description, created_by });
+}
+
+// ── Shipping Quote ──
+app.post('/api/logistics/quote', async (req, res) => {
+  try {
+    const { from_province, to_province, weight, service_type, declared_value, has_insurance } = req.body;
+    if (!from_province || !to_province || !weight) return res.status(400).json({ error: 'Thiếu thông tin' });
+    const quote = await lgCalcFee(from_province, to_province, parseFloat(weight)||0.5, service_type||'standard', parseInt(declared_value)||0, has_insurance||false);
+    const quotes = await Promise.all(Object.keys(LG_SERVICE_TYPES).map(async svc => {
+      const q = await lgCalcFee(from_province, to_province, parseFloat(weight)||0.5, svc, parseInt(declared_value)||0, has_insurance||false);
+      return { service_type: svc, label: LG_SERVICE_TYPES[svc].label, ...q };
+    }));
+    res.json({ quote, all_quotes: quotes });
+  } catch(e) { res.status(500).json({ error: 'Lỗi tính phí' }); }
+});
+
+// ── Create Shipment ──
+app.post('/api/logistics/shipments', auth, async (req, res) => {
+  try {
+    const {
+      sender_name, sender_phone, sender_address, sender_district, sender_province,
+      receiver_name, receiver_phone, receiver_address, receiver_district, receiver_province,
+      cargo_type, weight, length, width, height, description,
+      declared_value, has_insurance, service_type, cod_amount,
+      payment_method, pickup_date, pickup_time_slot, notes
+    } = req.body;
+    if (!sender_name || !sender_phone || !sender_address || !sender_province ||
+        !receiver_name || !receiver_phone || !receiver_address || !receiver_province)
+      return res.status(400).json({ error: 'Thiếu thông tin người gửi/nhận' });
+    const tracking_number = lgGenTrackingNumber();
+    const fees = await lgCalcFee(
+      sender_province, receiver_province, parseFloat(weight)||0.5,
+      service_type||'standard', parseInt(declared_value)||0, has_insurance||false
+    );
+    const { data: shipment, error } = await supabase.from('lg_shipments').insert({
+      tracking_number, user_id: req.user.id,
+      sender_name: sanitize(sender_name), sender_phone: sanitize(sender_phone),
+      sender_address: sanitize(sender_address), sender_district: sanitize(sender_district||''),
+      sender_province: sanitize(sender_province),
+      receiver_name: sanitize(receiver_name), receiver_phone: sanitize(receiver_phone),
+      receiver_address: sanitize(receiver_address), receiver_district: sanitize(receiver_district||''),
+      receiver_province: sanitize(receiver_province),
+      cargo_type: cargo_type||'general', weight: parseFloat(weight)||0.5,
+      length: parseFloat(length)||null, width: parseFloat(width)||null, height: parseFloat(height)||null,
+      description: sanitize(description||''), declared_value: parseInt(declared_value)||0,
+      has_insurance: has_insurance||false, service_type: service_type||'standard',
+      cod_amount: parseInt(cod_amount)||0, payment_method: payment_method||'sender',
+      pickup_date: pickup_date||null, pickup_time_slot: pickup_time_slot||null,
+      notes: sanitize(notes||''),
+      shipping_fee: fees.shipping_fee, insurance_fee: fees.insurance_fee, total_fee: fees.total_fee,
+      estimated_delivery: fees.estimated_delivery, status: 'pending'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Tạo đơn thất bại: ' + error.message });
+    await lgAddEvent(shipment.id, 'pending', sender_province, `Đơn hàng #${tracking_number} đã được tạo. Đang chờ lấy hàng.`);
+    res.status(201).json({ ok: true, shipment });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── Get My Shipments ──
+app.get('/api/logistics/shipments', auth, async (req, res) => {
+  const { status, limit = 20, page = 1 } = req.query;
+  let query = supabase.from('lg_shipments').select('*').eq('user_id', req.user.id);
+  if (status) query = query.eq('status', status);
+  query = query.order('created_at', { ascending: false }).range((page-1)*limit, page*limit-1);
+  const { data } = await query;
+  res.json({ shipments: data||[] });
+});
+
+// ── Track Shipment (public) ──
+app.get('/api/logistics/track/:trackingNumber', async (req, res) => {
+  const { data: shipment } = await supabase.from('lg_shipments').select('*').eq('tracking_number', req.params.trackingNumber.toUpperCase()).single();
+  if (!shipment) return res.status(404).json({ error: 'Không tìm thấy mã vận đơn' });
+  const { data: events } = await supabase.from('lg_tracking_events').select('*').eq('shipment_id', shipment.id).order('created_at', { ascending: true });
+  res.json({ shipment, events: events||[] });
+});
+
+// ── Get Shipment Detail ──
+app.get('/api/logistics/shipments/:id', auth, async (req, res) => {
+  const { data: shipment } = await supabase.from('lg_shipments').select('*, lg_drivers(*), lg_warehouses(*)').eq('id', req.params.id).single();
+  if (!shipment) return res.status(404).json({ error: 'Không tìm thấy đơn' });
+  if (shipment.user_id !== req.user.id && !req.user.is_admin) return res.status(403).json({ error: 'Không có quyền' });
+  const { data: events } = await supabase.from('lg_tracking_events').select('*').eq('shipment_id', shipment.id).order('created_at', { ascending: true });
+  res.json({ shipment, events: events||[] });
+});
+
+// ── Cancel Shipment ──
+app.patch('/api/logistics/shipments/:id/cancel', auth, async (req, res) => {
+  const { data: shipment } = await supabase.from('lg_shipments').select('user_id,status,tracking_number').eq('id', req.params.id).single();
+  if (!shipment || shipment.user_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+  if (!['pending'].includes(shipment.status)) return res.status(400).json({ error: 'Chỉ hủy được đơn đang chờ lấy hàng' });
+  await supabase.from('lg_shipments').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', req.params.id);
+  await lgAddEvent(req.params.id, 'cancelled', '', 'Đơn hàng đã bị hủy bởi người gửi.');
+  res.json({ ok: true });
+});
+
+// ── Schedule Pickup ──
+app.post('/api/logistics/pickups', auth, async (req, res) => {
+  try {
+    const { shipment_id, pickup_date, time_slot, pickup_address, contact_name, contact_phone, notes } = req.body;
+    if (!pickup_date || !time_slot || !pickup_address) return res.status(400).json({ error: 'Thiếu thông tin lịch lấy hàng' });
+    const { data: pickup, error } = await supabase.from('lg_pickups').insert({
+      shipment_id: shipment_id||null, user_id: req.user.id,
+      pickup_date, time_slot, pickup_address: sanitize(pickup_address),
+      contact_name: sanitize(contact_name||''), contact_phone: sanitize(contact_phone||''),
+      notes: sanitize(notes||''), status: 'scheduled'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Đặt lịch thất bại' });
+    if (shipment_id) {
+      await supabase.from('lg_shipments').update({ pickup_date, pickup_time_slot: time_slot }).eq('id', shipment_id);
+      await lgAddEvent(shipment_id, 'pending', '', `Đã đặt lịch lấy hàng: ${pickup_date} — ${time_slot}`);
+    }
+    res.status(201).json({ ok: true, pickup });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.get('/api/logistics/pickups', auth, async (req, res) => {
+  const { data } = await supabase.from('lg_pickups').select('*, lg_shipments(tracking_number)').eq('user_id', req.user.id).order('pickup_date', { ascending: false });
+  res.json({ pickups: data||[] });
+});
+
+// ── Dashboard Stats ──
+app.get('/api/logistics/dashboard', auth, async (req, res) => {
+  const [
+    { count: total },
+    { count: pending },
+    { count: in_transit },
+    { count: delivered },
+    { count: returned }
+  ] = await Promise.all([
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('user_id', req.user.id),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('user_id', req.user.id).eq('status','pending'),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('user_id', req.user.id).in('status',['picked_up','in_transit','at_warehouse','out_for_delivery']),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('user_id', req.user.id).eq('status','delivered'),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('user_id', req.user.id).eq('status','returned')
+  ]);
+  const { data: recent } = await supabase.from('lg_shipments').select('*').eq('user_id', req.user.id).order('created_at',{ascending:false}).limit(5);
+  res.json({ stats: { total:total||0, pending:pending||0, in_transit:in_transit||0, delivered:delivered||0, returned:returned||0 }, recent: recent||[] });
+});
+
+// ── Admin — Update Tracking Status ──
+app.patch('/api/admin/logistics/shipments/:id/status', adminAuth, async (req, res) => {
+  const { status, location, description } = req.body;
+  const validStatuses = ['pending','picked_up','in_transit','at_warehouse','out_for_delivery','delivered','returned','cancelled'];
+  if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const updates = { status, updated_at: new Date().toISOString() };
+  if (status === 'delivered') updates.delivered_at = new Date().toISOString();
+  await supabase.from('lg_shipments').update(updates).eq('id', req.params.id);
+  const { data: s } = await supabase.from('lg_shipments').select('tracking_number,sender_province,receiver_province').eq('id', req.params.id).single();
+  const loc = location || (status === 'at_warehouse' ? 'Kho trung chuyển' : status === 'delivered' ? s?.receiver_province : s?.sender_province) || '';
+  const desc = description || {
+    picked_up: 'Đã lấy hàng thành công',
+    in_transit: 'Đơn hàng đang trên đường vận chuyển',
+    at_warehouse: 'Đơn hàng đã đến kho trung chuyển',
+    out_for_delivery: 'Shipper đang trên đường giao hàng',
+    delivered: 'Giao hàng thành công',
+    returned: 'Hoàn hàng về người gửi',
+    cancelled: 'Đơn hàng đã bị hủy'
+  }[status] || status;
+  await lgAddEvent(req.params.id, status, loc, desc, 'admin');
+  res.json({ ok: true });
+});
+
+app.patch('/api/admin/logistics/shipments/:id/assign-driver', adminAuth, async (req, res) => {
+  const { driver_id } = req.body;
+  await supabase.from('lg_shipments').update({ driver_id, updated_at: new Date().toISOString() }).eq('id', req.params.id);
+  const { data: d } = await supabase.from('lg_drivers').select('name').eq('id', driver_id).single();
+  await lgAddEvent(req.params.id, undefined, '', `Đã phân công tài xế: ${d?.name||''}`, 'admin');
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/logistics/stats', adminAuth, async (req, res) => {
+  const [
+    { count: total }, { count: pending }, { count: in_transit },
+    { count: delivered }, { count: returned }
+  ] = await Promise.all([
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('status','pending'),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).in('status',['picked_up','in_transit','at_warehouse','out_for_delivery']),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('status','delivered'),
+    supabase.from('lg_shipments').select('*',{count:'exact',head:true}).eq('status','returned')
+  ]);
+  const { data: drivers } = await supabase.from('lg_drivers').select('*').eq('status','available');
+  res.json({ total:total||0, pending:pending||0, in_transit:in_transit||0, delivered:delivered||0, returned:returned||0, available_drivers: (drivers||[]).length });
+});
+
+app.get('/api/admin/logistics/shipments', adminAuth, async (req, res) => {
+  const { status, limit = 50, page = 1 } = req.query;
+  let q = supabase.from('lg_shipments').select('*, users!user_id(id,name,phone)');
+  if (status) q = q.eq('status', status);
+  q = q.order('created_at',{ascending:false}).range((page-1)*limit, page*limit-1);
+  const { data } = await q;
+  res.json({ shipments: data||[] });
+});
+
+app.get('/api/admin/logistics/drivers', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('lg_drivers').select('*').order('created_at',{ascending:false});
+  res.json({ drivers: data||[] });
+});
+
+app.post('/api/admin/logistics/drivers', adminAuth, async (req, res) => {
+  const { name, phone, vehicle_type, vehicle_plate, province } = req.body;
+  if (!name || !phone) return res.status(400).json({ error: 'Thiếu tên và số điện thoại' });
+  const { data, error } = await supabase.from('lg_drivers').insert({ name: sanitize(name), phone: sanitize(phone), vehicle_type: vehicle_type||'motorbike', vehicle_plate: sanitize(vehicle_plate||''), province: sanitize(province||'') }).select().single();
+  if (error) return res.status(500).json({ error: 'Thêm tài xế thất bại' });
+  res.status(201).json({ ok: true, driver: data });
+});
+
+app.get('/api/admin/logistics/warehouses', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('lg_warehouses').select('*').eq('is_active', true);
+  res.json({ warehouses: data||[] });
+});
+
+// ── SERVE logistics.html ──
+app.get('/logistics', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'logistics.html'));
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

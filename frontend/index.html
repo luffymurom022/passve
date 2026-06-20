@@ -1171,6 +1171,7 @@ function render(){
     {id:"open_escrow",icon:"🔐",label:"Open Escrow"},
     {id:"dam",icon:"🏪",label:"Tài Sản Số"},
     {id:"freelance",icon:"👨‍💻",label:"Freelance"},
+    {id:"logistics",icon:"🚚",label:"Logistics"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1193,6 +1194,8 @@ function render(){
           ?"window.location.href='/dam.html'"
           :p.id==="freelance"
           ?"window.location.href='/freelance'"
+          :p.id==="logistics"
+          ?"window.location.href='/logistics'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

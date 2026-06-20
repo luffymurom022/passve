@@ -839,4 +839,48 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 
 > **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `freelance_migration.sql`
 
+---
+
+## 🚚 PHASE 9 — SafePass Logistics Hub (Giao Hàng Toàn Quốc) *(HOÀN THÀNH)*
+> Hệ thống giao nhận độc lập, tích hợp vào navbar SafePass
+
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| SQL migration `logistics_migration.sql` — 6 bảng: `lg_warehouses`, `lg_drivers`, `lg_shipments`, `lg_tracking_events`, `lg_pickups`, `lg_routes` + seed data | 2026-06-20 |
+| **Shipping Quote** — `POST /api/logistics/quote` — tự động tính phí 3 gói Standard/Express/Hỏa Tốc dựa trên tỉnh + KL + bảo hiểm | 2026-06-20 |
+| **Create Shipment** — `POST /api/logistics/shipments` — sinh mã vận đơn `SP` + timestamp, ghi tracking event đầu tiên | 2026-06-20 |
+| **My Shipments** — `GET /api/logistics/shipments` — filter by status, pagination | 2026-06-20 |
+| **Track (public)** — `GET /api/logistics/track/:trackingNumber` — không cần đăng nhập, trả về shipment + toàn bộ events | 2026-06-20 |
+| **Shipment Detail** — `GET /api/logistics/shipments/:id` — join driver + warehouse | 2026-06-20 |
+| **Cancel Shipment** — `PATCH /api/logistics/shipments/:id/cancel` — chỉ hủy được khi status = pending | 2026-06-20 |
+| **Pickup Schedule** — `POST /api/logistics/pickups` — đặt lịch lấy hàng theo ngày + khung giờ | 2026-06-20 |
+| **My Pickups** — `GET /api/logistics/pickups` — lịch sử đặt lịch | 2026-06-20 |
+| **Dashboard Stats** — `GET /api/logistics/dashboard` — 5 stat + 5 đơn gần nhất | 2026-06-20 |
+| **Admin: Update Status** — `PATCH /api/admin/logistics/shipments/:id/status` — 8 trạng thái + tự động ghi tracking event | 2026-06-20 |
+| **Admin: Assign Driver** — `PATCH /api/admin/logistics/shipments/:id/assign-driver` | 2026-06-20 |
+| **Admin: Stats** — `GET /api/admin/logistics/stats` — tổng hợp toàn hệ thống | 2026-06-20 |
+| **Admin: List Shipments** — `GET /api/admin/logistics/shipments` — filter by status | 2026-06-20 |
+| **Admin: Drivers** — `GET/POST /api/admin/logistics/drivers` | 2026-06-20 |
+| **Admin: Warehouses** — `GET /api/admin/logistics/warehouses` | 2026-06-20 |
+| Bảng giá tuyến đường: nội thành 15k base, HCM↔HN 45k base, liên tỉnh 30k base; nhân hệ số 1.0/1.5/2.5 theo gói | 2026-06-20 |
+| Bảo hiểm hàng hóa: 0.5% giá trị khai báo | 2026-06-20 |
+| 8 trạng thái tracking: pending → picked_up → in_transit → at_warehouse → out_for_delivery → delivered / returned / cancelled | 2026-06-20 |
+| **Frontend `frontend/logistics.html`** — Logistics Hub tại `/logistics` | 2026-06-20 |
+| Frontend: Dashboard — 5 stat cards (tổng/chờ/đang giao/đã giao/hoàn), quick actions, bảng đơn gần nhất | 2026-06-20 |
+| Frontend: Create Shipment — form 6 bước (người gửi, người nhận, hàng hóa, chọn gói & báo phí, lịch lấy hàng, ghi chú) | 2026-06-20 |
+| Frontend: Quote panel — 3 gói so sánh side-by-side, click để chọn gói | 2026-06-20 |
+| Frontend: My Shipments — bảng có filter tabs (tất cả/chờ/đang giao/đã giao/hoàn) | 2026-06-20 |
+| Frontend: Shipment Detail modal — thông tin đầy đủ + tracking timeline | 2026-06-20 |
+| Frontend: Tracking Timeline — dots + line, highlight event hiện tại | 2026-06-20 |
+| Frontend: Track Page — tra cứu vận đơn không cần đăng nhập, progress bar 6 bước | 2026-06-20 |
+| Frontend: Hero search bar — nhập mã → redirect sang Track page | 2026-06-20 |
+| Frontend: Pickup Scheduling — form đặt lịch + danh sách lịch đã đặt | 2026-06-20 |
+| Frontend: Shipping Label modal — phiếu gửi hàng đầy đủ với QR code (qrcode.js) + nút In | 2026-06-20 |
+| Frontend: In vận đơn — mở popup print-friendly, có style tách biệt | 2026-06-20 |
+| Frontend: 63 tỉnh/thành phố VN trong dropdown | 2026-06-20 |
+| Nav link "🚚 Logistics" trong index.html — dẫn đến `/logistics` | 2026-06-20 |
+| Dark mode toàn bộ (Shopee Express / GHN / GHTK style) | 2026-06-20 |
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `logistics_migration.sql`
+
 *Cập nhật lần cuối: 2026-06-20*

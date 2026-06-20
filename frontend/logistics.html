@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SafePass Logistics Hub — Giao Hàng Toàn Quốc</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--card:#111827;--card2:#1a2235;--border:#1e2d40;
+  --text:#e2e8f0;--sub:#6b7280;--brand:#f97316;--brand2:#ef4444;
+  --blue:#3b82f6;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,.4);
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;min-height:100vh}
+button{cursor:pointer;border:none;font-family:inherit}
+input,textarea,select{font-family:inherit;background:var(--card2);border:1.5px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;outline:none;font-size:14px;width:100%;transition:border .2s}
+input:focus,textarea:focus,select:focus{border-color:var(--brand)}
+input::placeholder,textarea::placeholder{color:var(--sub)}
+select option{background:var(--card)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;transition:all .2s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand)}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{opacity:.85}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{opacity:.85}
+.btn-sm{padding:6px 14px;font-size:13px}
+
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.tag-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.tag-green{background:rgba(16,185,129,.15);color:var(--green)}
+.tag-red{background:rgba(239,68,68,.15);color:var(--red)}
+.tag-yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
+.tag-orange{background:rgba(249,115,22,.15);color:var(--brand)}
+.tag-purple{background:rgba(139,92,246,.15);color:var(--purple)}
+.tag-gray{background:rgba(107,114,128,.15);color:var(--sub)}
+
+/* Header */
+.header{background:rgba(10,14,26,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:900;cursor:pointer}
+.logo span{color:var(--brand)}
+.nav-links{display:flex;gap:4px;margin-left:24px}
+.nav-btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;transition:all .2s;border:none;background:transparent}
+.nav-btn.active,.nav-btn:hover{background:rgba(249,115,22,.1);color:var(--brand)}
+.spacer{flex:1}
+.header-right{display:flex;align-items:center;gap:10px}
+.user-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+/* Layout */
+.container{max-width:1280px;margin:0 auto;padding:0 24px}
+.page{padding:28px 0 48px}
+
+/* Hero bar */
+.hero{background:linear-gradient(135deg,#0d1520 0%,#150a10 100%);padding:40px 24px;position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(249,115,22,.12),transparent 60%)}
+.hero-inner{max-width:1280px;margin:0 auto;position:relative;z-index:1}
+.hero-title{font-size:32px;font-weight:900;margin-bottom:8px}
+.hero-title span{color:var(--brand)}
+.hero-sub{font-size:15px;color:var(--sub);margin-bottom:24px}
+.hero-search{display:flex;gap:0;max-width:560px}
+.hero-search input{border-radius:10px 0 0 10px;border-right:none;font-size:15px;padding:14px 18px}
+.hero-search button{border-radius:0 10px 10px 0;padding:14px 24px;background:var(--brand);color:#fff;font-weight:700;font-size:15px}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:all .2s}
+.stat-card:hover{border-color:var(--brand)}
+.stat-card.active{border-color:var(--brand);background:rgba(249,115,22,.06)}
+.stat-num{font-size:28px;font-weight:900;margin-bottom:4px}
+.stat-label{font-size:12px;color:var(--sub)}
+
+/* Table */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.table-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.table-head h3{font-size:16px;font-weight:700}
+table{width:100%;border-collapse:collapse}
+table th,table td{padding:13px 16px;text-align:left;font-size:13px;border-bottom:1px solid var(--border)}
+table th{font-size:11px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--card2)}
+table tr:last-child td{border-bottom:none}
+table tr:hover td{background:rgba(255,255,255,.02)}
+table td{cursor:default}
+.tracking-num{font-family:monospace;font-size:13px;font-weight:700;color:var(--brand)}
+
+/* Status badge */
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+
+/* Form */
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.form-card-title{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--sub);margin-bottom:6px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.required{color:var(--red)}
+
+/* Tracking timeline */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:9px;top:8px;bottom:8px;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-dot{position:absolute;left:-28px;width:20px;height:20px;border-radius:50%;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1}
+.tl-item.done .tl-dot{background:var(--green);border-color:var(--green)}
+.tl-item.active .tl-dot{background:var(--brand);border-color:var(--brand);box-shadow:0 0 0 4px rgba(249,115,22,.2)}
+.tl-content{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px}
+.tl-item.active .tl-content{border-color:var(--brand)}
+.tl-status{font-size:13px;font-weight:700;margin-bottom:4px}
+.tl-desc{font-size:13px;color:var(--sub)}
+.tl-time{font-size:11px;color:var(--sub);margin-top:4px}
+.tl-loc{font-size:12px;color:var(--blue);margin-top:2px}
+
+/* Shipping Label */
+.label-card{background:#fff;color:#000;border-radius:12px;padding:24px;max-width:400px;margin:0 auto}
+.label-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px}
+.label-logo{font-size:20px;font-weight:900}
+.label-service{font-size:12px;background:#000;color:#fff;padding:3px 10px;border-radius:4px}
+.label-tracking{font-size:28px;font-weight:900;font-family:monospace;text-align:center;letter-spacing:2px;margin:12px 0}
+.label-section{margin-bottom:14px}
+.label-section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin-bottom:4px}
+.label-section-body{font-size:13px;line-height:1.6;border:1px solid #ddd;border-radius:6px;padding:8px}
+.label-qr{text-align:center;margin:16px 0}
+.label-barcode{font-family:monospace;font-size:11px;text-align:center;letter-spacing:4px;margin-top:6px;color:#333}
+
+/* Quote cards */
+.quote-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.quote-card{background:var(--card2);border:2px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:all .2s;text-align:center}
+.quote-card:hover,.quote-card.selected{border-color:var(--brand);background:rgba(249,115,22,.06)}
+.quote-svc{font-size:14px;font-weight:700;margin-bottom:6px}
+.quote-price{font-size:22px;font-weight:900;color:var(--brand);margin:8px 0}
+.quote-days{font-size:12px;color:var(--sub)}
+
+/* Pickup time slots */
+.time-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.time-slot{padding:8px 16px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:var(--card2)}
+.time-slot.selected,.time-slot:hover{border-color:var(--brand);color:var(--brand);background:rgba(249,115,22,.08)}
+
+/* Notification dot */
+.notif{background:var(--red);color:#fff;border-radius:999px;font-size:10px;padding:1px 6px;font-weight:700}
+
+/* Print */
+@media print{
+  body *{visibility:hidden}
+  #print-area,#print-area *{visibility:visible}
+  #print-area{position:fixed;left:0;top:0;width:100%}
+}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:680px;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1}
+.modal-header h3{font-size:18px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--sub);font-size:22px;cursor:pointer;padding:4px;line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--card)}
+
+/* Section */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.sec-head h2{font-size:20px;font-weight:800}
+.empty{text-align:center;padding:48px 24px;color:var(--sub)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty h3{font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px}
+.loader{text-align:center;padding:48px;color:var(--sub)}
+.spin{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:14px;z-index:9999;animation:slideIn .3s;max-width:320px;box-shadow:var(--shadow)}
+.toast.success{border-color:var(--green);background:rgba(16,185,129,.1)}
+.toast.error{border-color:var(--red);background:rgba(239,68,68,.1)}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Province select */
+.province-list{max-height:200px;overflow-y:auto}
+
+/* Responsive */
+@media(max-width:768px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  .quote-grid{grid-template-columns:1fr}
+  .nav-links{display:none}
+  .hero-title{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo" onclick="setPage('dashboard')">🚚 Safe<span>Pass</span> <span style="font-size:13px;font-weight:600;color:var(--sub);margin-left:2px">Logistics</span></div>
+  <nav class="nav-links">
+    <button class="nav-btn" id="nav-dashboard" onclick="setPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-btn" id="nav-create" onclick="setPage('create')">➕ Tạo Đơn</button>
+    <button class="nav-btn" id="nav-shipments" onclick="setPage('shipments')">📦 Đơn Hàng</button>
+    <button class="nav-btn" id="nav-pickup" onclick="setPage('pickup')">📅 Lịch Lấy Hàng</button>
+    <button class="nav-btn" id="nav-track" onclick="setPage('track')">🔍 Tra Cứu</button>
+  </nav>
+  <div class="spacer"></div>
+  <div class="header-right">
+    <button class="btn btn-ghost btn-sm" onclick="window.location.href='/'">← SafePass</button>
+    <div id="auth-area"></div>
+  </div>
+</div>
+
+<!-- HERO TRACK BAR -->
+<div class="hero" id="hero-section">
+  <div class="hero-inner">
+    <div class="hero-title">🚚 SafePass <span>Logistics Hub</span></div>
+    <div class="hero-sub">Giao hàng toàn quốc — Nhanh chóng, An toàn, Minh bạch</div>
+    <div class="hero-search">
+      <input id="hero-track-input" placeholder="Nhập mã vận đơn... (VD: SP20260620xxxx)" onkeydown="if(event.key==='Enter')quickTrack()">
+      <button onclick="quickTrack()">🔍 Tra Cứu</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP ROOT -->
+<div id="app" class="container page"></div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-title">—</h3>
+      <button class="modal-close" onclick="closeAllModals()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer" style="display:none"></div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="print-area" style="display:none"></div>
+
+<script>
+// ═══════════════════════
+// STATE
+// ═══════════════════════
+const API = '';
+let G = {
+  page: 'dashboard',
+  user: null,
+  token: localStorage.getItem('token'),
+  stats: {},
+  shipments: [],
+  shipmentFilter: '',
+  selectedQuote: null,
+};
+
+const VN_PROVINCES = [
+  'Hồ Chí Minh','Hà Nội','Đà Nẵng','Hải Phòng','Cần Thơ',
+  'An Giang','Bà Rịa – Vũng Tàu','Bắc Giang','Bắc Kạn','Bạc Liêu',
+  'Bắc Ninh','Bến Tre','Bình Định','Bình Dương','Bình Phước',
+  'Bình Thuận','Cà Mau','Cao Bằng','Đắk Lắk','Đắk Nông',
+  'Điện Biên','Đồng Nai','Đồng Tháp','Gia Lai','Hà Giang',
+  'Hà Nam','Hà Tĩnh','Hải Dương','Hậu Giang','Hòa Bình',
+  'Hưng Yên','Khánh Hòa','Kiên Giang','Kon Tum','Lai Châu',
+  'Lâm Đồng','Lạng Sơn','Lào Cai','Long An','Nam Định',
+  'Nghệ An','Ninh Bình','Ninh Thuận','Phú Thọ','Phú Yên',
+  'Quảng Bình','Quảng Nam','Quảng Ngãi','Quảng Ninh','Quảng Trị',
+  'Sóc Trăng','Sơn La','Tây Ninh','Thái Bình','Thái Nguyên',
+  'Thanh Hóa','Thừa Thiên Huế','Tiền Giang','Trà Vinh','Tuyên Quang',
+  'Vĩnh Long','Vĩnh Phúc','Yên Bái'
+];
+
+const STATUS_CONFIG = {
+  pending:          { label:'Chờ lấy hàng',    color:'var(--yellow)',   icon:'⏳', tag:'tag-yellow' },
+  picked_up:        { label:'Đã lấy hàng',      color:'var(--blue)',     icon:'📦', tag:'tag-blue' },
+  in_transit:       { label:'Đang vận chuyển',  color:'var(--blue)',     icon:'🚚', tag:'tag-blue' },
+  at_warehouse:     { label:'Tại kho trung chuyển',color:'var(--purple)',icon:'🏭', tag:'tag-purple' },
+  out_for_delivery: { label:'Đang giao',         color:'var(--brand)',   icon:'🛵', tag:'tag-orange' },
+  delivered:        { label:'Đã giao thành công',color:'var(--green)',   icon:'✅', tag:'tag-green' },
+  returned:         { label:'Hoàn hàng',         color:'var(--red)',     icon:'↩️', tag:'tag-red' },
+  cancelled:        { label:'Đã hủy',            color:'var(--sub)',     icon:'❌', tag:'tag-gray' },
+};
+const STATUS_ORDER = ['pending','picked_up','in_transit','at_warehouse','out_for_delivery','delivered'];
+
+const CARGO_TYPES = { general:'📦 Hàng thường', fragile:'🫙 Hàng dễ vỡ', electronics:'💻 Điện tử', documents:'📄 Tài liệu', food:'🥘 Thực phẩm', clothing:'👕 Quần áo' };
+const SERVICE_LABELS = { standard:'⚡ Tiêu Chuẩn', express:'🚀 Nhanh', same_day:'🔥 Hỏa Tốc' };
+
+// ═══════════════════════
+// AUTH
+// ═══════════════════════
+async function loadUser() {
+  if (!G.token) return renderAuthArea();
+  try {
+    const r = await api('/api/auth/me');
+    G.user = r.user;
+  } catch(e) { G.token = null; localStorage.removeItem('token'); }
+  renderAuthArea();
+}
+function renderAuthArea() {
+  const el = document.getElementById('auth-area');
+  if (!el) return;
+  if (G.user) {
+    const ini = (G.user.name||'U').slice(0,1).toUpperCase();
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><div class="user-av">${ini}</div><span style="font-size:13px;font-weight:600">${G.user.name||'User'}</span></div>`;
+  } else {
+    el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="window.location.href='/'">Đăng nhập</button>`;
+  }
+}
+
+async function api(url, opts = {}) {
+  const h = { 'Content-Type': 'application/json' };
+  if (G.token) h['Authorization'] = `Bearer ${G.token}`;
+  const r = await fetch(API + url, { headers: h, ...opts });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw data;
+  return data;
+}
+
+// ═══════════════════════
+// ROUTER
+// ═══════════════════════
+function setPage(page, params = {}) {
+  G.page = page;
+  Object.assign(G, params);
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById(`nav-${page}`);
+  if (navEl) navEl.classList.add('active');
+  const hero = document.getElementById('hero-section');
+  if (hero) hero.style.display = page === 'dashboard' ? 'block' : 'none';
+  render();
+  window.scrollTo(0, 0);
+}
+
+function render() {
+  switch(G.page) {
+    case 'dashboard': renderDashboard(); break;
+    case 'create':    renderCreate(); break;
+    case 'shipments': renderShipments(); break;
+    case 'track':     renderTrack(); break;
+    case 'pickup':    renderPickup(); break;
+    default:          renderDashboard();
+  }
+}
+
+// ═══════════════════════
+// TOAST
+// ═══════════════════════
+function toast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ═══════════════════════
+// DASHBOARD
+// ═══════════════════════
+async function renderDashboard() {
+  document.getElementById('hero-section').style.display = 'block';
+  document.getElementById('app').innerHTML = '<div class="loader"><div class="spin"></div></div>';
+  if (!G.user) {
+    document.getElementById('app').innerHTML = `
+    <div style="max-width:480px;margin:60px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🚚</div>
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:8px">Đăng nhập để sử dụng</h2>
+      <p style="color:var(--sub);margin-bottom:24px;font-size:14px">Theo dõi đơn hàng, tạo vận đơn và quản lý giao nhận</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary" style="justify-content:center" onclick="window.location.href='/'">Đăng nhập SafePass</button>
+        <button class="btn btn-ghost" style="justify-content:center" onclick="setPage('track')">🔍 Tra cứu đơn hàng (không cần đăng nhập)</button>
+      </div>
+    </div>`;
+    return;
+  }
+  try {
+    const { stats, recent } = await api('/api/logistics/dashboard');
+    G.stats = stats;
+    document.getElementById('app').innerHTML = `
+    <!-- Stats -->
+    <div class="stats-row">
+      ${[
+        ['total',     '📦', 'Tổng Đơn',        stats.total,       ''],
+        ['pending',   '⏳', 'Chờ Lấy Hàng',    stats.pending,     'tag-yellow'],
+        ['in_transit','🚚', 'Đang Vận Chuyển',  stats.in_transit,  'tag-blue'],
+        ['delivered', '✅', 'Đã Giao',           stats.delivered,   'tag-green'],
+        ['returned',  '↩️', 'Hoàn Hàng',        stats.returned,    'tag-red'],
+      ].map(([f,ic,lb,val,cls]) => `
+        <div class="stat-card ${G.shipmentFilter===f?'active':''}" onclick="filterShipments('${f}')">
+          <div style="font-size:24px;margin-bottom:6px">${ic}</div>
+          <div class="stat-num">${val}</div>
+          <div class="stat-label">${lb}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="setPage('create')">➕ Tạo Đơn Mới</button>
+      <button class="btn btn-ghost" onclick="setPage('pickup')">📅 Đặt Lịch Lấy Hàng</button>
+      <button class="btn btn-ghost" onclick="setPage('track')">🔍 Tra Cứu Vận Đơn</button>
+      <button class="btn btn-ghost" onclick="setPage('shipments')">📦 Xem Tất Cả Đơn</button>
+    </div>
+
+    <!-- Recent Shipments -->
+    <div class="table-wrap">
+      <div class="table-head">
+        <h3>🕐 Đơn Hàng Gần Đây</h3>
+        <button class="btn btn-ghost btn-sm" onclick="setPage('shipments')">Xem tất cả →</button>
+      </div>
+      ${!recent.length ? `<div class="empty"><div class="empty-icon">📦</div><h3>Chưa có đơn nào</h3><p>Tạo đơn đầu tiên để bắt đầu giao hàng</p></div>` :
+      `<table>
+        <thead><tr>
+          <th>Mã vận đơn</th><th>Người nhận</th><th>Điểm đến</th>
+          <th>Loại hàng</th><th>Trạng thái</th><th>Phí</th><th></th>
+        </tr></thead>
+        <tbody>${recent.map(shipmentRow).join('')}</tbody>
+      </table>`}
+    </div>`;
+  } catch(e) {
+    document.getElementById('app').innerHTML = '<div class="empty"><div class="empty-icon">❌</div><h3>Không thể tải dữ liệu</h3></div>';
+  }
+}
+
+function shipmentRow(s) {
+  const st = STATUS_CONFIG[s.status] || { label: s.status, tag:'tag-gray', icon:'📌' };
+  return `<tr onclick="openShipmentDetail('${s.id}')" style="cursor:pointer">
+    <td><span class="tracking-num">${s.tracking_number}</span></td>
+    <td><div style="font-weight:600">${escHtml(s.receiver_name)}</div><div style="font-size:11px;color:var(--sub)">${escHtml(s.receiver_phone)}</div></td>
+    <td>${escHtml(s.receiver_province)}</td>
+    <td>${CARGO_TYPES[s.cargo_type]||s.cargo_type}</td>
+    <td><span class="tag ${st.tag}">${st.icon} ${st.label}</span></td>
+    <td style="font-weight:700">${fmtVND(s.total_fee)}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openShipmentDetail('${s.id}')">Chi tiết →</button></td>
+  </tr>`;
+}
+
+function filterShipments(filter) {
+  G.shipmentFilter = filter === G.shipmentFilter ? '' : filter;
+  setPage('shipments');
+}
+
+// ═══════════════════════
+// CREATE SHIPMENT
+// ═══════════════════════
+function renderCreate() {
+  const provinceOptions = VN_PROVINCES.map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('app').innerHTML = `
+  <div class="sec-head"><h2>➕ Tạo Đơn Giao Hàng Mới</h2></div>
+
+  <!-- Step 1: Sender -->
+  <div class="form-card">
+    <div class="form-card-title">📤 Thông Tin Người Gửi</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Họ tên <span class="required">*</span></div><input id="s-name" placeholder="Nguyễn Văn A" ${G.user?`value="${escAttr(G.user.name||'')}"`:''}></div>
+      <div class="form-group"><div class="form-label">Số điện thoại <span class="required">*</span></div><input id="s-phone" placeholder="0901234567" ${G.user?`value="${escAttr(G.user.phone||'')}"`:''}></div>
+    </div>
+    <div class="form-group"><div class="form-label">Địa chỉ <span class="required">*</span></div><input id="s-addr" placeholder="123 Đường ABC, Phường XYZ"></div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Quận/Huyện</div><input id="s-dist" placeholder="Quận 1"></div>
+      <div class="form-group"><div class="form-label">Tỉnh/Thành phố <span class="required">*</span></div>
+        <select id="s-prov" onchange="onProvinceChange()"><option value="">-- Chọn tỉnh --</option>${provinceOptions}</select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Receiver -->
+  <div class="form-card">
+    <div class="form-card-title">📥 Thông Tin Người Nhận</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Họ tên <span class="required">*</span></div><input id="r-name" placeholder="Trần Thị B"></div>
+      <div class="form-group"><div class="form-label">Số điện thoại <span class="required">*</span></div><input id="r-phone" placeholder="0909876543"></div>
+    </div>
+    <div class="form-group"><div class="form-label">Địa chỉ <span class="required">*</span></div><input id="r-addr" placeholder="456 Đường DEF, Phường GHI"></div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Quận/Huyện</div><input id="r-dist" placeholder="Quận 3"></div>
+      <div class="form-group"><div class="form-label">Tỉnh/Thành phố <span class="required">*</span></div>
+        <select id="r-prov" onchange="onProvinceChange()"><option value="">-- Chọn tỉnh --</option>${provinceOptions}</select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Package -->
+  <div class="form-card">
+    <div class="form-card-title">📦 Thông Tin Hàng Hóa</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Loại hàng</div>
+        <select id="p-type">${Object.entries(CARGO_TYPES).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><div class="form-label">Trọng lượng (kg) <span class="required">*</span></div>
+        <input type="number" id="p-weight" placeholder="0.5" min="0.1" step="0.1" value="0.5" oninput="onProvinceChange()">
+      </div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><div class="form-label">Dài (cm)</div><input type="number" id="p-len" placeholder="20"></div>
+      <div class="form-group"><div class="form-label">Rộng (cm)</div><input type="number" id="p-wid" placeholder="15"></div>
+      <div class="form-group"><div class="form-label">Cao (cm)</div><input type="number" id="p-hei" placeholder="10"></div>
+    </div>
+    <div class="form-group"><div class="form-label">Mô tả hàng hóa</div><input id="p-desc" placeholder="Quần áo, điện thoại..."></div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Giá trị khai báo (đ)</div><input type="number" id="p-value" placeholder="500000" oninput="onProvinceChange()"></div>
+      <div class="form-group"><div class="form-label">COD — Thu hộ (đ)</div><input type="number" id="p-cod" placeholder="0"></div>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="p-insurance" style="width:auto;accent-color:var(--brand)" onchange="onProvinceChange()">
+      <label for="p-insurance" style="font-size:14px;cursor:pointer">Mua bảo hiểm hàng hóa (0.5% giá trị khai báo)</label>
+    </div>
+  </div>
+
+  <!-- Step 4: Service & Quote -->
+  <div class="form-card" id="quote-section">
+    <div class="form-card-title">💰 Chọn Dịch Vụ & Báo Phí</div>
+    <div id="quote-result" style="color:var(--sub);font-size:13px;padding:12px 0">Điền đầy đủ tỉnh/thành phố và trọng lượng để xem báo phí</div>
+  </div>
+
+  <!-- Step 5: Pickup -->
+  <div class="form-card">
+    <div class="form-card-title">📅 Lịch Lấy Hàng (Tùy chọn)</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Ngày lấy hàng</div><input type="date" id="pickup-date" min="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-group"><div class="form-label">Khung giờ</div>
+        <div class="time-slots">
+          <div class="time-slot" onclick="selectSlot(this,'08:00-12:00')">🌅 08:00 – 12:00</div>
+          <div class="time-slot" onclick="selectSlot(this,'12:00-17:00')">☀️ 12:00 – 17:00</div>
+          <div class="time-slot" onclick="selectSlot(this,'17:00-21:00')">🌙 17:00 – 21:00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 6: Notes -->
+  <div class="form-card">
+    <div class="form-card-title">📝 Ghi Chú</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Phương thức thanh toán</div>
+        <select id="p-payment">
+          <option value="sender">Người gửi trả phí</option>
+          <option value="receiver">Người nhận trả phí (COD)</option>
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Ghi chú thêm</div><input id="p-notes" placeholder="Hàng dễ vỡ, gọi trước khi giao..."></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+    <button class="btn btn-ghost" onclick="setPage('dashboard')">← Quay lại</button>
+    <button class="btn btn-primary" style="padding:12px 32px" onclick="createShipment()">🚀 Tạo Đơn Giao Hàng</button>
+  </div>`;
+
+  G._selectedSlot = null;
+  G._selectedService = 'standard';
+}
+
+let quoteTimer;
+function onProvinceChange() {
+  clearTimeout(quoteTimer);
+  quoteTimer = setTimeout(fetchQuote, 600);
+}
+
+async function fetchQuote() {
+  const from = document.getElementById('s-prov')?.value;
+  const to = document.getElementById('r-prov')?.value;
+  const weight = parseFloat(document.getElementById('p-weight')?.value || 0.5);
+  const val = parseInt(document.getElementById('p-value')?.value || 0);
+  const insured = document.getElementById('p-insurance')?.checked;
+  if (!from || !to || !weight) return;
+  const el = document.getElementById('quote-result');
+  if (el) el.innerHTML = '<div class="spin" style="width:20px;height:20px;margin:8px 0"></div>';
+  try {
+    const { all_quotes } = await api('/api/logistics/quote', { method:'POST', body: JSON.stringify({ from_province: from, to_province: to, weight, declared_value: val, has_insurance: insured }) });
+    if (el) el.innerHTML = `<div class="quote-grid">
+      ${all_quotes.map(q => `
+        <div class="quote-card ${G._selectedService===q.service_type?'selected':''}" onclick="selectService('${q.service_type}',this)">
+          <div class="quote-svc">${SERVICE_LABELS[q.service_type]||q.service_type}</div>
+          <div class="quote-price">${fmtVND(q.total_fee)}</div>
+          <div class="quote-days">⏱ ${q.delivery_days} ngày giao</div>
+          ${q.insurance_fee>0?`<div style="font-size:11px;color:var(--sub);margin-top:4px">+ ${fmtVND(q.insurance_fee)} bảo hiểm</div>`:''}
+          <div style="font-size:11px;color:var(--sub)">Giao trước: ${q.estimated_delivery}</div>
+        </div>`).join('')}
+    </div>`;
+  } catch(e) { if(el) el.innerHTML = '<p style="color:var(--sub);font-size:13px">Không thể tính phí — kiểm tra lại thông tin</p>'; }
+}
+
+function selectService(svc, el) {
+  G._selectedService = svc;
+  document.querySelectorAll('.quote-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectSlot(el, slot) {
+  G._selectedSlot = slot;
+  document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function createShipment() {
+  if (!G.user) { toast('Vui lòng đăng nhập', 'error'); window.location.href='/'; return; }
+  const sName = document.getElementById('s-name')?.value?.trim();
+  const sPhone = document.getElementById('s-phone')?.value?.trim();
+  const sAddr = document.getElementById('s-addr')?.value?.trim();
+  const sProv = document.getElementById('s-prov')?.value;
+  const rName = document.getElementById('r-name')?.value?.trim();
+  const rPhone = document.getElementById('r-phone')?.value?.trim();
+  const rAddr = document.getElementById('r-addr')?.value?.trim();
+  const rProv = document.getElementById('r-prov')?.value;
+  const weight = document.getElementById('p-weight')?.value;
+  if (!sName||!sPhone||!sAddr||!sProv||!rName||!rPhone||!rAddr||!rProv||!weight)
+    return toast('Vui lòng điền đầy đủ các trường bắt buộc (*)', 'error');
+  const payload = {
+    sender_name:sName, sender_phone:sPhone, sender_address:sAddr,
+    sender_district:document.getElementById('s-dist')?.value||'',
+    sender_province:sProv,
+    receiver_name:rName, receiver_phone:rPhone, receiver_address:rAddr,
+    receiver_district:document.getElementById('r-dist')?.value||'',
+    receiver_province:rProv,
+    cargo_type:document.getElementById('p-type')?.value||'general',
+    weight:parseFloat(weight),
+    length:parseFloat(document.getElementById('p-len')?.value)||null,
+    width:parseFloat(document.getElementById('p-wid')?.value)||null,
+    height:parseFloat(document.getElementById('p-hei')?.value)||null,
+    description:document.getElementById('p-desc')?.value||'',
+    declared_value:parseInt(document.getElementById('p-value')?.value)||0,
+    has_insurance:document.getElementById('p-insurance')?.checked||false,
+    cod_amount:parseInt(document.getElementById('p-cod')?.value)||0,
+    service_type:G._selectedService||'standard',
+    payment_method:document.getElementById('p-payment')?.value||'sender',
+    pickup_date:document.getElementById('pickup-date')?.value||null,
+    pickup_time_slot:G._selectedSlot||null,
+    notes:document.getElementById('p-notes')?.value||''
+  };
+  try {
+    const { shipment } = await api('/api/logistics/shipments', { method:'POST', body: JSON.stringify(payload) });
+    toast(`🎉 Tạo đơn thành công! Mã: ${shipment.tracking_number}`);
+    G._createdShipment = shipment;
+    showLabelModal(shipment);
+    setTimeout(() => setPage('shipments'), 300);
+  } catch(e) { toast(e.error||'Tạo đơn thất bại', 'error'); }
+}
+
+// ═══════════════════════
+// SHIPMENTS LIST
+// ═══════════════════════
+async function renderShipments() {
+  if (!G.user) { setPage('dashboard'); return; }
+  document.getElementById('app').innerHTML = '<div class="loader"><div class="spin"></div></div>';
+  try {
+    const url = `/api/logistics/shipments?limit=50${G.shipmentFilter&&G.shipmentFilter!=='total'&&G.shipmentFilter!=='in_transit'?'&status='+G.shipmentFilter:G.shipmentFilter==='in_transit'?'':''}`;
+    let filterParam = '';
+    if (G.shipmentFilter === 'pending') filterParam = '&status=pending';
+    else if (G.shipmentFilter === 'in_transit') filterParam = ''; // handle client side
+    else if (G.shipmentFilter === 'delivered') filterParam = '&status=delivered';
+    else if (G.shipmentFilter === 'returned') filterParam = '&status=returned';
+    const { shipments } = await api(`/api/logistics/shipments?limit=100${filterParam}`);
+    let filtered = shipments;
+    if (G.shipmentFilter === 'in_transit') filtered = shipments.filter(s => ['picked_up','in_transit','at_warehouse','out_for_delivery'].includes(s.status));
+    document.getElementById('app').innerHTML = `
+    <div class="sec-head">
+      <h2>📦 Đơn Hàng Của Tôi</h2>
+      <button class="btn btn-primary btn-sm" onclick="setPage('create')">➕ Tạo Đơn Mới</button>
+    </div>
+    <!-- Filter tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+      ${[['','Tất cả'],['pending','Chờ lấy'],['in_transit','Đang giao'],['delivered','Đã giao'],['returned','Hoàn hàng']].map(([v,l])=>
+        `<button class="btn btn-sm ${G.shipmentFilter===v?'btn-primary':'btn-ghost'}" onclick="G.shipmentFilter='${v}';renderShipments()">${l}</button>`
+      ).join('')}
+    </div>
+    ${!filtered.length?`<div class="empty"><div class="empty-icon">📦</div><h3>Không có đơn nào</h3><p>Tạo đơn mới để bắt đầu!</p><button class="btn btn-primary" onclick="setPage('create')">➕ Tạo Đơn</button></div>`:`
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Mã vận đơn</th><th>Người nhận</th><th>Từ → Đến</th>
+          <th>Hàng hóa</th><th>Trạng thái</th><th>Phí</th><th>Ngày tạo</th><th></th>
+        </tr></thead>
+        <tbody>${filtered.map(shipmentRow).join('')}</tbody>
+      </table>
+    </div>`}`;
+  } catch(e) { document.getElementById('app').innerHTML = '<div class="empty"><div class="empty-icon">❌</div><h3>Lỗi tải dữ liệu</h3></div>'; }
+}
+
+// ═══════════════════════
+// SHIPMENT DETAIL MODAL
+// ═══════════════════════
+async function openShipmentDetail(id) {
+  showModal('📦 Chi Tiết Đơn Hàng', '<div class="loader"><div class="spin"></div></div>', '');
+  try {
+    const { shipment: s, events } = await api(`/api/logistics/shipments/${id}`);
+    const st = STATUS_CONFIG[s.status] || { label: s.status, tag:'tag-gray', icon:'📌' };
+    const body = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px">MÃ VẬN ĐƠN</div>
+        <div class="tracking-num" style="font-size:22px">${s.tracking_number}</div>
+        <div style="margin-top:8px"><span class="tag ${st.tag}">${st.icon} ${st.label}</span></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:24px;font-weight:900">${fmtVND(s.total_fee)}</div>
+        <div style="font-size:12px;color:var(--sub)">${SERVICE_LABELS[s.service_type]||s.service_type}</div>
+        ${s.estimated_delivery?`<div style="font-size:12px;color:var(--sub);margin-top:4px">Dự kiến: ${s.estimated_delivery}</div>`:''}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--card2);border-radius:10px;padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:8px">📤 NGƯỜI GỬI</div>
+        <div style="font-weight:700">${escHtml(s.sender_name)}</div>
+        <div style="font-size:13px;color:var(--sub)">${escHtml(s.sender_phone)}</div>
+        <div style="font-size:13px;color:var(--sub);margin-top:4px">${escHtml(s.sender_address)}</div>
+        <div style="font-size:13px;color:var(--sub)">${escHtml(s.sender_district||'')}${s.sender_district?', ':''}${escHtml(s.sender_province)}</div>
+      </div>
+      <div style="background:var(--card2);border-radius:10px;padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:8px">📥 NGƯỜI NHẬN</div>
+        <div style="font-weight:700">${escHtml(s.receiver_name)}</div>
+        <div style="font-size:13px;color:var(--sub)">${escHtml(s.receiver_phone)}</div>
+        <div style="font-size:13px;color:var(--sub);margin-top:4px">${escHtml(s.receiver_address)}</div>
+        <div style="font-size:13px;color:var(--sub)">${escHtml(s.receiver_district||'')}${s.receiver_district?', ':''}${escHtml(s.receiver_province)}</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card2);border-radius:10px;padding:16px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:10px">📦 HÀNG HÓA</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div><div style="font-size:11px;color:var(--sub)">Loại hàng</div><div style="font-weight:600">${CARGO_TYPES[s.cargo_type]||s.cargo_type}</div></div>
+        <div><div style="font-size:11px;color:var(--sub)">Trọng lượng</div><div style="font-weight:600">${s.weight} kg</div></div>
+        ${s.declared_value?`<div><div style="font-size:11px;color:var(--sub)">Giá trị khai báo</div><div style="font-weight:600">${fmtVND(s.declared_value)}</div></div>`:''}
+        ${s.has_insurance?`<div><div style="font-size:11px;color:var(--sub)">Bảo hiểm</div><div style="font-weight:600;color:var(--green)">Có (${fmtVND(s.insurance_fee)})</div></div>`:''}
+        ${s.cod_amount?`<div><div style="font-size:11px;color:var(--sub)">COD</div><div style="font-weight:600;color:var(--yellow)">${fmtVND(s.cod_amount)}</div></div>`:''}
+      </div>
+      ${s.description?`<div style="margin-top:10px;font-size:13px;color:var(--sub)">Mô tả: ${escHtml(s.description)}</div>`:''}
+    </div>
+
+    <!-- Tracking Timeline -->
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px">📍 Hành Trình Vận Chuyển</div>
+    ${renderTimeline(events, s.status)}`;
+
+    const footer = `
+      <button class="btn btn-ghost btn-sm" onclick="showLabelModal(${JSON.stringify(s).replace(/"/g,'&quot;')})">🖨️ In Vận Đơn</button>
+      ${s.status==='pending'?`<button class="btn btn-red btn-sm" onclick="cancelShipment('${s.id}')">❌ Hủy Đơn</button>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="closeAllModals()">Đóng</button>`;
+
+    document.getElementById('modal-title').textContent = `📦 ${s.tracking_number}`;
+    document.getElementById('modal-body').innerHTML = body;
+    const ft = document.getElementById('modal-footer');
+    ft.innerHTML = footer; ft.style.display = 'flex';
+  } catch(e) {
+    document.getElementById('modal-body').innerHTML = '<p style="color:var(--sub)">Không thể tải chi tiết</p>';
+  }
+}
+
+function renderTimeline(events, currentStatus) {
+  if (!events.length) return '<p style="color:var(--sub);font-size:13px">Chưa có sự kiện nào</p>';
+  const statusIdx = STATUS_ORDER.indexOf(currentStatus);
+  return `<div class="timeline">
+    ${events.map((e, i) => {
+      const isLast = i === events.length - 1;
+      const cfg = STATUS_CONFIG[e.status] || { icon:'📌', label: e.status };
+      return `<div class="tl-item ${isLast?'active':'done'}">
+        <div class="tl-dot">${isLast?'●':'✓'}</div>
+        <div class="tl-content">
+          <div class="tl-status">${cfg.icon} ${e.description}</div>
+          ${e.location?`<div class="tl-loc">📍 ${escHtml(e.location)}</div>`:''}
+          <div class="tl-time">${fmtDateTime(e.created_at)}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ═══════════════════════
+// TRACK PAGE
+// ═══════════════════════
+function renderTrack() {
+  document.getElementById('app').innerHTML = `
+  <div style="max-width:700px;margin:0 auto">
+    <div class="sec-head"><h2>🔍 Tra Cứu Vận Đơn</h2></div>
+    <div class="form-card">
+      <div class="form-group">
+        <div class="form-label" style="font-size:15px;font-weight:700;margin-bottom:10px">Nhập mã vận đơn</div>
+        <div style="display:flex;gap:10px">
+          <input id="track-input" placeholder="VD: SP20260620XXXX" style="font-size:16px;font-family:monospace" onkeydown="if(event.key==='Enter')doTrack()">
+          <button class="btn btn-primary" style="white-space:nowrap" onclick="doTrack()">🔍 Tra Cứu</button>
+        </div>
+      </div>
+    </div>
+    <div id="track-result"></div>
+  </div>`;
+  // Auto fill if hero had value
+  const heroVal = document.getElementById('hero-track-input')?.value;
+  if (G._trackNum) {
+    const inp = document.getElementById('track-input');
+    if (inp) { inp.value = G._trackNum; doTrack(); }
+  }
+}
+
+function quickTrack() {
+  const val = document.getElementById('hero-track-input')?.value?.trim();
+  if (!val) return;
+  G._trackNum = val;
+  setPage('track');
+}
+
+async function doTrack() {
+  const num = document.getElementById('track-input')?.value?.trim();
+  G._trackNum = num;
+  if (!num) { toast('Nhập mã vận đơn', 'error'); return; }
+  const el = document.getElementById('track-result');
+  el.innerHTML = '<div class="loader"><div class="spin"></div></div>';
+  try {
+    const { shipment: s, events } = await api(`/api/logistics/track/${num}`);
+    const st = STATUS_CONFIG[s.status] || { label: s.status, tag:'tag-gray', icon:'📌' };
+    el.innerHTML = `
+    <div class="form-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="tracking-num" style="font-size:24px">${s.tracking_number}</div>
+          <span class="tag ${st.tag}" style="margin-top:8px;display:inline-block">${st.icon} ${st.label}</span>
+        </div>
+        <div style="text-align:right">
+          ${s.estimated_delivery&&s.status!=='delivered'?`<div style="font-size:14px;font-weight:700">Dự kiến: <span style="color:var(--green)">${s.estimated_delivery}</span></div>`:''}
+          ${s.delivered_at?`<div style="font-size:14px;font-weight:700;color:var(--green)">✅ Đã giao: ${fmtDateTime(s.delivered_at)}</div>`:''}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+        <div style="background:var(--card2);border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">📤 TỪ</div>
+          <div style="font-weight:700">${escHtml(s.sender_name)}</div>
+          <div style="font-size:13px;color:var(--sub)">${escHtml(s.sender_province)}</div>
+        </div>
+        <div style="background:var(--card2);border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">📥 ĐẾN</div>
+          <div style="font-weight:700">${escHtml(s.receiver_name)}</div>
+          <div style="font-size:13px;color:var(--sub)">${escHtml(s.receiver_province)}</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          ${STATUS_ORDER.map(st2=>{
+            const idx = STATUS_ORDER.indexOf(s.status);
+            const thisIdx = STATUS_ORDER.indexOf(st2);
+            const cfg2 = STATUS_CONFIG[st2]||{icon:'📌'};
+            const done = thisIdx <= idx;
+            const isNow = st2 === s.status;
+            return `<div style="text-align:center;flex:1">
+              <div style="width:28px;height:28px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:13px;
+                background:${done?'var(--green)':isNow?'var(--brand)':'var(--card2)'};
+                border:2px solid ${done?'var(--green)':isNow?'var(--brand)':'var(--border)'}">${done?'✓':cfg2.icon}</div>
+              <div style="font-size:9px;color:${done||isNow?'var(--text)':'var(--sub)'}">${(STATUS_CONFIG[st2]?.label||st2).split(' ')[0]}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">📍 Lịch Sử Hành Trình</div>
+      ${renderTimeline(events, s.status)}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="form-card" style="text-align:center;padding:40px">
+      <div style="font-size:48px;margin-bottom:12px">🔍</div>
+      <h3 style="margin-bottom:8px">Không tìm thấy mã vận đơn</h3>
+      <p style="color:var(--sub);font-size:14px">Kiểm tra lại mã: <strong>${escHtml(num)}</strong></p>
+    </div>`;
+  }
+}
+
+// ═══════════════════════
+// PICKUP
+// ═══════════════════════
+async function renderPickup() {
+  if (!G.user) { setPage('dashboard'); return; }
+  document.getElementById('app').innerHTML = '<div class="loader"><div class="spin"></div></div>';
+  try {
+    const { pickups } = await api('/api/logistics/pickups');
+    const provinceOptions = VN_PROVINCES.map(p => `<option value="${p}">${p}</option>`).join('');
+    document.getElementById('app').innerHTML = `
+    <div class="sec-head"><h2>📅 Lịch Lấy Hàng</h2></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+      <!-- Book Pickup -->
+      <div class="form-card">
+        <div class="form-card-title">➕ Đặt Lịch Lấy Hàng Mới</div>
+        <div class="form-group"><div class="form-label">Địa chỉ lấy hàng <span class="required">*</span></div>
+          <input id="pu-addr" placeholder="123 Đường ABC, Phường XYZ..."></div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Ngày lấy <span class="required">*</span></div>
+            <input type="date" id="pu-date" min="${tomorrow()}"></div>
+          <div class="form-group"><div class="form-label">Khung giờ <span class="required">*</span></div>
+            <select id="pu-slot">
+              <option value="08:00-12:00">🌅 08:00 – 12:00</option>
+              <option value="12:00-17:00">☀️ 12:00 – 17:00</option>
+              <option value="17:00-21:00">🌙 17:00 – 21:00</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Người liên hệ</div>
+            <input id="pu-contact" placeholder="Nguyễn Văn A" value="${escAttr(G.user?.name||'')}"></div>
+          <div class="form-group"><div class="form-label">Số điện thoại</div>
+            <input id="pu-phone" placeholder="0901234567" value="${escAttr(G.user?.phone||'')}"></div>
+        </div>
+        <div class="form-group"><div class="form-label">Ghi chú</div>
+          <input id="pu-notes" placeholder="Gọi trước 15 phút..."></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="bookPickup()">📅 Đặt Lịch</button>
+      </div>
+
+      <!-- Pickup History -->
+      <div>
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:16px">📋 Lịch Đã Đặt</h3>
+        ${!pickups.length?`<div class="empty" style="padding:32px"><div class="empty-icon">📅</div><p>Chưa có lịch lấy hàng nào</p></div>`:''}
+        ${pickups.map(p=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-weight:700">${p.pickup_date} — ${p.time_slot}</div>
+            <span class="tag tag-${p.status==='scheduled'?'blue':p.status==='completed'?'green':'gray'}">${p.status==='scheduled'?'⏰ Đã lên lịch':p.status==='completed'?'✅ Hoàn thành':'❌ Hủy'}</span>
+          </div>
+          <div style="font-size:13px;color:var(--sub)">${escHtml(p.pickup_address)}</div>
+          ${p.contact_name?`<div style="font-size:12px;color:var(--sub);margin-top:4px">👤 ${escHtml(p.contact_name)} — ${escHtml(p.contact_phone||'')}</div>`:''}
+          ${p.lg_shipments?.tracking_number?`<div style="font-size:12px;margin-top:4px">Vận đơn: <span class="tracking-num">${p.lg_shipments.tracking_number}</span></div>`:''}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  } catch(e) {
+    document.getElementById('app').innerHTML = '<div class="empty"><div class="empty-icon">❌</div><h3>Lỗi tải dữ liệu</h3></div>';
+  }
+}
+
+async function bookPickup() {
+  const addr = document.getElementById('pu-addr')?.value?.trim();
+  const date = document.getElementById('pu-date')?.value;
+  const slot = document.getElementById('pu-slot')?.value;
+  if (!addr || !date || !slot) return toast('Điền đủ địa chỉ, ngày và khung giờ', 'error');
+  try {
+    await api('/api/logistics/pickups', { method:'POST', body: JSON.stringify({
+      pickup_date: date, time_slot: slot, pickup_address: addr,
+      contact_name: document.getElementById('pu-contact')?.value||'',
+      contact_phone: document.getElementById('pu-phone')?.value||'',
+      notes: document.getElementById('pu-notes')?.value||''
+    })});
+    toast('📅 Đã đặt lịch lấy hàng thành công!');
+    renderPickup();
+  } catch(e) { toast(e.error||'Đặt lịch thất bại', 'error'); }
+}
+
+// ═══════════════════════
+// SHIPPING LABEL MODAL
+// ═══════════════════════
+function showLabelModal(s) {
+  if (typeof s === 'string') return; // safety check
+  const svcLabel = SERVICE_LABELS[s.service_type]||s.service_type;
+  showModal('🖨️ Phiếu Gửi Hàng', `
+    <div id="print-label-inner">
+    <div class="label-card" id="label-card-print">
+      <div class="label-header">
+        <div class="label-logo">🚚 SafePass</div>
+        <div style="text-align:right">
+          <div class="label-service">${svcLabel}</div>
+          <div style="font-size:11px;margin-top:4px;color:#666">${fmtDate(s.created_at)}</div>
+        </div>
+      </div>
+      <div class="label-tracking">${s.tracking_number}</div>
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="flex:1">
+          <div class="label-section">
+            <div class="label-section-title">Người gửi</div>
+            <div class="label-section-body" style="color:#000">
+              <strong>${escHtml(s.sender_name)}</strong><br>
+              ${escHtml(s.sender_phone)}<br>
+              ${escHtml(s.sender_address)}<br>
+              ${escHtml(s.sender_district||'')}${s.sender_district?', ':''}${escHtml(s.sender_province)}
+            </div>
+          </div>
+          <div class="label-section">
+            <div class="label-section-title">Người nhận</div>
+            <div class="label-section-body" style="color:#000;border-color:#000;border-width:2px">
+              <strong style="font-size:15px">${escHtml(s.receiver_name)}</strong><br>
+              <strong>${escHtml(s.receiver_phone)}</strong><br>
+              ${escHtml(s.receiver_address)}<br>
+              <strong>${escHtml(s.receiver_district||'')}${s.receiver_district?', ':''}${escHtml(s.receiver_province)}</strong>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+          <canvas id="qr-canvas" width="120" height="120"></canvas>
+          <div style="font-size:10px;color:#666">Quét để tra cứu</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;padding:10px;background:#f5f5f5;border-radius:8px;font-size:12px;color:#333">
+        <div><strong>Hàng:</strong> ${CARGO_TYPES[s.cargo_type]||s.cargo_type}</div>
+        <div>•</div>
+        <div><strong>KL:</strong> ${s.weight}kg</div>
+        <div>•</div>
+        <div><strong>Phí:</strong> ${fmtVND(s.total_fee)}</div>
+        ${s.cod_amount?`<div>•</div><div><strong>COD:</strong> ${fmtVND(s.cod_amount)}</div>`:''}
+        ${s.has_insurance?`<div>•</div><div><strong>BH:</strong> ✓</div>`:''}
+      </div>
+      ${s.estimated_delivery?`<div style="text-align:center;margin-top:10px;font-size:12px;color:#666">Dự kiến giao: <strong>${s.estimated_delivery}</strong></div>`:''}
+      <div class="label-barcode">${s.tracking_number}</div>
+    </div>
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeAllModals()">Đóng</button>
+     <button class="btn btn-primary" onclick="printLabel()">🖨️ In Vận Đơn</button>`
+  );
+  // Generate QR
+  setTimeout(() => {
+    const canvas = document.getElementById('qr-canvas');
+    if (canvas && window.QRCode) {
+      QRCode.toCanvas(canvas, `${window.location.origin}/logistics#track-${s.tracking_number}`, { width:120, margin:1, color:{dark:'#000000',light:'#ffffff'} }, ()=>{});
+    } else if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,120,120);
+      ctx.fillStyle = '#000'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(s.tracking_number.slice(0,8), 60, 55);
+      ctx.fillText(s.tracking_number.slice(8), 60, 68);
+    }
+  }, 100);
+}
+
+function printLabel() {
+  const content = document.getElementById('print-label-inner')?.innerHTML;
+  if (!content) return;
+  const printWin = window.open('', '_blank', 'width=500,height=700');
+  printWin.document.write(`<html><head><title>Vận Đơn</title><style>
+    body{font-family:Arial,sans-serif;margin:20px}
+    .label-card{background:#fff;border:2px solid #000;border-radius:8px;padding:20px;max-width:400px}
+    .label-header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}
+    .label-logo{font-size:20px;font-weight:900}
+    .label-service{font-size:12px;background:#000;color:#fff;padding:3px 8px;border-radius:4px}
+    .label-tracking{font-size:26px;font-weight:900;font-family:monospace;text-align:center;letter-spacing:2px;margin:10px 0}
+    .label-section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#666;margin-bottom:4px}
+    .label-section-body{font-size:13px;line-height:1.6;border:1px solid #ddd;border-radius:4px;padding:8px}
+    .label-barcode{font-family:monospace;font-size:11px;text-align:center;letter-spacing:4px;margin-top:8px;color:#333}
+  </style></head><body>${content}</body></html>`);
+  printWin.document.close();
+  setTimeout(() => { printWin.focus(); printWin.print(); }, 500);
+}
+
+// ═══════════════════════
+// CANCEL
+// ═══════════════════════
+async function cancelShipment(id) {
+  if (!confirm('Hủy đơn hàng này? Hành động này không thể hoàn tác.')) return;
+  try {
+    await api(`/api/logistics/shipments/${id}/cancel`, { method:'PATCH' });
+    toast('❌ Đã hủy đơn hàng');
+    closeAllModals();
+    renderShipments();
+  } catch(e) { toast(e.error||'Hủy thất bại','error'); }
+}
+
+// ═══════════════════════
+// MODAL
+// ═══════════════════════
+function showModal(title, body, footer) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  const ft = document.getElementById('modal-footer');
+  if (footer) { ft.innerHTML = footer; ft.style.display = 'flex'; }
+  else ft.style.display = 'none';
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAllModals() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeAllModals();
+}
+
+// ═══════════════════════
+// UTILS
+// ═══════════════════════
+function fmtVND(n) { return Number(n||0).toLocaleString('vi-VN') + 'đ'; }
+function fmtDate(s) { return s ? new Date(s).toLocaleDateString('vi-VN') : '—'; }
+function fmtDateTime(s) { return s ? new Date(s).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; }
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return escHtml(s); }
+function tomorrow() { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+
+// ═══════════════════════
+// INIT
+// ═══════════════════════
+async function init() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#track-')) {
+    G._trackNum = hash.replace('#track-','');
+    G.page = 'track';
+  }
+  await loadUser();
+  render();
+}
+init();
+</script>
+</body>
+</html>
