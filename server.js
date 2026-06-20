@@ -2685,6 +2685,63 @@ app.get('/api/admin/stats', async (req, res) => {
   });
 });
 
+// ── SETUP STATUS — kiểm tra toàn bộ cấu hình hệ thống ──
+app.get('/api/admin/setup-status', adminAuth, async (req, res) => {
+  const checks = {};
+
+  // 1. Secrets
+  checks.secrets = {
+    SUPABASE_URL:    !!process.env.SUPABASE_URL && !process.env.SUPABASE_URL.includes('placeholder'),
+    SUPABASE_KEY:    !!process.env.SUPABASE_KEY && !process.env.SUPABASE_KEY.includes('placeholder'),
+    JWT_SECRET:      !!process.env.JWT_SECRET   && process.env.JWT_SECRET !== 'dev_jwt_secret_replace_me',
+    RESEND_API_KEY:  !!process.env.RESEND_API_KEY,
+    ADMIN_SECRET:    !!process.env.ADMIN_SECRET,
+    VNPAY_TMN_CODE:  !!process.env.VNPAY_TMN_CODE,
+    VNPAY_HASH_SECRET: !!process.env.VNPAY_HASH_SECRET
+  };
+
+  // 2. Database tables
+  const TABLES = [
+    'users','tickets','orders','transactions','notifications',
+    'reviews','kyc_requests','admin_logs','admins',
+    'listings','shipping_orders','service_listings',
+    'service_orders','digital_listings','referrals'
+  ];
+  checks.tables = {};
+  await Promise.all(TABLES.map(async t => {
+    const { error } = await supabase.from(t).select('id').limit(1);
+    checks.tables[t] = !error;
+  }));
+
+  // 3. Storage buckets
+  const BUCKETS = ['kyc-documents','chat-images','ticket-images','deliverables'];
+  checks.buckets = {};
+  await Promise.all(BUCKETS.map(async b => {
+    const { error } = await supabase.storage.from(b).list('', { limit: 1 });
+    checks.buckets[b] = !error;
+  }));
+
+  // 4. DB connectivity
+  const { error: dbErr } = await supabase.from('users').select('id').limit(1);
+  checks.dbConnected = !dbErr;
+
+  // 5. Admin count
+  const { count: adminCount } = await supabase.from('admins').select('*', { count: 'exact', head: true });
+  checks.adminCount = adminCount || 0;
+
+  // 6. Summary score
+  const secretsOk  = Object.values(checks.secrets).filter(Boolean).length;
+  const tablesOk   = Object.values(checks.tables).filter(Boolean).length;
+  const bucketsOk  = Object.values(checks.buckets).filter(Boolean).length;
+  checks.score = {
+    secrets:  { ok: secretsOk,  total: Object.keys(checks.secrets).length },
+    tables:   { ok: tablesOk,   total: TABLES.length },
+    buckets:  { ok: bucketsOk,  total: BUCKETS.length }
+  };
+
+  res.json(checks);
+});
+
 // All tickets (admin)
 app.get('/api/admin/tickets', async (req, res) => {
   if (adminSecret(req) !== process.env.ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });

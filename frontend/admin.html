@@ -362,6 +362,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div class="mob-nav-item" onclick="switchTab('audit')" data-tab="audit">📜 Audit Log</div>
     <div class="mob-nav-item" onclick="switchTab('settings')" data-tab="settings">⚙️ Cài đặt</div>
     <div class="mob-nav-item" onclick="switchTab('security')" data-tab="security">🛡️ Bảo Mật</div>
+    <div class="mob-nav-item" onclick="switchTab('setup-guide')" data-tab="setup-guide">🚀 Setup</div>
   </div>
 
   <div class="layout">
@@ -392,6 +393,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
       <div class="nav-item" onclick="switchTab('audit')" data-tab="audit"><span class="nav-icon">📜</span> Audit Log</div>
       <div class="nav-item" onclick="switchTab('settings')" data-tab="settings"><span class="nav-icon">⚙️</span> Cài đặt</div>
       <div class="nav-item" onclick="switchTab('security')" data-tab="security"><span class="nav-icon">🛡️</span> Bảo Mật <span class="nav-badge" id="security-badge" style="display:none">!</span></div>
+      <div class="nav-item" onclick="switchTab('setup-guide')" data-tab="setup-guide"><span class="nav-icon">🚀</span> Setup Guide <span class="nav-badge" id="setup-badge" style="display:none">!</span></div>
     </nav>
 
     <!-- MAIN -->
@@ -932,6 +934,124 @@ tr:hover td{background:rgba(255,255,255,.015);}
   </div>
 </div>
 
+<!-- ════ PAGE: SETUP GUIDE ════ -->
+<div class="page" id="page-setup-guide">
+  <div class="page-title">🚀 Setup Guide — Hướng Dẫn Cài Đặt</div>
+
+  <!-- OVERALL SCORE BAR -->
+  <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(61,142,248,.08),rgba(155,135,245,.06));border-color:rgba(61,142,248,.2)">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div id="setup-score-ring" style="flex-shrink:0;width:80px;height:80px;position:relative;display:flex;align-items:center;justify-content:center">
+        <svg width="80" height="80" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
+          <circle id="setup-ring-fill" cx="40" cy="40" r="34" fill="none" stroke="var(--brand)" stroke-width="8"
+            stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round" style="transition:stroke-dashoffset .8s ease"/>
+        </svg>
+        <span id="setup-score-pct" style="font-size:17px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace">—%</span>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:18px;font-weight:700;margin-bottom:6px" id="setup-headline">Đang kiểm tra hệ thống…</div>
+        <div style="font-size:13px;color:var(--sub);line-height:1.6" id="setup-subline">Vui lòng chờ trong giây lát</div>
+      </div>
+      <button class="btn btn-brand" onclick="loadSetupGuide()" style="flex-shrink:0">🔄 Kiểm tra lại</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="setup-grid">
+
+    <!-- CARD: SECRETS -->
+    <div class="card">
+      <div class="card-head" style="margin-bottom:12px">
+        <div><div class="card-title">🔑 Secrets / API Keys</div><div class="card-sub" id="secrets-score-sub">Đang kiểm tra…</div></div>
+        <span id="secrets-overall-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700">…</span>
+      </div>
+      <div id="secrets-list" style="display:flex;flex-direction:column;gap:8px">
+        <div style="color:var(--hint);font-size:12px;text-align:center;padding:16px">Đang tải…</div>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--hint);line-height:1.7">
+          Thêm secrets tại: <strong style="color:var(--sub)">Replit → tab Secrets (🔒)</strong> bên trái màn hình
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD: DATABASE TABLES -->
+    <div class="card">
+      <div class="card-head" style="margin-bottom:12px">
+        <div><div class="card-title">🗄️ Database Tables</div><div class="card-sub" id="tables-score-sub">Đang kiểm tra…</div></div>
+        <span id="tables-overall-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700">…</span>
+      </div>
+      <div id="tables-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto">
+        <div style="color:var(--hint);font-size:12px;text-align:center;padding:16px">Đang tải…</div>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--hint);line-height:1.7">
+          Thiếu bảng? Chạy các file <strong style="color:var(--sub)">.sql</strong> trong <strong style="color:var(--sub)">Supabase SQL Editor</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD: STORAGE BUCKETS -->
+    <div class="card">
+      <div class="card-head" style="margin-bottom:12px">
+        <div><div class="card-title">🪣 Storage Buckets</div><div class="card-sub" id="buckets-score-sub">Đang kiểm tra…</div></div>
+        <span id="buckets-overall-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700">…</span>
+      </div>
+      <div id="buckets-list" style="display:flex;flex-direction:column;gap:8px">
+        <div style="color:var(--hint);font-size:12px;text-align:center;padding:16px">Đang tải…</div>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--hint);line-height:1.7">
+          Buckets tự tạo khi server khởi động. Nếu thiếu, restart server.
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD: QUICK ACTIONS -->
+    <div class="card">
+      <div class="card-head" style="margin-bottom:12px">
+        <div><div class="card-title">⚡ Hành Động Nhanh</div><div class="card-sub">Cấu hình & kiểm tra</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Tạo tài khoản Admin đầu tiên</div>
+        <input id="setup-admin-email" placeholder="admin@example.com" style="width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;outline:none"/>
+        <input id="setup-admin-pass" type="password" placeholder="Mật khẩu (≥8 ký tự)" style="width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;outline:none"/>
+        <input id="setup-admin-name" placeholder="Tên hiển thị" style="width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;outline:none"/>
+        <input id="setup-admin-secret" placeholder="ADMIN_SECRET (từ Replit Secrets)" style="width:100%;background:var(--card2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;outline:none"/>
+        <button class="btn btn-brand" onclick="setupCreateAdmin()" style="width:100%">🔐 Tạo Super Admin</button>
+        <div id="setup-admin-result" style="font-size:12px;min-height:16px;color:var(--ok)"></div>
+
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+          <div style="font-size:12px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Kiểm tra kết nối Database</div>
+          <button class="btn" onclick="setupTestDb()" style="width:100%;background:var(--okBg);border-color:var(--okBorder);color:var(--ok)">🔌 Ping Database</button>
+          <div id="setup-db-result" style="font-size:12px;margin-top:8px;min-height:16px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIGRATION GUIDE -->
+  <div class="card">
+    <div class="card-head" style="margin-bottom:16px">
+      <div><div class="card-title">📋 Hướng Dẫn Chạy SQL Migrations</div><div class="card-sub">Thực hiện theo thứ tự trong Supabase SQL Editor</div></div>
+      <a href="https://app.supabase.com" target="_blank" class="btn btn-brand btn-sm-btn">🔗 Mở Supabase</a>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px" id="migration-steps">
+      <!-- rendered by JS -->
+    </div>
+    <div style="margin-top:16px;padding:14px;background:var(--warnBg);border:1px solid var(--warnBorder);border-radius:10px">
+      <div style="font-size:12px;color:var(--warn);font-weight:600;margin-bottom:6px">📍 Cách chạy SQL trong Supabase:</div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.8">
+        1. Vào <strong style="color:var(--text)">app.supabase.com</strong> → chọn project của bạn<br>
+        2. Click <strong style="color:var(--text)">SQL Editor</strong> ở menu trái<br>
+        3. Click <strong style="color:var(--text)">+ New query</strong><br>
+        4. Paste nội dung file .sql vào → click <strong style="color:var(--text)">▶ Run</strong><br>
+        5. Lặp lại cho từng file theo thứ tự bên trên
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ════ PAGE: SECURITY DASHBOARD ════ -->
 <div class="page" id="page-security">
   <div class="page-title">🛡️ Bảo Mật Hệ Thống</div>
@@ -1195,6 +1315,7 @@ function switchTab(tab) {
     case 'audit': loadAuditLog(); break;
     case 'settings': loadAdminList(); break;
     case 'security': loadSecurity(); break;
+    case 'setup-guide': loadSetupGuide(); break;
   }
 }
 
@@ -2599,6 +2720,253 @@ function renderSecEvents() {
 
 async function secClearBans() {
   toast('Chức năng xóa ban chỉ tự xóa sau 30 phút theo cơ chế tự động.', 'warn');
+}
+
+// ══════════════════════════════════════════════════
+//  🚀 SETUP GUIDE
+// ══════════════════════════════════════════════════
+
+const SECRET_META = {
+  SUPABASE_URL:      { label: 'Supabase URL',        required: true,  hint: 'https://xxxx.supabase.co' },
+  SUPABASE_KEY:      { label: 'Supabase Anon/Service Key', required: true,  hint: 'eyJh...' },
+  JWT_SECRET:        { label: 'JWT Secret',           required: true,  hint: 'Chuỗi bất kỳ, càng dài càng tốt' },
+  RESEND_API_KEY:    { label: 'Resend API Key',       required: false, hint: 'Cần cho email thông báo' },
+  ADMIN_SECRET:      { label: 'Admin Secret',         required: true,  hint: 'Dùng để tạo tài khoản admin đầu tiên' },
+  VNPAY_TMN_CODE:    { label: 'VNPay TMN Code',      required: false, hint: 'Cần cho thanh toán thật (không sandbox)' },
+  VNPAY_HASH_SECRET: { label: 'VNPay Hash Secret',   required: false, hint: 'Đi kèm với TMN Code' },
+};
+
+const MIGRATION_STEPS = [
+  { file: 'schema.sql',                    label: 'Schema gốc — users, tickets, orders, transactions…',  required: true },
+  { file: 'migration.sql',                 label: 'Admin & audit — bảng admins, admin_logs, chat…',      required: true },
+  { file: 'kyc_setup.sql',                 label: 'KYC — bảng kyc_requests + bucket kyc-documents',      required: true },
+  { file: 'listings_migration.sql',        label: 'Listings — marketplace đa danh mục 6 loại',           required: true },
+  { file: 'shipping_migration.sql',        label: 'Shipping — Pass Đồ, vận đơn, giao hàng vật lý',      required: false },
+  { file: 'service_migration.sql',         label: 'Services — Pass Dịch Vụ, gig marketplace',           required: false },
+  { file: 'digital_accounts_migration.sql',label: 'Digital Accounts — tài khoản số, game…',             required: false },
+  { file: 'payment_transactions_setup.sql',label: 'Payment transactions — VNPay log chi tiết',          required: false },
+];
+
+const TABLE_META = {
+  users:            'Tài khoản người dùng',
+  tickets:          'Vé sự kiện (legacy)',
+  orders:           'Đơn hàng & Escrow',
+  transactions:     'Lịch sử giao dịch ví',
+  notifications:    'Thông báo trong app',
+  reviews:          'Đánh giá seller',
+  kyc_requests:     'Yêu cầu xác minh KYC',
+  admin_logs:       'Audit log hành động admin',
+  admins:           'Tài khoản admin',
+  listings:         'Marketplace đa danh mục',
+  shipping_orders:  'Vận đơn giao hàng',
+  service_listings: 'Dịch vụ (Fiverr mini)',
+  service_orders:   'Đơn dịch vụ',
+  digital_listings: 'Tài khoản số',
+  referrals:        'Lịch sử giới thiệu',
+};
+
+async function loadSetupGuide() {
+  renderMigrationSteps();
+  try {
+    const data = await api('GET', '/admin/setup-status');
+    renderSetupStatus(data);
+  } catch (e) {
+    document.getElementById('setup-headline').textContent = '⚠️ Không thể tải trạng thái';
+    document.getElementById('setup-subline').textContent  = e.message;
+  }
+}
+
+function renderSetupStatus(data) {
+  // ── Secrets ──
+  const secretsEl  = document.getElementById('secrets-list');
+  const { secrets, score } = data;
+  const reqSecrets  = Object.entries(SECRET_META).filter(([,m]) => m.required);
+  const optSecrets  = Object.entries(SECRET_META).filter(([,m]) => !m.required);
+  const reqOk       = reqSecrets.filter(([k]) => secrets[k]).length;
+
+  secretsEl.innerHTML = [
+    '<div style="font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Bắt buộc</div>',
+    ...reqSecrets.map(([k, m]) => secretRow(k, m, secrets[k])),
+    '<div style="font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px">Tuỳ chọn</div>',
+    ...optSecrets.map(([k, m]) => secretRow(k, m, secrets[k])),
+  ].join('');
+
+  const allReqOk = reqOk === reqSecrets.length;
+  setBadge('secrets-overall-badge', allReqOk ? 'ok' : 'error',
+    allReqOk ? `${score.secrets.ok}/${score.secrets.total} ✓` : `${reqOk}/${reqSecrets.length} bắt buộc thiếu`);
+  document.getElementById('secrets-score-sub').textContent =
+    `${score.secrets.ok}/${score.secrets.total} secrets đã có`;
+
+  // ── Tables ──
+  const tablesEl = document.getElementById('tables-list');
+  const tablesOk = Object.values(data.tables).filter(Boolean).length;
+  tablesEl.innerHTML = Object.entries(data.tables).map(([t, ok]) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px">${ok ? '✅' : '❌'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:${ok ? 'var(--text)' : 'var(--red)'};">${t}</div>
+        <div style="font-size:11px;color:var(--hint)">${TABLE_META[t] || ''}</div>
+      </div>
+    </div>`).join('');
+
+  const allTablesOk = tablesOk === Object.keys(data.tables).length;
+  setBadge('tables-overall-badge', allTablesOk ? 'ok' : (tablesOk > 5 ? 'warn' : 'error'),
+    `${tablesOk}/${Object.keys(data.tables).length} bảng`);
+  document.getElementById('tables-score-sub').textContent =
+    `${tablesOk}/${Object.keys(data.tables).length} bảng đã tồn tại`;
+
+  // ── Buckets ──
+  const bucketsEl = document.getElementById('buckets-list');
+  const bucketsOk = Object.values(data.buckets).filter(Boolean).length;
+  bucketsEl.innerHTML = Object.entries(data.buckets).map(([b, ok]) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:16px">${ok ? '✅' : '❌'}</span>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:${ok ? 'var(--text)' : 'var(--red)'}">${b}</div>
+        <div style="font-size:11px;color:var(--hint)">${ok ? 'Sẵn sàng' : 'Chưa tồn tại — restart server'}</div>
+      </div>
+    </div>`).join('');
+
+  const allBucketsOk = bucketsOk === Object.keys(data.buckets).length;
+  setBadge('buckets-overall-badge', allBucketsOk ? 'ok' : 'warn',
+    `${bucketsOk}/${Object.keys(data.buckets).length} bucket`);
+  document.getElementById('buckets-score-sub').textContent =
+    `${bucketsOk}/${Object.keys(data.buckets).length} bucket đang hoạt động`;
+
+  // ── Overall score ring ──
+  const totalItems = score.secrets.total + score.tables.total + score.buckets.total;
+  const totalOk    = score.secrets.ok   + score.tables.ok   + score.buckets.ok;
+  const pct        = Math.round((totalOk / totalItems) * 100);
+  const circumference = 213.6;
+  document.getElementById('setup-score-pct').textContent = pct + '%';
+  document.getElementById('setup-ring-fill').style.strokeDashoffset =
+    circumference - (circumference * pct / 100);
+  document.getElementById('setup-ring-fill').style.stroke =
+    pct >= 80 ? 'var(--ok)' : pct >= 50 ? 'var(--warn)' : 'var(--red)';
+
+  if (pct === 100) {
+    document.getElementById('setup-headline').textContent = '✅ Hệ thống đã sẵn sàng 100%!';
+    document.getElementById('setup-subline').textContent  = 'Tất cả secrets, bảng và buckets đều hoạt động tốt.';
+    document.getElementById('setup-badge').style.display  = 'none';
+  } else if (pct >= 70) {
+    document.getElementById('setup-headline').textContent = `⚠️ Gần xong — còn ${totalItems - totalOk} mục cần hoàn thành`;
+    document.getElementById('setup-subline').textContent  = 'Một vài bảng hoặc secrets tùy chọn chưa được cấu hình.';
+    document.getElementById('setup-badge').style.display  = 'flex';
+    document.getElementById('setup-badge').textContent    = '!';
+  } else {
+    document.getElementById('setup-headline').textContent = `❌ Cần cấu hình thêm — ${pct}% hoàn thành`;
+    document.getElementById('setup-subline').textContent  = 'Thêm secrets và chạy SQL migrations để hệ thống hoạt động đầy đủ.';
+    document.getElementById('setup-badge').style.display  = 'flex';
+    document.getElementById('setup-badge').textContent    = '!';
+  }
+
+  // Admin count info
+  if (data.adminCount === 0) {
+    document.getElementById('setup-admin-result').textContent =
+      '⚠️ Chưa có tài khoản admin — tạo ngay bên dưới';
+    document.getElementById('setup-admin-result').style.color = 'var(--warn)';
+  } else {
+    document.getElementById('setup-admin-result').textContent =
+      `✅ Đã có ${data.adminCount} tài khoản admin`;
+    document.getElementById('setup-admin-result').style.color = 'var(--ok)';
+  }
+}
+
+function secretRow(key, meta, ok) {
+  const color = ok ? 'var(--ok)' : (meta.required ? 'var(--red)' : 'var(--warn)');
+  const icon  = ok ? '✅' : (meta.required ? '❌' : '⚠️');
+  const status = ok ? 'Đã có' : (meta.required ? 'Bắt buộc — chưa có' : 'Tùy chọn — chưa có');
+  return `
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px;flex-shrink:0;margin-top:1px">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span style="font-size:12px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace">${key}</span>
+          <span style="font-size:10px;color:${color};font-weight:600;white-space:nowrap">${status}</span>
+        </div>
+        <div style="font-size:11px;color:var(--hint);margin-top:2px">${meta.label} — ${meta.hint}</div>
+      </div>
+    </div>`;
+}
+
+function setBadge(id, type, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const colors = {
+    ok:    { bg: 'var(--okBg)',    border: 'var(--okBorder)',    color: 'var(--ok)' },
+    warn:  { bg: 'var(--warnBg)', border: 'var(--warnBorder)',  color: 'var(--warn)' },
+    error: { bg: 'var(--redBg)',  border: 'var(--redBorder)',   color: 'var(--red)' },
+  };
+  const c = colors[type] || colors.warn;
+  el.textContent = text;
+  el.style.cssText = `font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;background:${c.bg};border:1px solid ${c.border};color:${c.color}`;
+}
+
+function renderMigrationSteps() {
+  document.getElementById('migration-steps').innerHTML = MIGRATION_STEPS.map((step, i) => `
+    <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 14px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+      <div style="width:28px;height:28px;border-radius:50%;background:${step.required ? 'var(--brand)' : 'var(--card3)'};
+        border:1px solid ${step.required ? 'rgba(61,142,248,.3)' : 'var(--border2)'};
+        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
+        color:${step.required ? '#fff' : 'var(--sub)'};flex-shrink:0;margin-top:1px">${i + 1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace">${step.file}</span>
+          ${step.required
+            ? '<span style="font-size:9px;background:var(--brandM);color:var(--brand);border:1px solid rgba(61,142,248,.3);padding:1px 6px;border-radius:4px;font-weight:700">BẮT BUỘC</span>'
+            : '<span style="font-size:9px;background:var(--card3);color:var(--sub);border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-weight:700">TÙY CHỌN</span>'}
+        </div>
+        <div style="font-size:12px;color:var(--sub)">${step.label}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function setupCreateAdmin() {
+  const email  = document.getElementById('setup-admin-email').value.trim();
+  const pass   = document.getElementById('setup-admin-pass').value;
+  const name   = document.getElementById('setup-admin-name').value.trim();
+  const secret = document.getElementById('setup-admin-secret').value.trim();
+  const resultEl = document.getElementById('setup-admin-result');
+
+  if (!email || !pass || !name || !secret) {
+    resultEl.textContent = '⚠️ Vui lòng điền đầy đủ 4 trường'; resultEl.style.color = 'var(--warn)'; return;
+  }
+  if (pass.length < 8) {
+    resultEl.textContent = '⚠️ Mật khẩu phải ít nhất 8 ký tự'; resultEl.style.color = 'var(--warn)'; return;
+  }
+  resultEl.textContent = '⏳ Đang tạo…'; resultEl.style.color = 'var(--sub)';
+  try {
+    const res = await fetch('/api/admin/auth/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, name, secret }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `Lỗi ${res.status}`);
+    resultEl.textContent = `✅ Tạo thành công! Đăng nhập: ${email}`;
+    resultEl.style.color = 'var(--ok)';
+    toast('Tạo tài khoản admin thành công!', 'ok');
+    loadSetupGuide();
+  } catch (e) {
+    resultEl.textContent = '❌ ' + e.message;
+    resultEl.style.color = 'var(--red)';
+  }
+}
+
+async function setupTestDb() {
+  const resultEl = document.getElementById('setup-db-result');
+  resultEl.textContent = '⏳ Đang ping database…';
+  resultEl.style.color = 'var(--sub)';
+  const t0 = Date.now();
+  try {
+    await api('GET', '/admin/setup-status');
+    const ms = Date.now() - t0;
+    resultEl.textContent = `✅ Kết nối thành công — ${ms}ms`;
+    resultEl.style.color = 'var(--ok)';
+  } catch (e) {
+    resultEl.textContent = '❌ Không kết nối được: ' + e.message;
+    resultEl.style.color = 'var(--red)';
+  }
 }
 </script>
 </body>
