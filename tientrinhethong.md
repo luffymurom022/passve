@@ -763,4 +763,39 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 
 ---
 
-*Cập nhật lần cuối: 2026-06-19*
+---
+
+## 🏢 PHASE 7 — SafePass Business (Escrow-as-a-Service) *(HOÀN THÀNH)*
+> Hệ thống hoàn toàn độc lập — không ảnh hưởng Marketplace và các module hiện có
+
+| Chức năng | Ngày hoàn thành |
+|---|---|
+| SQL migration `business_migration.sql` — 7 bảng: `business_accounts`, `api_keys`, `business_escrows`, `business_webhooks`, `business_api_logs`, `white_label_configs`, `business_kyc` | 2026-06-20 |
+| Business Auth — `POST /api/business/auth/register` (email + password), `POST /api/business/auth/login`, `GET /api/business/auth/me` | 2026-06-20 |
+| Middleware `businessAuth` (JWT), `businessApiKeyAuth` (API key header) | 2026-06-20 |
+| API Key Management — `GET/POST /api/business/api-keys`, `DELETE /api/business/api-keys/:id` — sandbox + production key | 2026-06-20 |
+| Escrow API — `POST /api/business/escrow/create`, `POST /api/business/escrow/:id/release`, `POST /api/business/escrow/:id/refund`, `GET /api/business/escrow/:id`, `GET /api/business/escrow` | 2026-06-20 |
+| Trust API — `GET /api/business/trust/:phone` — trust score, level, completion rate | 2026-06-20 |
+| Fraud API — `POST /api/business/fraud-check` — risk score, flags, recommendation APPROVE/REVIEW/REJECT | 2026-06-20 |
+| Webhook System — `GET/POST /api/business/webhooks`, `DELETE /api/business/webhooks/:id` — fireBusinessWebhook() helper | 2026-06-20 |
+| Analytics — `GET /api/business/analytics` — by_status, by_env, total API calls | 2026-06-20 |
+| White Label — `GET/PUT /api/business/white-label` — brand name, logo, color, domain, custom CSS | 2026-06-20 |
+| Billing — `GET /api/business/billing`, `POST /api/business/billing/upgrade` — starter/growth/enterprise plans | 2026-06-20 |
+| Dashboard — `GET /api/business/dashboard` — api calls, escrow volume, active keys, recent escrows | 2026-06-20 |
+| Admin — `GET /api/admin/business/accounts`, `PATCH /api/admin/business/accounts/:id/status`, `GET /api/admin/business/api-usage` | 2026-06-20 |
+| Frontend `frontend/business.html` — Developer Portal tại `/business` | 2026-06-20 |
+| Frontend: Login/Register form (email + password, không phải phone) | 2026-06-20 |
+| Frontend: Sidebar nav — Dashboard, Analytics, API Keys, Webhooks, Escrow, Trust & Fraud, Billing, White Label, API Docs | 2026-06-20 |
+| Frontend: Dashboard stats — API calls, escrow count, volume, active keys, recent transactions | 2026-06-20 |
+| Frontend: API Keys — generate (sandbox/production), copy key/secret, revoke | 2026-06-20 |
+| Frontend: Escrow — list, create new, release/refund actions | 2026-06-20 |
+| Frontend: Webhooks — add endpoint, select events, delete | 2026-06-20 |
+| Frontend: Analytics — horizontal bar charts by status và environment | 2026-06-20 |
+| Frontend: Trust & Fraud — live lookup form với result display | 2026-06-20 |
+| Frontend: Billing — plan cards (Starter/Growth/Enterprise), upgrade button | 2026-06-20 |
+| Frontend: White Label — brand name, logo, color picker, domain, custom CSS | 2026-06-20 |
+| Frontend: API Docs — interactive endpoint reference với code samples | 2026-06-20 |
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `business_migration.sql`
+
+*Cập nhật lần cuối: 2026-06-20*

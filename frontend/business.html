@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafePass Business — Developer Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#06090f;--bg2:#090d16;--card:#0d1220;--card2:#101828;--card3:#131d2e;
+  --border:rgba(255,255,255,.055);--border2:rgba(255,255,255,.1);--border3:rgba(255,255,255,.16);
+  --brand:#3d8ef8;--brandD:#2e7ef0;--brand2:#a78bfa;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;--cyan:#06b6d4;
+  --text:#e8edf5;--sub:#6b7a99;--sub2:#4a5568;
+  --radius:12px;--radius2:8px;
+  --sidebar-w:240px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+button{cursor:pointer;font-family:inherit;}
+input,select,textarea{font-family:inherit;}
+
+/* ── AUTH SCREEN ── */
+#authScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 60% 20%,rgba(61,142,248,.08),transparent 60%);}
+.auth-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:40px;width:100%;max-width:440px;}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+.auth-logo .badge{background:linear-gradient(135deg,var(--brand),var(--brand2));padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;}
+.auth-logo .title{font-size:20px;font-weight:700;}
+.auth-tabs{display:flex;gap:4px;background:var(--bg2);border-radius:var(--radius2);padding:4px;margin-bottom:24px;}
+.auth-tab{flex:1;padding:8px;text-align:center;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--sub);transition:.2s;}
+.auth-tab.active{background:var(--card3);color:var(--text);}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:12px;color:var(--sub);margin-bottom:6px;font-weight:500;}
+.form-group input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:10px 14px;color:var(--text);font-size:14px;outline:none;transition:.2s;}
+.form-group input:focus{border-color:var(--brand);}
+.btn-primary{width:100%;background:var(--brand);color:#fff;border:none;border-radius:var(--radius2);padding:12px;font-size:14px;font-weight:600;transition:.2s;}
+.btn-primary:hover{background:var(--brandD);}
+.btn-secondary{background:var(--card3);color:var(--text);border:1px solid var(--border2);border-radius:var(--radius2);padding:8px 16px;font-size:13px;font-weight:500;transition:.2s;}
+.btn-secondary:hover{border-color:var(--border3);}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius2);padding:6px 12px;font-size:12px;font-weight:500;}
+.btn-green{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);border-radius:var(--radius2);padding:6px 12px;font-size:12px;font-weight:500;}
+.auth-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius2);padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:16px;display:none;}
+
+/* ── APP LAYOUT ── */
+#appScreen{display:none;min-height:100vh;}
+.app-layout{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.sidebar-logo .brand{display:flex;align-items:center;gap:8px;}
+.sidebar-logo .badge{background:linear-gradient(135deg,var(--brand),var(--brand2));padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;}
+.sidebar-logo .name{font-size:15px;font-weight:700;}
+.sidebar-logo .sub{font-size:11px;color:var(--sub);margin-top:2px;}
+.sidebar-nav{flex:1;padding:12px 8px;overflow-y:auto;}
+.nav-section{font-size:10px;color:var(--sub2);font-weight:600;text-transform:uppercase;letter-spacing:.8px;padding:8px 12px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius2);cursor:pointer;color:var(--sub);font-size:13px;font-weight:500;transition:.15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.active{background:rgba(61,142,248,.12);color:var(--brand);}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border);}
+.biz-info{display:flex;align-items:center;gap:10px;}
+.biz-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;}
+.biz-name{font-size:13px;font-weight:600;}
+.biz-plan{font-size:11px;color:var(--sub);}
+.btn-logout{background:none;border:none;color:var(--sub);font-size:11px;margin-top:6px;cursor:pointer;}
+
+/* Main content */
+.main-content{margin-left:var(--sidebar-w);flex:1;padding:28px;min-height:100vh;}
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:22px;font-weight:700;}
+.page-header p{color:var(--sub);font-size:14px;margin-top:4px;}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-title{font-size:14px;font-weight:600;margin-bottom:16px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.stat-label{font-size:12px;color:var(--sub);margin-bottom:8px;}
+.stat-val{font-size:24px;font-weight:700;}
+.stat-sub{font-size:11px;color:var(--sub);margin-top:4px;}
+.stat-card.blue .stat-val{color:var(--brand);}
+.stat-card.green .stat-val{color:var(--green);}
+.stat-card.purple .stat-val{color:var(--brand2);}
+.stat-card.yellow .stat-val{color:var(--yellow);}
+
+/* Tables */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:1px solid var(--border);}
+td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+
+/* Status badges */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green);}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--yellow);}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red);}
+.badge-blue{background:rgba(61,142,248,.15);color:var(--brand);}
+.badge-purple{background:rgba(167,139,250,.15);color:var(--brand2);}
+.badge-gray{background:rgba(107,122,153,.15);color:var(--sub);}
+
+/* Code/key display */
+.key-box{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius2);padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan);display:flex;align-items:center;justify-content:space-between;gap:8px;word-break:break-all;}
+.copy-btn{background:none;border:none;color:var(--sub);cursor:pointer;font-size:12px;white-space:nowrap;padding:4px 8px;border-radius:6px;transition:.15s;}
+.copy-btn:hover{background:var(--card2);color:var(--text);}
+
+/* Tabs */
+.tab-bar{display:flex;gap:4px;background:var(--bg2);border-radius:var(--radius2);padding:4px;margin-bottom:20px;width:fit-content;}
+.tab-btn{padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--sub);background:none;border:none;transition:.15s;}
+.tab-btn.active{background:var(--card3);color:var(--text);}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;display:none;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;}
+
+/* Alert */
+.alert{border-radius:var(--radius2);padding:12px 16px;font-size:13px;margin-bottom:16px;}
+.alert-info{background:rgba(61,142,248,.1);border:1px solid rgba(61,142,248,.2);color:#93c5fd;}
+.alert-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#6ee7b7;}
+.alert-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#fcd34d;}
+
+/* Plan cards */
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.plan-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;transition:.2s;}
+.plan-card.current{border-color:var(--brand);background:rgba(61,142,248,.05);}
+.plan-card .plan-name{font-size:14px;font-weight:700;margin-bottom:8px;}
+.plan-card .plan-price{font-size:28px;font-weight:800;margin-bottom:4px;}
+.plan-card .plan-price span{font-size:13px;font-weight:400;color:var(--sub);}
+.plan-card .plan-features{list-style:none;margin:16px 0;text-align:left;}
+.plan-card .plan-features li{font-size:12px;color:var(--sub);padding:4px 0;display:flex;align-items:center;gap:6px;}
+.plan-card .plan-features li::before{content:'✓';color:var(--green);font-weight:700;}
+
+/* API docs */
+.endpoint{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:12px;overflow:hidden;}
+.endpoint-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.method-badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.method-GET{background:rgba(16,185,129,.2);color:var(--green);}
+.method-POST{background:rgba(61,142,248,.2);color:var(--brand);}
+.method-DELETE{background:rgba(239,68,68,.2);color:var(--red);}
+.endpoint-path{font-family:'JetBrains Mono',monospace;font-size:13px;}
+.endpoint-desc{font-size:12px;color:var(--sub);margin-left:auto;}
+.endpoint-body{padding:0 16px 14px;display:none;font-size:12px;color:var(--sub);line-height:1.6;}
+.endpoint.open .endpoint-body{display:block;}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan);margin-top:8px;overflow-x:auto;white-space:pre;}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);transition:.3s;}
+  .sidebar.open{transform:translateX(0);}
+  .main-content{margin-left:0;}
+}
+
+/* Loading */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--brand);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Empty state */
+.empty{text-align:center;padding:40px;color:var(--sub);}
+.empty .empty-icon{font-size:36px;margin-bottom:12px;}
+
+/* Webhook events checkboxes */
+.events-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.event-check{display:flex;align-items:center;gap:8px;font-size:13px;}
+.event-check input{width:14px;height:14px;accent-color:var(--brand);}
+
+/* Color picker */
+.color-row{display:flex;align-items:center;gap:10px;}
+.color-row input[type=color]{width:40px;height:36px;padding:2px;border:1px solid var(--border2);border-radius:6px;background:var(--bg2);cursor:pointer;}
+.color-row input[type=text]{flex:1;}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="badge">BUSINESS</span>
+      <span class="title">SafePass</span>
+    </div>
+    <div id="authError" class="auth-error"></div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Đăng nhập</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">Đăng ký</div>
+    </div>
+
+    <!-- Login -->
+    <div id="loginForm">
+      <div class="form-group"><label>Email doanh nghiệp</label><input id="loginEmail" type="email" placeholder="company@example.com"></div>
+      <div class="form-group"><label>Mật khẩu</label><input id="loginPass" type="password" placeholder="••••••••"></div>
+      <button class="btn-primary" onclick="doLogin()">Đăng nhập</button>
+    </div>
+
+    <!-- Register -->
+    <div id="registerForm" style="display:none;">
+      <div class="form-group"><label>Tên công ty</label><input id="regCompany" placeholder="Công ty TNHH ABC"></div>
+      <div class="form-group"><label>Email</label><input id="regEmail" type="email" placeholder="admin@company.com"></div>
+      <div class="form-group"><label>Số điện thoại</label><input id="regPhone" placeholder="0901234567"></div>
+      <div class="form-group"><label>Website</label><input id="regWebsite" placeholder="https://company.com"></div>
+      <div class="form-group"><label>Mật khẩu</label><input id="regPass" type="password" placeholder="Tối thiểu 8 ký tự"></div>
+      <button class="btn-primary" onclick="doRegister()">Tạo tài khoản Business</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen">
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand">
+          <span class="badge" style="font-size:10px;">BUSINESS</span>
+          <span class="name">SafePass</span>
+        </div>
+        <div class="sub">Developer Portal</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Overview</div>
+        <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">📊</span> Dashboard</div>
+        <div class="nav-item" onclick="showPage('analytics')"><span class="icon">📈</span> Analytics</div>
+
+        <div class="nav-section">Tích hợp</div>
+        <div class="nav-item" onclick="showPage('apikeys')"><span class="icon">🔑</span> API Keys</div>
+        <div class="nav-item" onclick="showPage('webhooks')"><span class="icon">🔗</span> Webhooks</div>
+
+        <div class="nav-section">Giao dịch</div>
+        <div class="nav-item" onclick="showPage('escrow')"><span class="icon">🛡️</span> Escrow</div>
+        <div class="nav-item" onclick="showPage('trust')"><span class="icon">⭐</span> Trust & Fraud</div>
+
+        <div class="nav-section">Cài đặt</div>
+        <div class="nav-item" onclick="showPage('billing')"><span class="icon">💳</span> Billing & Plan</div>
+        <div class="nav-item" onclick="showPage('whitelabel')"><span class="icon">🎨</span> White Label</div>
+        <div class="nav-item" onclick="showPage('docs')"><span class="icon">📖</span> API Docs</div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="biz-info">
+          <div class="biz-avatar" id="bizAvatar">B</div>
+          <div>
+            <div class="biz-name" id="bizNameSidebar">Loading...</div>
+            <div class="biz-plan" id="bizPlanSidebar">Starter</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()">← Đăng xuất</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p>Tổng quan hoạt động API của doanh nghiệp</p>
+        </div>
+        <div class="stat-grid" id="dashStats">
+          <div class="stat-card blue"><div class="stat-label">API Calls (tháng này)</div><div class="stat-val" id="ds-calls">—</div><div class="stat-sub" id="ds-callsLimit">của 100</div></div>
+          <div class="stat-card green"><div class="stat-label">Escrow Transactions</div><div class="stat-val" id="ds-txns">—</div><div class="stat-sub">tháng này</div></div>
+          <div class="stat-card purple"><div class="stat-label">Tổng Escrow Volume</div><div class="stat-val" id="ds-vol">—</div><div class="stat-sub">VND</div></div>
+          <div class="stat-card yellow"><div class="stat-label">Active API Keys</div><div class="stat-val" id="ds-keys">—</div><div class="stat-sub">đang hoạt động</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card">
+            <div class="card-title">Escrow gần đây</div>
+            <div id="recentEscrows"><div class="empty"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Trạng thái tài khoản</div>
+            <div id="accountStatus"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API KEYS -->
+      <div id="page-apikeys" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>API Keys</h1>
+          <p>Quản lý API keys để tích hợp SafePass vào hệ thống của bạn</p>
+        </div>
+        <div class="alert alert-info">🔒 Giữ bí mật <strong>API Secret</strong>. Không bao giờ để lộ trên client-side code.</div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+          <button class="btn-primary" style="width:auto;padding:9px 20px;" onclick="openCreateKeyModal()">+ Tạo API Key mới</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tên</th><th>API Key</th><th>Môi trường</th><th>Trạng thái</th><th>Tạo lúc</th><th></th></tr></thead>
+              <tbody id="keysList"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--sub);"><div class="spinner"></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESCROW -->
+      <div id="page-escrow" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>Escrow Transactions</h1>
+          <p>Tạo và quản lý giao dịch escrow qua API</p>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+          <button class="btn-primary" style="width:auto;padding:9px 20px;" onclick="openCreateEscrowModal()">+ Tạo Escrow</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Ref</th><th>Tiêu đề</th><th>Số tiền</th><th>Buyer</th><th>Seller</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead>
+              <tbody id="escrowList"><tr><td colspan="8" style="text-align:center;padding:24px;"><div class="spinner"></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEBHOOKS -->
+      <div id="page-webhooks" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>Webhooks</h1>
+          <p>Nhận thông báo realtime về sự kiện escrow và KYC</p>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+          <button class="btn-primary" style="width:auto;padding:9px 20px;" onclick="openCreateWebhookModal()">+ Thêm Webhook</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>URL</th><th>Events</th><th>Trạng thái</th><th>Kích hoạt lần cuối</th><th></th></tr></thead>
+              <tbody id="webhookList"><tr><td colspan="5" style="text-align:center;padding:24px;"><div class="spinner"></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div id="page-analytics" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>Analytics</h1>
+          <p>Thống kê sử dụng API và giao dịch</p>
+        </div>
+        <div class="stat-grid" id="analyticsStats">
+          <div class="stat-card blue"><div class="stat-label">Tổng API Calls</div><div class="stat-val" id="an-calls">—</div></div>
+          <div class="stat-card green"><div class="stat-label">Tổng Escrow</div><div class="stat-val" id="an-escrows">—</div></div>
+          <div class="stat-card purple"><div class="stat-label">Completed</div><div class="stat-val" id="an-completed">—</div></div>
+          <div class="stat-card yellow"><div class="stat-label">Disputed</div><div class="stat-val" id="an-disputed">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card"><div class="card-title">Phân bố trạng thái Escrow</div><div id="statusChart" style="min-height:160px;padding:10px 0;"></div></div>
+          <div class="card"><div class="card-title">Môi trường</div><div id="envChart" style="min-height:160px;padding:10px 0;"></div></div>
+        </div>
+      </div>
+
+      <!-- TRUST & FRAUD -->
+      <div id="page-trust" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>Trust & Fraud Check</h1>
+          <p>Kiểm tra độ tin cậy và rủi ro gian lận người dùng SafePass</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card">
+            <div class="card-title">🔍 Trust Score Lookup</div>
+            <div class="form-group"><label>Số điện thoại người dùng</label><input id="trustPhone" placeholder="0901234567"></div>
+            <button class="btn-secondary" onclick="checkTrust()" style="width:100%;">Kiểm tra Trust Score</button>
+            <div id="trustResult" style="margin-top:16px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🚨 Fraud Check</div>
+            <div class="form-group"><label>Số điện thoại</label><input id="fraudPhone" placeholder="0901234567"></div>
+            <div class="form-group"><label>Số tiền giao dịch (VND)</label><input id="fraudAmount" type="number" placeholder="500000"></div>
+            <button class="btn-secondary" onclick="checkFraud()" style="width:100%;">Kiểm tra rủi ro</button>
+            <div id="fraudResult" style="margin-top:16px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BILLING -->
+      <div id="page-billing" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>Billing & Plan</h1>
+          <p>Quản lý gói dịch vụ của doanh nghiệp</p>
+        </div>
+        <div id="currentPlanInfo" class="alert alert-info" style="margin-bottom:24px;"></div>
+        <div class="plan-grid">
+          <div class="plan-card" id="plan-starter">
+            <div class="plan-name">🌱 Starter</div>
+            <div class="plan-price">Free<span>/tháng</span></div>
+            <ul class="plan-features">
+              <li>100 API calls/tháng</li>
+              <li>50 escrow/tháng</li>
+              <li>Sandbox môi trường</li>
+              <li>Email support</li>
+            </ul>
+            <button class="btn-secondary" onclick="upgradePlan('starter')" style="width:100%;">Gói hiện tại</button>
+          </div>
+          <div class="plan-card" id="plan-growth">
+            <div class="plan-name">🚀 Growth</div>
+            <div class="plan-price">990K<span>/tháng</span></div>
+            <ul class="plan-features">
+              <li>1.000 API calls/tháng</li>
+              <li>500 escrow/tháng</li>
+              <li>Production + Sandbox</li>
+              <li>Webhooks không giới hạn</li>
+              <li>Priority support</li>
+            </ul>
+            <button class="btn-primary" onclick="upgradePlan('growth')" style="width:100%;">Nâng cấp</button>
+          </div>
+          <div class="plan-card" id="plan-enterprise">
+            <div class="plan-name">🏢 Enterprise</div>
+            <div class="plan-price">Liên hệ</div>
+            <ul class="plan-features">
+              <li>Không giới hạn API calls</li>
+              <li>Không giới hạn escrow</li>
+              <li>White Label đầy đủ</li>
+              <li>SLA 99.9%</li>
+              <li>Dedicated support</li>
+              <li>Custom domain</li>
+            </ul>
+            <button class="btn-secondary" onclick="alert('Liên hệ: business@safepass.vn')" style="width:100%;">Liên hệ Sales</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- WHITE LABEL -->
+      <div id="page-whitelabel" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>White Label</h1>
+          <p>Tùy chỉnh giao diện thương hiệu cho escrow portal của bạn</p>
+        </div>
+        <div class="alert alert-warn">⚡ White Label đầy đủ chỉ có ở gói <strong>Enterprise</strong>.</div>
+        <div class="card" style="max-width:540px;">
+          <div class="form-group"><label>Tên thương hiệu</label><input id="wlBrandName" placeholder="Ví dụ: MyPay Escrow"></div>
+          <div class="form-group"><label>URL Logo</label><input id="wlLogoUrl" placeholder="https://cdn.company.com/logo.png"></div>
+          <div class="form-group">
+            <label>Màu chủ đạo (Primary)</label>
+            <div class="color-row"><input type="color" id="wlColorPick" value="#3d8ef8" oninput="document.getElementById('wlColor').value=this.value"><input id="wlColor" placeholder="#3d8ef8" oninput="document.getElementById('wlColorPick').value=this.value||'#3d8ef8'"></div>
+          </div>
+          <div class="form-group"><label>Custom Domain</label><input id="wlDomain" placeholder="escrow.yourcompany.com"></div>
+          <div class="form-group"><label>Custom CSS (tùy chọn)</label><textarea id="wlCss" rows="4" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;" placeholder=":root { --brand: #ff6b35; }"></textarea></div>
+          <button class="btn-primary" onclick="saveWhiteLabel()">Lưu cài đặt</button>
+        </div>
+      </div>
+
+      <!-- API DOCS -->
+      <div id="page-docs" class="page" style="display:none;">
+        <div class="page-header">
+          <h1>API Documentation</h1>
+          <p>Tài liệu tích hợp SafePass Business API</p>
+        </div>
+        <div class="alert alert-info" style="margin-bottom:24px;">
+          Base URL: <code style="font-family:'JetBrains Mono',monospace;color:var(--cyan);">https://your-repl.replit.app</code> &nbsp;|&nbsp; Authentication: <code style="font-family:'JetBrains Mono',monospace;color:var(--cyan);">X-Api-Key: &lt;your_key&gt;</code>
+        </div>
+
+        <div class="card-title" style="margin-bottom:12px;">🛡️ Escrow API</div>
+        <div class="endpoint open">
+          <div class="endpoint-header" onclick="toggleDoc(this)">
+            <span class="method-badge method-POST">POST</span>
+            <span class="endpoint-path">/api/business/escrow/create</span>
+            <span class="endpoint-desc">Tạo giao dịch escrow mới</span>
+          </div>
+          <div class="endpoint-body">
+            Headers: <code>X-Api-Key: sk_live_xxx</code><br>
+            Body JSON:
+            <div class="code-block">{
+  "title": "Mua tài khoản Netflix Premium",
+  "description": "Tài khoản 1 tháng",
+  "amount": 150000,
+  "buyer_email": "buyer@email.com",
+  "seller_email": "seller@email.com",
+  "ref": "order_001",
+  "category": "account",
+  "expires_hours": 48
+}</div>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleDoc(this)">
+            <span class="method-badge method-POST">POST</span>
+            <span class="endpoint-path">/api/business/escrow/:id/release</span>
+            <span class="endpoint-desc">Giải ngân cho seller</span>
+          </div>
+          <div class="endpoint-body">
+            Headers: <code>X-Api-Key: sk_live_xxx</code><br>
+            Body JSON: <div class="code-block">{ "note": "Buyer đã xác nhận nhận hàng" }</div>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleDoc(this)">
+            <span class="method-badge method-POST">POST</span>
+            <span class="endpoint-path">/api/business/escrow/:id/refund</span>
+            <span class="endpoint-desc">Hoàn tiền cho buyer</span>
+          </div>
+          <div class="endpoint-body">
+            Body JSON: <div class="code-block">{ "reason": "Seller không giao hàng đúng hạn" }</div>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleDoc(this)">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/api/business/escrow/:id</span>
+            <span class="endpoint-desc">Lấy trạng thái escrow</span>
+          </div>
+          <div class="endpoint-body">
+            Response: <div class="code-block">{
+  "id": "uuid",
+  "ref": "order_001",
+  "status": "funded",
+  "amount": 150000,
+  "created_at": "2026-06-20T..."
+}</div>
+          </div>
+        </div>
+
+        <div class="card-title" style="margin:20px 0 12px;">⭐ Trust & Fraud API</div>
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleDoc(this)">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/api/business/trust/:phone</span>
+            <span class="endpoint-desc">Trust score của người dùng SafePass</span>
+          </div>
+          <div class="endpoint-body">
+            Response: <div class="code-block">{
+  "phone": "0901234567",
+  "trust_score": 87,
+  "level": "trusted",
+  "total_orders": 12,
+  "completed_orders": 11,
+  "avg_rating": 4.8,
+  "is_verified": true
+}</div>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleDoc(this)">
+            <span class="method-badge method-POST">POST</span>
+            <span class="endpoint-path">/api/business/fraud-check</span>
+            <span class="endpoint-desc">Kiểm tra rủi ro giao dịch</span>
+          </div>
+          <div class="endpoint-body">
+            Body: <div class="code-block">{ "phone": "0901234567", "amount": 5000000 }</div>
+            Response: <div class="code-block">{
+  "risk_level": "low",
+  "risk_score": 12,
+  "flags": [],
+  "recommendation": "APPROVE"
+}</div>
+          </div>
+        </div>
+
+        <div class="card-title" style="margin:20px 0 12px;">🔔 Webhook Events</div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Event</th><th>Mô tả</th></tr></thead>
+            <tbody>
+              <tr><td><code>escrow.created</code></td><td>Escrow mới được tạo</td></tr>
+              <tr><td><code>escrow.funded</code></td><td>Buyer đã nạp tiền</td></tr>
+              <tr><td><code>escrow.released</code></td><td>Tiền đã giải ngân cho seller</td></tr>
+              <tr><td><code>escrow.refunded</code></td><td>Tiền đã hoàn trả buyer</td></tr>
+              <tr><td><code>escrow.disputed</code></td><td>Giao dịch bị tranh chấp</td></tr>
+              <tr><td><code>kyc.completed</code></td><td>KYC doanh nghiệp hoàn tất</td></tr>
+              <tr><td><code>fraud.detected</code></td><td>Phát hiện hành vi nghi ngờ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- CREATE API KEY MODAL -->
+<div class="modal-overlay" id="modalCreateKey">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Tạo API Key mới</div><button class="modal-close" onclick="closeModal('modalCreateKey')">×</button></div>
+    <div class="form-group"><label>Tên key</label><input id="newKeyName" placeholder="Ví dụ: Production Key"></div>
+    <div class="form-group">
+      <label>Môi trường</label>
+      <select id="newKeyEnv" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:10px 14px;color:var(--text);font-size:14px;outline:none;">
+        <option value="sandbox">Sandbox (testing)</option>
+        <option value="production">Production</option>
+      </select>
+    </div>
+    <div id="newKeyResult" style="display:none;margin-bottom:16px;">
+      <div class="alert alert-success">✅ API Key đã tạo! Sao chép ngay — secret chỉ hiển thị 1 lần.</div>
+      <div class="form-group"><label>API Key</label><div class="key-box"><span id="showApiKey"></span><button class="copy-btn" onclick="copyText('showApiKey')">Copy</button></div></div>
+      <div class="form-group"><label>API Secret</label><div class="key-box"><span id="showApiSecret"></span><button class="copy-btn" onclick="copyText('showApiSecret')">Copy</button></div></div>
+    </div>
+    <div id="newKeyBtns">
+      <button class="btn-primary" onclick="createApiKey()">Tạo API Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE ESCROW MODAL -->
+<div class="modal-overlay" id="modalCreateEscrow">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Tạo Escrow mới</div><button class="modal-close" onclick="closeModal('modalCreateEscrow')">×</button></div>
+    <div class="alert alert-info">Escrow được tạo qua Dashboard dùng API key sandbox đầu tiên.</div>
+    <div class="form-group"><label>Tiêu đề</label><input id="escTitle" placeholder="Mua tài khoản / dịch vụ..."></div>
+    <div class="form-group"><label>Mô tả</label><input id="escDesc" placeholder="Mô tả ngắn về giao dịch"></div>
+    <div class="form-group"><label>Số tiền (VND)</label><input id="escAmount" type="number" placeholder="500000"></div>
+    <div class="form-group"><label>Email Buyer</label><input id="escBuyer" type="email" placeholder="buyer@email.com"></div>
+    <div class="form-group"><label>Email Seller</label><input id="escSeller" type="email" placeholder="seller@email.com"></div>
+    <div class="form-group"><label>Reference (tùy chọn)</label><input id="escRef" placeholder="order_001"></div>
+    <button class="btn-primary" onclick="createEscrow()">Tạo Escrow</button>
+  </div>
+</div>
+
+<!-- CREATE WEBHOOK MODAL -->
+<div class="modal-overlay" id="modalCreateWebhook">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Thêm Webhook</div><button class="modal-close" onclick="closeModal('modalCreateWebhook')">×</button></div>
+    <div class="form-group"><label>Webhook URL</label><input id="whUrl" placeholder="https://yoursite.com/api/webhook"></div>
+    <div class="form-group"><label>Secret Key (dùng để verify signature)</label><input id="whSecret" placeholder="Tự tạo hoặc để trống để tự generate"></div>
+    <div class="form-group">
+      <label>Events để nhận</label>
+      <div class="events-grid">
+        <label class="event-check"><input type="checkbox" value="escrow.created" checked> escrow.created</label>
+        <label class="event-check"><input type="checkbox" value="escrow.funded" checked> escrow.funded</label>
+        <label class="event-check"><input type="checkbox" value="escrow.released" checked> escrow.released</label>
+        <label class="event-check"><input type="checkbox" value="escrow.refunded" checked> escrow.refunded</label>
+        <label class="event-check"><input type="checkbox" value="escrow.disputed"> escrow.disputed</label>
+        <label class="event-check"><input type="checkbox" value="kyc.completed"> kyc.completed</label>
+        <label class="event-check"><input type="checkbox" value="fraud.detected"> fraud.detected</label>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="createWebhook()">Thêm Webhook</button>
+  </div>
+</div>
+
+<script>
+const API = '';
+let bToken = localStorage.getItem('biz_token') || null;
+let bizData = null;
+
+// ── AUTH ──
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('loginForm').style.display = tab==='login'?'':'none';
+  document.getElementById('registerForm').style.display = tab==='register'?'':'none';
+  document.getElementById('authError').style.display = 'none';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPass').value;
+  if (!email || !password) return showAuthError('Nhập email và mật khẩu');
+  const r = await apiFetch('/api/business/auth/login', 'POST', {email, password});
+  if (r.error) return showAuthError(r.error);
+  bToken = r.token;
+  localStorage.setItem('biz_token', bToken);
+  bizData = r.business;
+  initApp();
+}
+
+async function doRegister() {
+  const body = {
+    company_name: document.getElementById('regCompany').value.trim(),
+    email: document.getElementById('regEmail').value.trim(),
+    phone: document.getElementById('regPhone').value.trim(),
+    website: document.getElementById('regWebsite').value.trim(),
+    password: document.getElementById('regPass').value
+  };
+  if (!body.company_name || !body.email || !body.password) return showAuthError('Nhập đầy đủ thông tin');
+  const r = await apiFetch('/api/business/auth/register', 'POST', body);
+  if (r.error) return showAuthError(r.error);
+  bToken = r.token;
+  localStorage.setItem('biz_token', bToken);
+  bizData = r.business;
+  initApp();
+}
+
+function doLogout() {
+  localStorage.removeItem('biz_token');
+  bToken = null; bizData = null;
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+}
+
+// ── APP INIT ──
+async function initApp() {
+  if (!bToken) { document.getElementById('authScreen').style.display = 'flex'; return; }
+  if (!bizData) {
+    const r = await apiFetch('/api/business/auth/me', 'GET');
+    if (r.error) { doLogout(); return; }
+    bizData = r.business;
+  }
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  const initials = (bizData.company_name||'B').charAt(0).toUpperCase();
+  document.getElementById('bizAvatar').textContent = initials;
+  document.getElementById('bizNameSidebar').textContent = bizData.company_name;
+  const planLabels = {starter:'🌱 Starter', growth:'🚀 Growth', enterprise:'🏢 Enterprise'};
+  document.getElementById('bizPlanSidebar').textContent = planLabels[bizData.plan] || bizData.plan;
+  showPage('dashboard');
+}
+
+// ── NAVIGATION ──
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
+  });
+  if (name==='dashboard') loadDashboard();
+  else if (name==='apikeys') loadApiKeys();
+  else if (name==='escrow') loadEscrow();
+  else if (name==='webhooks') loadWebhooks();
+  else if (name==='analytics') loadAnalytics();
+  else if (name==='billing') loadBilling();
+  else if (name==='whitelabel') loadWhiteLabel();
+}
+
+// ── DASHBOARD ──
+async function loadDashboard() {
+  const r = await apiFetch('/api/business/dashboard', 'GET');
+  if (r.error) return;
+  document.getElementById('ds-calls').textContent = fmtNum(r.api_calls_this_month);
+  document.getElementById('ds-callsLimit').textContent = 'của ' + planLimit(bizData.plan);
+  document.getElementById('ds-txns').textContent = fmtNum(r.escrow_count_month);
+  document.getElementById('ds-vol').textContent = fmtMoney(r.escrow_volume_total);
+  document.getElementById('ds-keys').textContent = fmtNum(r.active_keys);
+
+  const recentEl = document.getElementById('recentEscrows');
+  if (!r.recent_escrows?.length) { recentEl.innerHTML = '<div class="empty"><div class="empty-icon">🛡️</div><div>Chưa có giao dịch nào</div></div>'; }
+  else {
+    recentEl.innerHTML = r.recent_escrows.map(e => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div><div style="font-size:13px;font-weight:500;">${escHtml(e.title)}</div><div style="font-size:11px;color:var(--sub);margin-top:2px;">${e.ref||e.id.slice(0,8)}</div></div>
+        <div style="text-align:right;"><div>${fmtMoney(e.amount)}đ</div><div style="margin-top:2px;">${statusBadge(e.status)}</div></div>
+      </div>`).join('');
+  }
+
+  const statusEl = document.getElementById('accountStatus');
+  const statusColor = bizData.status==='active'?'var(--green)':bizData.status==='pending'?'var(--yellow)':'var(--red)';
+  statusEl.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--sub);">Trạng thái</span><span style="color:${statusColor};font-weight:600;">${bizData.status?.toUpperCase()}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--sub);">Gói dịch vụ</span><span>${bizData.plan?.toUpperCase()}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--sub);">Email</span><span>${bizData.email}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--sub);">Company</span><span>${escHtml(bizData.company_name)}</span></div>
+    </div>`;
+}
+
+// ── API KEYS ──
+async function loadApiKeys() {
+  const r = await apiFetch('/api/business/api-keys', 'GET');
+  const tbody = document.getElementById('keysList');
+  if (!r.keys?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--sub);">Chưa có API key. Tạo key đầu tiên ngay.</td></tr>'; return; }
+  tbody.innerHTML = r.keys.map(k => `
+    <tr>
+      <td><div style="font-weight:500;">${escHtml(k.name)}</div></td>
+      <td><div class="key-box" style="max-width:280px;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${k.api_key}</span><button class="copy-btn" onclick="navigator.clipboard.writeText('${k.api_key}')">Copy</button></div></td>
+      <td><span class="badge ${k.env_type==='production'?'badge-green':'badge-blue'}">${k.env_type}</span></td>
+      <td><span class="badge ${k.status==='active'?'badge-green':'badge-red'}">${k.status}</span></td>
+      <td style="color:var(--sub);">${fmtDate(k.created_at)}</td>
+      <td>${k.status==='active'?`<button class="btn-danger" onclick="revokeKey('${k.id}')">Revoke</button>`:''}</td>
+    </tr>`).join('');
+}
+
+function openCreateKeyModal() {
+  document.getElementById('newKeyResult').style.display = 'none';
+  document.getElementById('newKeyBtns').style.display = 'block';
+  document.getElementById('newKeyName').value = '';
+  document.getElementById('newKeyEnv').value = 'sandbox';
+  openModal('modalCreateKey');
+}
+
+async function createApiKey() {
+  const name = document.getElementById('newKeyName').value.trim() || 'API Key';
+  const env_type = document.getElementById('newKeyEnv').value;
+  const r = await apiFetch('/api/business/api-keys', 'POST', {name, env_type});
+  if (r.error) return alert(r.error);
+  document.getElementById('showApiKey').textContent = r.api_key;
+  document.getElementById('showApiSecret').textContent = r.api_secret;
+  document.getElementById('newKeyResult').style.display = 'block';
+  document.getElementById('newKeyBtns').style.display = 'none';
+  loadApiKeys();
+}
+
+async function revokeKey(id) {
+  if (!confirm('Revoke API key này? Không thể hoàn tác.')) return;
+  const r = await apiFetch('/api/business/api-keys/' + id, 'DELETE');
+  if (r.error) return alert(r.error);
+  loadApiKeys();
+}
+
+// ── ESCROW ──
+async function loadEscrow() {
+  const r = await apiFetch('/api/business/escrow', 'GET');
+  const tbody = document.getElementById('escrowList');
+  if (!r.escrows?.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--sub);">Chưa có giao dịch escrow nào.</td></tr>'; return; }
+  tbody.innerHTML = r.escrows.map(e => `
+    <tr>
+      <td><code style="font-size:11px;color:var(--sub);">${escHtml(e.ref||e.id.slice(0,8))}</code></td>
+      <td>${escHtml(e.title)}</td>
+      <td style="font-weight:600;">${fmtMoney(e.amount)}đ</td>
+      <td style="color:var(--sub);">${escHtml(e.buyer_email||'—')}</td>
+      <td style="color:var(--sub);">${escHtml(e.seller_email||'—')}</td>
+      <td>${statusBadge(e.status)}</td>
+      <td style="color:var(--sub);">${fmtDate(e.created_at)}</td>
+      <td style="display:flex;gap:6px;">
+        ${e.status==='funded'?`<button class="btn-green" onclick="escrowAction('${e.id}','release')">Release</button><button class="btn-danger" onclick="escrowAction('${e.id}','refund')">Refund</button>`:''}
+      </td>
+    </tr>`).join('');
+}
+
+function openCreateEscrowModal() { openModal('modalCreateEscrow'); }
+
+async function createEscrow() {
+  const body = {
+    title: document.getElementById('escTitle').value.trim(),
+    description: document.getElementById('escDesc').value.trim(),
+    amount: parseInt(document.getElementById('escAmount').value),
+    buyer_email: document.getElementById('escBuyer').value.trim(),
+    seller_email: document.getElementById('escSeller').value.trim(),
+    ref: document.getElementById('escRef').value.trim() || undefined
+  };
+  if (!body.title || !body.amount) return alert('Nhập tiêu đề và số tiền');
+  const r = await apiFetch('/api/business/escrow/create', 'POST', body);
+  if (r.error) return alert(r.error);
+  closeModal('modalCreateEscrow');
+  alert('✅ Escrow đã tạo! ID: ' + r.escrow.id);
+  loadEscrow();
+}
+
+async function escrowAction(id, action) {
+  const note = action==='release' ? prompt('Ghi chú (tùy chọn):') : prompt('Lý do hoàn tiền:');
+  if (note === null) return;
+  const r = await apiFetch(`/api/business/escrow/${id}/${action}`, 'POST', {note, reason: note});
+  if (r.error) return alert(r.error);
+  alert('✅ Thành công!');
+  loadEscrow();
+}
+
+// ── WEBHOOKS ──
+async function loadWebhooks() {
+  const r = await apiFetch('/api/business/webhooks', 'GET');
+  const tbody = document.getElementById('webhookList');
+  if (!r.webhooks?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--sub);">Chưa có webhook nào.</td></tr>'; return; }
+  tbody.innerHTML = r.webhooks.map(w => `
+    <tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${escHtml(w.url)}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${(w.events||[]).map(e=>`<span class="badge badge-blue" style="font-size:10px;">${e}</span>`).join('')}</div></td>
+      <td><span class="badge ${w.status==='active'?'badge-green':'badge-gray'}">${w.status}</span></td>
+      <td style="color:var(--sub);">${w.last_triggered_at ? fmtDate(w.last_triggered_at) : 'Chưa'}</td>
+      <td><button class="btn-danger" onclick="deleteWebhook('${w.id}')">Xóa</button></td>
+    </tr>`).join('');
+}
+
+function openCreateWebhookModal() { openModal('modalCreateWebhook'); }
+
+async function createWebhook() {
+  const url = document.getElementById('whUrl').value.trim();
+  const secret_key = document.getElementById('whSecret').value.trim() || Math.random().toString(36).slice(2);
+  const events = [...document.querySelectorAll('#modalCreateWebhook input[type=checkbox]:checked')].map(c=>c.value);
+  if (!url) return alert('Nhập Webhook URL');
+  if (!events.length) return alert('Chọn ít nhất 1 event');
+  const r = await apiFetch('/api/business/webhooks', 'POST', {url, secret_key, events});
+  if (r.error) return alert(r.error);
+  closeModal('modalCreateWebhook');
+  loadWebhooks();
+}
+
+async function deleteWebhook(id) {
+  if (!confirm('Xóa webhook này?')) return;
+  const r = await apiFetch('/api/business/webhooks/' + id, 'DELETE');
+  if (r.error) return alert(r.error);
+  loadWebhooks();
+}
+
+// ── ANALYTICS ──
+async function loadAnalytics() {
+  const r = await apiFetch('/api/business/analytics', 'GET');
+  if (r.error) return;
+  document.getElementById('an-calls').textContent = fmtNum(r.total_api_calls);
+  document.getElementById('an-escrows').textContent = fmtNum(r.total_escrows);
+  document.getElementById('an-completed').textContent = fmtNum(r.completed);
+  document.getElementById('an-disputed').textContent = fmtNum(r.disputed);
+
+  const statusEl = document.getElementById('statusChart');
+  const statuses = r.by_status || [];
+  if (!statuses.length) { statusEl.innerHTML = '<div class="empty">Chưa có dữ liệu</div>'; }
+  else {
+    const max = Math.max(...statuses.map(s=>s.count), 1);
+    const colors = {pending:'var(--sub)',funded:'var(--brand)',completed:'var(--green)',refunded:'var(--yellow)',disputed:'var(--red)',cancelled:'var(--sub2)'};
+    statusEl.innerHTML = statuses.map(s=>`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:80px;font-size:12px;color:var(--sub);">${s.status}</div>
+        <div style="flex:1;background:var(--bg2);border-radius:4px;height:18px;overflow:hidden;">
+          <div style="width:${(s.count/max*100).toFixed(1)}%;height:100%;background:${colors[s.status]||'var(--brand)'};border-radius:4px;transition:.5s;"></div>
+        </div>
+        <div style="width:30px;text-align:right;font-size:12px;font-weight:600;">${s.count}</div>
+      </div>`).join('');
+  }
+
+  const envEl = document.getElementById('envChart');
+  const envs = r.by_env || [];
+  const total = envs.reduce((a,b)=>a+b.count,0)||1;
+  envEl.innerHTML = envs.map(e=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="width:80px;font-size:12px;color:var(--sub);">${e.env_type}</div>
+      <div style="flex:1;background:var(--bg2);border-radius:4px;height:24px;overflow:hidden;">
+        <div style="width:${(e.count/total*100).toFixed(1)}%;height:100%;background:${e.env_type==='production'?'var(--green)':'var(--brand)'};border-radius:4px;"></div>
+      </div>
+      <div style="font-size:12px;font-weight:600;">${e.count}</div>
+    </div>`).join('') || '<div class="empty">Chưa có dữ liệu</div>';
+}
+
+// ── TRUST & FRAUD ──
+async function checkTrust() {
+  const phone = document.getElementById('trustPhone').value.trim();
+  if (!phone) return;
+  const r = await apiFetch('/api/business/trust/' + encodeURIComponent(phone), 'GET');
+  const el = document.getElementById('trustResult');
+  if (r.error) { el.innerHTML = `<div class="alert alert-warn">${r.error}</div>`; return; }
+  const lvlColor = r.level==='trusted'?'var(--green)':r.level==='moderate'?'var(--yellow)':'var(--red)';
+  el.innerHTML = `<div class="card" style="background:var(--bg2);">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:20px;font-weight:800;">${r.trust_score}/100</span>
+      <span style="color:${lvlColor};font-weight:600;">${r.level?.toUpperCase()}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+      <div style="color:var(--sub);">Tổng đơn hàng</div><div>${r.total_orders}</div>
+      <div style="color:var(--sub);">Hoàn tất</div><div>${r.completed_orders}</div>
+      <div style="color:var(--sub);">Đánh giá TB</div><div>${r.avg_rating||'N/A'}</div>
+      <div style="color:var(--sub);">Đã xác minh</div><div>${r.is_verified?'✅ Yes':'❌ No'}</div>
+    </div>
+  </div>`;
+}
+
+async function checkFraud() {
+  const phone = document.getElementById('fraudPhone').value.trim();
+  const amount = parseInt(document.getElementById('fraudAmount').value) || 0;
+  if (!phone) return;
+  const r = await apiFetch('/api/business/fraud-check', 'POST', {phone, amount});
+  const el = document.getElementById('fraudResult');
+  if (r.error) { el.innerHTML = `<div class="alert alert-warn">${r.error}</div>`; return; }
+  const riskColor = r.risk_level==='low'?'var(--green)':r.risk_level==='medium'?'var(--yellow)':'var(--red)';
+  const recColor = r.recommendation==='APPROVE'?'var(--green)':r.recommendation==='REVIEW'?'var(--yellow)':'var(--red)';
+  el.innerHTML = `<div class="card" style="background:var(--bg2);">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+      <span style="color:var(--sub);">Risk Level</span>
+      <span style="color:${riskColor};font-weight:700;">${r.risk_level?.toUpperCase()}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+      <span style="color:var(--sub);">Risk Score</span><span>${r.risk_score}/100</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+      <span style="color:var(--sub);">Recommendation</span>
+      <span style="color:${recColor};font-weight:700;">${r.recommendation}</span>
+    </div>
+    ${r.flags?.length?`<div style="font-size:12px;color:var(--red);">⚠️ ${r.flags.join(', ')}</div>`:''}
+  </div>`;
+}
+
+// ── BILLING ──
+async function loadBilling() {
+  const r = await apiFetch('/api/business/billing', 'GET');
+  if (r.error) return;
+  const planLabels = {starter:'🌱 Starter', growth:'🚀 Growth', enterprise:'🏢 Enterprise'};
+  document.getElementById('currentPlanInfo').innerHTML = `
+    Gói hiện tại: <strong>${planLabels[r.plan]||r.plan}</strong> &nbsp;|&nbsp;
+    API Calls: <strong>${r.api_calls_this_month}/${planLimit(r.plan)}</strong> &nbsp;|&nbsp;
+    Escrow: <strong>${r.transactions_this_month} giao dịch tháng này</strong>`;
+  document.querySelectorAll('.plan-card').forEach(c => {
+    c.classList.remove('current');
+    const planId = c.id.replace('plan-','');
+    const btn = c.querySelector('button');
+    if (planId === r.plan) { c.classList.add('current'); if(btn) btn.textContent = '✅ Gói hiện tại'; }
+  });
+}
+
+async function upgradePlan(plan) {
+  if (plan === bizData?.plan) return;
+  if (plan === 'enterprise') { alert('Liên hệ: business@safepass.vn'); return; }
+  const r = await apiFetch('/api/business/billing/upgrade', 'POST', {plan});
+  if (r.error) return alert(r.error);
+  bizData.plan = plan;
+  alert(`✅ Đã nâng cấp lên ${plan.toUpperCase()}!`);
+  loadBilling();
+  document.getElementById('bizPlanSidebar').textContent = {starter:'🌱 Starter',growth:'🚀 Growth',enterprise:'🏢 Enterprise'}[plan]||plan;
+}
+
+// ── WHITE LABEL ──
+async function loadWhiteLabel() {
+  const r = await apiFetch('/api/business/white-label', 'GET');
+  if (r.config) {
+    document.getElementById('wlBrandName').value = r.config.brand_name||'';
+    document.getElementById('wlLogoUrl').value = r.config.logo_url||'';
+    document.getElementById('wlColor').value = r.config.primary_color||'#3d8ef8';
+    document.getElementById('wlColorPick').value = r.config.primary_color||'#3d8ef8';
+    document.getElementById('wlDomain').value = r.config.domain||'';
+    document.getElementById('wlCss').value = r.config.custom_css||'';
+  }
+}
+
+async function saveWhiteLabel() {
+  const body = {
+    brand_name: document.getElementById('wlBrandName').value.trim(),
+    logo_url: document.getElementById('wlLogoUrl').value.trim(),
+    primary_color: document.getElementById('wlColor').value.trim()||'#3d8ef8',
+    domain: document.getElementById('wlDomain').value.trim(),
+    custom_css: document.getElementById('wlCss').value
+  };
+  const r = await apiFetch('/api/business/white-label', 'PUT', body);
+  if (r.error) return alert(r.error);
+  alert('✅ Đã lưu cài đặt White Label!');
+}
+
+// ── HELPERS ──
+async function apiFetch(url, method, body) {
+  try {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (bToken) opts.headers['Authorization'] = 'Bearer ' + bToken;
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API + url, opts);
+    return await res.json();
+  } catch(e) { return {error: 'Lỗi kết nối'}; }
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector(`#${id}`).nextElementSibling;
+    if(btn){btn.textContent='✅ Copied!';setTimeout(()=>{btn.textContent='Copy';},2000);}
+  });
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtNum(n) { return Number(n||0).toLocaleString('vi'); }
+function fmtMoney(n) { return Number(n||0).toLocaleString('vi'); }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('vi',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
+function planLimit(plan) { return plan==='enterprise'?'∞':plan==='growth'?'1.000':'100'; }
+function statusBadge(s) {
+  const map = {pending:'badge-gray',funded:'badge-blue',completed:'badge-green',refunded:'badge-yellow',disputed:'badge-red',cancelled:'badge-gray'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function toggleDoc(el) { el.closest('.endpoint').classList.toggle('open'); }
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+// Auto init
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>

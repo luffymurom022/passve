@@ -5096,6 +5096,406 @@ app.post('/api/admin/dam/orders/:id/action', adminAuth, async (req, res) => {
 //  END OF PHASE 6 DAM ROUTES
 // ────────────────────────────────────────────────
 
+// ══════════════════════════════════════════════════════════
+//  SAFEPASS BUSINESS — Escrow-as-a-Service API
+// ══════════════════════════════════════════════════════════
+
+// ── Business JWT middleware ──
+function businessAuth(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Chưa đăng nhập' });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload.type !== 'business_jwt') return res.status(401).json({ error: 'Token không hợp lệ' });
+    req.biz = payload;
+    next();
+  } catch { res.status(401).json({ error: 'Token không hợp lệ' }); }
+}
+
+// ── Business API Key middleware (for external API calls) ──
+async function businessApiKeyAuth(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) return res.status(401).json({ error: 'API key required. Send X-Api-Key header.' });
+  const { data: keyRow } = await supabase.from('api_keys')
+    .select('*, business_accounts!inner(id, company_name, status, plan, api_calls_this_month, transactions_this_month)')
+    .eq('api_key', apiKey).eq('status', 'active').single();
+  if (!keyRow) return res.status(401).json({ error: 'Invalid or revoked API key' });
+  if (keyRow.business_accounts.status !== 'active') return res.status(403).json({ error: 'Business account suspended' });
+  req.apiKeyRow = keyRow;
+  req.bizAccount = keyRow.business_accounts;
+  // Log API call (non-blocking)
+  supabase.from('business_api_logs').insert({
+    business_id: keyRow.business_id, api_key_id: keyRow.id,
+    endpoint: req.path, method: req.method, env_type: keyRow.env_type
+  }).then(() => {}).catch(() => {});
+  // Increment monthly counter (non-blocking)
+  supabase.from('business_accounts')
+    .update({ api_calls_this_month: (keyRow.business_accounts.api_calls_this_month||0) + 1 })
+    .eq('id', keyRow.business_id).then(() => {}).catch(() => {});
+  next();
+}
+
+// ── Webhook fire helper ──
+async function fireBusinessWebhook(businessId, event, payload) {
+  try {
+    const { data: hooks } = await supabase.from('business_webhooks')
+      .select('*').eq('business_id', businessId).eq('status', 'active');
+    if (!hooks?.length) return;
+    for (const hook of hooks) {
+      if (!hook.events?.includes(event)) continue;
+      const body = JSON.stringify({ event, data: payload, timestamp: new Date().toISOString() });
+      const sig = crypto.createHmac('sha256', hook.secret_key || 'safepass').update(body).digest('hex');
+      try {
+        await fetch(hook.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-SafePass-Signature': sig, 'X-SafePass-Event': event },
+          body, signal: AbortSignal.timeout(5000)
+        });
+        await supabase.from('business_webhooks').update({ last_triggered_at: new Date().toISOString() }).eq('id', hook.id);
+      } catch(e) {}
+    }
+  } catch(e) {}
+}
+
+// ── API key generator ──
+function genApiKey(env) {
+  const prefix = env === 'production' ? 'sk_live_' : 'sk_test_';
+  return prefix + crypto.randomBytes(20).toString('hex');
+}
+function genApiSecret() { return 'ss_' + crypto.randomBytes(24).toString('hex'); }
+
+// ── BUSINESS AUTH ──
+app.post('/api/business/auth/register', async (req, res) => {
+  try {
+    const { company_name, email, phone, website, password } = req.body;
+    if (!company_name || !email || !password) return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+    if (password.length < 8) return res.status(400).json({ error: 'Mật khẩu tối thiểu 8 ký tự' });
+    const { data: existing } = await supabase.from('business_accounts').select('id').eq('email', email).single();
+    if (existing) return res.status(409).json({ error: 'Email đã được đăng ký' });
+    const password_hash = await bcrypt.hash(password, 10);
+    const { data: biz, error } = await supabase.from('business_accounts').insert({
+      company_name: sanitize(company_name), email: email.toLowerCase().trim(),
+      phone: phone||null, website: website||null, password_hash, status: 'active', plan: 'starter'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Tạo tài khoản thất bại' });
+    // Auto-create sandbox key
+    await supabase.from('api_keys').insert({
+      business_id: biz.id, name: 'Default Sandbox Key',
+      api_key: genApiKey('sandbox'), api_secret: genApiSecret(), env_type: 'sandbox'
+    });
+    const token = jwt.sign({ type: 'business_jwt', bizId: biz.id, email: biz.email }, JWT_SECRET, { expiresIn: '30d' });
+    const { password_hash: _ph, ...bizSafe } = biz;
+    res.json({ token, business: bizSafe });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.post('/api/business/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Nhập email và mật khẩu' });
+    const { data: biz } = await supabase.from('business_accounts').select('*').eq('email', email.toLowerCase().trim()).single();
+    if (!biz) return res.status(401).json({ error: 'Email không tồn tại' });
+    if (biz.status === 'suspended') return res.status(403).json({ error: 'Tài khoản bị khóa' });
+    const ok = await bcrypt.compare(password, biz.password_hash);
+    if (!ok) return res.status(401).json({ error: 'Mật khẩu không đúng' });
+    const token = jwt.sign({ type: 'business_jwt', bizId: biz.id, email: biz.email }, JWT_SECRET, { expiresIn: '30d' });
+    const { password_hash: _ph, ...bizSafe } = biz;
+    res.json({ token, business: bizSafe });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.get('/api/business/auth/me', businessAuth, async (req, res) => {
+  const { data: biz } = await supabase.from('business_accounts').select('id,company_name,email,phone,website,status,plan,api_calls_this_month,transactions_this_month,created_at').eq('id', req.biz.bizId).single();
+  if (!biz) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+  res.json({ business: biz });
+});
+
+// ── DASHBOARD ──
+app.get('/api/business/dashboard', businessAuth, async (req, res) => {
+  try {
+    const bizId = req.biz.bizId;
+    const [{ data: biz }, { data: escrows }, { data: keys }] = await Promise.all([
+      supabase.from('business_accounts').select('*').eq('id', bizId).single(),
+      supabase.from('business_escrows').select('id,title,amount,status,ref,created_at').eq('business_id', bizId).order('created_at', { ascending: false }),
+      supabase.from('api_keys').select('id,status').eq('business_id', bizId).eq('status', 'active')
+    ]);
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const escrowsThisMonth = (escrows||[]).filter(e => e.created_at >= monthStart);
+    const totalVolume = (escrows||[]).reduce((s, e) => s + (e.amount||0), 0);
+    res.json({
+      api_calls_this_month: biz?.api_calls_this_month || 0,
+      escrow_count_month: escrowsThisMonth.length,
+      escrow_volume_total: totalVolume,
+      active_keys: (keys||[]).length,
+      recent_escrows: (escrows||[]).slice(0, 5)
+    });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── API KEYS ──
+app.get('/api/business/api-keys', businessAuth, async (req, res) => {
+  const { data: keys } = await supabase.from('api_keys')
+    .select('id,name,api_key,env_type,status,last_used_at,created_at')
+    .eq('business_id', req.biz.bizId).order('created_at', { ascending: false });
+  res.json({ keys: keys || [] });
+});
+
+app.post('/api/business/api-keys', businessAuth, async (req, res) => {
+  try {
+    const { name, env_type } = req.body;
+    const env = env_type === 'production' ? 'production' : 'sandbox';
+    const api_key = genApiKey(env);
+    const api_secret = genApiSecret();
+    const { data: key, error } = await supabase.from('api_keys').insert({
+      business_id: req.biz.bizId, name: sanitize(name||'API Key'), api_key, api_secret, env_type: env
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Tạo key thất bại' });
+    res.json({ api_key: key.api_key, api_secret: key.api_secret, id: key.id, env_type: key.env_type });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.delete('/api/business/api-keys/:id', businessAuth, async (req, res) => {
+  const { error } = await supabase.from('api_keys')
+    .update({ status: 'revoked' }).eq('id', req.params.id).eq('business_id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Thất bại' });
+  res.json({ ok: true });
+});
+
+// ── ESCROW API (via API key — external use) ──
+app.post('/api/business/escrow/create', businessApiKeyAuth, async (req, res) => {
+  try {
+    const { title, description, amount, buyer_email, buyer_name, seller_email, seller_name, ref, category, metadata, expires_hours } = req.body;
+    if (!title || !amount) return res.status(400).json({ error: 'title và amount là bắt buộc' });
+    if (amount < 1000) return res.status(400).json({ error: 'Số tiền tối thiểu 1,000 VND' });
+    if (ref) {
+      const { data: dup } = await supabase.from('business_escrows').select('id').eq('ref', ref).eq('business_id', req.bizAccount.id).single();
+      if (dup) return res.status(409).json({ error: 'ref đã tồn tại, dùng ref khác' });
+    }
+    const expiresAt = expires_hours ? new Date(Date.now() + (expires_hours||48) * 3600000).toISOString() : null;
+    const { data: escrow, error } = await supabase.from('business_escrows').insert({
+      business_id: req.bizAccount.id, api_key_id: req.apiKeyRow.id,
+      env_type: req.apiKeyRow.env_type, ref: ref||null,
+      title: sanitize(title), description: sanitize(description||''),
+      amount: parseInt(amount), currency: 'VND',
+      buyer_email: buyer_email||null, buyer_name: buyer_name||null,
+      seller_email: seller_email||null, seller_name: seller_name||null,
+      category: category||'general', metadata: metadata||null,
+      status: 'pending', expires_at: expiresAt
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Tạo escrow thất bại' });
+    fireBusinessWebhook(req.bizAccount.id, 'escrow.created', escrow);
+    res.status(201).json({ ok: true, escrow });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.get('/api/business/escrow', businessAuth, async (req, res) => {
+  const { data: escrows } = await supabase.from('business_escrows')
+    .select('*').eq('business_id', req.biz.bizId).order('created_at', { ascending: false }).limit(100);
+  res.json({ escrows: escrows || [] });
+});
+
+app.get('/api/business/escrow/:id', businessApiKeyAuth, async (req, res) => {
+  const { data: escrow } = await supabase.from('business_escrows')
+    .select('*').eq('id', req.params.id).eq('business_id', req.bizAccount.id).single();
+  if (!escrow) return res.status(404).json({ error: 'Không tìm thấy escrow' });
+  res.json({ escrow });
+});
+
+app.post('/api/business/escrow/:id/release', businessApiKeyAuth, async (req, res) => {
+  try {
+    const { data: escrow } = await supabase.from('business_escrows')
+      .select('*').eq('id', req.params.id).eq('business_id', req.bizAccount.id).single();
+    if (!escrow) return res.status(404).json({ error: 'Không tìm thấy escrow' });
+    if (!['funded','pending'].includes(escrow.status)) return res.status(400).json({ error: `Không thể release escrow ở trạng thái ${escrow.status}` });
+    const { data: updated } = await supabase.from('business_escrows')
+      .update({ status: 'completed', released_at: new Date().toISOString() })
+      .eq('id', escrow.id).select().single();
+    fireBusinessWebhook(req.bizAccount.id, 'escrow.released', updated);
+    res.json({ ok: true, escrow: updated });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.post('/api/business/escrow/:id/refund', businessApiKeyAuth, async (req, res) => {
+  try {
+    const { data: escrow } = await supabase.from('business_escrows')
+      .select('*').eq('id', req.params.id).eq('business_id', req.bizAccount.id).single();
+    if (!escrow) return res.status(404).json({ error: 'Không tìm thấy escrow' });
+    if (escrow.status === 'completed') return res.status(400).json({ error: 'Escrow đã hoàn tất, không thể hoàn tiền' });
+    const { data: updated } = await supabase.from('business_escrows')
+      .update({ status: 'refunded', refunded_at: new Date().toISOString() })
+      .eq('id', escrow.id).select().single();
+    fireBusinessWebhook(req.bizAccount.id, 'escrow.refunded', updated);
+    res.json({ ok: true, escrow: updated });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── TRUST & FRAUD (via API key) ──
+app.get('/api/business/trust/:phone', businessApiKeyAuth, async (req, res) => {
+  try {
+    const phone = decodeURIComponent(req.params.phone);
+    const { data: user } = await supabase.from('users').select('id,name,is_verified,avg_rating,review_count,is_banned,created_at').eq('phone', phone).single();
+    if (!user) return res.status(404).json({ error: 'Người dùng không tồn tại trên SafePass' });
+    const { data: orders } = await supabase.from('orders').select('id,status').or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
+    const total = (orders||[]).length;
+    const completed = (orders||[]).filter(o => o.status === 'completed').length;
+    const disputed = (orders||[]).filter(o => o.status === 'disputed').length;
+    const completionRate = total > 0 ? completed / total : 0;
+    let score = 50;
+    if (user.is_verified) score += 20;
+    if (total > 5) score += 10;
+    if (completionRate > 0.9) score += 15;
+    if (user.avg_rating >= 4.5) score += 10;
+    if (user.is_banned) score = 0;
+    if (disputed > 2) score -= 15;
+    score = Math.max(0, Math.min(100, score));
+    const level = score >= 80 ? 'trusted' : score >= 50 ? 'moderate' : 'risky';
+    res.json({ phone, trust_score: score, level, total_orders: total, completed_orders: completed, disputed_orders: disputed, avg_rating: user.avg_rating||null, is_verified: user.is_verified, is_banned: user.is_banned });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.post('/api/business/fraud-check', businessApiKeyAuth, async (req, res) => {
+  try {
+    const { phone, amount } = req.body;
+    if (!phone) return res.status(400).json({ error: 'phone là bắt buộc' });
+    const { data: user } = await supabase.from('users').select('id,is_banned,is_verified,avg_rating,review_count,created_at').eq('phone', phone).single();
+    const flags = [];
+    let risk = 0;
+    if (!user) { flags.push('User không tồn tại trên SafePass'); risk += 40; }
+    else {
+      if (user.is_banned) { flags.push('Tài khoản đã bị khóa'); risk += 80; }
+      if (!user.is_verified) { risk += 15; }
+      if ((user.review_count||0) < 3) { risk += 10; }
+      if ((user.avg_rating||5) < 3) { flags.push('Đánh giá thấp'); risk += 20; }
+      const accountAge = (Date.now() - new Date(user.created_at)) / 86400000;
+      if (accountAge < 7) { flags.push('Tài khoản mới tạo dưới 7 ngày'); risk += 15; }
+      if (amount > 10000000) { risk += 10; }
+      if (amount > 50000000) { flags.push('Giao dịch giá trị rất cao'); risk += 20; }
+    }
+    risk = Math.min(100, risk);
+    const risk_level = risk >= 60 ? 'high' : risk >= 30 ? 'medium' : 'low';
+    const recommendation = risk >= 60 ? 'REJECT' : risk >= 30 ? 'REVIEW' : 'APPROVE';
+    if (risk >= 60) fireBusinessWebhook(req.bizAccount.id, 'fraud.detected', { phone, risk_score: risk, flags });
+    res.json({ risk_level, risk_score: risk, flags, recommendation });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── WEBHOOKS ──
+app.get('/api/business/webhooks', businessAuth, async (req, res) => {
+  const { data: webhooks } = await supabase.from('business_webhooks')
+    .select('id,url,events,status,last_triggered_at,created_at').eq('business_id', req.biz.bizId).order('created_at', { ascending: false });
+  res.json({ webhooks: webhooks || [] });
+});
+
+app.post('/api/business/webhooks', businessAuth, async (req, res) => {
+  try {
+    const { url, secret_key, events, retry_count } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL là bắt buộc' });
+    if (!Array.isArray(events) || !events.length) return res.status(400).json({ error: 'Chọn ít nhất 1 event' });
+    const { data: hook, error } = await supabase.from('business_webhooks').insert({
+      business_id: req.biz.bizId, url, secret_key: secret_key || genToken(),
+      events, retry_count: retry_count || 3, status: 'active'
+    }).select().single();
+    if (error) return res.status(500).json({ error: 'Tạo webhook thất bại' });
+    res.status(201).json({ ok: true, webhook: hook });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+app.delete('/api/business/webhooks/:id', businessAuth, async (req, res) => {
+  const { error } = await supabase.from('business_webhooks').delete().eq('id', req.params.id).eq('business_id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Xóa thất bại' });
+  res.json({ ok: true });
+});
+
+// ── ANALYTICS ──
+app.get('/api/business/analytics', businessAuth, async (req, res) => {
+  try {
+    const bizId = req.biz.bizId;
+    const [{ count: totalApiCalls }, { data: escrows }] = await Promise.all([
+      supabase.from('business_api_logs').select('*', { count: 'exact', head: true }).eq('business_id', bizId),
+      supabase.from('business_escrows').select('id,status,env_type').eq('business_id', bizId)
+    ]);
+    const all = escrows || [];
+    const byStatus = ['pending','funded','completed','refunded','disputed','cancelled'].map(s => ({
+      status: s, count: all.filter(e => e.status === s).length
+    })).filter(s => s.count > 0);
+    const byEnv = ['sandbox','production'].map(e => ({
+      env_type: e, count: all.filter(es => es.env_type === e).length
+    })).filter(e => e.count > 0);
+    res.json({
+      total_api_calls: totalApiCalls || 0,
+      total_escrows: all.length,
+      completed: all.filter(e => e.status === 'completed').length,
+      disputed: all.filter(e => e.status === 'disputed').length,
+      by_status: byStatus, by_env: byEnv
+    });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── WHITE LABEL ──
+app.get('/api/business/white-label', businessAuth, async (req, res) => {
+  const { data: config } = await supabase.from('white_label_configs').select('*').eq('business_id', req.biz.bizId).single();
+  res.json({ config: config || null });
+});
+
+app.put('/api/business/white-label', businessAuth, async (req, res) => {
+  try {
+    const { brand_name, logo_url, primary_color, domain, custom_css } = req.body;
+    const { data: existing } = await supabase.from('white_label_configs').select('id').eq('business_id', req.biz.bizId).single();
+    const payload = { business_id: req.biz.bizId, brand_name: sanitize(brand_name||''), logo_url: logo_url||null, primary_color: primary_color||'#3d8ef8', domain: domain||null, custom_css: custom_css||null, updated_at: new Date().toISOString() };
+    let result;
+    if (existing) {
+      result = await supabase.from('white_label_configs').update(payload).eq('id', existing.id).select().single();
+    } else {
+      result = await supabase.from('white_label_configs').insert(payload).select().single();
+    }
+    if (result.error) return res.status(500).json({ error: 'Lưu thất bại' });
+    res.json({ ok: true, config: result.data });
+  } catch(e) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
+// ── BILLING ──
+app.get('/api/business/billing', businessAuth, async (req, res) => {
+  const { data: biz } = await supabase.from('business_accounts')
+    .select('plan,api_calls_this_month,transactions_this_month,plan_expires_at').eq('id', req.biz.bizId).single();
+  res.json(biz || {});
+});
+
+app.post('/api/business/billing/upgrade', businessAuth, async (req, res) => {
+  const { plan } = req.body;
+  if (!['starter','growth','enterprise'].includes(plan)) return res.status(400).json({ error: 'Gói không hợp lệ' });
+  const { error } = await supabase.from('business_accounts').update({ plan }).eq('id', req.biz.bizId);
+  if (error) return res.status(500).json({ error: 'Nâng cấp thất bại' });
+  res.json({ ok: true, plan });
+});
+
+// ── ADMIN — Business Management ──
+app.get('/api/admin/business/accounts', adminAuth, async (req, res) => {
+  const { data: accounts } = await supabase.from('business_accounts')
+    .select('id,company_name,email,phone,website,status,plan,api_calls_this_month,transactions_this_month,created_at')
+    .order('created_at', { ascending: false });
+  res.json({ accounts: accounts || [] });
+});
+
+app.patch('/api/admin/business/accounts/:id/status', adminAuth, async (req, res) => {
+  const { status } = req.body;
+  if (!['active','pending','suspended'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const { error } = await supabase.from('business_accounts').update({ status }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: 'Cập nhật thất bại' });
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/business/api-usage', adminAuth, async (req, res) => {
+  const { data: logs } = await supabase.from('business_api_logs')
+    .select('business_id, endpoint, env_type, created_at').order('created_at', { ascending: false }).limit(200);
+  res.json({ logs: logs || [] });
+});
+
+// ── SERVE business.html ──
+app.get('/business', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'business.html'));
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

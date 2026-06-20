@@ -1,0 +1,285 @@
+XÂY DỰNG SAFEPASS BUSINESS
+
+MỤC TIÊU
+
+Biến SafePass thành nền tảng Escrow-as-a-Service.
+
+Cho phép doanh nghiệp sử dụng:
+
+* Escrow
+* KYC
+* Wallet
+* Trust Engine
+* Fraud Detection
+
+thông qua API.
+
+==================================================
+
+BUSINESS ACCOUNTS
+
+Tạo bảng:
+
+business_accounts
+
+id UUID
+
+company_name TEXT
+
+owner_id UUID
+
+email TEXT
+
+phone TEXT
+
+website TEXT
+
+status TEXT
+
+created_at TIMESTAMP
+
+==================================================
+
+BUSINESS KYC
+
+Upload:
+
+Giấy phép kinh doanh
+
+MST
+
+Thông tin đại diện
+
+Địa chỉ
+
+==================================================
+
+API KEYS
+
+Tạo bảng:
+
+api_keys
+
+id UUID
+
+business_id UUID
+
+api_key TEXT
+
+api_secret TEXT
+
+status TEXT
+
+created_at TIMESTAMP
+
+==================================================
+
+Mỗi doanh nghiệp có:
+
+Sandbox Key
+
+Production Key
+
+==================================================
+
+DEVELOPER DASHBOARD
+
+Hiển thị:
+
+API Usage
+
+Transactions
+
+Escrow Balance
+
+Disputes
+
+Trust Reports
+
+==================================================
+
+ESCROW API
+
+POST /api/business/escrow/create
+
+POST /api/business/escrow/release
+
+POST /api/business/escrow/refund
+
+GET /api/business/escrow/status
+
+==================================================
+
+KYC API
+
+POST /api/business/kyc/verify
+
+GET /api/business/kyc/status
+
+==================================================
+
+TRUST API
+
+GET /api/business/trust-score
+
+GET /api/business/risk-profile
+
+==================================================
+
+FRAUD API
+
+POST /api/business/fraud-check
+
+POST /api/business/report-risk
+
+==================================================
+
+WEBHOOKS
+
+escrow.created
+
+escrow.released
+
+escrow.refunded
+
+kyc.completed
+
+fraud.detected
+
+==================================================
+
+WEBHOOK MANAGEMENT
+
+Doanh nghiệp nhập:
+
+Webhook URL
+
+Secret Key
+
+Retry Policy
+
+==================================================
+
+WHITE LABEL
+
+Cho phép đối tác dùng:
+
+Logo riêng
+
+Tên riêng
+
+Màu sắc riêng
+
+Domain riêng
+
+Ví dụ:
+
+escrow.doitac.com
+
+==================================================
+
+PRICING SYSTEM
+
+Starter
+
+Growth
+
+Enterprise
+
+==================================================
+
+Starter
+
+100 giao dịch/tháng
+
+==================================================
+
+Growth
+
+1000 giao dịch/tháng
+
+==================================================
+
+Enterprise
+
+Không giới hạn
+
+==================================================
+
+BILLING
+
+Theo dõi:
+
+API Calls
+
+Escrow Transactions
+
+Storage Usage
+
+==================================================
+
+ANALYTICS
+
+Hiển thị:
+
+Tổng giao dịch
+
+Tổng doanh thu
+
+Tổng dispute
+
+Trust Metrics
+
+==================================================
+
+ADMIN
+
+Quản lý:
+
+Doanh nghiệp
+
+API Keys
+
+Webhook
+
+Billing
+
+Subscriptions
+
+==================================================
+
+SECURITY
+
+Rate Limit
+
+IP Whitelist
+
+API Signature
+
+JWT
+
+Audit Logs
+
+==================================================
+
+GENERATE
+
+SQL
+
+Backend
+
+API Gateway
+
+Developer Dashboard
+
+Webhook System
+
+Billing System
+
+White Label System
+
+Analytics
+
+Admin Dashboard
+
+Không phá kiến trúc SafePass hiện có.
