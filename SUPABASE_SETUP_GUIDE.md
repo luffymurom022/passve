@@ -97,6 +97,7 @@
 | 37 | `avatar_economy_migration.sql` | **Phase Social 12**: Avatar Economy — `avatar_items` (22 seeded), `avatar_inventory`, `avatar_wardrobe` |
 | 38 | `metaverse_migration.sql` | **Phase Social 13**: Metaverse Commerce — `mv_districts` (8 seeded), `mv_stores`, `mv_products` (8 seeded), `mv_orders`, `mv_subscriptions`, `mv_services` (4 seeded), `mv_reviews` |
 | 39 | `worldos_migration.sql` | **Phase Social 14**: World OS — `worlds` (8 seeded), `world_members`, `world_districts`, `world_portals`, `world_events`, `world_knowledge`, `world_posts`, `world_marketplace`, `world_reports`, `world_analytics`, `world_governance` |
+| 40 | `universeos_migration.sql` | **Phase 15**: Universe OS — `universes` (8 seeded), `universe_worlds`, `universe_members`, `universe_events`, `universe_marketplace`, `universe_knowledge`, `universe_reports`, `universe_analytics`, `universe_social`, `universe_governance` |
 
 ---
 

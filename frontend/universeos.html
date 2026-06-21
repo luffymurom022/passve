@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Universe OS — SafePass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;--bg2:#0e0e1a;--bg3:#161624;--bg4:#1e1e2e;
+  --border:#252538;--border2:#353550;
+  --accent:#6366F1;--accent2:#4F46E5;--accent3:#818CF8;
+  --gold:#F59E0B;--green:#10B981;--red:#EF4444;--blue:#3B82F6;--pink:#EC4899;--purple:#A855F7;
+  --text:#F0F0FF;--text2:#A0A0C0;--text3:#606080;
+  --card:#111120;--card2:#181828;
+  --radius:14px;--radius2:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input,textarea,select{font-family:inherit;outline:none}
+
+/* HEADER */
+.hdr{position:sticky;top:0;z-index:100;background:rgba(7,7,15,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 20px;height:58px}
+.hdr-logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:17px;background:linear-gradient(135deg,#6366F1,#A855F7,#EC4899,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.hdr-logo span{font-size:22px;-webkit-text-fill-color:initial}
+.hdr-search{flex:1;max-width:420px;position:relative}
+.hdr-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:24px;padding:8px 16px 8px 38px;color:var(--text);font-size:14px}
+.hdr-search input::placeholder{color:var(--text3)}
+.hdr-search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3)}
+.hdr-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn-create{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.btn-back{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:8px 14px;border-radius:20px;font-size:13px}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:10px 0;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.sb-section{padding:8px 14px 3px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:10px;margin:0 6px;cursor:pointer;transition:all .15s;font-size:13.5px;color:var(--text2)}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(168,85,247,.1));color:var(--text);border:1px solid rgba(99,102,241,.3)}
+.nav-item .ni{font-size:16px;width:20px;text-align:center}
+.nb{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:700}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:24px}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#07071f,#0f0728,#07150f);border:1px solid var(--border);border-radius:22px;padding:44px 38px;position:relative;overflow:hidden;margin-bottom:28px}
+.hero-orb{position:absolute;border-radius:50%;filter:blur(60px)}
+.hero-orb1{width:300px;height:300px;background:radial-gradient(circle,rgba(99,102,241,.3),transparent 70%);top:-80px;right:-60px}
+.hero-orb2{width:200px;height:200px;background:radial-gradient(circle,rgba(168,85,247,.2),transparent 70%);bottom:-40px;left:20%}
+.hero-orb3{width:150px;height:150px;background:radial-gradient(circle,rgba(236,72,153,.15),transparent 70%);bottom:20px;right:200px}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);border-radius:20px;padding:5px 14px;font-size:12px;color:#A5B4FC;font-weight:600;margin-bottom:18px}
+.hero h1{font-size:38px;font-weight:900;line-height:1.12;margin-bottom:12px;background:linear-gradient(135deg,#fff,#C7D2FE,#DDD6FE,#FBCFE8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.hero p{color:var(--text2);font-size:15px;max-width:520px;line-height:1.65;margin-bottom:26px;position:relative}
+.hero-actions{display:flex;gap:10px;margin-bottom:26px;position:relative}
+.hero-stats{display:flex;gap:30px;position:relative}
+.hero-stat .val{font-size:22px;font-weight:800}
+.hero-stat .lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.btn-hero{padding:12px 24px;border-radius:24px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff}
+.btn-secondary{background:var(--bg3);border:1px solid var(--border2);color:var(--text)}
+
+/* SECTION */
+.sec-title{font-size:18px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sec-badge{font-size:11px;background:rgba(99,102,241,.2);color:#A5B4FC;padding:3px 10px;border-radius:10px;font-weight:600}
+
+/* UNIVERSE CARDS */
+.uni-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-bottom:28px}
+.uni-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .2s}
+.uni-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 10px 36px rgba(99,102,241,.2)}
+.uni-cover{height:108px;position:relative;display:flex;align-items:center;justify-content:center;font-size:50px}
+.ut-social{background:linear-gradient(135deg,#1D4ED8,#7C3AED)}
+.ut-business{background:linear-gradient(135deg,#065F46,#0F766E)}
+.ut-gaming{background:linear-gradient(135deg,#7C2D12,#DC2626)}
+.ut-education{background:linear-gradient(135deg,#1E3A5F,#1D4ED8)}
+.ut-commerce{background:linear-gradient(135deg,#6366F1,#A855F7)}
+.ut-events{background:linear-gradient(135deg,#713F12,#D97706)}
+.ut-xr{background:linear-gradient(135deg,#0F172A,#6366F1)}
+.uni-type-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);padding:3px 8px;border-radius:8px;font-size:10px;color:#fff;font-weight:700;text-transform:uppercase}
+.uni-body{padding:14px}
+.uni-name{font-size:14px;font-weight:800;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uni-desc{font-size:12px;color:var(--text2);margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
+.uni-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3)}
+.um-dot{width:3px;height:3px;background:var(--text3);border-radius:50%}
+.uni-actions{display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--border)}
+.btn-join{flex:1;background:var(--accent);color:#fff;border-radius:8px;padding:8px;font-size:12px;font-weight:700}
+.btn-explore{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:8px 12px;font-size:12px}
+
+/* TYPE CARDS */
+.type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:28px}
+.type-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:18px 14px;text-align:center;cursor:pointer;transition:all .2s}
+.type-card:hover,.type-card.sel{border-color:var(--accent);background:rgba(99,102,241,.1);transform:translateY(-2px)}
+.tc-icon{font-size:30px;margin-bottom:10px}
+.tc-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.tc-desc{font-size:11px;color:var(--text3);line-height:1.4}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:18px}
+.sc-icon{font-size:22px;margin-bottom:10px}
+.sc-val{font-size:22px;font-weight:800;margin-bottom:4px}
+.sc-lbl{font-size:12px;color:var(--text2)}
+.sc-trend{font-size:11px;color:var(--green);margin-top:5px}
+
+/* MEMBERS */
+.member-list{display:flex;flex-direction:column;gap:10px}
+.member-row{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:13px 16px;display:flex;align-items:center;gap:12px}
+.mavatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.minfo{flex:1}
+.mname{font-size:13px;font-weight:700}
+.mmeta{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ROLE BADGES */
+.rbadge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:8px;font-size:11px;font-weight:700}
+.r-founder{background:rgba(245,158,11,.2);color:#FDE68A;border:1px solid rgba(245,158,11,.3)}
+.r-governor{background:rgba(99,102,241,.2);color:#A5B4FC;border:1px solid rgba(99,102,241,.3)}
+.r-admin{background:rgba(239,68,68,.2);color:#FCA5A5;border:1px solid rgba(239,68,68,.3)}
+.r-world_owner{background:rgba(16,185,129,.2);color:#6EE7B7;border:1px solid rgba(16,185,129,.3)}
+.r-moderator{background:rgba(59,130,246,.2);color:#93C5FD;border:1px solid rgba(59,130,246,.3)}
+.r-member{background:rgba(107,114,128,.2);color:#D1D5DB;border:1px solid rgba(107,114,128,.3)}
+
+/* EVENTS */
+.evt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px}
+.evt-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:all .2s}
+.evt-card:hover{border-color:var(--blue);transform:translateY(-2px)}
+.evt-type{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:10px}
+.et-festival{background:rgba(236,72,153,.2);color:#F9A8D4}
+.et-conference{background:rgba(59,130,246,.2);color:#93C5FD}
+.et-exhibition{background:rgba(245,158,11,.2);color:#FDE68A}
+.et-creator{background:rgba(168,85,247,.2);color:#DDD6FE}
+.et-vip{background:rgba(239,68,68,.2);color:#FCA5A5}
+.evt-title{font-size:14px;font-weight:800;margin-bottom:6px}
+.evt-meta{font-size:12px;color:var(--text3);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.evt-footer{display:flex;align-items:center;justify-content:space-between}
+.btn-attend{background:var(--blue);color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700}
+
+/* MARKETPLACE */
+.mkt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:14px;margin-bottom:28px}
+.mkt-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all .2s}
+.mkt-card:hover{border-color:var(--green);transform:translateY(-2px)}
+.mkt-img{height:88px;background:linear-gradient(135deg,var(--bg3),var(--bg4));display:flex;align-items:center;justify-content:center;font-size:36px}
+.mkt-body{padding:12px}
+.mkt-title{font-size:13px;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mkt-scope{font-size:10px;color:var(--accent3);margin-bottom:6px}
+.mkt-price{font-size:16px;font-weight:800;color:var(--green);margin-bottom:8px}
+.btn-buy{width:100%;background:var(--green);color:#fff;border-radius:8px;padding:7px;font-size:12px;font-weight:700}
+
+/* KNOWLEDGE */
+.know-list{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.know-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:all .15s}
+.know-card:hover{border-color:var(--accent)}
+.kc-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.kc-type{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.kc-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.kc-meta{font-size:11px;color:var(--text3)}
+
+/* AI AGENT */
+.ai-chat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:28px}
+.ai-hdr{background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(168,85,247,.1));border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;gap:12px}
+.ai-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:20px}
+.ai-name{font-size:14px;font-weight:800}
+.ai-status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px}
+.ai-status::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block}
+.ai-msgs{height:300px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ai-msg{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.55}
+.ai-msg.bot{background:var(--bg3);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+.ai-msg.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.ai-inp{border-top:1px solid var(--border);padding:12px;display:flex;gap:8px}
+.ai-inp input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:9px 16px;color:var(--text);font-size:13px}
+.ai-inp button{background:var(--accent);color:#fff;border-radius:50%;width:36px;height:36px;font-size:16px;display:flex;align-items:center;justify-content:center}
+.ai-chips{padding:8px 16px 0;display:flex;flex-wrap:wrap;gap:6px}
+.ai-chip{background:var(--bg3);border:1px solid var(--border2);border-radius:16px;padding:5px 12px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .15s}
+.ai-chip:hover{border-color:var(--accent);color:var(--text)}
+
+/* CHART */
+.chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.chart-title{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text2)}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:120px}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .3s}
+.bar-accent{background:linear-gradient(to top,var(--accent),var(--accent3))}
+.bar-green{background:linear-gradient(to top,var(--green),#34D399)}
+.bar-purple{background:linear-gradient(to top,var(--purple),#C084FC)}
+.bar-label{font-size:10px;color:var(--text3);white-space:nowrap}
+.bar-val{font-size:10px;color:var(--text2);font-weight:600}
+
+/* GOVERNANCE */
+.gov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:28px}
+.gov-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:18px}
+.gov-title{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:13px;color:var(--text2)}
+.toggle{width:40px;height:22px;border-radius:11px;background:var(--bg4);border:1px solid var(--border);position:relative;cursor:pointer;transition:background .2s}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on::after{left:20px}
+
+/* PORTAL */
+.portal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px;margin-bottom:28px}
+.portal-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
+.portal-card:hover{border-color:var(--accent);transform:scale(1.02)}
+.portal-bg{height:80px;display:flex;align-items:center;justify-content:center;font-size:36px;position:relative}
+.portal-bg::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent,rgba(7,7,15,.8))}
+.portal-info{padding:12px}
+.portal-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.portal-meta{font-size:11px;color:var(--text3)}
+.portal-arrow{position:absolute;top:10px;right:10px;background:rgba(99,102,241,.4);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px}
+
+/* SOCIAL GRAPH */
+.graph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:28px}
+.graph-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;text-align:center;transition:all .2s}
+.graph-card:hover{border-color:var(--accent)}
+.gc-av{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--pink));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 10px}
+.gc-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.gc-meta{font-size:11px;color:var(--text3);margin-bottom:10px}
+.btn-follow{background:var(--accent);color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;width:100%}
+
+/* ADMIN */
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:14px;margin-bottom:28px}
+.admin-stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:18px;display:flex;align-items:center;gap:14px}
+.as-icon{font-size:26px;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.as-val{font-size:22px;font-weight:800}
+.as-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* STUDIO */
+.studio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:28px}
+.studio-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .2s}
+.studio-card:hover{border-color:var(--purple);background:var(--card2);transform:translateY(-2px)}
+.sc2-icon{font-size:30px;margin-bottom:12px}
+.sc2-title{font-size:13px;font-weight:700;margin-bottom:6px}
+.sc2-desc{font-size:11px;color:var(--text3);line-height:1.4}
+.btn-studio{margin-top:12px;background:var(--purple);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;width:100%}
+
+/* IDENTITY */
+.id-card{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:20px;padding:28px;text-align:center;margin-bottom:20px}
+.id-av{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;margin:0 auto 14px}
+.id-name{font-size:20px;font-weight:900;margin-bottom:6px}
+.id-unis{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:16px}
+.iu-badge{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)}
+
+/* DIR TABS */
+.dir-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.dir-tab{padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;background:var(--bg3);border:1px solid var(--border);color:var(--text2);transition:all .15s}
+.dir-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* MODAL */
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-hdr{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:18px;font-weight:800}
+.modal-close{background:var(--bg3);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:50%;font-size:18px;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:20px 24px 24px}
+.form-group{margin-bottom:16px}
+.form-label{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px}
+.form-input:focus{border-color:var(--accent)}
+.form-textarea{resize:vertical;min-height:80px}
+.form-actions{display:flex;gap:10px;margin-top:20px}
+.btn-cancel{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:11px;border-radius:10px;font-size:14px;font-weight:600}
+.btn-submit{flex:2;background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;padding:11px;border-radius:10px;font-size:14px;font-weight:700}
+
+/* TOAST */
+.toast{position:fixed;top:20px;right:20px;z-index:999;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 18px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.6);animation:slideIn .3s ease;display:flex;align-items:center;gap:8px}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.success{border-color:var(--green)}
+.toast.error{border-color:var(--red)}
+
+/* UTILS */
+.flex{display:flex}.items-center{align-items:center}.gap-8{gap:8px}.gap-12{gap:12px}.jb{justify-content:space-between}
+.mt-16{margin-top:16px}.mb-16{margin-bottom:16px}.mt-8{margin-top:8px}
+.text-sm{font-size:13px}.text-xs{font-size:11px}.text-muted{color:var(--text2)}.text-dim{color:var(--text3)}
+.fw-bold{font-weight:700}.fw-black{font-weight:900}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--text2)}
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.btn-sm{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600}
+.btn-danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#FCA5A5}
+.btn-success2{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6EE7B7}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-state .ei{font-size:48px;margin-bottom:14px;opacity:.5}
+.empty-state .et{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo"><span>🌌</span>Universe OS</div>
+  <div class="hdr-search">
+    <span class="si">🔍</span>
+    <input type="text" placeholder="Tìm universe, world, creator..." oninput="handleSearch(this.value)"/>
+  </div>
+  <div class="hdr-right">
+    <button class="btn-create" onclick="openCreate()">+ Tạo Universe</button>
+    <button class="btn-back" onclick="location.href='/'">← Về nhà</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-section">Khám Phá</div>
+  <div class="nav-item active" data-view="hub" onclick="sw('hub',this)"><span class="ni">🌌</span>Universe Hub</div>
+  <div class="nav-item" data-view="directory" onclick="sw('directory',this)"><span class="ni">📂</span>Universe Directory <span class="nb" id="nb-uni">8</span></div>
+  <div class="nav-item" data-view="discovery" onclick="sw('discovery',this)"><span class="ni">✨</span>Discovery Engine</div>
+  <div class="nav-item" data-view="portals" onclick="sw('portals',this)"><span class="ni">🌀</span>Universe Portals</div>
+
+  <div class="sb-section">Của Tôi</div>
+  <div class="nav-item" data-view="my-universes" onclick="sw('my-universes',this)"><span class="ni">🏠</span>My Universes</div>
+  <div class="nav-item" data-view="identity" onclick="sw('identity',this)"><span class="ni">👤</span>Shared Identity</div>
+  <div class="nav-item" data-view="social-graph" onclick="sw('social-graph',this)"><span class="ni">🕸️</span>Social Graph</div>
+  <div class="nav-item" data-view="creator-network" onclick="sw('creator-network',this)"><span class="ni">🎨</span>Creator Network</div>
+
+  <div class="sb-section">Quản Lý</div>
+  <div class="nav-item" data-view="members" onclick="sw('members',this)"><span class="ni">👥</span>Members</div>
+  <div class="nav-item" data-view="worlds-in-uni" onclick="sw('worlds-in-uni',this)"><span class="ni">🌍</span>Worlds</div>
+  <div class="nav-item" data-view="governance" onclick="sw('governance',this)"><span class="ni">⚖️</span>Governance</div>
+  <div class="nav-item" data-view="security" onclick="sw('security',this)"><span class="ni">🛡️</span>Security Center</div>
+
+  <div class="sb-section">Economy</div>
+  <div class="nav-item" data-view="marketplace" onclick="sw('marketplace',this)"><span class="ni">🏪</span>Cross-World Market</div>
+  <div class="nav-item" data-view="economy" onclick="sw('economy',this)"><span class="ni">📊</span>Universe Economy</div>
+  <div class="nav-item" data-view="business-net" onclick="sw('business-net',this)"><span class="ni">💼</span>Business Network</div>
+  <div class="nav-item" data-view="events" onclick="sw('events',this)"><span class="ni">🎪</span>Event Network</div>
+
+  <div class="sb-section">Kiến Thức & AI</div>
+  <div class="nav-item" data-view="knowledge" onclick="sw('knowledge',this)"><span class="ni">📚</span>Knowledge Network</div>
+  <div class="nav-item" data-view="ai-agents" onclick="sw('ai-agents',this)"><span class="ni">🤖</span>AI Agents</div>
+  <div class="nav-item" data-view="analytics" onclick="sw('analytics',this)"><span class="ni">📈</span>Analytics</div>
+
+  <div class="sb-section">Hệ Thống</div>
+  <div class="nav-item" data-view="api-layer" onclick="sw('api-layer',this)"><span class="ni">⚡</span>API Layer</div>
+  <div class="nav-item" data-view="infrastructure" onclick="sw('infrastructure',this)"><span class="ni">🏗️</span>Infrastructure</div>
+  <div class="nav-item" data-view="admin" onclick="sw('admin',this)"><span class="ni">👑</span>Global Control Center</div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main">
+  <div class="empty-state"><div class="spinner"></div></div>
+</div>
+</div>
+
+<!-- CREATE MODAL -->
+<div class="modal-bd" id="createModal" style="display:none">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">🌌 Tạo Universe Mới</div>
+      <button class="modal-close" onclick="closeCreate()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Loại Universe</label>
+        <div class="type-grid" id="typeGrid">
+          <div class="type-card sel" data-t="social" onclick="selType(this,'social')"><div class="tc-icon">🌐</div><div class="tc-name">Social</div><div class="tc-desc">Kết nối, cộng đồng</div></div>
+          <div class="type-card" data-t="business" onclick="selType(this,'business')"><div class="tc-icon">💼</div><div class="tc-name">Business</div><div class="tc-desc">Thương mại, B2B</div></div>
+          <div class="type-card" data-t="education" onclick="selType(this,'education')"><div class="tc-icon">🎓</div><div class="tc-name">Education</div><div class="tc-desc">Học tập, khóa học</div></div>
+          <div class="type-card" data-t="gaming" onclick="selType(this,'gaming')"><div class="tc-icon">🎮</div><div class="tc-name">Gaming</div><div class="tc-desc">Esports, metaverse</div></div>
+          <div class="type-card" data-t="events" onclick="selType(this,'events')"><div class="tc-icon">🎪</div><div class="tc-name">Events</div><div class="tc-desc">Festival, concert</div></div>
+          <div class="type-card" data-t="commerce" onclick="selType(this,'commerce')"><div class="tc-icon">🛒</div><div class="tc-name">Commerce</div><div class="tc-desc">Marketplace, NFT</div></div>
+          <div class="type-card" data-t="xr" onclick="selType(this,'xr')"><div class="tc-icon">🥽</div><div class="tc-name">XR</div><div class="tc-desc">VR, AR, Spatial</div></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tên Universe</label>
+        <input type="text" class="form-input" id="uName" placeholder="VD: TechVietnam Universe"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Slug (URL)</label>
+        <input type="text" class="form-input" id="uSlug" placeholder="techvietnam-universe"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mô tả</label>
+        <textarea class="form-input form-textarea" id="uDesc" placeholder="Mô tả universe của bạn..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Membership</label>
+        <select class="form-input" id="uMembership">
+          <option value="open">🌐 Mở</option>
+          <option value="invite">🔗 Chỉ invite</option>
+          <option value="paid">💳 Có phí</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Luật Universe (tùy chọn)</label>
+        <textarea class="form-input form-textarea" id="uRules" placeholder="Quy tắc, nội quy..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="closeCreate()">Hủy</button>
+        <button class="btn-submit" onclick="createUniverse()">🚀 Tạo Universe</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let token = localStorage.getItem('token');
+let user = null;
+let currentView = 'hub';
+let selUniType = 'social';
+let universesData = [];
+let globalStats = {};
+
+// ── INIT ──
+(async function init() {
+  try {
+    if (token) {
+      const r = await fetch('/api/users/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) user = await r.json();
+    }
+  } catch(e) {}
+  await Promise.all([loadStats(), loadUniverses()]);
+  renderView('hub');
+})();
+
+// ── API ──
+async function api(path, opts = {}) {
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  if (opts.headers) Object.assign(h, opts.headers);
+  const r = await fetch(path, { ...opts, headers: h });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.status); }
+  return r.json();
+}
+
+async function loadStats() {
+  try { globalStats = await api('/api/universeos/stats'); }
+  catch { globalStats = { total_universes: 8, total_members: 366000, total_events: 1820, total_revenue: 980000000 }; }
+}
+
+async function loadUniverses(filter) {
+  try {
+    const q = filter ? `?universe_type=${filter}` : '';
+    const d = await api(`/api/universeos/universes${q}`);
+    universesData = d.universes || d || [];
+  } catch { universesData = seedUniverses(); }
+  document.getElementById('nb-uni').textContent = universesData.length;
+}
+
+function seedUniverses() {
+  return [
+    { id:'1', name:'🌌 SafeUniverse', slug:'safeuniverse', description:'Vũ trụ chính của SafePass — trung tâm nền kinh tế số', universe_type:'commerce', member_count:89400, is_featured:true, tags:['commerce','flagship'] },
+    { id:'2', name:'⚡ GameUniverse', slug:'gameuniverse', description:'Vũ trụ game — esports, metaverse gaming, NFT', universe_type:'gaming', member_count:54200, is_featured:true, tags:['gaming','esports'] },
+    { id:'3', name:'🎓 EduUniverse', slug:'eduuniverse', description:'Vũ trụ giáo dục — đại học số, chứng chỉ blockchain', universe_type:'education', member_count:31800, is_featured:true, tags:['education','learning'] },
+    { id:'4', name:'🎨 CreatorUniverse', slug:'creatoruniverse', description:'Vũ trụ sáng tạo — creator economy, NFT art', universe_type:'commerce', member_count:47600, is_featured:true, tags:['creator','nft'] },
+    { id:'5', name:'🏢 BizUniverse', slug:'bizuniverse', description:'Vũ trụ doanh nghiệp — B2B, investment, startup', universe_type:'business', member_count:28900, is_featured:false, tags:['business','b2b'] },
+    { id:'6', name:'🎪 EventUniverse', slug:'eventuniverse', description:'Vũ trụ sự kiện — festival toàn cầu, concert', universe_type:'events', member_count:19300, is_featured:false, tags:['events','festival'] },
+    { id:'7', name:'🥽 XRUniverse', slug:'xruniverse', description:'Vũ trụ XR — VR, AR, spatial computing', universe_type:'xr', member_count:23100, is_featured:true, tags:['xr','vr','ar'] },
+    { id:'8', name:'🌐 SocialUniverse', slug:'socialuniverse', description:'Vũ trụ xã hội — kết nối toàn cầu, cộng đồng', universe_type:'social', member_count:72000, is_featured:true, tags:['social','community'] },
+  ];
+}
+
+// ── NAV ──
+function sw(view, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  currentView = view;
+  renderView(view);
+}
+
+// ── ROUTER ──
+function renderView(view) {
+  const el = document.getElementById('main');
+  switch(view) {
+    case 'hub':           el.innerHTML = renderHub(); break;
+    case 'directory':     el.innerHTML = renderDirectory(); loadDir(); break;
+    case 'discovery':     el.innerHTML = renderDiscovery(); break;
+    case 'portals':       el.innerHTML = renderPortals(); break;
+    case 'my-universes':  el.innerHTML = renderMyUniverses(); loadMyUni(); break;
+    case 'identity':      el.innerHTML = renderIdentity(); break;
+    case 'social-graph':  el.innerHTML = renderSocialGraph(); break;
+    case 'creator-network': el.innerHTML = renderCreatorNetwork(); break;
+    case 'members':       el.innerHTML = renderMembers(); loadMembers(); break;
+    case 'worlds-in-uni': el.innerHTML = renderWorldsInUni(); break;
+    case 'governance':    el.innerHTML = renderGovernance(); break;
+    case 'security':      el.innerHTML = renderSecurity(); break;
+    case 'marketplace':   el.innerHTML = renderMarketplace(); loadMarket(); break;
+    case 'economy':       el.innerHTML = renderEconomy(); break;
+    case 'business-net':  el.innerHTML = renderBusinessNet(); break;
+    case 'events':        el.innerHTML = renderEvents(); loadEvents(); break;
+    case 'knowledge':     el.innerHTML = renderKnowledge(); loadKnowledge(); break;
+    case 'ai-agents':     el.innerHTML = renderAIAgents(); setupAI(); break;
+    case 'analytics':     el.innerHTML = renderAnalytics(); break;
+    case 'api-layer':     el.innerHTML = renderAPI(); break;
+    case 'infrastructure':el.innerHTML = renderInfra(); break;
+    case 'admin':         el.innerHTML = renderAdmin(); loadAdmin(); break;
+    default:              el.innerHTML = renderHub();
+  }
+}
+
+// ── UNIVERSE CARD ──
+const typeIcons = {social:'🌐',business:'💼',education:'🎓',gaming:'🎮',events:'🎪',commerce:'🛒',xr:'🥽'};
+const typeColors = {social:'ut-social',business:'ut-business',education:'ut-education',gaming:'ut-gaming',events:'ut-events',commerce:'ut-commerce',xr:'ut-xr'};
+
+function uniCard(u) {
+  const icon = typeIcons[u.universe_type] || '🌌';
+  const cls = typeColors[u.universe_type] || 'ut-social';
+  return `
+  <div class="uni-card">
+    <div class="uni-cover ${cls}"><span style="position:relative;font-size:50px">${icon}</span>
+      <span class="uni-type-badge">${u.universe_type||'social'}</span>
+    </div>
+    <div class="uni-body">
+      <div class="uni-name">${u.name}</div>
+      <div class="uni-desc">${u.description||''}</div>
+      <div class="uni-meta">
+        <span>👥 ${fmt(u.member_count||0)}</span>
+        <span class="um-dot"></span>
+        <span>🌍 ${u.world_count||0} worlds</span>
+        ${u.is_featured?'<span class="um-dot"></span><span style="color:var(--gold)">⭐</span>':''}
+      </div>
+    </div>
+    <div class="uni-actions">
+      <button class="btn-join" onclick="joinUni('${u.id}','${u.name}')">🚀 Tham gia</button>
+      <button class="btn-explore" onclick="exploreUni('${u.id}')">👁</button>
+    </div>
+  </div>`;
+}
+
+// ── HUB ──
+function renderHub() {
+  const featured = universesData.filter(u => u.is_featured).slice(0, 6);
+  return `
+  <div class="hero">
+    <div class="hero-orb hero-orb1"></div><div class="hero-orb hero-orb2"></div><div class="hero-orb hero-orb3"></div>
+    <div class="hero-badge">🌌 Universe Operating System</div>
+    <h1>Một hệ thống.<br/>Vô hạn vũ trụ.</h1>
+    <p>SafePass Universe OS — nền tảng đa vũ trụ đầu tiên: kết nối hàng triệu người dùng qua nhiều Universes, Worlds, và hệ sinh thái kinh tế chia sẻ.</p>
+    <div class="hero-actions">
+      <button class="btn-hero btn-primary" onclick="openCreate()">🚀 Tạo Universe</button>
+      <button class="btn-hero btn-secondary" onclick="sw('directory',document.querySelector('[data-view=directory]'))">📂 Khám phá</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="val">${fmt(globalStats.total_universes||8)}</div><div class="lbl">Universes</div></div>
+      <div class="hero-stat"><div class="val">${fmtBig(globalStats.total_members||366000)}</div><div class="lbl">Thành viên</div></div>
+      <div class="hero-stat"><div class="val">${fmt(globalStats.total_events||1820)}</div><div class="lbl">Sự kiện</div></div>
+      <div class="hero-stat"><div class="val">${fmtVND(globalStats.total_revenue||980000000)}</div><div class="lbl">Doanh thu</div></div>
+    </div>
+  </div>
+
+  <div class="sec-title">🌌 Featured Universes <span class="sec-badge">Nổi bật</span></div>
+  <div class="uni-grid">${(featured.length?featured:universesData.slice(0,6)).map(uniCard).join('')}</div>
+
+  <div class="sec-title">🎯 Universe Types</div>
+  <div class="type-grid">
+    ${Object.entries({social:'🌐 Social',business:'💼 Business',education:'🎓 Education',gaming:'🎮 Gaming',events:'🎪 Events',commerce:'🛒 Commerce',xr:'🥽 XR'}).map(([k,v])=>`
+    <div class="type-card" onclick="openCreateWithType('${k}')">
+      <div class="tc-icon">${v.split(' ')[0]}</div>
+      <div class="tc-name">${v.substring(2)}</div>
+      <div class="tc-desc">${typeDesc(k)}</div>
+    </div>`).join('')}
+  </div>
+
+  <div class="sec-title">📊 Universe OS Stats</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="sc-icon">🌌</div><div class="sc-val">${globalStats.total_universes||8}</div><div class="sc-lbl">Tổng Universes</div><div class="sc-trend">↑ +2 tuần này</div></div>
+    <div class="stat-card"><div class="sc-icon">👥</div><div class="sc-val">${fmtBig(globalStats.total_members||366000)}</div><div class="sc-lbl">Tổng thành viên</div><div class="sc-trend">↑ +18% tháng này</div></div>
+    <div class="stat-card"><div class="sc-icon">🌍</div><div class="sc-val">${fmt(globalStats.total_worlds||64)}</div><div class="sc-lbl">Worlds trong tất cả Universes</div><div class="sc-trend">↑ +12 tuần này</div></div>
+    <div class="stat-card"><div class="sc-icon">🎪</div><div class="sc-val">${fmt(globalStats.total_events||1820)}</div><div class="sc-lbl">Sự kiện</div><div class="sc-trend">↑ +94 tuần này</div></div>
+    <div class="stat-card"><div class="sc-icon">💰</div><div class="sc-val">${fmtVND(globalStats.total_revenue||980000000)}</div><div class="sc-lbl">Tổng doanh thu</div><div class="sc-trend">↑ +41% tháng này</div></div>
+  </div>`;
+}
+
+function typeDesc(t) {
+  return {social:'Kết nối, chia sẻ, cộng đồng',business:'Thương mại, B2B, doanh nghiệp',education:'Học tập, khóa học, mentorship',gaming:'Esports, game, vật phẩm số',events:'Festival, concert, hội thảo',commerce:'Marketplace, NFT, digital economy',xr:'VR, AR, spatial computing'}[t]||'';
+}
+
+// ── DIRECTORY ──
+function renderDirectory() {
+  return `
+  <div class="sec-title">📂 Universe Directory <span class="sec-badge">Tất cả universes</span></div>
+  <div class="dir-tabs" id="dirTabs">
+    <div class="dir-tab active" onclick="filterDir('all',this)">🌌 Tất cả</div>
+    <div class="dir-tab" onclick="filterDir('social',this)">🌐 Social</div>
+    <div class="dir-tab" onclick="filterDir('business',this)">💼 Business</div>
+    <div class="dir-tab" onclick="filterDir('education',this)">🎓 Education</div>
+    <div class="dir-tab" onclick="filterDir('gaming',this)">🎮 Gaming</div>
+    <div class="dir-tab" onclick="filterDir('events',this)">🎪 Events</div>
+    <div class="dir-tab" onclick="filterDir('commerce',this)">🛒 Commerce</div>
+    <div class="dir-tab" onclick="filterDir('xr',this)">🥽 XR</div>
+  </div>
+  <div class="uni-grid" id="dirGrid"><div class="empty-state"><div class="spinner"></div></div></div>`;
+}
+function loadDir(f) {
+  const g = document.getElementById('dirGrid'); if (!g) return;
+  let list = universesData;
+  if (f && f !== 'all') list = list.filter(u => u.universe_type === f);
+  g.innerHTML = list.length ? list.map(uniCard).join('') : '<div class="empty-state"><div class="ei">🌌</div><div class="et">Không có universe nào</div></div>';
+}
+function filterDir(t, el) {
+  document.querySelectorAll('.dir-tab').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  loadDir(t);
+}
+
+// ── DISCOVERY ──
+function renderDiscovery() {
+  return `
+  <div class="sec-title">✨ Discovery Engine <span class="sec-badge">Gợi ý cho bạn</span></div>
+  <div class="sec-title" style="font-size:14px;margin-bottom:12px">🔥 Trending Universes</div>
+  <div class="uni-grid">${universesData.sort((a,b)=>(b.member_count||0)-(a.member_count||0)).slice(0,4).map(uniCard).join('')}</div>
+  <div class="sec-title" style="font-size:14px;margin-bottom:12px">🆕 Universes mới nhất</div>
+  <div class="uni-grid">${universesData.slice(0,3).map(uniCard).join('')}</div>
+  <div class="sec-title" style="font-size:14px;margin-bottom:12px">⚡ XR Universes</div>
+  <div class="uni-grid">${universesData.filter(u=>u.universe_type==='xr'||u.universe_type==='gaming').slice(0,3).map(uniCard).join('')}</div>`;
+}
+
+// ── PORTALS ──
+function renderPortals() {
+  const palettes = ['linear-gradient(135deg,#1D4ED8,#6366F1)','linear-gradient(135deg,#065F46,#10B981)','linear-gradient(135deg,#7C2D12,#DC2626)','linear-gradient(135deg,#701A75,#EC4899)','linear-gradient(135deg,#1E3A5F,#1D4ED8)','linear-gradient(135deg,#0F172A,#6366F1)','linear-gradient(135deg,#713F12,#D97706)','linear-gradient(135deg,#1a0a2e,#A855F7)'];
+  return `
+  <div class="sec-title">🌀 Universe Portals <span class="sec-badge">Du hành đa vũ trụ</span></div>
+  <p class="text-sm text-muted" style="margin-bottom:20px">Nhảy giữa các Universes trong SafePass Multiverse chỉ với một click.</p>
+  <div class="portal-grid">
+    ${universesData.map((u,i) => `
+    <div class="portal-card" onclick="travelTo('${u.id}','${u.name}')">
+      <div class="portal-bg" style="background:${palettes[i%8]}">
+        <span style="position:relative;font-size:36px">${typeIcons[u.universe_type]||'🌌'}</span>
+      </div>
+      <div class="portal-arrow">🌀</div>
+      <div class="portal-info">
+        <div class="portal-name">${u.name}</div>
+        <div class="portal-meta">👥 ${fmt(u.member_count||0)} thành viên</div>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div class="sec-title mt-16">🤝 Recommended Portals</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="sc-icon">👥</div><div class="sc-val">Friend Universes</div><div class="sc-lbl">Universes bạn bè đang hoạt động</div></div>
+    <div class="stat-card"><div class="sc-icon">🔥</div><div class="sc-val">Trending</div><div class="sc-lbl">Universes viral nhất tuần này</div></div>
+    <div class="stat-card"><div class="sc-icon">🤖</div><div class="sc-val">AI Picks</div><div class="sc-lbl">AI gợi ý theo sở thích của bạn</div></div>
+    <div class="stat-card"><div class="sc-icon">🌍</div><div class="sc-val">World Bridge</div><div class="sc-lbl">Worlds kết nối nhiều Universes nhất</div></div>
+  </div>`;
+}
+
+// ── MY UNIVERSES ──
+function renderMyUniverses() {
+  return `<div class="sec-title">🏠 My Universes</div>
+  <div id="myUniGrid"><div class="empty-state"><div class="spinner"></div></div></div>
+  <button class="btn-hero btn-primary" style="margin-top:20px" onclick="openCreate()">+ Tạo Universe mới</button>`;
+}
+async function loadMyUni() {
+  const el = document.getElementById('myUniGrid'); if (!el) return;
+  try {
+    const d = await api('/api/universeos/my-universes');
+    const list = d.universes || [];
+    el.innerHTML = list.length ? `<div class="uni-grid">${list.map(uniCard).join('')}</div>` : `<div class="empty-state"><div class="ei">🌌</div><div class="et">Chưa tham gia universe nào</div></div><div style="margin-top:20px"><div class="uni-grid">${universesData.slice(0,4).map(uniCard).join('')}</div></div>`;
+  } catch { el.innerHTML = `<div class="empty-state"><div class="ei">🌌</div><div class="et">Chưa tham gia universe nào</div></div><div style="margin-top:20px"><div class="uni-grid">${universesData.slice(0,4).map(uniCard).join('')}</div></div>`; }
+}
+
+// ── IDENTITY ──
+function renderIdentity() {
+  const name = user?.name || 'Khách'; const init = name.slice(0,2).toUpperCase();
+  return `<div class="sec-title">👤 Shared Identity</div>
+  <div class="id-card">
+    <div class="id-av">${init}</div>
+    <div class="id-name">${name}</div>
+    <p class="text-sm text-muted" style="margin-top:6px">Danh tính duy nhất hoạt động trên toàn bộ Universe OS — không cần tạo lại tài khoản</p>
+    <div class="id-unis">${universesData.slice(0,5).map(u=>`<div class="iu-badge">${u.name}</div>`).join('')}</div>
+  </div>
+  <div class="sec-title">🏆 Thống kê cross-universe</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="sc-icon">🌌</div><div class="sc-val">5</div><div class="sc-lbl">Universes tham gia</div></div>
+    <div class="stat-card"><div class="sc-icon">🌍</div><div class="sc-val">12</div><div class="sc-lbl">Worlds trong tất cả</div></div>
+    <div class="stat-card"><div class="sc-icon">📝</div><div class="sc-val">347</div><div class="sc-lbl">Bài đăng</div></div>
+    <div class="stat-card"><div class="sc-icon">⭐</div><div class="sc-val">4.9</div><div class="sc-lbl">Global Trust Score</div></div>
+  </div>`;
+}
+
+// ── SOCIAL GRAPH ──
+function renderSocialGraph() {
+  const people = ['An Nguyễn','Bình Trần','Cường Lê','Dung Phạm','Đức Hoàng','Giang Vũ','Hải Đặng','Hoa Bùi'];
+  return `<div class="sec-title">🕸️ Universe Social Graph <span class="sec-badge">Cross-Universe Relationships</span></div>
+  <p class="text-sm text-muted mb-16" style="margin-bottom:20px">Theo dõi bạn bè và creators hoạt động trên nhiều Universes cùng một lúc.</p>
+  <div class="graph-grid">
+    ${people.map((n,i)=>`
+    <div class="graph-card">
+      <div class="gc-av">${n.slice(0,1)}</div>
+      <div class="gc-name">${n}</div>
+      <div class="gc-meta">${[2,3,4,1,5,2,3,4][i%8]} Universes • ${[48,120,89,234,56,178,92,143][i%8]} followers</div>
+      <button class="btn-follow" onclick="follow('${n}')">+ Follow</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── CREATOR NETWORK ──
+function renderCreatorNetwork() {
+  const creators = [
+    {n:'🎨 NamArt',uni:'CreatorUniverse',fol:89000,earn:'142M₫'},
+    {n:'🎬 ThuFilm',uni:'SocialUniverse',fol:67000,earn:'98M₫'},
+    {n:'💻 MinhDev',uni:'BizUniverse',fol:45000,earn:'213M₫'},
+    {n:'🎵 LanMusic',uni:'EventUniverse',fol:123000,earn:'67M₫'},
+    {n:'🎮 HungGamer',uni:'GameUniverse',fol:198000,earn:'345M₫'},
+    {n:'📚 ThaoEdu',uni:'EduUniverse',fol:34000,earn:'78M₫'},
+  ];
+  return `<div class="sec-title">🎨 Universe Creator Network <span class="sec-badge">Cross-Universe Creators</span></div>
+  <div class="member-list">
+    ${creators.map((c,i)=>`
+    <div class="member-row">
+      <div class="mavatar" style="font-size:18px">${c.n.split(' ')[0]}</div>
+      <div class="minfo"><div class="mname">${c.n}</div><div class="mmeta">Hoạt động trong ${c.uni}</div></div>
+      <div class="flex gap-8 items-center">
+        <span class="chip">👥 ${fmt(c.fol)}</span>
+        <span style="color:var(--green);font-weight:700">${c.earn}</span>
+        <button class="btn-sm btn-outline">Follow</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── MEMBERS ──
+function renderMembers() {
+  return `<div class="sec-title">👥 Universe Members</div>
+  <div class="dir-tabs"><div class="dir-tab active">Tất cả</div><div class="dir-tab">Founder</div><div class="dir-tab">Governor</div><div class="dir-tab">Moderator</div></div>
+  <div id="membersList" class="member-list mt-16"><div class="empty-state"><div class="spinner"></div></div></div>`;
+}
+function loadMembers() {
+  const el = document.getElementById('membersList'); if (!el) return;
+  const roles = ['r-founder','r-governor','r-admin','r-world_owner','r-moderator','r-member'];
+  const rnames = ['Founder','Governor','Admin','World Owner','Moderator','Member'];
+  const names = ['Nguyễn Văn An','Trần Thị Bình','Lê Huy Cường','Phạm Thị Dung','Hoàng Minh Đức','Vũ Thị Giang','Đặng Văn Hải','Bùi Minh Hoa'];
+  el.innerHTML = names.map((n,i)=>`
+  <div class="member-row">
+    <div class="mavatar">${n.slice(0,1)}</div>
+    <div class="minfo"><div class="mname">${n}</div><div class="mmeta">Tham gia ${i+1} tháng trước</div></div>
+    <span class="rbadge ${roles[i%6]}">${rnames[i%6]}</span>
+    <button class="btn-sm btn-outline">👁 Xem</button>
+  </div>`).join('');
+}
+
+// ── WORLDS IN UNI ──
+function renderWorldsInUni() {
+  const worlds = ['🏙️ SafeCity','🎮 GameVerse','🎓 EduWorld','🎨 CreatorHub','🎪 EventWorld','🌿 SocialGarden','💼 BizNation','🚀 FutureLab'];
+  return `<div class="sec-title">🌍 Worlds Trong Universe</div>
+  <div class="member-list">
+    ${worlds.map((w,i)=>`
+    <div class="member-row">
+      <div class="mavatar" style="font-size:18px">${['🌐','💼','🎓','🎮','🎪','🌿','🏙️','🚀'][i%8]}</div>
+      <div class="minfo"><div class="mname">${w}</div><div class="mmeta">${fmt(Math.floor(Math.random()*15000+2000))} thành viên • ${['social','business','education','gaming','event','social','business','creator'][i]} template</div></div>
+      <div class="flex gap-8">
+        ${i<4?'<span style="color:var(--gold);font-size:12px">⭐ Featured</span>':''}
+        <button class="btn-sm btn-outline" onclick="sw('portals',null)">🌀 Portal</button>
+      </div>
+    </div>`).join('')}
+  </div>
+  <button class="btn-hero btn-secondary mt-16" style="margin-top:16px;display:flex" onclick="location.href='/worldos'">🌍 Mở World OS</button>`;
+}
+
+// ── GOVERNANCE ──
+function renderGovernance() {
+  return `<div class="sec-title">⚖️ Universe Governance</div>
+  <div class="gov-grid">
+    <div class="gov-card"><div class="gov-title">🌍 World Creation</div>
+      <div class="toggle-row"><span>Cho phép tạo world mới</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span>Yêu cầu phê duyệt</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+    </div>
+    <div class="gov-card"><div class="gov-title">🏪 Economy</div>
+      <div class="toggle-row"><span>Cross-universe marketplace</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span>Creator monetize</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    </div>
+    <div class="gov-card"><div class="gov-title">🎪 Events</div>
+      <div class="toggle-row"><span>Cross-universe events</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span>Vé có phí</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    </div>
+    <div class="gov-card"><div class="gov-title">🔐 Access</div>
+      <div class="toggle-row"><span>Cho phép khách</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span>Yêu cầu KYC</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+    </div>
+  </div>
+  <button class="btn-hero btn-primary" onclick="toast('💾 Đã lưu cài đặt!','success')">💾 Lưu Governance</button>`;
+}
+
+// ── SECURITY ──
+function renderSecurity() {
+  const reports = [{t:'spam',d:'User đăng link spam trong cross-universe marketplace',s:'pending'},{t:'harassment',d:'Hành vi quấy rối qua DM trong universe',s:'pending'},{t:'fraud',d:'Gian lận trong universe marketplace',s:'reviewed'}];
+  return `<div class="sec-title">🛡️ Universe Security Center</div>
+  <div class="stat-grid" style="margin-bottom:20px">
+    <div class="stat-card"><div class="sc-icon">🚨</div><div class="sc-val" style="color:var(--red)">3</div><div class="sc-lbl">Pending Reports</div></div>
+    <div class="stat-card"><div class="sc-icon">✅</div><div class="sc-val" style="color:var(--green)">124</div><div class="sc-lbl">Resolved</div></div>
+    <div class="stat-card"><div class="sc-icon">🚫</div><div class="sc-val">5</div><div class="sc-lbl">Banned Users</div></div>
+    <div class="stat-card"><div class="sc-icon">⭐</div><div class="sc-val">99.1%</div><div class="sc-lbl">Trust Rate</div></div>
+  </div>
+  <div class="member-list">
+    ${reports.map(r=>`
+    <div class="member-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <div class="flex jb items-center" style="width:100%">
+        <span class="rbadge r-${r.t==='spam'?'founder':r.t==='harassment'?'admin':'governor'}" style="text-transform:uppercase;font-size:10px">${r.t}</span>
+        <span class="text-xs text-dim">${r.s==='pending'?'🟡 Chờ':'🔵 Đang xem'}</span>
+      </div>
+      <div class="text-sm text-muted">${r.d}</div>
+      <div class="flex gap-8">
+        <button class="btn-sm btn-success2" onclick="toast('⚠️ Đã cảnh cáo','success')">⚠️ Cảnh cáo</button>
+        <button class="btn-sm btn-danger" onclick="toast('🚫 Đã cấm','error')">🚫 Cấm</button>
+        <button class="btn-sm btn-outline" onclick="toast('❌ Đã bỏ qua','success')">Bỏ qua</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── MARKETPLACE ──
+function renderMarketplace() {
+  return `<div class="sec-title">🏪 Cross-Universe Marketplace <span class="sec-badge">Visible Across Universes</span></div>
+  <div id="mktGrid" class="mkt-grid"><div class="empty-state"><div class="spinner"></div></div></div>`;
+}
+function loadMarket() {
+  const el = document.getElementById('mktGrid'); if (!el) return;
+  const items = [
+    {e:'🎭',n:'Universe Avatar Pack',p:199000,s:'universe'},
+    {e:'🎨',n:'Creator Studio Pro',p:399000,s:'global'},
+    {e:'📚',n:'EduUniverse Masterclass',p:499000,s:'global'},
+    {e:'🏪',n:'Virtual Flagship Store',p:299000,s:'universe'},
+    {e:'🎫',n:'VIP Universe Pass',p:999000,s:'global'},
+    {e:'⚡',n:'Universe Boost Bundle',p:149000,s:'universe'},
+    {e:'🥽',n:'XR Experience Pack',p:699000,s:'global'},
+    {e:'🤝',n:'Business Mentorship',p:899000,s:'universe'},
+  ];
+  el.innerHTML = items.map(it=>`
+  <div class="mkt-card">
+    <div class="mkt-img">${it.e}</div>
+    <div class="mkt-body">
+      <div class="mkt-title">${it.n}</div>
+      <div class="mkt-scope">${it.s==='global'?'🌌 Visible toàn bộ Universe OS':'🌍 Trong Universe này'}</div>
+      <div class="mkt-price">${it.p.toLocaleString('vi-VN')}₫</div>
+      <button class="btn-buy" onclick="buyItem('${it.n}')">🛒 Mua ngay</button>
+    </div>
+  </div>`).join('');
+}
+
+// ── ECONOMY ──
+function renderEconomy() {
+  return `<div class="sec-title">📊 Universe Economy <span class="sec-badge">Shared Economy Engine</span></div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="sc-icon">💰</div><div class="sc-val">${fmtVND(globalStats.total_revenue||980000000)}</div><div class="sc-lbl">Tổng doanh thu</div><div class="sc-trend">↑ +41% tháng này</div></div>
+    <div class="stat-card"><div class="sc-icon">🏪</div><div class="sc-val">${fmt(12800)}</div><div class="sc-lbl">Sản phẩm cross-universe</div><div class="sc-trend">↑ +680 tuần này</div></div>
+    <div class="stat-card"><div class="sc-icon">🎨</div><div class="sc-val">${fmtVND(Math.floor((globalStats.total_revenue||980000000)*0.65))}</div><div class="sc-lbl">Creator Revenue</div><div class="sc-trend">↑ +55% tháng này</div></div>
+    <div class="stat-card"><div class="sc-icon">🔒</div><div class="sc-val">${fmtVND(Math.floor((globalStats.total_revenue||980000000)*0.15))}</div><div class="sc-lbl">Escrow đang giữ</div><div class="sc-trend">Bảo vệ an toàn</div></div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">📈 Revenue theo Universe Type</div>
+    <div class="bar-chart">
+      ${[['Commerce','90%','490M'],['Gaming','75%','380M'],['Social','65%','320M'],['Business','58%','280M'],['Creator','72%','360M'],['Events','45%','220M'],['Education','40%','195M']].map(([l,h,v])=>`
+      <div class="bar-wrap"><div class="bar-val">${v}</div><div class="bar bar-accent" style="height:${h}"></div><div class="bar-label">${l}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="sec-title">🏆 Top Earning Universes</div>
+  <div class="member-list">
+    ${universesData.sort((a,b)=>(b.member_count||0)-(a.member_count||0)).slice(0,5).map((u,i)=>`
+    <div class="member-row">
+      <div class="mavatar">${i+1}</div>
+      <div class="minfo"><div class="mname">${u.name}</div><div class="mmeta">${fmt(u.member_count||0)} thành viên</div></div>
+      <div style="color:var(--green);font-weight:800">${fmtVND(Math.floor(Math.random()*200000000+50000000))}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── BUSINESS NETWORK ──
+function renderBusinessNet() {
+  const biz = [
+    {n:'💎 TechCorp VN',u:'BizUniverse',type:'Technology',stores:3},
+    {n:'🎨 DesignStudio',u:'CreatorUniverse',type:'Creative Agency',stores:2},
+    {n:'🎓 EduPlatform',u:'EduUniverse',type:'Education',stores:5},
+    {n:'🏪 MegaStore',u:'SafeUniverse',type:'E-Commerce',stores:12},
+    {n:'🎮 GameCo',u:'GameUniverse',type:'Gaming',stores:4},
+  ];
+  return `<div class="sec-title">💼 Universe Business Network</div>
+  <div class="member-list">
+    ${biz.map(b=>`
+    <div class="member-row">
+      <div class="mavatar" style="font-size:18px">${b.n.split(' ')[0]}</div>
+      <div class="minfo"><div class="mname">${b.n}</div><div class="mmeta">${b.u} • ${b.type} • ${b.stores} cửa hàng</div></div>
+      <div class="flex gap-8">
+        <span class="chip">🏪 ${b.stores} Stores</span>
+        <button class="btn-sm btn-outline">Xem</button>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div class="studio-grid mt-16" style="margin-top:20px">
+    ${[['🏪','Mở Store','Tạo cửa hàng trong Universe'],['🎪','Tổ chức Event','Conference, exhibition'],['🤝','B2B Connect','Kết nối doanh nghiệp'],['📊','Analytics','Xem thống kê kinh doanh']].map(([e,t,d])=>`
+    <div class="studio-card">
+      <div class="sc2-icon">${e}</div><div class="sc2-title">${t}</div><div class="sc2-desc">${d}</div>
+      <button class="btn-studio" onclick="toast('🚀 Mở ${t}...','success')">${t}</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── EVENTS ──
+function renderEvents() {
+  return `<div class="sec-title">🎪 Universe Event Network</div>
+  <div id="evtGrid" class="evt-grid"><div class="empty-state"><div class="spinner"></div></div></div>`;
+}
+function loadEvents() {
+  const el = document.getElementById('evtGrid'); if (!el) return;
+  const evts = [
+    {t:'festival',title:'SafePass Universe Festival 2025',uni:'🌌 SafeUniverse',time:'30/07/2025',att:8400,max:10000,price:0},
+    {t:'conference',title:'Global Creator Summit',uni:'🎨 CreatorUniverse',time:'12/08/2025',att:2100,max:3000,price:299000},
+    {t:'exhibition',title:'XR World Exhibition',uni:'🥽 XRUniverse',time:'25/07/2025',att:1400,max:2000,price:0},
+    {t:'creator',title:'GameUniverse Championship',uni:'⚡ GameUniverse',time:'05/08/2025',att:5600,max:8000,price:149000},
+    {t:'conference',title:'EduUniverse Hackathon',uni:'🎓 EduUniverse',time:'20/07/2025',att:890,max:1000,price:0},
+    {t:'vip',title:'Universe Founders Summit',uni:'🏢 BizUniverse',time:'18/07/2025',att:48,max:50,price:2990000},
+  ];
+  el.innerHTML = evts.map(ev=>`
+  <div class="evt-card">
+    <span class="evt-type et-${ev.t}">${ev.t}</span>
+    <div class="evt-title">${ev.title}</div>
+    <div class="evt-meta"><span>📅 ${ev.time}</span><span>🌌 ${ev.uni}</span><span>👥 ${fmt(ev.att)}/${fmt(ev.max)}</span></div>
+    <div class="evt-footer">
+      <span style="font-size:12px;color:${ev.price?'var(--gold)':'var(--green)'}">${ev.price?`${ev.price.toLocaleString('vi-VN')}₫`:'🆓 Free'}</span>
+      <button class="btn-attend" onclick="toast('✅ Đã đăng ký: ${ev.title}','success')">Đăng ký</button>
+    </div>
+  </div>`).join('');
+}
+
+// ── KNOWLEDGE ──
+function renderKnowledge() {
+  return `<div class="sec-title">📚 Universe Knowledge Network</div>
+  <div id="knowList" class="know-list"><div class="empty-state"><div class="spinner"></div></div></div>
+  <button class="btn-hero btn-primary mt-16" style="margin-top:16px" onclick="toast('📚 Mở trình soạn thảo...','success')">+ Thêm tài liệu</button>`;
+}
+function loadKnowledge() {
+  const el = document.getElementById('knowList'); if (!el) return;
+  const docs = [
+    {t:'lore',i:'🌌',title:'Lịch sử hình thành SafePass Universe OS',meta:'Đăng 01/06/2025 • 8.4K lượt xem'},
+    {t:'rule',i:'📋',title:'Quy tắc chung của Universe OS',meta:'Cập nhật 15/06/2025 • 12.1K lượt xem'},
+    {t:'doc',i:'📘',title:'Hướng dẫn tạo Universe đầu tiên',meta:'Cập nhật 20/06/2025 • 5.8K lượt xem'},
+    {t:'faq',i:'❓',title:'FAQ: Cross-Universe Economy & Escrow',meta:'Cập nhật 21/06/2025 • 9.2K lượt xem'},
+    {t:'announcement',i:'📣',title:'Ra mắt Universe Portals v2.0',meta:'Đăng 21/06/2025 • 3.4K lượt xem'},
+    {t:'history',i:'📜',title:'Mốc lịch sử: 1 triệu thành viên Universe OS',meta:'Đăng 10/06/2025 • 15.7K lượt xem'},
+  ];
+  el.innerHTML = docs.map(d=>`
+  <div class="know-card">
+    <div class="kc-icon">${d.i}</div>
+    <div><div class="kc-type">${d.t}</div><div class="kc-title">${d.title}</div><div class="kc-meta">${d.meta}</div></div>
+  </div>`).join('');
+}
+
+// ── AI AGENTS ──
+function renderAIAgents() {
+  const chips = ['Universe OS là gì?','Cách tạo Universe?','Escrow hoạt động thế nào?','Cross-universe economy?','Tìm Universe phù hợp?','AI Agent có thể làm gì?'];
+  return `<div class="sec-title">🤖 Universe AI Agents</div>
+  <div class="stat-grid" style="margin-bottom:20px">
+    ${[['🌌','COSMOS','Universe Navigator AI'],['⚖️','LEXIS','Governance & Rules AI'],['📊','NOVA','Economy Analytics AI'],['🛡️','SHIELD','Security Moderation AI']].map(([e,n,d])=>`
+    <div class="stat-card" style="cursor:pointer" onclick="activateAgent('${n}')"><div class="sc-icon">${e}</div><div class="sc-val" style="font-size:16px">${n}</div><div class="sc-lbl">${d}</div><div class="sc-trend">● Hoạt động</div></div>`).join('')}
+  </div>
+  <div class="ai-chat">
+    <div class="ai-hdr">
+      <div class="ai-av">🌌</div>
+      <div><div class="ai-name">COSMOS — Universe AI Agent</div><div class="ai-status">Điều hành Universe OS</div></div>
+    </div>
+    <div class="ai-chips">${chips.map(c=>`<div class="ai-chip" onclick="sendAI('${c}')">${c}</div>`).join('')}</div>
+    <div class="ai-msgs" id="aiMsgs">
+      <div class="ai-msg bot">🌌 Xin chào! Tôi là COSMOS, AI Agent điều hành Universe OS.<br><br>
+      Tôi có thể giúp bạn:<br>
+      • Khám phá và chọn Universe phù hợp<br>
+      • Hiểu cross-universe economy & escrow<br>
+      • Tìm creators, businesses, events hay nhất<br>
+      • Giải đáp về governance và quyền hạn<br><br>
+      Hỏi tôi bất cứ điều gì về Universe OS! 🚀</div>
+    </div>
+    <div class="ai-inp">
+      <input type="text" id="aiInp" placeholder="Hỏi COSMOS..." onkeydown="if(event.key==='Enter')sendAIInput()"/>
+      <button onclick="sendAIInput()">➤</button>
+    </div>
+  </div>`;
+}
+function setupAI() {}
+function activateAgent(n) { toast(`🤖 ${n} đã được kích hoạt!`,'success'); }
+const aiKB = {
+  'universe os':'🌌 Universe OS là nền tảng đa vũ trụ của SafePass — cho phép tạo và quản lý nhiều Universes, mỗi Universe chứa nhiều Worlds, Communities, và hệ sinh thái kinh tế riêng nhưng chia sẻ danh tính và economy.',
+  'tạo universe':'🚀 Để tạo Universe: nhấn "+ Tạo Universe" → chọn loại (Social/Business/Gaming/...) → điền thông tin → xác nhận. Bạn sẽ là Founder với toàn quyền quản lý.',
+  'escrow':'🔒 Escrow trong Universe OS: khi mua bán cross-universe, tiền được SafePass giữ an toàn → người bán giao hàng/dịch vụ → người mua xác nhận → tiền được giải phóng. Platform fee 3%, creator nhận 97%.',
+  'cross-universe economy':'💰 Cross-Universe Economy cho phép: sản phẩm visible qua nhiều Universes, creators kiếm từ tất cả Universes cùng lúc, businesses mở store trên toàn hệ thống.',
+  'tìm universe':'✨ Để tìm Universe phù hợp: dùng Discovery Engine, filter theo loại (Social/Gaming/...), xem trending, hoặc hỏi tôi về sở thích của bạn để tôi gợi ý!',
+  'ai agent':'🤖 AI Agents trong Universe OS: COSMOS (điều hướng), LEXIS (governance), NOVA (analytics), SHIELD (bảo mật). Mỗi agent có chuyên môn riêng và hoạt động 24/7 để hỗ trợ.',
+  'default':'🌌 Câu hỏi thú vị! Universe OS được thiết kế cho hàng triệu người dùng với hàng trăm Universes kết nối nhau. Thử hỏi về: tạo universe, escrow, cross-universe economy, hoặc AI agents nhé!'
+};
+function getAIResp(m) {
+  const l = m.toLowerCase();
+  for (const [k,v] of Object.entries(aiKB)) if (l.includes(k)) return v;
+  return aiKB.default;
+}
+function sendAI(msg) {
+  const box = document.getElementById('aiMsgs'); if (!box) return;
+  box.innerHTML += `<div class="ai-msg user">${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+  setTimeout(() => { box.innerHTML += `<div class="ai-msg bot">${getAIResp(msg)}</div>`; box.scrollTop = box.scrollHeight; }, 600);
+}
+function sendAIInput() {
+  const inp = document.getElementById('aiInp'); if (!inp?.value.trim()) return;
+  sendAI(inp.value.trim()); inp.value = '';
+}
+
+// ── ANALYTICS ──
+function renderAnalytics() {
+  return `<div class="sec-title">📈 Universe Analytics</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="sc-icon">🌌</div><div class="sc-val">${globalStats.total_universes||8}</div><div class="sc-lbl">Active Universes</div><div class="sc-trend">↑ +2 tuần này</div></div>
+    <div class="stat-card"><div class="sc-icon">👥</div><div class="sc-val">${fmtBig(globalStats.total_members||366000)}</div><div class="sc-lbl">Total Population</div><div class="sc-trend">↑ +18% tháng này</div></div>
+    <div class="stat-card"><div class="sc-icon">🌍</div><div class="sc-val">${globalStats.total_worlds||64}</div><div class="sc-lbl">Worlds trong Universe OS</div><div class="sc-trend">↑ +12 tuần này</div></div>
+    <div class="stat-card"><div class="sc-icon">💰</div><div class="sc-val">${fmtVND(globalStats.total_revenue||980000000)}</div><div class="sc-lbl">Total Revenue</div><div class="sc-trend">↑ +41%</div></div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">📊 Thành viên mới theo tuần</div>
+    <div class="bar-chart">
+      ${['T2','T3','T4','T5','T6','T7','CN'].map((d,i)=>`
+      <div class="bar-wrap"><div class="bar-val">${[1200,1850,1400,2100,2800,3600,1900][i]}</div>
+      <div class="bar bar-accent" style="height:${[33,51,39,58,78,100,53][i]}%"></div><div class="bar-label">${d}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">💰 Revenue phân bổ theo Universe</div>
+    <div class="bar-chart">
+      ${universesData.slice(0,7).map((u,i)=>{const h=[90,75,65,58,45,40,35][i]+'%';return`<div class="bar-wrap"><div class="bar-val">${[490,380,320,280,220,195,170][i]}M</div><div class="bar bar-green" style="height:${h}"></div><div class="bar-label" style="font-size:9px">${u.name.substring(0,8)}</div></div>`}).join('')}
+    </div>
+  </div>`;
+}
+
+// ── API LAYER ──
+function renderAPI() {
+  const eps = [
+    ['GET','/api/universeos/universes','Danh sách universes'],
+    ['POST','/api/universeos/universes','Tạo universe mới'],
+    ['GET','/api/universeos/universes/:id','Chi tiết universe'],
+    ['POST','/api/universeos/universes/:id/join','Tham gia universe'],
+    ['GET','/api/universeos/universes/:id/members','Members của universe'],
+    ['GET','/api/universeos/universes/:id/events','Events trong universe'],
+    ['POST','/api/universeos/universes/:id/events','Tạo event'],
+    ['GET','/api/universeos/universes/:id/marketplace','Cross-world marketplace'],
+    ['GET','/api/universeos/discover','Gợi ý universes'],
+    ['GET','/api/universeos/stats','Thống kê toàn hệ thống'],
+    ['GET','/api/universeos/my-universes','Universes của tôi'],
+  ];
+  return `<div class="sec-title">⚡ Universe API Layer</div>
+  <p class="text-sm text-muted" style="margin-bottom:20px">REST API mở — cho phép mini apps, AI systems và external integrations kết nối với Universe OS.</p>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    ${eps.map(([m,p,d])=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+      <span style="background:${m==='GET'?'rgba(16,185,129,.2)':'rgba(99,102,241,.2)'};color:${m==='GET'?'var(--green)':'var(--accent3)'};padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;font-family:monospace">${m}</span>
+      <code style="font-size:12px;color:var(--text2);flex:1">${p}</code>
+      <span class="text-xs text-dim">${d}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── INFRASTRUCTURE ──
+function renderInfra() {
+  return `<div class="sec-title">🏗️ Universe Infrastructure</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="sc-icon">⚡</div><div class="sc-val" style="color:var(--green)">99.99%</div><div class="sc-lbl">Uptime</div></div>
+    <div class="stat-card"><div class="sc-icon">🌌</div><div class="sc-val">∞</div><div class="sc-lbl">Universe Capacity</div></div>
+    <div class="stat-card"><div class="sc-icon">🌍</div><div class="sc-val">∞</div><div class="sc-lbl">World Capacity</div></div>
+    <div class="stat-card"><div class="sc-icon">👥</div><div class="sc-val">M+</div><div class="sc-lbl">User Capacity</div></div>
+    <div class="stat-card"><div class="sc-icon">💳</div><div class="sc-val">M+</div><div class="sc-lbl">Txn/day Capacity</div></div>
+  </div>
+  <div class="gov-grid">
+    ${[['🌌','Universe Layer','Multiple universes, types, governance'],['🌍','World Layer','Unlimited worlds per universe'],['💰','Economy Layer','Cross-universe escrow & marketplace'],['🤖','AI Layer','4 specialized AI agents, 24/7'],['🔐','Security Layer','Trust scores, reports, moderation'],['⚡','API Layer','REST, WebSocket, mini apps, AI integrations']].map(([i,t,d])=>`
+    <div class="gov-card"><div class="gov-title">${i} ${t}</div><p class="text-sm text-muted">${d}</p>
+    <div style="margin-top:12px;height:4px;background:var(--bg4);border-radius:2px"><div style="height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;width:97%"></div></div>
+    <div class="text-xs text-dim" style="margin-top:4px">Ready — Millions-scale</div></div>`).join('')}
+  </div>`;
+}
+
+// ── ADMIN ──
+function renderAdmin() {
+  return `<div class="sec-title">👑 Global Universe Control Center</div>
+  <div class="admin-grid" id="adminStats">
+    <div class="admin-stat"><div class="as-icon" style="background:rgba(99,102,241,.2)">🌌</div><div><div class="as-val">${globalStats.total_universes||8}</div><div class="as-lbl">Universes</div></div></div>
+    <div class="admin-stat"><div class="as-icon" style="background:rgba(16,185,129,.2)">👥</div><div><div class="as-val">${fmtBig(globalStats.total_members||366000)}</div><div class="as-lbl">Members</div></div></div>
+    <div class="admin-stat"><div class="as-icon" style="background:rgba(245,158,11,.2)">💰</div><div><div class="as-val">${fmtVND(globalStats.total_revenue||980000000)}</div><div class="as-lbl">Revenue</div></div></div>
+    <div class="admin-stat"><div class="as-icon" style="background:rgba(239,68,68,.2)">🚨</div><div><div class="as-val">3</div><div class="as-lbl">Pending Reports</div></div></div>
+    <div class="admin-stat"><div class="as-icon" style="background:rgba(168,85,247,.2)">🤖</div><div><div class="as-val">4</div><div class="as-lbl">AI Agents Active</div></div></div>
+  </div>
+  <div class="sec-title">🌌 Manage All Universes</div>
+  <div class="member-list">
+    ${universesData.map(u=>`
+    <div class="member-row">
+      <div class="mavatar" style="font-size:18px">${typeIcons[u.universe_type]||'🌌'}</div>
+      <div class="minfo"><div class="mname">${u.name}</div><div class="mmeta">${fmt(u.member_count||0)} thành viên • ${u.universe_type}</div></div>
+      <div class="flex gap-8">
+        ${u.is_featured?'<span style="color:var(--gold);font-size:12px">⭐</span>':''}
+        <button class="btn-sm btn-outline" onclick="adminToggle('${u.id}','${u.name}')">⭐ Feature</button>
+        <button class="btn-sm btn-danger" onclick="adminSuspend('${u.id}','${u.name}')">🚫</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+function loadAdmin() {}
+
+// ── ACTIONS ──
+async function joinUni(id, name) {
+  if (!token) { toast('Vui lòng đăng nhập','error'); return; }
+  try {
+    await api(`/api/universeos/universes/${id}/join`, { method: 'POST' });
+    toast(`✅ Đã tham gia ${name}!`,'success');
+  } catch(e) {
+    if (e.message.includes('400')||e.message.includes('already')) toast('Bạn đã là thành viên rồi!','success');
+    else toast(`Lỗi: ${e.message}`,'error');
+  }
+}
+function exploreUni(id) { toast('🌌 Đang mở Universe...','success'); }
+function travelTo(id, name) { toast(`🌀 Du hành đến ${name}...`,'success'); joinUni(id, name); }
+
+async function createUniverse() {
+  const name = document.getElementById('uName')?.value?.trim();
+  const slug = document.getElementById('uSlug')?.value?.trim();
+  const description = document.getElementById('uDesc')?.value?.trim();
+  const membership_model = document.getElementById('uMembership')?.value;
+  const universe_rules = document.getElementById('uRules')?.value?.trim();
+  if (!name || !slug) { toast('Điền tên và slug!','error'); return; }
+  if (!token) { toast('Vui lòng đăng nhập','error'); return; }
+  try {
+    await api('/api/universeos/universes', { method:'POST', body: JSON.stringify({ name, slug, description, universe_type: selUniType, membership_model, universe_rules }) });
+    toast(`🌌 Đã tạo Universe "${name}"!`,'success');
+    closeCreate();
+    await loadUniverses();
+    renderView(currentView);
+  } catch(e) { toast(`Lỗi: ${e.message}`,'error'); }
+}
+
+function openCreate() { document.getElementById('createModal').style.display = 'flex'; }
+function closeCreate() { document.getElementById('createModal').style.display = 'none'; }
+function openCreateWithType(t) { selUniType = t; openCreate(); document.querySelectorAll('#typeGrid .type-card').forEach(c=>c.classList.toggle('sel',c.dataset.t===t)); }
+function selType(el, t) { selUniType = t; document.querySelectorAll('#typeGrid .type-card').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); }
+function follow(n) { if(!token){toast('Đăng nhập để follow','error');return;} toast(`✅ Đã follow ${n}!`,'success'); }
+function buyItem(n) { if(!token){toast('Đăng nhập để mua','error');return;} toast(`🛒 Đang mua: ${n}...`,'success'); }
+function adminToggle(id,n) { toast(`⭐ Toggle featured: ${n}`,'success'); }
+function adminSuspend(id,n) { toast(`🚫 Suspend: ${n}`,'error'); }
+function handleSearch(q) { if(!q.trim()) return; const f=universesData.filter(u=>u.name.toLowerCase().includes(q.toLowerCase())||(u.description||'').toLowerCase().includes(q.toLowerCase())); const el=document.getElementById('dirGrid'); if(el) el.innerHTML=f.length?f.map(uniCard).join(''):'<div class="empty-state"><div class="ei">🔍</div><div class="et">Không tìm thấy</div></div>'; }
+
+// ── UTILS ──
+function fmt(n) { return Number(n||0).toLocaleString('vi-VN'); }
+function fmtBig(n) { n=Number(n||0); if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(0)+'K'; return n.toLocaleString('vi-VN'); }
+function fmtVND(n) { n=Number(n||0); if(n>=1e9) return (n/1e9).toFixed(1)+'B₫'; if(n>=1e6) return (n/1e6).toFixed(0)+'M₫'; return n.toLocaleString('vi-VN')+'₫'; }
+function toast(msg, type='info') { const t=document.createElement('div'); t.className=`toast ${type}`; t.innerHTML=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+</script>
+</body>
+</html>

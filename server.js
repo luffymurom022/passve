@@ -14850,6 +14850,284 @@ app.patch('/api/admin/worldos/reports/:id', adminAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ════════════════════════════════════════════════════════════
+// PHASE 15 — UNIVERSE OPERATING SYSTEM
+// ════════════════════════════════════════════════════════════
+
+// ── GET /universeos ──
+app.get('/universeos', (req, res) => res.sendFile(join(__dirname, 'frontend', 'universeos.html')));
+
+// ── GET /api/universeos/stats ──
+app.get('/api/universeos/stats', async (req, res) => {
+  try {
+    const [uR, mR, eR, mkR] = await Promise.all([
+      supabase.from('universes').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('universe_members').select('*', { count: 'exact', head: true }),
+      supabase.from('universe_events').select('*', { count: 'exact', head: true }),
+      supabase.from('universe_marketplace').select('price').eq('status', 'available')
+    ]);
+    const wR = await supabase.from('universe_worlds').select('*', { count: 'exact', head: true });
+    const totalRevenue = (mkR.data || []).reduce((a, b) => a + (b.price || 0), 0);
+    res.json({
+      total_universes: uR.count || 0,
+      total_members: mR.count || 0,
+      total_events: eR.count || 0,
+      total_worlds: wR.count || 0,
+      total_revenue: totalRevenue
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/universes ──
+app.get('/api/universeos/universes', async (req, res) => {
+  try {
+    const { universe_type, search, limit = 50, page = 1 } = req.query;
+    let q = supabase.from('universes').select('*').eq('status', 'active').order('member_count', { ascending: false });
+    if (universe_type) q = q.eq('universe_type', universe_type);
+    if (search) q = q.ilike('name', `%${search}%`);
+    q = q.range((page - 1) * limit, page * limit - 1);
+    const { data, error } = await q;
+    if (error) throw error;
+    res.json({ universes: data || [], total: data?.length || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/universeos/universes ──
+app.post('/api/universeos/universes', auth, async (req, res) => {
+  try {
+    const { name, slug, description, universe_type = 'social', membership_model = 'open', universe_rules, welcome_message } = req.body;
+    if (!name || !slug) return res.status(400).json({ error: 'name và slug là bắt buộc' });
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    const { data, error } = await supabase.from('universes').insert({
+      owner_id: req.user.id, owner_name: req.user.name,
+      name, slug: cleanSlug, description, universe_type, membership_model,
+      universe_rules, welcome_message, status: 'active', member_count: 1
+    }).select().single();
+    if (error) throw error;
+    await supabase.from('universe_members').insert({ universe_id: data.id, user_id: req.user.id, role: 'founder' });
+    await supabase.from('universe_governance').insert({ universe_id: data.id });
+    res.json({ universe: data });
+  } catch (e) {
+    if (e.message?.includes('duplicate')) return res.status(400).json({ error: 'Slug đã tồn tại' });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/universeos/universes/:id ──
+app.get('/api/universeos/universes/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('universes').select('*').eq('id', req.params.id).single();
+    if (error || !data) return res.status(404).json({ error: 'Không tìm thấy universe' });
+    const [mR, wR, govR] = await Promise.all([
+      supabase.from('universe_members').select('*', { count: 'exact', head: true }).eq('universe_id', data.id),
+      supabase.from('universe_worlds').select('*').eq('universe_id', data.id),
+      supabase.from('universe_governance').select('*').eq('universe_id', data.id).single()
+    ]);
+    res.json({ universe: { ...data, member_count: mR.count || data.member_count }, worlds: wR.data || [], governance: govR.data || {} });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/universeos/universes/:id/join ──
+app.post('/api/universeos/universes/:id/join', auth, async (req, res) => {
+  try {
+    const { data: uni } = await supabase.from('universes').select('id,name').eq('id', req.params.id).single();
+    if (!uni) return res.status(404).json({ error: 'Universe không tồn tại' });
+    const { error } = await supabase.from('universe_members').insert({ universe_id: uni.id, user_id: req.user.id, role: 'member' });
+    if (error?.code === '23505') return res.status(400).json({ error: 'Đã là thành viên rồi' });
+    if (error) throw error;
+    res.json({ ok: true, message: `Đã tham gia ${uni.name}` });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/universes/:id/members ──
+app.get('/api/universeos/universes/:id/members', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('universe_members').select('*').eq('universe_id', req.params.id).order('joined_at', { ascending: false });
+    if (error) throw error;
+    res.json({ members: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/universeos/universes/:id/member-role ──
+app.patch('/api/universeos/universes/:id/member-role', auth, async (req, res) => {
+  try {
+    const { user_id, role } = req.body;
+    const validRoles = ['governor', 'admin', 'world_owner', 'moderator', 'member'];
+    if (!validRoles.includes(role)) return res.status(400).json({ error: 'Role không hợp lệ' });
+    const { error } = await supabase.from('universe_members').update({ role }).eq('universe_id', req.params.id).eq('user_id', user_id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/universes/:id/events ──
+app.get('/api/universeos/universes/:id/events', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('universe_events').select('*').eq('universe_id', req.params.id).order('start_time', { ascending: true });
+    if (error) throw error;
+    res.json({ events: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/universeos/universes/:id/events ──
+app.post('/api/universeos/universes/:id/events', auth, async (req, res) => {
+  try {
+    const { title, description, event_type = 'conference', start_time, end_time, max_attendees = 0, ticket_price = 0, host_world } = req.body;
+    if (!title) return res.status(400).json({ error: 'title là bắt buộc' });
+    const { data, error } = await supabase.from('universe_events').insert({
+      universe_id: req.params.id, creator_id: req.user.id, creator_name: req.user.name,
+      title, description, event_type, start_time, end_time, max_attendees, ticket_price, host_world
+    }).select().single();
+    if (error) throw error;
+    res.json({ event: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/universes/:id/marketplace ──
+app.get('/api/universeos/universes/:id/marketplace', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('universe_marketplace').select('*').eq('universe_id', req.params.id).eq('status', 'available').order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ items: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/universeos/universes/:id/marketplace ──
+app.post('/api/universeos/universes/:id/marketplace', auth, async (req, res) => {
+  try {
+    const { title, description, category = 'digital', price = 0, visible_scope = 'universe' } = req.body;
+    if (!title) return res.status(400).json({ error: 'title là bắt buộc' });
+    const { data, error } = await supabase.from('universe_marketplace').insert({
+      universe_id: req.params.id, seller_id: req.user.id, seller_name: req.user.name,
+      title, description, category, price, visible_scope
+    }).select().single();
+    if (error) throw error;
+    res.json({ item: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/universes/:id/knowledge ──
+app.get('/api/universeos/universes/:id/knowledge', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('universe_knowledge').select('*').eq('universe_id', req.params.id).order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ docs: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/universeos/universes/:id/knowledge ──
+app.post('/api/universeos/universes/:id/knowledge', auth, async (req, res) => {
+  try {
+    const { title, content, type = 'doc', is_pinned = false } = req.body;
+    if (!title || !content) return res.status(400).json({ error: 'title và content là bắt buộc' });
+    const { data, error } = await supabase.from('universe_knowledge').insert({
+      universe_id: req.params.id, author_id: req.user.id, author_name: req.user.name,
+      title, content, type, is_pinned
+    }).select().single();
+    if (error) throw error;
+    res.json({ doc: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/universeos/universes/:id/worlds ──
+app.post('/api/universeos/universes/:id/worlds', auth, async (req, res) => {
+  try {
+    const { world_id, world_name, world_type, is_featured = false } = req.body;
+    if (!world_id) return res.status(400).json({ error: 'world_id là bắt buộc' });
+    const { data, error } = await supabase.from('universe_worlds').insert({ universe_id: req.params.id, world_id, world_name, world_type, is_featured }).select().single();
+    if (error?.code === '23505') return res.status(400).json({ error: 'World đã trong universe rồi' });
+    if (error) throw error;
+    res.json({ link: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/universeos/universes/:id/report ──
+app.post('/api/universeos/universes/:id/report', auth, async (req, res) => {
+  try {
+    const { report_type = 'spam', description } = req.body;
+    const { data, error } = await supabase.from('universe_reports').insert({ universe_id: req.params.id, reporter_id: req.user.id, report_type, description }).select().single();
+    if (error) throw error;
+    res.json({ report: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/universeos/universes/:id/governance ──
+app.patch('/api/universeos/universes/:id/governance', auth, async (req, res) => {
+  try {
+    const { allow_world_creation, allow_marketplace, allow_events, allow_guests, moderation_mode, min_trust_score } = req.body;
+    const { data, error } = await supabase.from('universe_governance')
+      .upsert({ universe_id: req.params.id, allow_world_creation, allow_marketplace, allow_events, allow_guests, moderation_mode, min_trust_score, updated_at: new Date().toISOString() }, { onConflict: 'universe_id' })
+      .select().single();
+    if (error) throw error;
+    res.json({ governance: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/discover ──
+app.get('/api/universeos/discover', async (req, res) => {
+  try {
+    const [featuredR, trendingR, newR] = await Promise.all([
+      supabase.from('universes').select('*').eq('is_featured', true).eq('status', 'active').limit(6),
+      supabase.from('universes').select('*').eq('status', 'active').order('member_count', { ascending: false }).limit(8),
+      supabase.from('universes').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(6)
+    ]);
+    res.json({ featured: featuredR.data || [], trending: trendingR.data || [], newest: newR.data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/my-universes ──
+app.get('/api/universeos/my-universes', auth, async (req, res) => {
+  try {
+    const { data: memberships, error } = await supabase.from('universe_members').select('universe_id, role, joined_at').eq('user_id', req.user.id);
+    if (error) throw error;
+    if (!memberships?.length) return res.json({ universes: [] });
+    const ids = memberships.map(m => m.universe_id);
+    const { data: universes } = await supabase.from('universes').select('*').in('id', ids);
+    const enriched = (universes || []).map(u => ({ ...u, my_role: memberships.find(m => m.universe_id === u.id)?.role || 'member' }));
+    res.json({ universes: enriched });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/universeos/universes/:id/analytics ──
+app.get('/api/universeos/universes/:id/analytics', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('universe_analytics').select('*').eq('universe_id', req.params.id).order('date', { ascending: false }).limit(30);
+    if (error) throw error;
+    const [mR, eR] = await Promise.all([
+      supabase.from('universe_members').select('*', { count: 'exact', head: true }).eq('universe_id', req.params.id),
+      supabase.from('universe_events').select('*', { count: 'exact', head: true }).eq('universe_id', req.params.id)
+    ]);
+    res.json({ analytics: data || [], summary: { members: mR.count || 0, events: eR.count || 0 } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: GET /api/admin/universeos/overview ──
+app.get('/api/admin/universeos/overview', adminAuth, async (req, res) => {
+  try {
+    const [uR, mR, eR, repR] = await Promise.all([
+      supabase.from('universes').select('*', { count: 'exact', head: true }),
+      supabase.from('universe_members').select('*', { count: 'exact', head: true }),
+      supabase.from('universe_events').select('*', { count: 'exact', head: true }),
+      supabase.from('universe_reports').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+    ]);
+    const { data: topUni } = await supabase.from('universes').select('*').order('member_count', { ascending: false }).limit(10);
+    res.json({ total_universes: uR.count || 0, total_members: mR.count || 0, total_events: eR.count || 0, pending_reports: repR.count || 0, top_universes: topUni || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: PATCH /api/admin/universeos/universes/:id ──
+app.patch('/api/admin/universeos/universes/:id', adminAuth, async (req, res) => {
+  try {
+    const { status, is_featured } = req.body;
+    const updates = {};
+    if (status !== undefined) updates.status = status;
+    if (is_featured !== undefined) updates.is_featured = is_featured;
+    const { data, error } = await supabase.from('universes').update(updates).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ universe: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
