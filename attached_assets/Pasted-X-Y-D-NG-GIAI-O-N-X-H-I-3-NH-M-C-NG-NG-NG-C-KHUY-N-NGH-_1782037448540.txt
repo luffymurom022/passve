@@ -1,0 +1,358 @@
+XÂY DỰNG GIAI ĐOẠN XÃ HỘI 3
+
+NHÓM & CỘNG ĐỒNG
++
+ĐỘNG CƠ KHUYẾN NGHỊ GUEL
++
+TIN NHẮN THỜI GIAN THỰC
+
+=========================================================
+
+MỤC TIÊU
+
+Biến SafePass thành một nền tảng thương mại xã hội thực sự.
+
+Người dùng nên:
+
+* Tham gia cộng đồng
+* Xem cuộn
+* Trò chuyện trong thời gian thực
+* Mua sản phẩm từ bài đăng và video
+
+=========================================================
+
+MÔ-ĐUN 1
+
+NHÓM & CỘNG ĐỒNG
+
+=========================================================
+
+Tạo Nhóm theo phong cách Facebook đầy đủ.
+
+Người dùng có thể:
+
+* Tạo nhóm
+* Tham gia nhóm
+* Rời khỏi nhóm
+* Mời bạn bè
+* Nhóm báo cáo
+
+=========================================================
+
+LOẠI NHÓM
+
+* Công khai
+* Riêng tư
+* Bí mật
+
+=========================================================
+
+TÍNH NĂNG NHÓM
+
+Mỗi nhóm bao gồm:
+
+* Ảnh bìa
+* Hình đại diện
+* Mô tả
+* Quy tắc
+* Số lượng thành viên
+* Người điều hành
+* Tab thị trường
+* Tab cuộn
+* Tab trực tiếp
+
+=========================================================
+
+TIN NHÓM
+
+Thành viên có thể:
+
+* Đăng văn bản
+* Tải ảnh lên
+* Tải lên video
+* Tạo cuộc thăm dò
+* Bán sản phẩm
+
+=========================================================
+
+THỊ TRƯỜNG NHÓM
+
+Mỗi nhóm có thị trường riêng của mình.
+
+Ví dụ:
+
+Nhóm:
+Hòa nhạc Hội Pass Vé
+
+Thị trường:
+
+* Vé Coldplay
+* Vé BlackPink
+* Vé Sơn Tùng
+
+=========================================================
+
+VAI TRÒ NHÓM
+
+* Chủ sở hữu
+* Quản trị viên
+* Người điều hành
+* Thành viên
+
+=========================================================
+
+KHÁM PHÁ NHÓM
+
+Đề xuất các nhóm dựa trên:
+
+* Sở thích
+* Chủ đề đã theo dõi
+* Hoạt động trước đó
+
+=========================================================
+
+MÔ-ĐUN 2
+
+ĐỘNG CƠ KHUYẾN NGHỊ GUEL
+
+=========================================================
+
+Tạo nguồn cấp dữ liệu video dọc theo phong cách TikTok.
+
+=========================================================
+
+TÍNH NĂNG QUAY
+
+Người dùng có thể:
+
+* Tải lên cuộn phim
+* Xem cuộn
+* Thích
+* Bình luận
+* Chia sẻ
+* Lưu
+* Theo dõi người sáng tạo
+
+=========================================================
+
+CUỘC SẢN PHẨM
+
+Người dùng có thể đính kèm sản phẩm.
+
+Hiển thị:
+
+* Hình ảnh sản phẩm
+* Giá
+* Huy hiệu ký quỹ
+* Nút mua
+
+=========================================================
+
+TIN CẬY QUAY
+
+Cuộn dọc.
+
+Nguồn cấp dữ liệu vô hạn.
+
+Chuyển tiếp mượt mà.
+
+=========================================================
+
+ĐỘNG CƠ KHUYẾN NGHỊ THÔNG MINH
+
+Đề xuất các cuộn phim dựa trên:
+
+* Thích
+* Thời gian xem
+* Bình luận
+* Chia sẻ
+* Mua hàng
+* Sở thích
+* Nhóm đã tham gia
+
+=========================================================
+
+QUAY XU HƯỚNG
+
+Hiển thị:
+
+* Xu hướng ngày nay
+* Xu hướng tuần này
+* Danh mục xu hướng
+
+=========================================================
+
+HỒ SƠ NGƯỜI SÁNG TẠO
+
+Hiển thị:
+
+* Người theo dõi
+* Lượt xem
+* Bán hàng
+* Cuộn
+
+=========================================================
+
+MÔ-ĐUN 3
+
+TIN NHẮN THỜI GIAN THỰC
+
+=========================================================
+
+Xây dựng phong cách trò chuyện trên Facebook Messenger.
+
+=========================================================
+
+TÍNH NĂNG
+
+Nhắn tin thời gian thực.
+
+Người dùng có thể:
+
+* Gửi văn bản
+* Gửi hình ảnh
+* Gửi video
+* Gửi sản phẩm
+* Gửi vị trí
+
+=========================================================
+
+CUỘC TRÒ CHUYỆN
+
+Hỗ trợ:
+
+* Trò chuyện một-một
+* Trò chuyện nhóm
+
+=========================================================
+
+TRÒ CHUYỆN THỊ TRƯỜNG
+
+Người mua có thể trò chuyện trực tiếp với người bán.
+
+Tích hợp với:
+
+* Trang sản phẩm
+* Bài đăng trên thị trường
+* Cuộn
+
+=========================================================
+
+TRẠNG THÁI TRỰC TUYẾN
+
+Hiển thị:
+
+* Trực tuyến
+* Ngoại tuyến
+* Nhìn thấy lần cuối
+
+=========================================================
+
+CHỈ SỐ Gõ
+
+Hiển thị:
+
+* Người dùng đang gõ...
+
+=========================================================
+
+PHẢN ỨNG TIN NHẮN
+
+Hỗ trợ:
+
+* Thích
+* Trái tim
+* Cười
+* Lửa
+
+=========================================================
+
+TIN NHẮN THOẠI
+
+Người dùng có thể:
+
+* Ghi âm giọng nói
+* Gửi ghi chú bằng giọng nói
+
+=========================================================
+
+CUỘC GỌI VIDEO SẴN SÀNG
+
+Chuẩn bị kiến trúc cho:
+
+* Cuộc gọi thoại
+* Cuộc gọi video
+
+Hội nhập trong tương lai.
+
+=========================================================
+
+TRÒ CHUYỆN NỔI
+
+Tiện ích nhắn tin:
+
+Góc dưới bên phải.
+
+Hỗ trợ:
+
+* Giảm thiểu
+* Mở rộng
+* Nhiều cuộc trò chuyện
+
+=========================================================
+
+THÔNG BÁO
+
+Thông báo theo thời gian thực cho:
+
+* Tin nhắn
+* Hoạt động nhóm
+* Tương tác cuộn
+* Hoạt động thị trường
+
+=========================================================
+
+THIẾT KẾ giao diện người dùng
+
+Trận đấu:
+
+Facebook
+Người đưa tin
+TikTok
+
+hiện đại
+Chế độ tối
+đáp ứng
+
+=========================================================
+
+KHÔNG BỎ
+
+* Thị trường
+* Ký quỹ
+* Ví
+* Trung tâm tin cậy
+* Giao hàng
+* Phát trực tiếp
+
+Tích hợp tất cả các mô-đun mới vào hệ sinh thái hiện có.
+
+=========================================================
+
+KẾT QUẢ CUỐI CÙNG
+
+SafePass sẽ trở thành:
+
+Facebook
++
+Nhóm Facebook
++
+Câu chuyện TikTok
++
+Người đưa tin
++
+Thị trường
++
+Bảo vệ ký quỹ
++
+Nền tảng thương mại xã hội
