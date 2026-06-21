@@ -14459,6 +14459,58 @@ app.patch('/api/admin/metaverse/products/:id', adminAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── POST /api/metaverse/orders/:id/confirm — buyer confirms receipt, release escrow ──
+app.post('/api/metaverse/orders/:id/confirm', auth, async (req, res) => {
+  try {
+    const { data: order } = await supabase.from('mv_orders')
+      .select('*').eq('id', req.params.id).eq('buyer_id', req.user.id).single();
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    if (order.status === 'completed') return res.status(400).json({ error: 'Đơn hàng đã hoàn thành' });
+    // Release escrow → transfer to seller wallet
+    if (order.total_amount > 0) {
+      const { data: sellerWallet } = await supabase.from('wallets').select('balance').eq('user_id', order.seller_id).single();
+      const currentBal = sellerWallet?.balance || 0;
+      await supabase.from('wallets').upsert({ user_id: order.seller_id, balance: currentBal + parseFloat(order.total_amount) }, { onConflict: 'user_id' });
+    }
+    // Update order status
+    const { data: updated, error } = await supabase.from('mv_orders')
+      .update({ status: 'completed', escrow_status: 'released', completed_at: new Date().toISOString() })
+      .eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    // Update store revenue
+    if (order.store_id) {
+      const { data: st } = await supabase.from('mv_stores').select('revenue,sales_count').eq('id', order.store_id).single();
+      await supabase.from('mv_stores').update({ revenue: (st?.revenue || 0) + parseFloat(order.total_amount), sales_count: (st?.sales_count || 0) + 1 }).eq('id', order.store_id);
+    }
+    res.json({ order: updated, success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/metaverse/analytics — economy analytics summary ──
+app.get('/api/metaverse/analytics', async (req, res) => {
+  try {
+    const [pR, sR, oR, revR, buyersR, sellersR] = await Promise.all([
+      supabase.from('mv_products').select('id', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('mv_stores').select('id', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('mv_orders').select('id', { count: 'exact', head: true }),
+      supabase.from('mv_orders').select('total_amount').eq('status', 'completed'),
+      supabase.from('mv_orders').select('buyer_id'),
+      supabase.from('mv_orders').select('seller_id')
+    ]);
+    const totalRevenue = (revR.data || []).reduce((a, o) => a + parseFloat(o.total_amount || 0), 0);
+    const activeBuyers = new Set((buyersR.data || []).map(r => r.buyer_id)).size;
+    const activeSellers = new Set((sellersR.data || []).map(r => r.seller_id)).size;
+    res.json({
+      analytics: {
+        products: pR.count || 0, stores: sR.count || 0, orders: oR.count || 0,
+        total_revenue: totalRevenue, platform_fee: totalRevenue * 0.03,
+        creator_earnings: totalRevenue * 0.8, escrow_held: totalRevenue * 0.15,
+        active_buyers: activeBuyers, active_sellers: activeSellers
+      }
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
