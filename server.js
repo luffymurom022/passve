@@ -14154,6 +14154,311 @@ app.patch('/api/admin/avatar-economy/items/:id', adminAuth, async (req, res) => 
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// PHASE SOCIAL 13: METAVERSE COMMERCE + DIGITAL ECONOMY
+// ════════════════════════════════════════════════════════════════
+
+app.get('/metaverse', (req, res) => res.sendFile(join(__dirname, 'frontend', 'metaverse.html')));
+app.get('/metaverse.html', (req, res) => res.sendFile(join(__dirname, 'frontend', 'metaverse.html')));
+
+// ── GET /api/metaverse/stats ──
+app.get('/api/metaverse/stats', async (req, res) => {
+  try {
+    const [pR, sR, oR, distR] = await Promise.all([
+      supabase.from('mv_products').select('id', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('mv_stores').select('id', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('mv_orders').select('id', { count: 'exact', head: true }),
+      supabase.from('mv_districts').select('id', { count: 'exact', head: true })
+    ]);
+    const creatorsR = await supabase.from('mv_stores').select('owner_id').eq('is_active', true);
+    const creators = new Set((creatorsR.data || []).map(r => r.owner_id)).size;
+    res.json({ stats: { products: pR.count || 0, stores: sR.count || 0, orders: oR.count || 0, districts: distR.count || 0, creators } });
+  } catch(e) { res.json({ stats: { products: 0, stores: 0, orders: 0, districts: 8, creators: 0 } }); }
+});
+
+// ── GET /api/metaverse/districts ──
+app.get('/api/metaverse/districts', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('mv_districts').select('*').eq('is_active', true).order('store_count', { ascending: false });
+    if (error) return res.json({ districts: [] });
+    res.json({ districts: data || [] });
+  } catch(e) { res.json({ districts: [] }); }
+});
+
+// ── GET /api/metaverse/stores ──
+app.get('/api/metaverse/stores', async (req, res) => {
+  try {
+    const { district_id, featured, limit = 20, page = 1 } = req.query;
+    let q = supabase.from('mv_stores').select('*').eq('is_active', true);
+    if (district_id) q = q.eq('district_id', district_id);
+    if (featured === 'true') q = q.eq('is_featured', true);
+    q = q.order('is_featured', { ascending: false }).order('sales_count', { ascending: false }).range((page-1)*limit, page*limit-1);
+    const { data } = await q;
+    res.json({ stores: data || [] });
+  } catch(e) { res.json({ stores: [] }); }
+});
+
+// ── POST /api/metaverse/stores ──
+app.post('/api/metaverse/stores', auth, async (req, res) => {
+  try {
+    const { name, description, store_type = 'shop', category = 'general', tags = [] } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên cửa hàng' });
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
+    const { data: store, error } = await supabase.from('mv_stores').insert({
+      owner_id: req.user.id, name: name.trim(), slug, description, store_type, category, tags
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ store });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/metaverse/stores/mine ──
+app.get('/api/metaverse/stores/mine', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('mv_stores').select('*').eq('owner_id', req.user.id).order('created_at', { ascending: false });
+    res.json({ stores: data || [] });
+  } catch(e) { res.json({ stores: [] }); }
+});
+
+// ── GET /api/metaverse/products ──
+app.get('/api/metaverse/products', async (req, res) => {
+  try {
+    const { product_type, featured, store_id, category, limit = 30, page = 1 } = req.query;
+    let q = supabase.from('mv_products').select('*').eq('is_active', true);
+    if (product_type) q = q.eq('product_type', product_type);
+    if (featured === 'true') q = q.eq('is_featured', true);
+    if (store_id) q = q.eq('store_id', store_id);
+    if (category) q = q.eq('category', category);
+    q = q.order('is_featured', { ascending: false }).order('sold_count', { ascending: false }).range((page-1)*limit, page*limit-1);
+    const { data } = await q;
+    res.json({ products: data || [] });
+  } catch(e) { res.json({ products: [] }); }
+});
+
+// ── POST /api/metaverse/products ──
+app.post('/api/metaverse/products', auth, async (req, res) => {
+  try {
+    const { name, description, product_type = 'digital', category = 'general', price = 0, stock, tags = [] } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên sản phẩm' });
+    if (price < 0) return res.status(400).json({ error: 'Giá không hợp lệ' });
+    // Find seller's store or create a default store link
+    const { data: myStores } = await supabase.from('mv_stores').select('id').eq('owner_id', req.user.id).limit(1);
+    const store_id = myStores?.[0]?.id || null;
+    const { data: product, error } = await supabase.from('mv_products').insert({
+      seller_id: req.user.id, store_id, name: name.trim(), description, product_type, category, price, stock: stock || null, tags, uses_escrow: true
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ product });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/metaverse/products/mine ──
+app.get('/api/metaverse/products/mine', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('mv_products').select('*').eq('seller_id', req.user.id).order('created_at', { ascending: false });
+    res.json({ products: data || [] });
+  } catch(e) { res.json({ products: [] }); }
+});
+
+// ── GET /api/metaverse/products/:id ──
+app.get('/api/metaverse/products/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('mv_products').select('*, mv_stores(name, is_verified)').eq('id', req.params.id).single();
+    if (error || !data) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
+    res.json({ product: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/metaverse/buy/:id ──
+app.post('/api/metaverse/buy/:id', auth, async (req, res) => {
+  try {
+    const { quantity = 1 } = req.body;
+    const { data: product } = await supabase.from('mv_products').select('*').eq('id', req.params.id).eq('is_active', true).single();
+    if (!product) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
+    const total = product.price * quantity;
+    // Check stock
+    if (product.stock !== null && product.stock < quantity) return res.status(400).json({ error: 'Hàng không đủ số lượng' });
+    // Check wallet
+    if (total > 0) {
+      const { data: wallet } = await supabase.from('wallets').select('balance').eq('user_id', req.user.id).single();
+      if (!wallet || wallet.balance < total) return res.status(400).json({ error: 'Số dư ví không đủ. Vui lòng nạp tiền!' });
+      await supabase.from('wallets').update({ balance: wallet.balance - total }).eq('user_id', req.user.id);
+    }
+    // Create order (escrow held)
+    const { data: order, error } = await supabase.from('mv_orders').insert({
+      buyer_id: req.user.id, seller_id: product.seller_id, product_id: product.id,
+      store_id: product.store_id, quantity, unit_price: product.price, total_amount: total,
+      status: 'pending', escrow_status: 'held', payment_method: 'wallet'
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    // Update sold count & stock
+    const updates = { sold_count: (product.sold_count || 0) + quantity };
+    if (product.stock !== null) updates.stock = product.stock - quantity;
+    await supabase.from('mv_products').update(updates).eq('id', product.id);
+    // Update store revenue
+    if (product.store_id) {
+      const { data: storeData } = await supabase.from('mv_stores').select('revenue,sales_count').eq('id', product.store_id).single();
+      await supabase.from('mv_stores').update({ revenue: (storeData?.revenue || 0) + total, sales_count: (storeData?.sales_count || 0) + 1 }).eq('id', product.store_id);
+    }
+    res.json({ order, success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/metaverse/services ──
+app.get('/api/metaverse/services', async (req, res) => {
+  try {
+    const { category, featured, limit = 20, page = 1 } = req.query;
+    let q = supabase.from('mv_services').select('*').eq('is_active', true);
+    if (category) q = q.eq('category', category);
+    if (featured === 'true') q = q.eq('is_featured', true);
+    q = q.order('is_featured', { ascending: false }).order('order_count', { ascending: false }).range((page-1)*limit, page*limit-1);
+    const { data } = await q;
+    res.json({ services: data || [] });
+  } catch(e) { res.json({ services: [] }); }
+});
+
+// ── POST /api/metaverse/services ──
+app.post('/api/metaverse/services', auth, async (req, res) => {
+  try {
+    const { name, description, category = 'freelance', price_from = 0, price_to, delivery_days = 7, tags = [] } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên dịch vụ' });
+    const { data: svc, error } = await supabase.from('mv_services').insert({
+      provider_id: req.user.id, name: name.trim(), description, category, price_from, price_to: price_to || null, delivery_days, tags
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ service: svc });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/metaverse/orders ──
+app.get('/api/metaverse/orders', auth, async (req, res) => {
+  try {
+    const { status, limit = 20 } = req.query;
+    let q = supabase.from('mv_orders').select('*, mv_products(name)').or(`buyer_id.eq.${req.user.id},seller_id.eq.${req.user.id}`);
+    if (status) q = q.eq('status', status);
+    q = q.order('created_at', { ascending: false }).limit(limit);
+    const { data } = await q;
+    const orders = (data || []).map(o => ({ ...o, product_name: o.mv_products?.name }));
+    res.json({ orders });
+  } catch(e) { res.json({ orders: [] }); }
+});
+
+// ── GET /api/metaverse/dashboard ──
+app.get('/api/metaverse/dashboard', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const [buyR, sellR, prodR, subR, ordR] = await Promise.all([
+      supabase.from('mv_orders').select('total_amount').eq('buyer_id', uid),
+      supabase.from('mv_orders').select('total_amount').eq('seller_id', uid).eq('status', 'completed'),
+      supabase.from('mv_products').select('id', { count: 'exact', head: true }).eq('seller_id', uid),
+      supabase.from('mv_subscriptions').select('id', { count: 'exact', head: true }).eq('subscriber_id', uid).eq('status', 'active'),
+      supabase.from('mv_orders').select('*, mv_products(name)').eq('buyer_id', uid).order('created_at', { ascending: false }).limit(10)
+    ]);
+    const totalSpent = (buyR.data || []).reduce((a, o) => a + parseFloat(o.total_amount || 0), 0);
+    const totalEarned = (sellR.data || []).reduce((a, o) => a + parseFloat(o.total_amount || 0), 0);
+    const escrowActive = (buyR.data || []).filter(o => o.escrow_status === 'held').length;
+    const orders = (ordR.data || []).map(o => ({ ...o, product_name: o.mv_products?.name }));
+    res.json({
+      stats: { orders: buyR.data?.length || 0, total_spent: totalSpent, total_earned: totalEarned, products_listed: prodR.count || 0, subs: subR.count || 0, escrow_active: escrowActive },
+      orders
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/metaverse/discover ──
+app.get('/api/metaverse/discover', async (req, res) => {
+  try {
+    const [prodsR, storesR, svcsR] = await Promise.all([
+      supabase.from('mv_products').select('*').eq('is_active', true).eq('is_featured', true).limit(8),
+      supabase.from('mv_stores').select('*').eq('is_active', true).eq('is_featured', true).limit(6),
+      supabase.from('mv_services').select('*').eq('is_active', true).eq('is_featured', true).limit(4)
+    ]);
+    res.json({ featured_products: prodsR.data || [], featured_stores: storesR.data || [], featured_services: svcsR.data || [] });
+  } catch(e) { res.json({ featured_products: [], featured_stores: [], featured_services: [] }); }
+});
+
+// ── POST /api/metaverse/subscribe/:creatorId ──
+app.post('/api/metaverse/subscribe/:creatorId', auth, async (req, res) => {
+  try {
+    const { plan = 'basic', price = 0 } = req.body;
+    const creatorId = req.params.creatorId;
+    if (creatorId === req.user.id) return res.status(400).json({ error: 'Không thể subscribe chính mình' });
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: sub, error } = await supabase.from('mv_subscriptions').upsert({
+      subscriber_id: req.user.id, creator_id: creatorId, plan, price, billing_cycle: 'monthly', status: 'active', started_at: new Date().toISOString(), expires_at: expiresAt
+    }, { onConflict: 'subscriber_id,creator_id' }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ subscription: sub });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/metaverse/reviews ──
+app.get('/api/metaverse/reviews', async (req, res) => {
+  try {
+    const { product_id, store_id } = req.query;
+    let q = supabase.from('mv_reviews').select('*');
+    if (product_id) q = q.eq('product_id', product_id);
+    if (store_id) q = q.eq('store_id', store_id);
+    q = q.order('created_at', { ascending: false }).limit(20);
+    const { data } = await q;
+    res.json({ reviews: data || [] });
+  } catch(e) { res.json({ reviews: [] }); }
+});
+
+// ── POST /api/metaverse/reviews ──
+app.post('/api/metaverse/reviews', auth, async (req, res) => {
+  try {
+    const { product_id, store_id, rating, comment } = req.body;
+    if (!product_id) return res.status(400).json({ error: 'Thiếu product_id' });
+    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating 1-5' });
+    const { data: review, error } = await supabase.from('mv_reviews').upsert({
+      reviewer_id: req.user.id, product_id, store_id: store_id || null, rating, comment
+    }, { onConflict: 'reviewer_id,product_id' }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    // Update product rating
+    const { data: allRevs } = await supabase.from('mv_reviews').select('rating').eq('product_id', product_id);
+    if (allRevs?.length) {
+      const avg = allRevs.reduce((a, r) => a + r.rating, 0) / allRevs.length;
+      await supabase.from('mv_products').update({ rating: Math.round(avg * 10) / 10, review_count: allRevs.length }).eq('id', product_id);
+    }
+    res.json({ review });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: GET /api/admin/metaverse/overview ──
+app.get('/api/admin/metaverse/overview', adminAuth, async (req, res) => {
+  try {
+    const [pR, sR, oR, revR] = await Promise.all([
+      supabase.from('mv_products').select('*').order('sold_count', { ascending: false }).limit(20),
+      supabase.from('mv_stores').select('*').order('sales_count', { ascending: false }).limit(20),
+      supabase.from('mv_orders').select('total_amount, status, created_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('mv_orders').select('total_amount').eq('status', 'completed')
+    ]);
+    const totalRevenue = (revR.data || []).reduce((a, o) => a + parseFloat(o.total_amount || 0), 0);
+    res.json({ top_products: pR.data || [], top_stores: sR.data || [], recent_orders: oR.data || [], total_revenue: totalRevenue });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: PATCH /api/admin/metaverse/stores/:id ──
+app.patch('/api/admin/metaverse/stores/:id', adminAuth, async (req, res) => {
+  try {
+    const { is_featured, is_verified, is_active } = req.body;
+    const { data, error } = await supabase.from('mv_stores').update({ is_featured, is_verified, is_active }).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ store: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: PATCH /api/admin/metaverse/products/:id ──
+app.patch('/api/admin/metaverse/products/:id', adminAuth, async (req, res) => {
+  try {
+    const { is_featured, is_active } = req.body;
+    const { data, error } = await supabase.from('mv_products').update({ is_featured, is_active }).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ product: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {

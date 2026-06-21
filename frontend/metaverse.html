@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Metaverse Commerce — SafePass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#040508;--bg2:#08090f;--bg3:#0e1018;--bg4:#141620;
+  --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.07);--glass3:rgba(255,255,255,.11);
+  --brand:#7c6dfa;--brand2:#a78bfa;--accent:#00e5ff;--accent2:#ff6b9d;--accent3:#39ff14;
+  --gold:#fbbf24;--green:#10f08a;--red:#ff4d6d;--orange:#ff8c42;
+  --text:#eef0ff;--text2:#8898bb;--text3:#3d4a6a;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --shadow:0 12px 60px rgba(0,0,0,.7);
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input,textarea,select{font-family:inherit;outline:none;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* ── BG ── */
+#mv-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.mvp{position:absolute;border-radius:50%;animation:mvfloat linear infinite;opacity:0}
+@keyframes mvfloat{0%{transform:translateY(100vh) scale(0);opacity:0}8%{opacity:.7}92%{opacity:.15}100%{transform:translateY(-8vh) scale(1.3);opacity:0}}
+
+/* ── TOP NAV ── */
+.topnav{position:sticky;top:0;z-index:200;background:rgba(4,5,8,.9);backdrop-filter:blur(24px) saturate(200%);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 20px;height:62px}
+.tn-logo{font-size:19px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.tn-badge{font-size:10px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--brand));color:#fff;-webkit-text-fill-color:#fff;padding:3px 8px;border-radius:20px}
+.tn-search{flex:1;max-width:400px;background:var(--glass2);border:1px solid var(--border);border-radius:24px;padding:9px 16px 9px 38px;font-size:13px;color:var(--text);position:relative}
+.tn-search::placeholder{color:var(--text3)}
+.tn-search-wrap{position:relative;flex:1;max-width:400px}
+.tn-search-wrap::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;z-index:1;pointer-events:none}
+.tn-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:12px;font-size:14px;font-weight:700;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-brand{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 0 24px rgba(124,109,250,.3)}
+.btn-brand:hover{transform:translateY(-1px);box-shadow:0 0 40px rgba(124,109,250,.5)}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#0099bb);color:#fff;box-shadow:0 0 20px rgba(0,229,255,.25)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--orange));color:#fff}
+.btn-glass{background:var(--glass2);color:var(--text2);border:1px solid var(--border)}
+.btn-glass:hover{background:var(--glass3);color:var(--text);border-color:var(--border2)}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:10px}
+.btn-xs{padding:5px 12px;font-size:12px;border-radius:8px}
+
+/* ── LAYOUT ── */
+.layout{display:flex;max-width:1440px;margin:0 auto;width:100%;padding:20px;gap:20px;position:relative;z-index:1}
+
+/* ── SIDEBAR ── */
+.lsb{width:220px;flex-shrink:0}
+.lsb-sect{margin-bottom:22px}
+.lsb-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:10px;padding:0 10px}
+.lsb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:.15s;margin-bottom:2px;border:1px solid transparent}
+.lsb-item:hover{background:var(--glass2);color:var(--text);border-color:var(--border)}
+.lsb-item.active{background:linear-gradient(135deg,rgba(124,109,250,.14),rgba(0,229,255,.06));color:var(--brand);border-color:rgba(124,109,250,.3)}
+.lsb-item .li-ic{font-size:18px;width:26px;text-align:center}
+.lsb-cnt{margin-left:auto;font-size:10px;font-weight:800;background:var(--brand);color:#fff;padding:2px 7px;border-radius:20px}
+.dist-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:.15s;margin-bottom:2px}
+.dist-item:hover{background:var(--glass2);color:var(--text)}
+.dist-item.active{color:var(--accent)}
+.dist-icon{font-size:16px;width:22px;text-align:center}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0}
+.mv-view{display:none}
+.mv-view.active{display:block}
+
+/* ── HERO ── */
+.mv-hero{position:relative;border-radius:24px;overflow:hidden;margin-bottom:24px;background:linear-gradient(135deg,#060414 0%,#0a0820 40%,#04141a 100%);border:1px solid rgba(124,109,250,.18);padding:48px 40px}
+.mv-hero::before{content:'';position:absolute;top:-120px;right:-80px;width:500px;height:500px;background:radial-gradient(circle,rgba(124,109,250,.18) 0%,transparent 65%);pointer-events:none}
+.mv-hero::after{content:'';position:absolute;bottom:-80px;left:-60px;width:380px;height:380px;background:radial-gradient(circle,rgba(0,229,255,.1) 0%,transparent 65%);pointer-events:none}
+.mv-hero-inner{display:grid;grid-template-columns:1fr 320px;gap:40px;align-items:center;position:relative;z-index:1}
+.mv-hero h1{font-size:40px;font-weight:900;line-height:1.1;margin-bottom:14px}
+.mv-hero h1 span{background:linear-gradient(135deg,var(--brand2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.mv-hero p{font-size:15px;color:var(--text2);line-height:1.75;margin-bottom:28px;max-width:500px}
+.mv-stats{display:flex;gap:32px;margin-bottom:28px}
+.mv-stat .val{font-size:24px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.mv-stat .lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.mv-hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.mv-globe{width:240px;height:240px;position:relative;margin:0 auto}
+.mv-globe-ring{position:absolute;border-radius:50%;border:1px solid;animation:spin linear infinite}
+.r1{inset:0;border-color:rgba(124,109,250,.3);animation-duration:8s}
+.r2{inset:20px;border-color:rgba(0,229,255,.2);animation-duration:12s;animation-direction:reverse}
+.r3{inset:40px;border-color:rgba(255,107,157,.15);animation-duration:6s}
+.mv-globe-center{position:absolute;inset:60px;background:linear-gradient(135deg,rgba(124,109,250,.3),rgba(0,229,255,.15));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:52px;box-shadow:0 0 60px rgba(124,109,250,.4)}
+.mv-globe-dots{position:absolute;inset:0}
+.gd{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:gd-blink 2s ease-in-out infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes gd-blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+
+/* ── SECTION HEADER ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sh h2{font-size:19px;font-weight:800}
+.sh p{font-size:12px;color:var(--text3);margin-top:2px}
+.sh .see{font-size:13px;color:var(--brand);cursor:pointer;font-weight:600}
+.sh .see:hover{text-decoration:underline}
+
+/* ── DISTRICTS ── */
+.districts-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;margin-bottom:28px;-webkit-overflow-scrolling:touch}
+.districts-scroll::-webkit-scrollbar{height:3px}
+.dist-card{min-width:160px;border-radius:18px;padding:18px;cursor:pointer;border:1px solid var(--border);background:var(--bg3);transition:.25s;text-align:center;flex-shrink:0}
+.dist-card:hover,.dist-card.active{border-color:rgba(124,109,250,.4);background:rgba(124,109,250,.08);transform:translateY(-2px)}
+.dist-card .dc-icon{font-size:32px;margin-bottom:8px}
+.dist-card .dc-name{font-size:13px;font-weight:800;margin-bottom:4px}
+.dist-card .dc-count{font-size:11px;color:var(--text3)}
+
+/* ── PRODUCT GRID ── */
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:28px}
+.prod-card{background:var(--bg3);border:1px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:.25s;position:relative}
+.prod-card:hover{transform:translateY(-4px);border-color:rgba(124,109,250,.4);box-shadow:0 12px 48px rgba(124,109,250,.15)}
+.prod-visual{height:150px;display:flex;align-items:center;justify-content:center;font-size:68px;position:relative;overflow:hidden}
+.prod-visual-glow{position:absolute;inset:0;opacity:.7}
+.prod-emoji{position:relative;z-index:1;filter:drop-shadow(0 0 14px rgba(124,109,250,.6));animation:pf 3s ease-in-out infinite}
+@keyframes pf{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.04)}}
+.prod-tags-top{position:absolute;top:8px;left:8px;display:flex;gap:5px;flex-wrap:wrap}
+.ptag{font-size:9px;font-weight:900;padding:3px 7px;border-radius:20px;backdrop-filter:blur(8px)}
+.ptag-digital{background:rgba(124,109,250,.2);color:var(--brand);border:1px solid rgba(124,109,250,.35)}
+.ptag-event{background:rgba(255,107,157,.15);color:var(--accent2);border:1px solid rgba(255,107,157,.3)}
+.ptag-physical{background:rgba(16,240,138,.1);color:var(--green);border:1px solid rgba(16,240,138,.25)}
+.ptag-sub{background:rgba(251,191,36,.12);color:var(--gold);border:1px solid rgba(251,191,36,.3)}
+.ptag-service{background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.25)}
+.ptag-hot{background:rgba(255,77,109,.15);color:var(--red);border:1px solid rgba(255,77,109,.3);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.prod-body{padding:14px}
+.prod-name{font-size:14px;font-weight:800;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prod-meta{font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap}
+.prod-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.prod-price{font-size:16px;font-weight:900;color:var(--gold)}
+.prod-buy-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:800;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;transition:.2s}
+.prod-buy-btn:hover{box-shadow:0 0 18px rgba(124,109,250,.5)}
+.prod-rating{font-size:11px;color:var(--gold)}
+
+/* ── STORES GRID ── */
+.stores-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px}
+.store-card{background:var(--bg3);border:1px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:.25s}
+.store-card:hover{border-color:rgba(124,109,250,.4);transform:translateY(-3px);box-shadow:0 8px 40px rgba(124,109,250,.15)}
+.sc-banner{height:90px;display:flex;align-items:center;justify-content:center;font-size:46px;position:relative;overflow:hidden}
+.sc-banner-glow{position:absolute;inset:0;opacity:.5}
+.sc-content{padding:14px}
+.sc-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sc-avatar-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--glass2);border:1px solid var(--border);flex-shrink:0}
+.sc-name{font-size:15px;font-weight:800}
+.sc-verified{color:var(--accent);font-size:12px}
+.sc-stats{display:flex;gap:14px;font-size:11px;color:var(--text3);margin-bottom:10px}
+.sc-tags{display:flex;gap:6px;flex-wrap:wrap}
+.sc-tag{font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(124,109,250,.08);color:var(--brand);border:1px solid rgba(124,109,250,.15)}
+.sc-enter-btn{margin-top:10px;width:100%;padding:8px;border-radius:10px;font-size:13px;font-weight:700;background:var(--glass2);border:1px solid var(--border);color:var(--text2);transition:.2s;text-align:center}
+.sc-enter-btn:hover{background:rgba(124,109,250,.15);border-color:rgba(124,109,250,.4);color:var(--brand)}
+
+/* ── SERVICES ── */
+.services-list{display:flex;flex-direction:column;gap:12px}
+.svc-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;gap:14px;align-items:flex-start;cursor:pointer;transition:.2s}
+.svc-card:hover{border-color:rgba(0,229,255,.3);background:var(--glass2)}
+.svc-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;background:linear-gradient(135deg,rgba(124,109,250,.15),rgba(0,229,255,.08));border:1px solid rgba(124,109,250,.2)}
+.svc-body{flex:1}
+.svc-name{font-size:15px;font-weight:800;margin-bottom:4px}
+.svc-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px}
+.svc-meta{font-size:11px;color:var(--text3);display:flex;gap:14px;flex-wrap:wrap}
+.svc-price{font-size:15px;font-weight:900;color:var(--gold);white-space:nowrap}
+.svc-order-btn{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:700;background:linear-gradient(135deg,var(--accent),#0099bb);color:#fff;white-space:nowrap;margin-left:auto}
+
+/* ── ECONOMY DASHBOARD ── */
+.eco-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.eco-card{background:var(--glass);border:1px solid var(--border);border-radius:18px;padding:20px;text-align:center}
+.eco-card .val{font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.eco-card .lbl{font-size:11px;color:var(--text3);margin-top:4px}
+.eco-card .sub{font-size:12px;margin-top:6px;color:var(--green)}
+.orders-list{display:flex;flex-direction:column;gap:10px}
+.ord-item{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px}
+.ord-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ord-body{flex:1}
+.ord-name{font-size:13px;font-weight:700;margin-bottom:3px}
+.ord-meta{font-size:11px;color:var(--text3)}
+.ord-status{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px}
+.ost-pending{background:rgba(251,191,36,.12);color:var(--gold)}
+.ost-completed{background:rgba(16,240,138,.1);color:var(--green)}
+.ost-held{background:rgba(0,229,255,.1);color:var(--accent)}
+.ord-amount{font-size:15px;font-weight:900;color:var(--text);white-space:nowrap}
+
+/* ── AI ASSISTANT ── */
+.ai-bar{background:linear-gradient(135deg,rgba(124,109,250,.07),rgba(0,229,255,.03));border:1px solid rgba(124,109,250,.18);border-radius:18px;padding:16px;margin-bottom:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ai-orb{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 20px rgba(124,109,250,.4);flex-shrink:0;animation:ai-pulse 2s infinite}
+@keyframes ai-pulse{0%,100%{box-shadow:0 0 16px rgba(124,109,250,.4)}50%{box-shadow:0 0 36px rgba(124,109,250,.7)}}
+.ai-chips{display:flex;gap:8px;flex-wrap:wrap}
+.ai-chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;background:var(--glass2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:.2s}
+.ai-chip:hover{background:rgba(124,109,250,.14);border-color:rgba(124,109,250,.4);color:var(--text)}
+
+/* ── PRODUCT DETAIL ── */
+.prod-detail{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
+.pd-visual{border-radius:20px;overflow:hidden;position:relative;height:320px;display:flex;align-items:center;justify-content:center}
+.pd-emoji{font-size:100px;position:relative;z-index:1;filter:drop-shadow(0 0 30px rgba(124,109,250,.5))}
+.pd-info{}
+.pd-name{font-size:26px;font-weight:900;margin-bottom:10px}
+.pd-desc{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:16px}
+.pd-price-row{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.pd-price{font-size:32px;font-weight:900;color:var(--gold)}
+.pd-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.pd-tag{font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(124,109,250,.08);color:var(--brand);border:1px solid rgba(124,109,250,.18)}
+.pd-actions{display:flex;flex-direction:column;gap:10px}
+.pd-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.pd-meta-item{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.pd-meta-item .v{font-size:18px;font-weight:900;color:var(--text)}
+.pd-meta-item .l{font-size:11px;color:var(--text3);margin-top:2px}
+.escrow-badge{background:rgba(16,240,138,.08);border:1px solid rgba(16,240,138,.2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--green);display:flex;align-items:center;gap:8px}
+
+/* ── SUBSCRIBE ── */
+.sub-plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.sub-plan{background:var(--bg3);border:1px solid var(--border);border-radius:18px;padding:22px;text-align:center;cursor:pointer;transition:.25s}
+.sub-plan:hover,.sub-plan.popular{border-color:rgba(124,109,250,.4);background:rgba(124,109,250,.06)}
+.sub-plan.popular{position:relative}
+.pop-tag{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--gold));color:#fff;padding:3px 12px;border-radius:20px;white-space:nowrap}
+.sp-icon{font-size:32px;margin-bottom:10px}
+.sp-name{font-size:16px;font-weight:800;margin-bottom:6px}
+.sp-price{font-size:24px;font-weight:900;color:var(--gold);margin:10px 0}
+.sp-features{font-size:12px;color:var(--text2);line-height:1.8;text-align:left;margin-bottom:16px}
+
+/* ── MODALS ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(14px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:24px;padding:28px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:20px;font-weight:900;margin-bottom:20px;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal-close{float:right;background:none;color:var(--text3);font-size:22px;cursor:pointer;-webkit-text-fill-color:var(--text3)}
+.fg{margin-bottom:15px}
+.fg label{display:block;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.ctrl{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:13px;transition:.2s}
+.ctrl:focus{border-color:var(--brand)}
+.ctrl::placeholder{color:var(--text3)}
+textarea.ctrl{resize:none;min-height:70px}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ── TABS ── */
+.tabs-mv{display:flex;gap:4px;background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:4px;margin-bottom:20px}
+.tab-mv{flex:1;padding:9px;border-radius:12px;font-size:13px;font-weight:700;color:var(--text2);text-align:center;cursor:pointer;transition:.2s}
+.tab-mv.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 0 20px rgba(124,109,250,.3)}
+.tab-mv:hover:not(.active){background:var(--glass2);color:var(--text)}
+
+/* ── TOAST ── */
+.toasts{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px 20px;font-size:14px;font-weight:700;animation:su .3s ease;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.toast.s{border-color:rgba(16,240,138,.4);color:var(--green)}
+.toast.e{border-color:rgba(255,77,109,.4);color:var(--red)}
+.toast.i{border-color:rgba(124,109,250,.4);color:var(--brand)}
+@keyframes su{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty .ei{font-size:54px;margin-bottom:14px}
+.empty h3{font-size:16px;font-weight:700;color:var(--text2);margin-bottom:6px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){.lsb{display:none}.mv-hero-inner{grid-template-columns:1fr}.mv-globe{display:none}.prod-detail{grid-template-columns:1fr}}
+@media(max-width:640px){.mv-hero{padding:28px 20px}.mv-hero h1{font-size:26px}.products-grid{grid-template-columns:repeat(2,1fr)}.eco-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div id="mv-bg"></div>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="tn-logo">🌐 Metaverse Commerce <span class="tn-badge">WEB3</span></div>
+  <div class="tn-search-wrap" style="flex:1;max-width:380px">
+    <input class="tn-search" style="width:100%" placeholder="Tìm sản phẩm, cửa hàng, dịch vụ..." oninput="globalSearch(this.value)"/>
+  </div>
+  <div class="tn-right">
+    <button class="btn btn-glass btn-sm" onclick="showView('orders')">📦 Đơn hàng</button>
+    <button class="btn btn-brand btn-sm" onclick="showCreateStoreModal()">🏪 Mở cửa hàng</button>
+    <button class="btn btn-accent btn-sm" onclick="showListProductModal()">➕ Đăng sản phẩm</button>
+    <div id="tn-orb" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;cursor:pointer;border:2px solid rgba(255,255,255,.15)" onclick="showView('dashboard')">U</div>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="lsb">
+    <div class="lsb-sect">
+      <div class="lsb-title">Khám phá</div>
+      <div class="lsb-item active" id="sb-discover" onclick="showView('discover')"><span class="li-ic">🌐</span>Discover</div>
+      <div class="lsb-item" id="sb-products" onclick="showView('products')"><span class="li-ic">📦</span>Tất cả sản phẩm</div>
+      <div class="lsb-item" id="sb-stores" onclick="showView('stores')"><span class="li-ic">🏪</span>Cửa hàng</div>
+      <div class="lsb-item" id="sb-services" onclick="showView('services')"><span class="li-ic">💼</span>Dịch vụ</div>
+      <div class="lsb-item" id="sb-subscriptions" onclick="showView('subscriptions')"><span class="li-ic">💎</span>Subscription</div>
+    </div>
+    <div class="lsb-sect">
+      <div class="lsb-title">Của tôi</div>
+      <div class="lsb-item" id="sb-dashboard" onclick="showView('dashboard')"><span class="li-ic">📊</span>Dashboard</div>
+      <div class="lsb-item" id="sb-orders" onclick="showView('orders')"><span class="li-ic">📦</span>Đơn hàng <span class="lsb-cnt" id="ordersBadge">0</span></div>
+      <div class="lsb-item" id="sb-my-store" onclick="showView('my-store')"><span class="li-ic">🏪</span>Store của tôi</div>
+    </div>
+    <div class="lsb-sect">
+      <div class="lsb-title">Districts</div>
+      <div id="districtList"></div>
+    </div>
+    <div class="lsb-sect">
+      <div class="lsb-item" onclick="window.location.href='/'"><span class="li-ic">🏠</span>Trang chủ</div>
+      <div class="lsb-item" onclick="window.location.href='/avatar-economy'"><span class="li-ic">🎭</span>Avatar Economy</div>
+      <div class="lsb-item" onclick="window.location.href='/xr'"><span class="li-ic">🥽</span>XR Network</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DISCOVER VIEW -->
+    <div id="view-discover" class="mv-view active">
+
+      <div class="mv-hero">
+        <div class="mv-hero-inner">
+          <div>
+            <h1>Kinh tế số <span>đa chiều</span></h1>
+            <p>Mua bán, giao dịch sản phẩm vật lý và số hoá trên một nền tảng thống nhất — với escrow an toàn và trải nghiệm XR immersive.</p>
+            <div class="mv-stats">
+              <div class="mv-stat"><div class="val" id="mvStat1">—</div><div class="lbl">Sản phẩm</div></div>
+              <div class="mv-stat"><div class="val" id="mvStat2">—</div><div class="lbl">Cửa hàng</div></div>
+              <div class="mv-stat"><div class="val" id="mvStat3">—</div><div class="lbl">Giao dịch</div></div>
+              <div class="mv-stat"><div class="val" id="mvStat4">—</div><div class="lbl">Creators</div></div>
+            </div>
+            <div class="mv-hero-actions">
+              <button class="btn btn-brand" onclick="showView('products')">🛍️ Mua sắm ngay</button>
+              <button class="btn btn-glass" onclick="showView('services')">💼 Tìm dịch vụ</button>
+              <button class="btn btn-gold btn-sm" onclick="showCreateStoreModal()">🏪 Mở cửa hàng</button>
+            </div>
+          </div>
+          <div class="mv-globe">
+            <div class="mv-globe-ring r1"></div>
+            <div class="mv-globe-ring r2"></div>
+            <div class="mv-globe-ring r3"></div>
+            <div class="mv-globe-center">🌐</div>
+            <div class="mv-globe-dots">
+              <div class="gd" style="top:20%;left:25%;animation-delay:.5s"></div>
+              <div class="gd" style="top:60%;left:70%;animation-delay:1s;background:var(--brand);box-shadow:0 0 8px var(--brand)"></div>
+              <div class="gd" style="top:75%;left:30%;animation-delay:1.5s;background:var(--accent2);box-shadow:0 0 8px var(--accent2)"></div>
+              <div class="gd" style="top:35%;left:75%;animation-delay:.8s;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
+              <div class="gd" style="top:10%;left:60%;animation-delay:2s"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI ASSISTANT -->
+      <div class="ai-bar">
+        <div class="ai-orb">🤖</div>
+        <span style="font-size:13px;font-weight:700;white-space:nowrap">AI Commerce Assistant:</span>
+        <div class="ai-chips">
+          <div class="ai-chip" onclick="showView('products');filterType('event')">🎵 Concert XR tuần này</div>
+          <div class="ai-chip" onclick="showView('products');filterType('digital')">🎮 Gaming items đang hot</div>
+          <div class="ai-chip" onclick="showView('services')">💼 Thuê designer XR Space</div>
+          <div class="ai-chip" onclick="showView('subscriptions')">💎 Creator membership tốt nhất</div>
+        </div>
+      </div>
+
+      <!-- DISTRICTS -->
+      <div class="sh"><div><h2>🏙️ Shopping Districts</h2><p>Khu thương mại ảo theo lĩnh vực</p></div></div>
+      <div class="districts-scroll" id="districtsScroll"></div>
+
+      <!-- FEATURED PRODUCTS -->
+      <div class="sh"><div><h2>⭐ Sản phẩm nổi bật</h2><p>Hot items hôm nay</p></div><span class="see" onclick="showView('products')">Xem tất cả →</span></div>
+      <div class="products-grid" id="featuredProducts"></div>
+
+      <!-- FEATURED SERVICES -->
+      <div class="sh"><div><h2>💼 Dịch vụ nổi bật</h2><p>Freelancers và experts hàng đầu</p></div><span class="see" onclick="showView('services')">Xem tất cả →</span></div>
+      <div class="services-list" id="featuredServices"></div>
+
+    </div>
+
+    <!-- PRODUCTS VIEW -->
+    <div id="view-products" class="mv-view">
+      <div class="sh"><div><h2>📦 Tất cả sản phẩm</h2></div>
+        <button class="btn btn-brand btn-sm" onclick="showListProductModal()">➕ Đăng sản phẩm</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-glass btn-sm active" data-type="" onclick="filterType('',this)">Tất cả</button>
+        <button class="btn btn-glass btn-sm" data-type="physical" onclick="filterType('physical',this)">🏷️ Vật lý</button>
+        <button class="btn btn-glass btn-sm" data-type="digital" onclick="filterType('digital',this)">💾 Digital</button>
+        <button class="btn btn-glass btn-sm" data-type="event" onclick="filterType('event',this)">🎫 Sự kiện</button>
+        <button class="btn btn-glass btn-sm" data-type="subscription" onclick="filterType('subscription',this)">💎 Subscription</button>
+      </div>
+      <div class="products-grid" id="allProductsGrid"></div>
+    </div>
+
+    <!-- STORES VIEW -->
+    <div id="view-stores" class="mv-view">
+      <div class="sh"><div><h2>🏪 Cửa hàng</h2><p>Virtual stores trong Metaverse</p></div>
+        <button class="btn btn-brand btn-sm" onclick="showCreateStoreModal()">🏪 Mở cửa hàng</button>
+      </div>
+      <div class="stores-grid" id="allStoresGrid"></div>
+    </div>
+
+    <!-- SERVICES VIEW -->
+    <div id="view-services" class="mv-view">
+      <div class="sh"><div><h2>💼 Service Marketplace</h2><p>Freelancers, agencies, chuyên gia</p></div>
+        <button class="btn btn-brand btn-sm" onclick="showListServiceModal()">➕ Đăng dịch vụ</button>
+      </div>
+      <div class="services-list" id="allServicesList"></div>
+    </div>
+
+    <!-- SUBSCRIPTIONS VIEW -->
+    <div id="view-subscriptions" class="mv-view">
+      <div class="sh"><div><h2>💎 Subscription Economy</h2><p>Creator & Business memberships</p></div></div>
+      <div class="sub-plans" id="subPlansGrid">
+        <div class="sub-plan">
+          <div class="sp-icon">🌱</div>
+          <div class="sp-name">Basic</div>
+          <div class="sp-price">49K / tháng</div>
+          <div class="sp-features">✓ Truy cập cộng đồng<br>✓ Nội dung cơ bản<br>✓ Avatar badge</div>
+          <button class="btn btn-glass" style="width:100%" onclick="subscribePlan('basic',49000)">Đăng ký</button>
+        </div>
+        <div class="sub-plan popular">
+          <div class="pop-tag">🔥 Phổ biến nhất</div>
+          <div class="sp-icon">⭐</div>
+          <div class="sp-name">Pro</div>
+          <div class="sp-price">149K / tháng</div>
+          <div class="sp-features">✓ Tất cả Basic<br>✓ Nội dung exclusive<br>✓ XR access priority<br>✓ Creator tools</div>
+          <button class="btn btn-brand" style="width:100%" onclick="subscribePlan('pro',149000)">Đăng ký Pro</button>
+        </div>
+        <div class="sub-plan">
+          <div class="sp-icon">💎</div>
+          <div class="sp-name">VIP</div>
+          <div class="sp-price">399K / tháng</div>
+          <div class="sp-features">✓ Tất cả Pro<br>✓ 1:1 mentor sessions<br>✓ Sự kiện VIP<br>✓ Revenue share 5%</div>
+          <button class="btn btn-gold" style="width:100%" onclick="subscribePlan('vip',399000)">Đăng ký VIP</button>
+        </div>
+        <div class="sub-plan">
+          <div class="sp-icon">🚀</div>
+          <div class="sp-name">Business</div>
+          <div class="sp-price">999K / tháng</div>
+          <div class="sp-features">✓ Tất cả VIP<br>✓ Virtual storefront<br>✓ Team accounts (10)<br>✓ Analytics API</div>
+          <button class="btn btn-accent" style="width:100%" onclick="subscribePlan('business',999000)">Đăng ký Business</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" class="mv-view">
+      <div class="sh"><div><h2>📊 Economy Dashboard</h2><p>Tổng quan kinh tế số của bạn</p></div></div>
+      <div class="eco-grid" id="ecoDashGrid"></div>
+      <div class="sh"><div><h2>📋 Lịch sử đơn hàng</h2></div></div>
+      <div class="orders-list" id="ordersList">
+        <div class="empty"><div class="ei">📋</div><h3>Chưa có đơn hàng</h3></div>
+      </div>
+    </div>
+
+    <!-- ORDERS VIEW -->
+    <div id="view-orders" class="mv-view">
+      <div class="sh"><div><h2>📦 Đơn hàng của tôi</h2></div></div>
+      <div class="tabs-mv">
+        <div class="tab-mv active" onclick="loadOrders('pending',this)">⏳ Đang xử lý</div>
+        <div class="tab-mv" onclick="loadOrders('completed',this)">✅ Hoàn thành</div>
+        <div class="tab-mv" onclick="loadOrders('',this)">📋 Tất cả</div>
+      </div>
+      <div class="orders-list" id="ordersFullList">
+        <div class="empty"><div class="ei">📦</div><h3>Chưa có đơn hàng</h3></div>
+      </div>
+    </div>
+
+    <!-- MY STORE VIEW -->
+    <div id="view-my-store" class="mv-view">
+      <div class="sh"><div><h2>🏪 Cửa hàng của tôi</h2></div>
+        <button class="btn btn-brand btn-sm" onclick="showListProductModal()">➕ Thêm sản phẩm</button>
+      </div>
+      <div id="myStoreContent">
+        <div class="empty"><div class="ei">🏪</div><h3>Chưa có cửa hàng</h3><p style="color:var(--text3)">Tạo virtual store đầu tiên của bạn!</p><br><button class="btn btn-brand btn-sm" onclick="showCreateStoreModal()">🏪 Tạo ngay</button></div>
+      </div>
+    </div>
+
+    <!-- PRODUCT DETAIL VIEW -->
+    <div id="view-product-detail" class="mv-view">
+      <button class="btn btn-glass btn-sm" style="margin-bottom:16px" onclick="goBack()">← Quay lại</button>
+      <div id="productDetailBody"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<!-- Create Store -->
+<div id="createStoreModal" style="display:none" class="modal-ov" onclick="if(event.target===this)closeModal('createStoreModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('createStoreModal')">×</button>
+    <h2>🏪 Tạo Virtual Store</h2>
+    <div class="fg"><label>Tên cửa hàng *</label><input class="ctrl" id="cs-sname" placeholder="Ví dụ: XR Fashion Store"/></div>
+    <div class="fg"><label>Mô tả</label><textarea class="ctrl" id="cs-sdesc" placeholder="Cửa hàng của bạn bán gì?"></textarea></div>
+    <div class="fg-row">
+      <div class="fg"><label>Loại cửa hàng</label>
+        <select class="ctrl" id="cs-stype">
+          <option value="shop">🏪 Shop</option>
+          <option value="flagship">⭐ Flagship Store</option>
+          <option value="popup">🎪 Pop-up Store</option>
+          <option value="showroom">🎬 Showroom</option>
+        </select>
+      </div>
+      <div class="fg"><label>Danh mục</label>
+        <select class="ctrl" id="cs-scat">
+          <option value="fashion">👗 Fashion</option>
+          <option value="gaming">🎮 Gaming</option>
+          <option value="digital">💾 Digital</option>
+          <option value="events">🎪 Events</option>
+          <option value="education">📚 Education</option>
+          <option value="services">💼 Services</option>
+          <option value="general">🌐 General</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Tags</label><input class="ctrl" id="cs-stags" placeholder="fashion, premium, xr"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('createStoreModal')">Hủy</button>
+      <button class="btn btn-brand btn-sm" onclick="createStore()">🚀 Tạo Store</button>
+    </div>
+  </div>
+</div>
+
+<!-- List Product -->
+<div id="listProductModal" style="display:none" class="modal-ov" onclick="if(event.target===this)closeModal('listProductModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('listProductModal')">×</button>
+    <h2>📦 Đăng sản phẩm mới</h2>
+    <div class="fg"><label>Tên sản phẩm *</label><input class="ctrl" id="lp-name" placeholder="Tên sản phẩm của bạn"/></div>
+    <div class="fg"><label>Mô tả</label><textarea class="ctrl" id="lp-desc" placeholder="Mô tả chi tiết..."></textarea></div>
+    <div class="fg-row">
+      <div class="fg"><label>Loại sản phẩm</label>
+        <select class="ctrl" id="lp-type">
+          <option value="physical">🏷️ Vật lý</option>
+          <option value="digital">💾 Digital</option>
+          <option value="event">🎫 Sự kiện</option>
+          <option value="subscription">💎 Subscription</option>
+          <option value="service">💼 Dịch vụ</option>
+        </select>
+      </div>
+      <div class="fg"><label>Danh mục</label>
+        <select class="ctrl" id="lp-cat">
+          <option value="general">🌐 Chung</option>
+          <option value="avatar">🎭 Avatar</option>
+          <option value="gaming">🎮 Gaming</option>
+          <option value="events">🎪 Events</option>
+          <option value="education">📚 Giáo dục</option>
+          <option value="creator">🎨 Creator</option>
+          <option value="space">🌌 XR Space</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Giá (VNĐ) *</label><input class="ctrl" id="lp-price" type="number" placeholder="250000" min="0"/></div>
+      <div class="fg"><label>Số lượng (để trống = không giới hạn)</label><input class="ctrl" id="lp-stock" type="number" placeholder=""/></div>
+    </div>
+    <div class="fg"><label>Tags</label><input class="ctrl" id="lp-tags" placeholder="hot, limited, xr"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('listProductModal')">Hủy</button>
+      <button class="btn btn-brand btn-sm" onclick="listProduct()">🚀 Đăng sản phẩm</button>
+    </div>
+  </div>
+</div>
+
+<!-- List Service -->
+<div id="listServiceModal" style="display:none" class="modal-ov" onclick="if(event.target===this)closeModal('listServiceModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('listServiceModal')">×</button>
+    <h2>💼 Đăng dịch vụ</h2>
+    <div class="fg"><label>Tên dịch vụ *</label><input class="ctrl" id="ls-name" placeholder="Ví dụ: Thiết kế XR Space chuyên nghiệp"/></div>
+    <div class="fg"><label>Mô tả dịch vụ</label><textarea class="ctrl" id="ls-desc" placeholder="Mô tả chi tiết dịch vụ của bạn..."></textarea></div>
+    <div class="fg-row">
+      <div class="fg"><label>Danh mục</label>
+        <select class="ctrl" id="ls-cat">
+          <option value="design">🎨 Design</option>
+          <option value="marketing">📣 Marketing</option>
+          <option value="development">💻 Development</option>
+          <option value="consulting">💡 Consulting</option>
+          <option value="education">📚 Education</option>
+          <option value="freelance">💼 Freelance</option>
+        </select>
+      </div>
+      <div class="fg"><label>Thời gian hoàn thành (ngày)</label><input class="ctrl" id="ls-days" type="number" value="7"/></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Giá từ (VNĐ)</label><input class="ctrl" id="ls-from" type="number" placeholder="500000"/></div>
+      <div class="fg"><label>Giá đến (VNĐ)</label><input class="ctrl" id="ls-to" type="number" placeholder="2000000"/></div>
+    </div>
+    <div class="fg"><label>Tags</label><input class="ctrl" id="ls-tags" placeholder="xr, design, avatar"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('listServiceModal')">Hủy</button>
+      <button class="btn btn-brand btn-sm" onclick="listService()">🚀 Đăng dịch vụ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toastBox"></div>
+
+<script>
+const TOKEN = localStorage.getItem('token');
+const USER = (() => { try { return JSON.parse(atob(TOKEN.split('.')[1])); } catch { return null; } })();
+if (USER) document.getElementById('tn-orb').textContent = (USER.name||'U')[0].toUpperCase();
+
+// ── STATE ──
+let currentView = 'discover';
+let prevView = 'discover';
+let allProducts = [];
+let activeTypeFilter = '';
+let districts = [];
+
+// ── PARTICLES ──
+(function(){
+  const bg=document.getElementById('mv-bg');
+  const cls=['#7c6dfa','#00e5ff','#ff6b9d','#39ff14','#fbbf24'];
+  for(let i=0;i<20;i++){
+    const p=document.createElement('div'); p.className='mvp';
+    const s=Math.random()*3+1;
+    p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;background:${cls[Math.floor(Math.random()*cls.length)]};animation-duration:${Math.random()*14+8}s;animation-delay:${Math.random()*10}s`;
+    bg.appendChild(p);
+  }
+})();
+
+// ── UTILS ──
+function toast(msg,type='i'){const b=document.getElementById('toastBox');const t=document.createElement('div');t.className=`toast ${type}`;t.innerHTML=`${type==='s'?'✅':type==='e'?'❌':'ℹ️'} ${msg}`;b.appendChild(t);setTimeout(()=>t.remove(),3500)}
+function closeModal(id){document.getElementById(id).style.display='none'}
+function showCreateStoreModal(){if(!TOKEN)return toast('Cần đăng nhập','e');document.getElementById('createStoreModal').style.display='flex'}
+function showListProductModal(){if(!TOKEN)return toast('Cần đăng nhập','e');document.getElementById('listProductModal').style.display='flex'}
+function showListServiceModal(){if(!TOKEN)return toast('Cần đăng nhập','e');document.getElementById('listServiceModal').style.display='flex'}
+function fmtNum(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n||0)}
+function fmtVND(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M₫';if(n>=1000)return Math.round(n/1000)+'K₫';return n+'₫'}
+function authH(){return{'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`}}
+async function api(url,opts={}){const r=await fetch(url,{...opts,headers:{...authH(),...(opts.headers||{})}});return r.json()}
+function typeIcon(t){return{physical:'🏷️',digital:'💾',event:'🎫',subscription:'💎',service:'💼'}[t]||'📦'}
+function typeCls(t){return{physical:'ptag-physical',digital:'ptag-digital',event:'ptag-event',subscription:'ptag-sub',service:'ptag-service'}[t]||'ptag-digital'}
+function prodBg(cat){const m={events:'linear-gradient(135deg,#1a0028,#0a001a)',gaming:'linear-gradient(135deg,#001400,#0a1400)',avatar:'linear-gradient(135deg,#0a001a,#14002a)',education:'linear-gradient(135deg,#001428,#001a28)',creator:'linear-gradient(135deg,#1a0a00,#280e00)',space:'linear-gradient(135deg,#000814,#001428)',general:'linear-gradient(135deg,#0a0a14,#10101a)'};return m[cat]||m.general}
+function catEmoji(cat,type){const m={events:'🎪',gaming:'🎮',avatar:'🎭',education:'📚',creator:'🎨',space:'🌌',general:'📦'};const te={physical:'🏷️',digital:'💾',event:'🎫',subscription:'💎'};return m[cat]||te[type]||'📦'}
+
+// ── VIEW ──
+function showView(v) {
+  prevView = currentView;
+  document.querySelectorAll('.mv-view').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`view-${v}`)?.classList.add('active');
+  document.querySelectorAll('.lsb-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`sb-${v}`)?.classList.add('active');
+  currentView = v;
+  if(v==='discover') loadDiscover();
+  else if(v==='products') loadProducts();
+  else if(v==='stores') loadStores();
+  else if(v==='services') loadServices();
+  else if(v==='dashboard') loadDashboard();
+  else if(v==='orders') loadOrders('pending');
+  else if(v==='my-store') loadMyStore();
+}
+function goBack(){showView(prevView)}
+
+// ── LOAD DISCOVER ──
+async function loadDiscover() {
+  const [statsR, prodsR, svcsR, distsR] = await Promise.all([
+    api('/api/metaverse/stats'),
+    api('/api/metaverse/products?featured=true&limit=8'),
+    api('/api/metaverse/services?featured=true&limit=4'),
+    api('/api/metaverse/districts'),
+  ]);
+  if(statsR.stats){
+    ['mvStat1','mvStat2','mvStat3','mvStat4'].forEach((id,i)=>{
+      document.getElementById(id).textContent=fmtNum([statsR.stats.products,statsR.stats.stores,statsR.stats.orders,statsR.stats.creators][i]);
+    });
+  }
+  districts = distsR.districts||[];
+  renderDistricts('districtsScroll');
+  renderDistrictSidebar(districts);
+  document.getElementById('featuredProducts').innerHTML = (prodsR.products||[]).map(renderProdCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">📦</div><h3>Chưa có sản phẩm</h3></div>';
+  document.getElementById('featuredServices').innerHTML = (svcsR.services||[]).map(renderSvcCard).join('') || '<div class="empty"><div class="ei">💼</div><h3>Chưa có dịch vụ</h3></div>';
+}
+
+async function loadProducts(type='') {
+  let url=`/api/metaverse/products?limit=30`;
+  if(type) url+=`&product_type=${type}`;
+  const r = await api(url);
+  allProducts = r.products||[];
+  document.getElementById('allProductsGrid').innerHTML = allProducts.map(renderProdCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">📦</div><h3>Chưa có sản phẩm</h3></div>';
+}
+
+async function loadStores() {
+  const r = await api('/api/metaverse/stores?limit=20');
+  document.getElementById('allStoresGrid').innerHTML = (r.stores||[]).map(renderStoreCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">🏪</div><h3>Chưa có cửa hàng nào</h3><br><button class="btn btn-brand btn-sm" onclick="showCreateStoreModal()">🏪 Mở cửa hàng</button></div>';
+}
+
+async function loadServices() {
+  const r = await api('/api/metaverse/services?limit=20');
+  document.getElementById('allServicesList').innerHTML = (r.services||[]).map(renderSvcCard).join('') || '<div class="empty"><div class="ei">💼</div><h3>Chưa có dịch vụ</h3><br><button class="btn btn-brand btn-sm" onclick="showListServiceModal()">➕ Đăng dịch vụ</button></div>';
+}
+
+async function loadDashboard() {
+  const r = await api('/api/metaverse/dashboard');
+  const s = r.stats||{};
+  document.getElementById('ecoDashGrid').innerHTML = [
+    {val:fmtNum(s.orders||0),lbl:'Đơn hàng',sub:''},
+    {val:fmtVND(s.total_spent||0),lbl:'Đã chi tiêu',sub:''},
+    {val:fmtVND(s.total_earned||0),lbl:'Đã kiếm được',sub:'+0'},
+    {val:fmtNum(s.products_listed||0),lbl:'SP đã đăng',sub:''},
+    {val:s.escrow_active||0,lbl:'Escrow đang giữ',sub:''},
+    {val:fmtNum(s.subs||0),lbl:'Subscriptions',sub:''},
+  ].map(c=>`<div class="eco-card"><div class="val">${c.val}</div><div class="lbl">${c.lbl}</div>${c.sub?`<div class="sub">${c.sub}</div>`:''}</div>`).join('');
+  const orders = r.orders||[];
+  document.getElementById('ordersList').innerHTML = orders.length ? orders.map(renderOrderItem).join('') : '<div class="empty"><div class="ei">📋</div><h3>Chưa có đơn hàng</h3></div>';
+}
+
+async function loadOrders(status, el) {
+  if(el){document.querySelectorAll('.tabs-mv .tab-mv').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+  if(!TOKEN){document.getElementById('ordersFullList').innerHTML='<div class="empty"><div class="ei">🔐</div><h3>Cần đăng nhập</h3></div>';return;}
+  let url = '/api/metaverse/orders';
+  if(status) url += `?status=${status}`;
+  const r = await api(url);
+  const orders = r.orders||[];
+  document.getElementById('ordersFullList').innerHTML = orders.length ? orders.map(renderOrderItem).join('') : '<div class="empty"><div class="ei">📦</div><h3>Chưa có đơn hàng</h3></div>';
+  document.getElementById('ordersBadge').textContent = orders.filter(o=>o.status==='pending').length||0;
+}
+
+async function loadMyStore() {
+  if(!TOKEN){document.getElementById('myStoreContent').innerHTML='<div class="empty"><div class="ei">🔐</div><h3>Cần đăng nhập</h3></div>';return;}
+  const r = await api('/api/metaverse/stores/mine');
+  const stores = r.stores||[];
+  if(!stores.length){
+    document.getElementById('myStoreContent').innerHTML='<div class="empty"><div class="ei">🏪</div><h3>Chưa có cửa hàng nào</h3><p style="color:var(--text3)">Tạo virtual store đầu tiên!</p><br><button class="btn btn-brand btn-sm" onclick="showCreateStoreModal()">🏪 Tạo ngay</button></div>';
+    return;
+  }
+  document.getElementById('myStoreContent').innerHTML = `<div class="stores-grid">${stores.map(renderStoreCard).join('')}</div>
+    <div class="sh" style="margin-top:20px"><div><h2>📦 Sản phẩm của tôi</h2></div><button class="btn btn-brand btn-sm" onclick="showListProductModal()">➕ Thêm SP</button></div>
+    <div class="products-grid" id="myProductsGrid"></div>`;
+  const pr = await api('/api/metaverse/products/mine');
+  document.getElementById('myProductsGrid').innerHTML = (pr.products||[]).map(renderProdCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">📦</div><h3>Chưa có sản phẩm</h3></div>';
+}
+
+// ── RENDER FUNCTIONS ──
+function renderProdCard(p) {
+  return `
+  <div class="prod-card" onclick="openProductDetail('${p.id}')">
+    <div class="prod-visual" style="background:${prodBg(p.category)}">
+      <div class="prod-visual-glow" style="background:radial-gradient(circle at 50% 80%,rgba(124,109,250,.35) 0%,transparent 60%)"></div>
+      <span class="prod-emoji">${catEmoji(p.category,p.product_type)}</span>
+      <div class="prod-tags-top">
+        <span class="ptag ${typeCls(p.product_type)}">${typeIcon(p.product_type)} ${p.product_type}</span>
+        ${p.sold_count>500?'<span class="ptag ptag-hot">🔥 Hot</span>':''}
+      </div>
+    </div>
+    <div class="prod-body">
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-meta">
+        <span>⭐ ${(p.rating||4.5).toFixed(1)}</span>
+        <span>🛒 ${fmtNum(p.sold_count||0)} bán</span>
+      </div>
+      <div class="prod-footer">
+        <div class="prod-price">${fmtVND(p.price)}</div>
+        <button class="prod-buy-btn" onclick="event.stopPropagation();buyProduct('${p.id}',this)">Mua ngay</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderStoreCard(s) {
+  const cats = {fashion:'👗',gaming:'🎮',digital:'💾',events:'🎪',education:'📚',services:'💼',general:'🌐'};
+  const bgs = {fashion:'linear-gradient(135deg,#1a0014,#2a001e)',gaming:'linear-gradient(135deg,#001400,#0a1400)',digital:'linear-gradient(135deg,#0a001a,#10002a)',events:'linear-gradient(135deg,#1a0028,#0a001a)',education:'linear-gradient(135deg,#001428,#000e1e)',services:'linear-gradient(135deg,#001a14,#00281a)',general:'linear-gradient(135deg,#0a0a14,#101018)'};
+  return `
+  <div class="store-card" onclick="filterByStore('${s.id}')">
+    <div class="sc-banner" style="background:${bgs[s.category]||bgs.general}">
+      <div class="sc-banner-glow" style="background:radial-gradient(circle,rgba(124,109,250,.3) 0%,transparent 60%)"></div>
+      <span style="position:relative;font-size:44px">${cats[s.category]||'🏪'}</span>
+    </div>
+    <div class="sc-content">
+      <div class="sc-header">
+        <div class="sc-avatar-ic">${cats[s.category]||'🏪'}</div>
+        <div>
+          <div class="sc-name">${s.name} ${s.is_verified?'<span class="sc-verified">✅</span>':''}</div>
+          <div style="font-size:11px;color:var(--text3);text-transform:capitalize">${s.store_type} · ${s.category}</div>
+        </div>
+      </div>
+      <div class="sc-stats">
+        <span>⭐ ${(s.rating||0).toFixed(1)||'Mới'}</span>
+        <span>🛒 ${fmtNum(s.sales_count||0)} bán</span>
+        <span>${s.is_verified?'✅ Verified':'🆕 Mới'}</span>
+      </div>
+      <div class="sc-tags">${(s.tags||[]).slice(0,3).map(t=>`<span class="sc-tag">#${t}</span>`).join('')}</div>
+      <div class="sc-enter-btn">Vào cửa hàng →</div>
+    </div>
+  </div>`;
+}
+
+function renderSvcCard(s) {
+  const cats = {design:'🎨',marketing:'📣',development:'💻',consulting:'💡',education:'📚',freelance:'💼'};
+  return `
+  <div class="svc-card">
+    <div class="svc-icon">${cats[s.category]||'💼'}</div>
+    <div class="svc-body">
+      <div class="svc-name">${s.name}</div>
+      <div class="svc-desc">${(s.description||'').slice(0,100)}${(s.description||'').length>100?'...':''}</div>
+      <div class="svc-meta">
+        <span>⏱ ${s.delivery_days||7} ngày</span>
+        <span>⭐ ${(s.rating||5).toFixed(1)}</span>
+        <span>📦 ${fmtNum(s.order_count||0)} đơn</span>
+        <span style="text-transform:capitalize">${s.category}</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <div class="svc-price">${fmtVND(s.price_from||0)}${s.price_to?` — ${fmtVND(s.price_to)}`:''}</div>
+      <button class="svc-order-btn" onclick="orderService('${s.id}',this)">Thuê ngay</button>
+    </div>
+  </div>`;
+}
+
+function renderOrderItem(o) {
+  const icons={pending:'⏳',completed:'✅',held:'🔐',cancelled:'❌'};
+  const stCls={pending:'ost-pending',completed:'ost-completed',held:'ost-held',cancelled:'ost-pending'};
+  return `<div class="ord-item">
+    <div class="ord-icon" style="background:rgba(124,109,250,.1)">${icons[o.status]||'📦'}</div>
+    <div class="ord-body">
+      <div class="ord-name">${o.product_name||'Sản phẩm'}</div>
+      <div class="ord-meta">${new Date(o.created_at).toLocaleDateString('vi-VN')} · ${o.payment_method||'wallet'} · Escrow: ${o.escrow_status||'held'}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <span class="ord-status ${stCls[o.status]||'ost-pending'}">${o.status}</span>
+      <span class="ord-amount">${fmtVND(o.total_amount||0)}</span>
+    </div>
+  </div>`;
+}
+
+// ── DISTRICTS ──
+function renderDistricts(containerId) {
+  document.getElementById(containerId).innerHTML = districts.map(d=>`
+    <div class="dist-card" onclick="filterByDistrict('${d.id}','${d.name}',this)">
+      <div class="dc-icon">${d.icon}</div>
+      <div class="dc-name">${d.name}</div>
+      <div class="dc-count">${fmtNum(d.store_count)} stores</div>
+    </div>`).join('');
+}
+
+function renderDistrictSidebar(dists) {
+  document.getElementById('districtList').innerHTML = dists.map(d=>`
+    <div class="dist-item" onclick="filterByDistrict('${d.id}','${d.name}',this)">
+      <span class="dist-icon">${d.icon}</span>${d.name}
+    </div>`).join('');
+}
+
+function filterByDistrict(id, name, el) {
+  showView('stores');
+  api(`/api/metaverse/stores?district_id=${id}&limit=20`).then(r=>{
+    document.getElementById('allStoresGrid').innerHTML = (r.stores||[]).map(renderStoreCard).join('') || `<div class="empty" style="grid-column:1/-1"><div class="ei">${el?.querySelector('.dist-icon')?.textContent||'🏙️'}</div><h3>Chưa có cửa hàng trong ${name}</h3></div>`;
+  });
+}
+
+function filterByStore(storeId) {
+  showView('products');
+  api(`/api/metaverse/products?store_id=${storeId}&limit=30`).then(r=>{
+    document.getElementById('allProductsGrid').innerHTML = (r.products||[]).map(renderProdCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">📦</div><h3>Chưa có sản phẩm</h3></div>';
+  });
+}
+
+function filterType(type, el) {
+  activeTypeFilter = type;
+  document.querySelectorAll('[data-type]').forEach(b=>{b.classList.remove('active');if(b.dataset.type===type)b.classList.add('active')});
+  loadProducts(type);
+}
+
+// ── PRODUCT DETAIL ──
+async function openProductDetail(id) {
+  const r = await api(`/api/metaverse/products/${id}`);
+  if(r.error) return toast(r.error,'e');
+  const p = r.product;
+  prevView = currentView;
+  document.querySelectorAll('.mv-view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-product-detail').classList.add('active');
+  document.getElementById('productDetailBody').innerHTML = `
+    <div class="prod-detail">
+      <div>
+        <div class="pd-visual" style="background:${prodBg(p.category)}">
+          <div style="position:absolute;inset:0;background:radial-gradient(circle,rgba(124,109,250,.25) 0%,transparent 65%)"></div>
+          <span class="pd-emoji">${catEmoji(p.category,p.product_type)}</span>
+        </div>
+        <div style="margin-top:16px;background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:16px">
+          <h3 style="font-size:14px;font-weight:800;margin-bottom:10px">✅ Đánh giá</h3>
+          <div style="font-size:13px;color:var(--text2)">⭐ ${(p.rating||4.5).toFixed(1)} · ${fmtNum(p.review_count||0)} đánh giá</div>
+        </div>
+      </div>
+      <div class="pd-info">
+        <div class="pd-tags">
+          <span class="ptag ${typeCls(p.product_type)}">${typeIcon(p.product_type)} ${p.product_type}</span>
+          ${(p.tags||[]).map(t=>`<span class="pd-tag">#${t}</span>`).join('')}
+        </div>
+        <div class="pd-name">${p.name}</div>
+        <div class="pd-desc">${p.description||'Không có mô tả.'}</div>
+        <div class="pd-meta-grid">
+          <div class="pd-meta-item"><div class="v">${fmtNum(p.sold_count||0)}</div><div class="l">Đã bán</div></div>
+          <div class="pd-meta-item"><div class="v">⭐ ${(p.rating||4.5).toFixed(1)}</div><div class="l">Đánh giá</div></div>
+          ${p.stock?`<div class="pd-meta-item"><div class="v">${fmtNum(p.stock)}</div><div class="l">Còn lại</div></div>`:''}
+        </div>
+        <div class="pd-price-row">
+          <div class="pd-price">${fmtVND(p.price)}</div>
+        </div>
+        ${p.uses_escrow?'<div class="escrow-badge">🔐 Thanh toán qua Escrow SafePass — An toàn 100%</div>':''} 
+        <div class="pd-actions" style="margin-top:14px">
+          <button class="btn btn-brand" style="width:100%;justify-content:center" onclick="buyProduct('${p.id}',this)">🛒 Mua ngay — ${fmtVND(p.price)}</button>
+          <button class="btn btn-glass" style="width:100%;justify-content:center">♡ Thêm vào yêu thích</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── ACTIONS ──
+async function buyProduct(id, btn) {
+  if(!TOKEN) return toast('Cần đăng nhập để mua hàng','e');
+  if(btn){btn.textContent='Đang xử lý...';btn.disabled=true;}
+  const r = await api(`/api/metaverse/buy/${id}`,{method:'POST',body:JSON.stringify({quantity:1})});
+  if(r.error){toast(r.error,'e');if(btn){btn.textContent='Mua ngay';btn.disabled=false;}return;}
+  if(btn){btn.textContent='✅ Đã mua!';}
+  toast('✅ Đặt hàng thành công! Đơn hàng đang được escrow xử lý.','s');
+  loadOrders('pending');
+}
+
+async function createStore() {
+  if(!TOKEN) return toast('Cần đăng nhập','e');
+  const name = document.getElementById('cs-sname').value.trim();
+  if(!name) return toast('Nhập tên cửa hàng','e');
+  const r = await api('/api/metaverse/stores',{method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('cs-sdesc').value,
+    store_type:document.getElementById('cs-stype').value,
+    category:document.getElementById('cs-scat').value,
+    tags:document.getElementById('cs-stags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  })});
+  if(r.error) return toast(r.error,'e');
+  closeModal('createStoreModal');
+  toast('🏪 Đã tạo Virtual Store!','s');
+  loadMyStore(); showView('my-store');
+}
+
+async function listProduct() {
+  if(!TOKEN) return toast('Cần đăng nhập','e');
+  const name = document.getElementById('lp-name').value.trim();
+  const price = parseFloat(document.getElementById('lp-price').value);
+  if(!name) return toast('Nhập tên sản phẩm','e');
+  if(!price || price<=0) return toast('Nhập giá hợp lệ','e');
+  const r = await api('/api/metaverse/products',{method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('lp-desc').value,
+    product_type:document.getElementById('lp-type').value,
+    category:document.getElementById('lp-cat').value,
+    price, stock:document.getElementById('lp-stock').value||null,
+    tags:document.getElementById('lp-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  })});
+  if(r.error) return toast(r.error,'e');
+  closeModal('listProductModal');
+  toast('✅ Đã đăng sản phẩm!','s');
+  loadMyStore();
+}
+
+async function listService() {
+  if(!TOKEN) return toast('Cần đăng nhập','e');
+  const name = document.getElementById('ls-name').value.trim();
+  if(!name) return toast('Nhập tên dịch vụ','e');
+  const r = await api('/api/metaverse/services',{method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('ls-desc').value,
+    category:document.getElementById('ls-cat').value,
+    delivery_days:parseInt(document.getElementById('ls-days').value)||7,
+    price_from:parseFloat(document.getElementById('ls-from').value)||0,
+    price_to:parseFloat(document.getElementById('ls-to').value)||null,
+    tags:document.getElementById('ls-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  })});
+  if(r.error) return toast(r.error,'e');
+  closeModal('listServiceModal');
+  toast('✅ Đã đăng dịch vụ!','s');
+  showView('services');
+}
+
+async function orderService(id, btn) {
+  if(!TOKEN) return toast('Cần đăng nhập để thuê dịch vụ','e');
+  if(btn){btn.textContent='Đang xử lý...';btn.disabled=true;}
+  toast('📩 Đã gửi yêu cầu thuê dịch vụ! Provider sẽ liên hệ bạn.','s');
+  setTimeout(()=>{if(btn){btn.textContent='Thuê ngay';btn.disabled=false;}},2000);
+}
+
+async function subscribePlan(plan, price) {
+  if(!TOKEN) return toast('Cần đăng nhập để đăng ký','e');
+  toast(`💎 Đang kích hoạt gói ${plan.toUpperCase()}...`,'i');
+  setTimeout(()=>toast(`✅ Đã đăng ký gói ${plan.toUpperCase()} thành công!`,'s'),1200);
+}
+
+function globalSearch(q) {
+  if(!q||q.length<2) return;
+  if(currentView!=='products') showView('products');
+  const filtered = allProducts.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())||(p.description||'').toLowerCase().includes(q.toLowerCase()));
+  if(allProducts.length) document.getElementById('allProductsGrid').innerHTML = filtered.map(renderProdCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">🔍</div><h3>Không tìm thấy</h3></div>';
+}
+
+// ── INIT ──
+loadDiscover();
+</script>
+</body>
+</html>
