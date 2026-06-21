@@ -1,0 +1,147 @@
+THIẾT KẾ LẠI SAFEPASS THÀNH MỘT MẠNG XÃ HỘI PHONG CÁCH FACEBOOK THỰC SỰ
+
+Giao diện người dùng hiện tại trông giống như bảng điều khiển thị trường.
+
+Tôi muốn trang chủ có cảm giác giống Facebook trước tiên, thứ hai là Marketplace.
+
+====================================================
+
+XÓA KHỎI TRUNG TÂM FEED
+
+* Biểu ngữ anh hùng lớn
+* Thanh trượt khuyến mãi
+* Lưới danh mục
+* Tiện ích bảng điều khiển
+
+Di chuyển chúng đến các trang Marketplace.
+
+====================================================
+
+CẤU TRÚC NHÀ MỚI
+
+Thanh điều hướng hàng đầu
+
+* Biểu tượng
+* Tìm kiếm
+* Trang chủ
+* Video
+* Thị trường
+* Nhóm
+* Thông báo
+* Tin nhắn
+* Hồ sơ
+
+====================================================
+
+THANH BÊN TRÁI
+
+dính
+
+Chứa:
+
+* Hồ sơ người dùng
+* Nguồn cấp tin tức
+* Bạn bè
+* Nhóm
+* Thị trường
+* Video
+* Đã lưu
+* Sự kiện
+* Cài đặt
+
+====================================================
+
+TRUNG TÂM FEED
+
+KHU VỰC QUAN TRỌNG NHẤT
+
+Chiều rộng: 720px
+
+Chứa:
+
+1. Mục Truyện
+
+Những câu chuyện theo chiều ngang như Facebook.
+
+---
+
+2. Tạo bưu thiếp
+
+Trình giữ chỗ:
+
+"Bạn đang nghĩ gì vậy?"
+
+hành động:
+
+* Ảnh
+* Video
+* Bán mặt hàng
+* Phát trực tiếp
+
+---
+
+3. Nguồn cấp tin tức
+
+Hiển thị các bài đăng trên mạng xã hội.
+
+Mỗi bài viết có chứa:
+
+* Hình đại diện
+* Tên
+* Dấu thời gian
+* Nội dung văn bản
+* Hình ảnh
+* Video
+* Đính kèm sản phẩm
+* Thích
+* Bình luận
+* Chia sẻ
+
+---
+
+4. Cuộn vô hạn
+
+Tải thêm bài viết trong khi cuộn.
+
+====================================================
+
+THANH Bên PHẢI
+
+Chứa:
+
+* Người dùng trực tuyến
+* Bạn bè được đề xuất
+* Bài viết thịnh hành
+* Điểm nổi bật của thị trường
+
+====================================================
+
+XÃ HỘI ĐẦU TIÊN
+
+Marketplace sẽ xuất hiện bên trong bài viết.
+
+Người dùng sẽ cảm thấy:
+
+Facebook + Thị trường
+
+không
+
+Thị trường + Bảng điều khiển.
+
+====================================================
+
+PHONG CÁCH HÌNH ẢNH
+
+Phù hợp với Facebook 2025.
+
+* Thẻ nguồn cấp dữ liệu lớn
+* Khoảng cách thoải mái
+* Bóng tối hiện đại
+* Các góc tròn
+* Trọng tâm nội dung xã hội
+
+====================================================
+
+KHÔNG LOẠI BỎ CÁC TÍNH NĂNG HIỆN CÓ.
+
+Chỉ tổ chức lại trang chủ xung quanh nguồn cấp dữ liệu xã hội.
