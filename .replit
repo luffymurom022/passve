@@ -23,6 +23,10 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Mobile"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -35,9 +39,25 @@ task = "shell.exec"
 args = "npm start"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "Start Mobile"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd mobile && EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN npx expo start --web --port 8080 --non-interactive"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
 
 [deployment]
 deploymentTarget = "autoscale"

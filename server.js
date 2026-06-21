@@ -9753,11 +9753,23 @@ app.get('/ecosystem', (req, res) => {
 
 // ── /api/users/me ──
 app.get('/api/users/me', auth, async (req, res) => {
-  const { data: user } = await supabase.from('users')
-    .select('id,name,phone,email,is_admin,is_moderator,is_banned,is_kyc_verified,two_factor,created_at')
-    .eq('id', req.user.userId).single();
+  const uid = req.user.userId;
+  const [{ data: user }, { data: wallet }] = await Promise.all([
+    supabase.from('users').select('id,name,phone,email,avatar_url,is_seller,is_admin,is_moderator,is_banned,is_kyc_verified,trust_score,two_factor,created_at').eq('id', uid).single(),
+    supabase.from('wallets').select('balance').eq('user_id', uid).maybeSingle()
+  ]);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json(user);
+  res.json({ user: { ...user, wallet_balance: wallet?.balance || 0 } });
+});
+
+// ── Mobile: Register push notification token ──
+app.post('/api/users/push-token', auth, async (req, res) => {
+  const { push_token } = req.body;
+  if (!push_token) return res.status(400).json({ error: 'Missing push_token' });
+  try {
+    await supabase.from('users').update({ push_token }).eq('id', req.user.userId);
+    res.json({ ok: true });
+  } catch { res.json({ ok: true }); }
 });
 
 // ── Ecosystem Dashboard ──

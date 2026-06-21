@@ -1259,3 +1259,55 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 2. Đăng nhập admin tại /admin/security để monitor
 
 *Cập nhật lần cuối: 2026-06-21 (Security Hardening Pass)*
+
+---
+
+## 📱 REACT NATIVE MOBILE ARCHITECTURE — 2026-06-21
+
+### Kiến trúc
+| Thành phần | Chi tiết |
+|-----------|----------|
+| **Framework** | Expo SDK 52 + React Native 0.76.9 + TypeScript |
+| **Router** | expo-router (file-based, tương tự Next.js) |
+| **State** | React Query (@tanstack/react-query) + AuthContext |
+| **Storage** | expo-secure-store (JWT token) |
+| **UI** | Dark premium theme — primary #FF6B35 (SafePass orange) |
+| **Port** | 8080 (Expo Metro bundler) |
+
+### Màn hình đã build
+| Màn hình | Route | API |
+|---------|-------|-----|
+| **Đăng nhập** | /(auth)/login | POST /api/auth/login |
+| **Đăng ký** | /(auth)/register | POST /api/auth/register |
+| **Feed vé** | /(tabs)/index | GET /api/tickets |
+| **Reels** | /(tabs)/reels | GET /api/social/reels |
+| **Tin nhắn** | /(tabs)/messenger | GET /api/dm/conversations |
+| **Thông báo** | /(tabs)/notifications | GET /api/notifications |
+| **Hồ sơ** | /(tabs)/profile | useAuth + logout |
+| **Chat** | /chat/[id] | GET/POST /api/dm/conversations/:id/messages |
+
+### Tính năng
+- ✅ **Navigation**: 5-tab bottom bar (Home/Reels/Messenger/Notifications/Profile)
+- ✅ **Auth**: JWT stored in SecureStore; tự redirect login/register
+- ✅ **Push Notifications**: expo-notifications; tự động xin quyền; QR code để test trên Expo Go
+- ✅ **Pull to refresh** trên Feed, Messenger, Notifications
+- ✅ **Real-time**: Messenger auto-refetch mỗi 15s; Chat mỗi 5s
+- ✅ **Haptics**: Rung feedback khi tương tác
+- ✅ **Android + iOS**: Hỗ trợ cả hai platform
+
+### File mới
+- `mobile/` — toàn bộ thư mục React Native app
+- `mobile/package.json` — Expo dependencies
+- `mobile/app.json` — Expo config
+- Workflow mới: **Start Mobile** (port 8080)
+
+### API mới trên server.js
+- `GET /api/users/me` — nay trả về `{user: {..., wallet_balance, avatar_url, trust_score}}`
+- `POST /api/users/push-token` — đăng ký Expo Push Token
+
+### Cách test trên điện thoại
+1. Mở **Expo Go** (iOS/Android)
+2. Scan QR code trong tab "Start Mobile" (URL bar Replit)
+3. Đặt `EXPO_PUBLIC_API_URL` = URL Replit domain
+
+*Cập nhật lần cuối: 2026-06-21 (React Native Mobile)*
