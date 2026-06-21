@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AI Civilization Engine — SafePass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;--bg2:#0e0e1a;--bg3:#161624;--bg4:#1e1e2e;
+  --border:#252538;--border2:#353550;
+  --accent:#6366F1;--accent2:#4F46E5;--accent3:#818CF8;
+  --gold:#F59E0B;--green:#10B981;--red:#EF4444;--blue:#3B82F6;--pink:#EC4899;--purple:#A855F7;--cyan:#06B6D4;--orange:#F97316;
+  --text:#F0F0FF;--text2:#A0A0C0;--text3:#606080;
+  --card:#111120;--card2:#181828;
+  --radius:14px;--radius2:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input,textarea,select{font-family:inherit;outline:none}
+
+/* HEADER */
+.hdr{position:sticky;top:0;z-index:100;background:rgba(7,7,15,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 20px;height:58px}
+.hdr-logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:17px;background:linear-gradient(135deg,#6366F1,#A855F7,#EC4899,#06B6D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.hdr-logo span{font-size:22px;-webkit-text-fill-color:initial}
+.hdr-search{flex:1;max-width:420px;position:relative}
+.hdr-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:24px;padding:8px 16px 8px 38px;color:var(--text);font-size:14px}
+.hdr-search input::placeholder{color:var(--text3)}
+.hdr-search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3)}
+.hdr-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.ai-pulse{width:10px;height:10px;background:var(--green);border-radius:50%;box-shadow:0 0 0 3px rgba(16,185,129,.3);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,.3)}50%{box-shadow:0 0 0 6px rgba(16,185,129,.1)}}
+.ai-status-text{font-size:12px;color:var(--green);font-weight:600}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;min-height:0}
+
+/* SIDEBAR */
+.sidebar{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);padding:10px 0;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.sb-section{padding:8px 14px 3px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:10px;margin:0 6px;cursor:pointer;transition:all .15s;font-size:13px;color:var(--text2)}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(168,85,247,.1));color:var(--text);border:1px solid rgba(99,102,241,.3)}
+.nav-item .ni{font-size:15px;width:20px;text-align:center}
+.nb{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:700}
+.nb-green{background:var(--green)}
+.nb-gold{background:var(--gold);color:#000}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:24px}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#07071f,#0f0728,#07150f);border:1px solid var(--border);border-radius:22px;padding:44px 38px;position:relative;overflow:hidden;margin-bottom:28px}
+.hero-orb{position:absolute;border-radius:50%;filter:blur(60px)}
+.hero-orb1{width:300px;height:300px;background:radial-gradient(circle,rgba(99,102,241,.3),transparent 70%);top:-80px;right:-60px}
+.hero-orb2{width:200px;height:200px;background:radial-gradient(circle,rgba(6,182,212,.2),transparent 70%);bottom:-40px;left:20%}
+.hero-orb3{width:150px;height:150px;background:radial-gradient(circle,rgba(236,72,153,.15),transparent 70%);bottom:20px;right:200px}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);border-radius:20px;padding:5px 14px;font-size:12px;color:#A5B4FC;font-weight:600;margin-bottom:18px}
+.hero h1{font-size:38px;font-weight:900;line-height:1.12;margin-bottom:12px;background:linear-gradient(135deg,#fff,#C7D2FE,#DDD6FE,#67E8F9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.hero p{color:var(--text2);font-size:15px;max-width:560px;line-height:1.65;margin-bottom:26px;position:relative}
+.hero-stats{display:flex;gap:30px;flex-wrap:wrap;position:relative}
+.hero-stat .val{font-size:22px;font-weight:800}
+.hero-stat .lbl{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* SECTIONS */
+.sec-title{font-size:18px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sec-badge{font-size:11px;background:rgba(99,102,241,.2);color:#A5B4FC;padding:3px 10px;border-radius:10px;font-weight:600}
+.sec-badge-green{background:rgba(16,185,129,.2);color:#34D399}
+.sec-badge-gold{background:rgba(245,158,11,.2);color:#FCD34D}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:24px}
+
+/* STAT CARDS */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .2s}
+.stat-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.sc-icon{font-size:28px;margin-bottom:10px}
+.sc-val{font-size:26px;font-weight:800}
+.sc-lbl{font-size:12px;color:var(--text3);margin-top:4px}
+
+/* AI MODULE CARDS */
+.mod-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .2s;cursor:pointer}
+.mod-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 10px 32px rgba(99,102,241,.15)}
+.mod-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.mod-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.mod-title{font-size:14px;font-weight:700}
+.mod-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.mod-stat{font-size:22px;font-weight:800;margin-bottom:4px}
+.mod-lbl{font-size:11px;color:var(--text3)}
+.mod-bar{height:4px;background:var(--bg4);border-radius:2px;margin-top:12px;overflow:hidden}
+.mod-fill{height:100%;border-radius:2px;transition:width .6s}
+
+/* AGENT CARDS */
+.agent-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all .2s}
+.agent-card:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.agent-avatar{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.agent-name{font-size:15px;font-weight:700;margin-bottom:3px}
+.agent-role{font-size:12px;color:var(--cyan);margin-bottom:8px}
+.agent-desc{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:12px}
+.agent-meta{display:flex;gap:10px;font-size:11px;color:var(--text3)}
+.agent-meta span{display:flex;align-items:center;gap:4px}
+.agent-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.rating{color:var(--gold);font-size:12px;font-weight:700}
+.price{font-size:13px;font-weight:700;color:var(--green)}
+
+/* NPC CARDS */
+.npc-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;transition:all .2s}
+.npc-card:hover{border-color:var(--purple)}
+.npc-avatar{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;position:relative}
+.npc-dot{position:absolute;bottom:2px;right:2px;width:10px;height:10px;background:var(--green);border-radius:50%;border:2px solid var(--card)}
+.npc-info{flex:1}
+.npc-name{font-size:14px;font-weight:700}
+.npc-role{font-size:12px;color:var(--text3)}
+.npc-stat{font-size:11px;color:var(--cyan);margin-top:4px}
+.btn-chat{background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);color:#A5B4FC;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;transition:all .2s}
+.btn-chat:hover{background:var(--accent);color:#fff}
+
+/* QUEST CARDS */
+.quest-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden;transition:all .2s}
+.quest-card:hover{border-color:var(--gold)}
+.quest-diff{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px}
+.diff-easy{background:rgba(16,185,129,.2);color:var(--green)}
+.diff-medium{background:rgba(245,158,11,.2);color:var(--gold)}
+.diff-hard{background:rgba(239,68,68,.2);color:var(--red)}
+.quest-icon{font-size:28px;margin-bottom:10px}
+.quest-title{font-size:14px;font-weight:700;margin-bottom:6px;padding-right:80px}
+.quest-desc{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:12px}
+.quest-reward{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--gold)}
+.quest-prog{margin-top:12px}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px}
+.prog-bar{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--cyan));border-radius:3px;transition:width .6s}
+
+/* EVENT CARDS */
+.event-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all .2s}
+.event-card:hover{border-color:var(--pink)}
+.event-type-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;margin-bottom:10px}
+.et-festival{background:rgba(236,72,153,.2);color:var(--pink)}
+.et-competition{background:rgba(245,158,11,.2);color:var(--gold)}
+.et-challenge{background:rgba(99,102,241,.2);color:#A5B4FC}
+.event-title{font-size:14px;font-weight:700;margin-bottom:6px}
+.event-desc{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:12px}
+.event-meta{display:flex;gap:14px;font-size:12px;color:var(--text3)}
+.event-meta span{display:flex;align-items:center;gap:4px}
+
+/* GOVERNOR / MAYOR ROWS */
+.gov-list{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.gov-row{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;transition:all .2s}
+.gov-row:hover{border-color:var(--accent)}
+.gov-avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative}
+.gov-online{position:absolute;bottom:2px;right:2px;width:12px;height:12px;background:var(--green);border-radius:50%;border:2px solid var(--card)}
+.gov-info{flex:1}
+.gov-name{font-size:15px;font-weight:700}
+.gov-meta{font-size:12px;color:var(--text3);margin-top:3px}
+.gov-stats{display:flex;gap:20px}
+.gov-stat-item{text-align:right}
+.gov-stat-val{font-size:16px;font-weight:700}
+.gov-stat-lbl{font-size:11px;color:var(--text3)}
+.btn-sm{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff}
+.btn-outline{background:var(--bg3);border:1px solid var(--border2);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+
+/* KNOWLEDGE CARDS */
+.kb-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all .2s}
+.kb-card:hover{border-color:var(--blue)}
+.kb-cat{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;display:inline-block;margin-bottom:10px}
+.kb-history{background:rgba(59,130,246,.2);color:var(--blue)}
+.kb-economy{background:rgba(16,185,129,.2);color:var(--green)}
+.kb-governance{background:rgba(245,158,11,.2);color:var(--gold)}
+.kb-creator{background:rgba(236,72,153,.2);color:var(--pink)}
+.kb-world{background:rgba(168,85,247,.2);color:var(--purple)}
+.kb-title{font-size:14px;font-weight:700;margin-bottom:6px}
+.kb-preview{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:12px}
+.kb-footer{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text3)}
+
+/* COORDINATION PANEL */
+.coord-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+.coord-title{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.ai-flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;gap:8px}
+.ai-node{background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:12px 18px;text-align:center;min-width:130px}
+.ai-node-icon{font-size:24px;margin-bottom:6px}
+.ai-node-name{font-size:12px;font-weight:700}
+.ai-node-status{font-size:10px;color:var(--green);margin-top:3px}
+.ai-connector{font-size:20px;color:var(--text3);flex-shrink:0}
+.signal-bar{display:flex;gap:4px;margin-top:10px;justify-content:center}
+.sig{width:4px;border-radius:2px;background:var(--accent);animation:sig-anim 1.2s ease infinite}
+.sig:nth-child(2){animation-delay:.2s;height:12px}
+.sig:nth-child(3){animation-delay:.4s;height:18px}
+.sig:nth-child(1),.sig:nth-child(4){height:8px}
+@keyframes sig-anim{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* MODERATION PANEL */
+.mod-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.mod-log-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;font-size:13px}
+.mod-action{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;flex-shrink:0}
+.ma-blocked{background:rgba(239,68,68,.2);color:var(--red)}
+.ma-flagged{background:rgba(245,158,11,.2);color:var(--gold)}
+.ma-warned{background:rgba(99,102,241,.2);color:#A5B4FC}
+.mod-reason{flex:1;color:var(--text2)}
+.mod-conf{font-size:11px;color:var(--text3)}
+
+/* ANALYTICS CHART */
+.analytics-container{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+.mini-chart{display:flex;align-items:flex-end;gap:6px;height:80px;padding-top:10px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{border-radius:4px 4px 0 0;width:100%;transition:height .5s;min-height:4px}
+.bar-lbl{font-size:10px;color:var(--text3)}
+
+/* AUTONOMOUS WORLD */
+.auto-card{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(6,182,212,.05));border:1px solid rgba(99,102,241,.3);border-radius:var(--radius);padding:22px;transition:all .2s}
+.auto-card:hover{border-color:var(--accent)}
+.auto-icon{font-size:32px;margin-bottom:12px}
+.auto-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.auto-desc{font-size:12px;color:var(--text3);line-height:1.6}
+.auto-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);margin-top:12px;font-weight:600}
+.auto-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+
+/* CHAT PANEL (NPC) */
+.chat-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px}
+.chat-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.chat-messages{height:240px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5}
+.msg-ai{background:var(--bg3);border:1px solid var(--border);align-self:flex-start;border-radius:4px 14px 14px 14px}
+.msg-user{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;align-self:flex-end;border-radius:14px 14px 4px 14px}
+.chat-input-area{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:9px 16px;color:var(--text);font-size:13px}
+.chat-input:focus{border-color:var(--accent)}
+.btn-send{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;font-weight:700}
+
+/* DASHBOARD METRICS */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.dash-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden}
+.dash-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;filter:blur(25px);opacity:.4}
+.dash-val{font-size:28px;font-weight:900;position:relative}
+.dash-label{font-size:12px;color:var(--text3);margin-top:4px;position:relative}
+.dash-change{font-size:11px;font-weight:600;margin-top:6px;position:relative}
+.pos{color:var(--green)}
+.neg{color:var(--red)}
+
+/* WORLD BUILDER */
+.wb-form{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:12px;font-weight:600;color:var(--text2)}
+.form-input{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:13px;width:100%}
+.form-input:focus{border-color:var(--accent)}
+.form-textarea{resize:vertical;min-height:80px}
+.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:13px;width:100%}
+.template-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tmpl-card{background:var(--bg3);border:2px solid var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;font-size:13px}
+.tmpl-card:hover,.tmpl-card.sel{border-color:var(--accent);background:rgba(99,102,241,.1)}
+.tmpl-icon{font-size:22px;margin-bottom:6px}
+.tmpl-name{font-size:12px;font-weight:600}
+.btn-generate{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:700;width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px}
+.gen-result{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-line;display:none}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;animation:slideIn .3s ease}
+.toast.success{background:#10B981;color:#fff}
+.toast.error{background:#EF4444;color:#fff}
+.toast.info{background:var(--accent);color:#fff}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* TAGS */
+.tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.tag-active{background:rgba(16,185,129,.2);color:var(--green)}
+.tag-upcoming{background:rgba(99,102,241,.2);color:#A5B4FC}
+.tag-paused{background:rgba(107,114,128,.2);color:#9CA3AF}
+
+/* RESPONSIVE */
+@media(max-width:900px){.sidebar{display:none}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.gap-8{gap:8px}
+.flex{display:flex}
+.items-center{align-items:center}
+.justify-between{justify-content:space-between}
+.text-sm{font-size:13px}
+.text-xs{font-size:11px}
+.text-dim{color:var(--text3)}
+.text-muted{color:var(--text2)}
+.fw-700{font-weight:700}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.mb-16{margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-logo"><span>🤖</span> AI Civilization Engine</div>
+  <div class="hdr-search">
+    <span class="si">🔍</span>
+    <input type="text" placeholder="Search AI modules, agents, quests..." oninput="handleSearch(this.value)" id="searchInput"/>
+  </div>
+  <div class="hdr-right">
+    <div class="ai-pulse"></div>
+    <span class="ai-status-text">AI Active — 20 Modules Online</span>
+    <a href="/" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:8px 14px;border-radius:20px;font-size:13px">← Home</a>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sb-section">Overview</div>
+    <div class="nav-item active" onclick="nav('dashboard')"><span class="ni">🏛️</span> Civilization Dashboard <span class="nb nb-green">LIVE</span></div>
+    <div class="nav-item" onclick="nav('analytics')"><span class="ni">📊</span> Universe Analytics</div>
+
+    <div class="sb-section">Governance AI</div>
+    <div class="nav-item" onclick="nav('governors')"><span class="ni">🌌</span> AI Governors <span class="nb">4</span></div>
+    <div class="nav-item" onclick="nav('mayors')"><span class="ni">🏛️</span> AI Mayors <span class="nb">4</span></div>
+    <div class="nav-item" onclick="nav('community')"><span class="ni">🤝</span> Community Manager</div>
+    <div class="nav-item" onclick="nav('moderation')"><span class="ni">🛡️</span> Moderation Network</div>
+
+    <div class="sb-section">Content AI</div>
+    <div class="nav-item" onclick="nav('events')"><span class="ni">🎉</span> Event Generator <span class="nb nb-gold">5</span></div>
+    <div class="nav-item" onclick="nav('quests')"><span class="ni">⚔️</span> Quest Engine <span class="nb">6</span></div>
+    <div class="nav-item" onclick="nav('knowledge')"><span class="ni">📚</span> Knowledge Engine</div>
+    <div class="nav-item" onclick="nav('discovery')"><span class="ni">🔭</span> Discovery Engine</div>
+
+    <div class="sb-section">Social AI</div>
+    <div class="nav-item" onclick="nav('npcs')"><span class="ni">🧙</span> NPC System <span class="nb">5</span></div>
+    <div class="nav-item" onclick="nav('social_graph')"><span class="ni">🕸️</span> Social Graph</div>
+    <div class="nav-item" onclick="nav('creator_coach')"><span class="ni">🎬</span> Creator Coach</div>
+
+    <div class="sb-section">Economy AI</div>
+    <div class="nav-item" onclick="nav('economy')"><span class="ni">💰</span> Economy Analyzer</div>
+    <div class="nav-item" onclick="nav('marketplace_ai')"><span class="ni">🏪</span> Marketplace Manager</div>
+    <div class="nav-item" onclick="nav('business_ai')"><span class="ni">📈</span> Business Assistant</div>
+
+    <div class="sb-section">Builder AI</div>
+    <div class="nav-item" onclick="nav('world_builder')"><span class="ni">🌍</span> World Builder</div>
+    <div class="nav-item" onclick="nav('agent_marketplace')"><span class="ni">🤖</span> Agent Marketplace <span class="nb">5</span></div>
+    <div class="nav-item" onclick="nav('coordination')"><span class="ni">⚡</span> Multi-AI Coordination</div>
+    <div class="nav-item" onclick="nav('autonomous')"><span class="ni">🚀</span> Autonomous Worlds</div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main" id="mainContent">
+    <div style="text-align:center;padding:60px;color:var(--text3)">🤖 Loading AI Civilization Engine...</div>
+  </main>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+let currentView = 'dashboard';
+let civData = {};
+
+const NAV_ITEMS = document.querySelectorAll('.nav-item');
+
+function nav(view) {
+  currentView = view;
+  NAV_ITEMS.forEach(n => n.classList.toggle('active', n.getAttribute('onclick').includes(`'${view}'`)));
+  render(view);
+}
+
+async function api(path, opts={}) {
+  const h = {'Content-Type':'application/json'};
+  if (token) h['Authorization'] = 'Bearer ' + token;
+  const r = await fetch(path, {...opts, headers:{...h,...(opts.headers||{})}});
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── DATA LOADING ──
+async function loadAll() {
+  try {
+    const [stats, gov, mayors, npcs, quests, events, kb, agents] = await Promise.allSettled([
+      api('/api/aiciv/stats'),
+      api('/api/aiciv/governors'),
+      api('/api/aiciv/mayors'),
+      api('/api/aiciv/npcs'),
+      api('/api/aiciv/quests'),
+      api('/api/aiciv/events'),
+      api('/api/aiciv/knowledge'),
+      api('/api/aiciv/agents'),
+    ]);
+    civData.stats = stats.value || {};
+    civData.governors = gov.value?.governors || [];
+    civData.mayors = mayors.value?.mayors || [];
+    civData.npcs = npcs.value?.npcs || [];
+    civData.quests = quests.value?.quests || [];
+    civData.events = events.value?.events || [];
+    civData.knowledge = kb.value?.articles || [];
+    civData.agents = agents.value?.agents || [];
+  } catch(e) {}
+  render(currentView);
+}
+
+// ── RENDER ROUTER ──
+function render(view) {
+  const el = document.getElementById('mainContent');
+  const fns = {
+    dashboard: renderDashboard,
+    analytics: renderAnalytics,
+    governors: renderGovernors,
+    mayors: renderMayors,
+    community: renderCommunity,
+    moderation: renderModeration,
+    events: renderEvents,
+    quests: renderQuests,
+    knowledge: renderKnowledge,
+    discovery: renderDiscovery,
+    npcs: renderNPCs,
+    social_graph: renderSocialGraph,
+    creator_coach: renderCreatorCoach,
+    economy: renderEconomy,
+    marketplace_ai: renderMarketplaceAI,
+    business_ai: renderBusinessAI,
+    world_builder: renderWorldBuilder,
+    agent_marketplace: renderAgentMarketplace,
+    coordination: renderCoordination,
+    autonomous: renderAutonomous,
+  };
+  el.innerHTML = (fns[view] || renderDashboard)();
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  const s = civData.stats || {};
+  return `
+  <div class="hero">
+    <div class="hero-orb hero-orb1"></div><div class="hero-orb hero-orb2"></div><div class="hero-orb hero-orb3"></div>
+    <div class="hero-badge">🤖 AI Civilization Engine — Phase 16</div>
+    <h1>AI-Powered Civilization Platform</h1>
+    <p>20 AI modules working together to govern, grow, and evolve your universe. Real-time AI governance, economy analysis, event generation, and community management — all autonomous.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="val" style="color:var(--cyan)">${fmt(s.active_ai_modules||20)}</div><div class="lbl">AI Modules Active</div></div>
+      <div class="hero-stat"><div class="val" style="color:var(--green)">${fmtBig(s.ai_decisions||48234)}</div><div class="lbl">AI Decisions Today</div></div>
+      <div class="hero-stat"><div class="val" style="color:var(--gold)">${fmtBig(s.users_helped||125820)}</div><div class="lbl">Users Helped</div></div>
+      <div class="hero-stat"><div class="val" style="color:var(--pink)">${fmt(s.active_agents||17)}</div><div class="lbl">Agents Deployed</div></div>
+    </div>
+  </div>
+
+  <div class="sec-title">⚡ Real-Time AI Activity <span class="sec-badge-green sec-badge">LIVE</span></div>
+  <div class="dash-grid">
+    ${[
+      {icon:'🌌',label:'Governor Decisions',val:'3,241',chg:'+12%',color:'#6366F1'},
+      {icon:'🎉',label:'Events Generated',val:'89',chg:'+8%',color:'#EC4899'},
+      {icon:'⚔️',label:'Quests Active',val:'6',chg:'+2',color:'#F59E0B'},
+      {icon:'🧙',label:'NPC Conversations',val:'45,821',chg:'+18%',color:'#A855F7'},
+      {icon:'🛡️',label:'Threats Blocked',val:'1,234',chg:'-23%',color:'#EF4444'},
+      {icon:'🤖',label:'Agent Deployments',val:'9,711',chg:'+34%',color:'#06B6D4'},
+      {icon:'💰',label:'Economy Score',val:'94.2',chg:'+1.8',color:'#10B981'},
+      {icon:'🌍',label:'Worlds Managed',val:'247',chg:'+12',color:'#3B82F6'},
+    ].map(d=>`
+    <div class="dash-card">
+      <div class="dash-glow" style="background:${d.color}"></div>
+      <div style="font-size:24px;position:relative">${d.icon}</div>
+      <div class="dash-val" style="color:${d.color}">${d.val}</div>
+      <div class="dash-label">${d.label}</div>
+      <div class="dash-change pos">${d.chg} vs yesterday</div>
+    </div>`).join('')}
+  </div>
+
+  <div class="sec-title">🤖 AI Module Status <span class="sec-badge">20 Modules</span></div>
+  <div class="grid-4">
+    ${[
+      {icon:'🌌',name:'AI Governor',stat:'4 active',fill:98,color:'var(--accent)'},
+      {icon:'🏛️',name:'AI Mayor',stat:'4 cities',fill:95,color:'var(--cyan)'},
+      {icon:'🤝',name:'Community Mgr',stat:'247 worlds',fill:92,color:'var(--green)'},
+      {icon:'🎉',name:'Event Gen',stat:'5 events',fill:88,color:'var(--pink)'},
+      {icon:'⚔️',name:'Quest Engine',stat:'6 quests',fill:100,color:'var(--gold)'},
+      {icon:'📚',name:'Knowledge',stat:'5 articles',fill:85,color:'var(--blue)'},
+      {icon:'🧙',name:'NPC System',stat:'5 NPCs',fill:97,color:'var(--purple)'},
+      {icon:'💰',name:'Economy AI',stat:'94.2 score',fill:94,color:'var(--green)'},
+    ].map(m=>`
+    <div class="mod-card">
+      <div class="mod-header">
+        <div class="mod-icon" style="background:rgba(99,102,241,.15)">${m.icon}</div>
+        <div><div class="mod-title">${m.name}</div><div class="mod-sub">${m.stat}</div></div>
+      </div>
+      <div class="mod-bar"><div class="mod-fill" style="width:${m.fill}%;background:${m.color}"></div></div>
+      <div class="text-xs text-dim mt-8">${m.fill}% efficiency</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── ANALYTICS ──
+function renderAnalytics() {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun'];
+  const vals = [42,58,71,89,103,125];
+  const maxV = Math.max(...vals);
+  return `
+  <div class="sec-title">📊 Universe Analytics <span class="sec-badge">AI-Powered</span></div>
+  <div class="analytics-container">
+    <div class="sec-title" style="font-size:15px;margin-bottom:20px">📈 Population Growth (x1000 users)</div>
+    <div class="mini-chart">
+      ${vals.map((v,i)=>`<div class="bar-col"><div class="bar" style="height:${(v/maxV)*100}%;background:linear-gradient(180deg,var(--accent),var(--cyan))"></div><div class="bar-lbl">${months[i]}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="grid-3">
+    ${[
+      {title:'🌌 Universe Growth',metrics:[['Total Universes','8','↑+2 this month'],['Total Worlds','247','↑+34 this month'],['Total Members','366,000','↑+45K this month']]},
+      {title:'💰 Economic Health',metrics:[['Total Revenue','980M₫','↑+18% MoM'],['Avg Transaction','82,000₫','↑+4% MoM'],['Marketplace GMV','2.4B₫','↑+22% MoM']]},
+      {title:'🤖 AI Performance',metrics:[['Decisions Made','48,234','Today'],['Accuracy Rate','97.4%','↑+0.3%'],['Response Time','<50ms','Avg']]},
+    ].map(s=>`
+    <div class="analytics-container" style="margin-bottom:0">
+      <div class="coord-title">${s.title}</div>
+      ${s.metrics.map(([l,v,c])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span class="text-sm text-muted">${l}</span>
+        <div style="text-align:right"><div class="fw-700">${v}</div><div class="text-xs text-dim">${c}</div></div>
+      </div>`).join('')}
+    </div>`).join('')}
+  </div>
+  <div class="sec-title mt-16">🌍 Top Performing Worlds</div>
+  <div class="grid-auto">
+    ${[
+      {name:'Social Universe Prime',members:'125K',rev:'320M₫',score:98},
+      {name:'Commerce Galaxy X',members:'89K',rev:'280M₫',score:95},
+      {name:'Gaming World Delta',members:'67K',rev:'156M₫',score:91},
+      {name:'Education Cosmos',members:'45K',rev:'89M₫',score:88},
+    ].map(w=>`
+    <div class="stat-card">
+      <div class="sc-icon">🌌</div>
+      <div class="sc-val">${w.name}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px">${w.members} members • ${w.rev} revenue</div>
+      <div class="mod-bar" style="margin-top:12px"><div class="mod-fill" style="width:${w.score}%;background:linear-gradient(90deg,var(--green),var(--cyan))"></div></div>
+      <div class="text-xs text-dim mt-8">Health Score: ${w.score}/100</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── GOVERNORS ──
+function renderGovernors() {
+  const govs = civData.governors.length ? civData.governors : [
+    {name:'Governor Atlas',avatar:'🌌',personality:'wise',status:'active',messages_sent:12847,decisions_made:3241,users_welcomed:8920},
+    {name:'Governor Nova',avatar:'⭐',personality:'friendly',status:'active',messages_sent:9234,decisions_made:2187,users_welcomed:6310},
+    {name:'Governor Orion',avatar:'🔭',personality:'strategic',status:'active',messages_sent:7821,decisions_made:1923,users_welcomed:4891},
+    {name:'Governor Aurora',avatar:'🌅',personality:'nurturing',status:'active',messages_sent:15023,decisions_made:4012,users_welcomed:11234},
+  ];
+  return `
+  <div class="sec-title">🌌 AI Governor System <span class="sec-badge">Module 1</span></div>
+  <p class="text-sm text-muted mb-16">AI Governors autonomously welcome users, moderate communities, manage events, explain rules, and support world owners 24/7.</p>
+  <div class="gov-list">
+    ${govs.map(g=>`
+    <div class="gov-row">
+      <div class="gov-avatar">${g.avatar}<div class="gov-online"></div></div>
+      <div class="gov-info">
+        <div class="gov-name">${g.name}</div>
+        <div class="gov-meta">Personality: ${g.personality} • Status: <span style="color:var(--green)">${g.status}</span></div>
+      </div>
+      <div class="gov-stats">
+        <div class="gov-stat-item"><div class="gov-stat-val" style="color:var(--cyan)">${fmtBig(g.messages_sent)}</div><div class="gov-stat-lbl">Messages Sent</div></div>
+        <div class="gov-stat-item"><div class="gov-stat-val" style="color:var(--gold)">${fmtBig(g.decisions_made)}</div><div class="gov-stat-lbl">Decisions</div></div>
+        <div class="gov-stat-item"><div class="gov-stat-val" style="color:var(--green)">${fmtBig(g.users_welcomed)}</div><div class="gov-stat-lbl">Welcomed</div></div>
+      </div>
+      <button class="btn-sm btn-outline" onclick="toast('🌌 '+${JSON.stringify(g.name)}+' is actively governing!','info')">View Activity</button>
+    </div>`).join('')}
+  </div>
+  <div class="wb-form">
+    <div class="coord-title">➕ Deploy New AI Governor</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Governor Name</label><input class="form-input" id="govName" placeholder="e.g. Governor Titan"/></div>
+      <div class="form-group"><label class="form-label">Personality</label><select class="form-select" id="govPersonality"><option>wise</option><option>friendly</option><option>strategic</option><option>nurturing</option><option>strict</option></select></div>
+    </div>
+    <button class="btn-generate" onclick="deployGovernor()">🤖 Deploy AI Governor</button>
+  </div>`;
+}
+
+// ── MAYORS ──
+function renderMayors() {
+  const mayors = civData.mayors.length ? civData.mayors : [
+    {name:'Mayor Crest',avatar:'🏛️',city_name:'Capital City Alpha',announcements_count:234,events_managed:89,engagement_score:94.2},
+    {name:'Mayor Dawn',avatar:'🌇',city_name:'New Commerce Hub',announcements_count:187,events_managed:67,engagement_score:91.8},
+    {name:'Mayor Vox',avatar:'📢',city_name:'Social District 7',announcements_count:312,events_managed:124,engagement_score:96.5},
+    {name:'Mayor Terra',avatar:'🌱',city_name:'Green Valley',announcements_count:156,events_managed:45,engagement_score:88.3},
+  ];
+  return `
+  <div class="sec-title">🏛️ AI Mayor System <span class="sec-badge">Module 2</span></div>
+  <p class="text-sm text-muted mb-16">AI Mayors manage city activities, post announcements, drive community engagement, and host local events automatically.</p>
+  <div class="grid-2">
+    ${mayors.map(m=>`
+    <div class="mod-card">
+      <div class="mod-header">
+        <div class="mod-icon" style="background:rgba(6,182,212,.15);font-size:22px">${m.avatar}</div>
+        <div><div class="mod-title">${m.name}</div><div class="mod-sub">${m.city_name}</div></div>
+      </div>
+      <div class="grid-3" style="margin-bottom:0;margin-top:12px">
+        <div style="text-align:center"><div class="fw-700" style="color:var(--cyan)">${m.announcements_count}</div><div class="text-xs text-dim">Announcements</div></div>
+        <div style="text-align:center"><div class="fw-700" style="color:var(--pink)">${m.events_managed}</div><div class="text-xs text-dim">Events</div></div>
+        <div style="text-align:center"><div class="fw-700" style="color:var(--green)">${m.engagement_score}%</div><div class="text-xs text-dim">Engagement</div></div>
+      </div>
+      <div class="mod-bar" style="margin-top:14px"><div class="mod-fill" style="width:${m.engagement_score}%;background:linear-gradient(90deg,var(--cyan),var(--green))"></div></div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── COMMUNITY MANAGER ──
+function renderCommunity() {
+  return `
+  <div class="sec-title">🤝 AI Community Manager <span class="sec-badge">Module 3</span></div>
+  <p class="text-sm text-muted mb-16">AI continuously monitors discussions, reports, and engagement across all communities — then suggests improvements, events, and new groups.</p>
+  <div class="grid-3">
+    ${[
+      {icon:'💬',title:'Discussions Monitored',val:'2,847',sub:'Last 24 hours',color:'var(--cyan)'},
+      {icon:'🚨',title:'Reports Processed',val:'43',sub:'Auto-resolved: 38',color:'var(--red)'},
+      {icon:'📈',title:'Engagement Score',val:'91.4%',sub:'↑+3.2% this week',color:'var(--green)'},
+      {icon:'💡',title:'Suggestions Made',val:'127',sub:'Last 7 days',color:'var(--gold)'},
+      {icon:'👥',title:'Groups Recommended',val:'34',sub:'New group ideas',color:'var(--purple)'},
+      {icon:'🎯',title:'Improvement Rate',val:'94%',sub:'Suggestions accepted',color:'var(--accent)'},
+    ].map(s=>`
+    <div class="stat-card"><div class="sc-icon">${s.icon}</div><div class="sc-val" style="color:${s.color}">${s.val}</div><div class="sc-lbl">${s.title}</div><div class="text-xs text-dim mt-8">${s.sub}</div></div>`).join('')}
+  </div>
+  <div class="analytics-container">
+    <div class="coord-title">🤖 Recent AI Suggestions</div>
+    ${[
+      {type:'Event',text:'Host a "Weekend Creator Challenge" in Social Universe — engagement 40% below avg on weekends','conf':94},
+      {type:'Group',text:'Create a "Vietnamese Traders" group — 234 users share similar commerce interests','conf':88},
+      {type:'Content',text:'Pin the "Getting Started Guide" — 67% of new users are missing onboarding content','conf':96},
+      {type:'Event',text:'Organize an "Economy Summit" — market activity spiked 200% this week','conf':91},
+    ].map(s=>`
+    <div class="mod-log-row">
+      <span class="mod-action ${s.type==='Event'?'ma-flagged':s.type==='Group'?'ma-blocked':'ma-warned'}">${s.type}</span>
+      <span class="mod-reason">${s.text}</span>
+      <span class="mod-conf">${s.conf}% confidence</span>
+      <button class="btn-sm btn-outline" onclick="toast('✅ Applied AI suggestion!','success')" style="flex-shrink:0">Apply</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── MODERATION ──
+function renderModeration() {
+  return `
+  <div class="sec-title">🛡️ AI Moderation Network <span class="sec-badge">Module 16</span></div>
+  <p class="text-sm text-muted mb-16">AI detects spam, abuse, scams, and harmful behavior in real-time across all worlds and universes.</p>
+  <div class="grid-4">
+    ${[
+      {icon:'🚫',label:'Spam Blocked',val:'1,234',color:'var(--red)'},
+      {icon:'⚠️',label:'Abuse Flagged',val:'89',color:'var(--gold)'},
+      {icon:'🔍',label:'Scams Detected',val:'23',color:'var(--orange)'},
+      {icon:'✅',label:'False Positive Rate',val:'0.3%',color:'var(--green)'},
+    ].map(s=>`<div class="stat-card"><div class="sc-icon">${s.icon}</div><div class="sc-val" style="color:${s.color}">${s.val}</div><div class="sc-lbl">${s.label}</div></div>`).join('')}
+  </div>
+  <div class="sec-title">🔍 Recent Moderation Actions</div>
+  <div class="mod-list">
+    ${[
+      {action:'BLOCKED',reason:'Spam listing — 47 identical posts in 10 minutes from same seller','conf':99.2},
+      {action:'FLAGGED',reason:'Suspicious transaction pattern — user received 50 payments in 2 hours','conf':94.8},
+      {action:'WARNED',reason:'Aggressive language detected in community discussion thread','conf':87.3},
+      {action:'BLOCKED',reason:'Fake review ring — 12 accounts posting identical 5-star reviews','conf':98.7},
+      {action:'FLAGGED',reason:'New account attempting high-value transaction without KYC','conf':91.2},
+    ].map(l=>`
+    <div class="mod-log-row">
+      <span class="mod-action ${l.action==='BLOCKED'?'ma-blocked':l.action==='FLAGGED'?'ma-flagged':'ma-warned'}">${l.action}</span>
+      <span class="mod-reason">${l.reason}</span>
+      <span class="mod-conf">${l.conf}% confidence</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── EVENTS ──
+function renderEvents() {
+  const evts = civData.events.length ? civData.events : [
+    {title:'Universe Grand Festival 2026',description:'Annual celebration across all universes',event_type:'festival',participants:45234,status:'upcoming'},
+    {title:'AI Economy Summit',description:'AI-powered market analysis and predictions',event_type:'competition',participants:12034,status:'active'},
+    {title:'Creator Championship',description:'Best creator content competition',event_type:'competition',participants:8921,status:'upcoming'},
+    {title:'Community Builders Cup',description:'Who can grow the largest community?',event_type:'challenge',participants:23410,status:'active'},
+    {title:'Trade Wars Season 3',description:'Cross-universe trading competition',event_type:'competition',participants:34120,status:'upcoming'},
+  ];
+  const typeMap = {festival:'et-festival 🎊',competition:'et-competition 🏆',challenge:'et-challenge ⚔️'};
+  return `
+  <div class="sec-title">🎉 AI Event Generator <span class="sec-badge">Module 4</span></div>
+  <p class="text-sm text-muted mb-16">AI automatically creates community events, competitions, festivals, and challenges tailored to each world's needs.</p>
+  <div class="grid-auto">
+    ${evts.map(e=>{const[cls,ico]=(typeMap[e.event_type]||'et-challenge ⚡').split(' ');return`
+    <div class="event-card">
+      <div class="event-type-badge ${cls}">${ico} ${e.event_type}</div>
+      <div class="event-title">${e.title}</div>
+      <div class="event-desc">${e.description}</div>
+      <div class="event-meta">
+        <span>👥 ${fmtBig(e.participants)} joined</span>
+        <span class="tag ${e.status==='active'?'tag-active':'tag-upcoming'}">${e.status}</span>
+      </div>
+      <button class="btn-sm btn-primary" style="margin-top:12px;width:100%" onclick="toast('🎉 Joining event...','success')">Join Event</button>
+    </div>`;}).join('')}
+  </div>
+  <div class="wb-form">
+    <div class="coord-title">⚡ Generate New AI Event</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Event Type</label><select class="form-select" id="evtType"><option>festival</option><option>competition</option><option>challenge</option><option>community</option></select></div>
+      <div class="form-group"><label class="form-label">Target World</label><input class="form-input" id="evtWorld" placeholder="Any world or leave blank"/></div>
+    </div>
+    <button class="btn-generate" onclick="generateEvent()">🤖 Generate Event with AI</button>
+    <div class="gen-result" id="evtResult"></div>
+  </div>`;
+}
+
+// ── QUESTS ──
+function renderQuests() {
+  const quests = civData.quests.length ? civData.quests : [
+    {title:'First Steps',description:'Complete your profile and join a community',type:'mission',difficulty:'easy',reward_coins:50,completions:8234,participants:9120,status:'active'},
+    {title:'Market Master',description:'Complete 10 successful trades in the marketplace',type:'challenge',difficulty:'medium',reward_coins:200,completions:3421,participants:4012,status:'active'},
+    {title:'Community Builder',description:'Invite 5 friends to your world',type:'mission',difficulty:'easy',reward_coins:100,completions:5123,participants:5891,status:'active'},
+    {title:'Grand Festival',description:'Participate in the Universe Festival',type:'festival',difficulty:'hard',reward_coins:500,completions:1234,participants:2341,status:'active'},
+    {title:'Knowledge Seeker',description:'Read 20 articles in the knowledge base',type:'mission',difficulty:'medium',reward_coins:150,completions:2891,participants:3120,status:'active'},
+    {title:'Economy Champion',description:'Generate 1,000,000₫ in sales',type:'challenge',difficulty:'hard',reward_coins:1000,completions:423,participants:891,status:'active'},
+  ];
+  const questIcons = {mission:'🗺️',challenge:'⚔️',festival:'🎊'};
+  return `
+  <div class="sec-title">⚔️ AI Quest Engine <span class="sec-badge">Module 5</span></div>
+  <p class="text-sm text-muted mb-16">AI generates missions, objectives, community challenges, and reward campaigns to drive engagement and growth.</p>
+  <div class="grid-auto">
+    ${quests.map(q=>`
+    <div class="quest-card">
+      <div class="quest-diff diff-${q.difficulty}">${q.difficulty}</div>
+      <div class="quest-icon">${questIcons[q.type]||'🎯'}</div>
+      <div class="quest-title">${q.title}</div>
+      <div class="quest-desc">${q.description}</div>
+      <div class="quest-reward">🪙 ${q.reward_coins} SP Coins</div>
+      <div class="quest-prog">
+        <div class="prog-label"><span>${fmtBig(q.completions)} completed</span><span>${fmtBig(q.participants)} joined</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,Math.round(q.completions/q.participants*100)||50)}%"></div></div>
+      </div>
+      <button class="btn-sm btn-primary" style="margin-top:12px;width:100%" onclick="toast('⚔️ Quest accepted!','success')">Accept Quest</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── KNOWLEDGE ──
+function renderKnowledge() {
+  const arts = civData.knowledge.length ? civData.knowledge : [
+    {title:'SafePass Universe History',content:'SafePass Universe was founded in 2024 as the first AI-powered civilization platform in Vietnam...',category:'history',views:45231},
+    {title:'Economy Guide 2026',content:'Complete guide to trading, escrow, and earning in the SafePass ecosystem...',category:'economy',views:32014},
+    {title:'Community Standards',content:'Guidelines for respectful interaction and community building across all worlds...',category:'governance',views:28934},
+    {title:'Creator Handbook',content:'Everything creators need to know about growing their audience and monetizing content...',category:'creator',views:19234},
+    {title:'World Building Manual',content:'Step-by-step guide to creating and managing your own world...',category:'world',views:15823},
+  ];
+  return `
+  <div class="sec-title">📚 AI Knowledge Engine <span class="sec-badge">Module 6</span></div>
+  <p class="text-sm text-muted mb-16">AI maintains world history, community history, and event history — and auto-generates summaries for every universe.</p>
+  <div class="grid-auto">
+    ${arts.map(a=>`
+    <div class="kb-card">
+      <div class="kb-cat kb-${a.category}">${a.category}</div>
+      <div class="kb-title">${a.title}</div>
+      <div class="kb-preview">${a.content.substring(0,100)}...</div>
+      <div class="kb-footer"><span>👁️ ${fmtBig(a.views)} views</span><span class="tag tag-active">Auto-generated</span></div>
+      <button class="btn-sm btn-outline" style="margin-top:12px;width:100%" onclick="toast('📚 Opening article...','info')">Read Article</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── DISCOVERY ENGINE ──
+function renderDiscovery() {
+  return `
+  <div class="sec-title">🔭 AI Discovery Engine <span class="sec-badge">Module 14</span></div>
+  <p class="text-sm text-muted mb-16">AI recommends worlds, communities, creators, businesses, and events personalized to each user.</p>
+  <div class="grid-3">
+    ${[
+      {icon:'🌌',type:'Worlds',items:['Social Universe Prime','Commerce Galaxy X','Gaming World Delta'],reason:'Based on your activity'},
+      {icon:'👥',type:'Communities',items:['Vietnamese Traders','Creator Network VN','Tech Enthusiasts Asia'],reason:'Similar interests'},
+      {icon:'🎬',type:'Creators',items:['@CreatorKing','@TechGuru','@MarketMaster'],reason:'Trending in your area'},
+      {icon:'🏢',type:'Businesses',items:['SafeShop Pro','TechGear VN','Fashion Forward'],reason:'You might like these'},
+      {icon:'🎉',type:'Events',items:['Universe Festival 2026','Creator Championship','Trade Wars S3'],reason:'Starting soon'},
+      {icon:'📦',type:'Products',items:['iPhone 16 Pro','AirPods Max','MacBook Pro M4'],reason:'Trending this week'},
+    ].map(d=>`
+    <div class="analytics-container" style="margin-bottom:0">
+      <div class="coord-title">${d.icon} ${d.type} <span class="text-xs text-dim">${d.reason}</span></div>
+      ${d.items.map(it=>`<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><span class="text-sm">${it}</span><button class="btn-sm btn-outline" onclick="toast('✅ Added to your list!','success')">Save</button></div>`).join('')}
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── NPCs ──
+function renderNPCs() {
+  const npcs = civData.npcs.length ? civData.npcs : [
+    {name:'Sage Lumis',avatar:'🧙',role:'World Guide',personality:'wise',conversations:45821,recommendations_given:23410},
+    {name:'Trader Kira',avatar:'🛒',role:'Market Assistant',personality:'helpful',conversations:32014,recommendations_given:18920},
+    {name:'Guard Rex',avatar:'⚔️',role:'Security NPC',personality:'stern',conversations:8234,recommendations_given:2341},
+    {name:'Healer Mira',avatar:'💊',role:'Support NPC',personality:'caring',conversations:21034,recommendations_given:15820},
+    {name:'Explorer Jin',avatar:'🗺️',role:'Discovery NPC',personality:'adventurous',conversations:18923,recommendations_given:12034},
+  ];
+  return `
+  <div class="sec-title">🧙 AI NPC System <span class="sec-badge">Module 7</span></div>
+  <p class="text-sm text-muted mb-16">AI characters that talk with users, guide them through worlds, recommend content, and explain rules — 24/7.</p>
+  <div class="grid-auto" style="margin-bottom:24px">
+    ${npcs.map(n=>`
+    <div class="npc-card">
+      <div class="npc-avatar">${n.avatar}<div class="npc-dot"></div></div>
+      <div class="npc-info">
+        <div class="npc-name">${n.name}</div>
+        <div class="npc-role">${n.role} • ${n.personality}</div>
+        <div class="npc-stat">💬 ${fmtBig(n.conversations)} chats • 💡 ${fmtBig(n.recommendations_given)} tips</div>
+      </div>
+      <button class="btn-chat" onclick="openNPCChat('${n.name}','${n.avatar}','${n.role}')">Chat</button>
+    </div>`).join('')}
+  </div>
+  <div class="chat-panel" id="npcChatPanel" style="display:none">
+    <div class="chat-header">
+      <div id="npcChatAvatar" style="font-size:24px"></div>
+      <div><div class="fw-700" id="npcChatName"></div><div class="text-xs text-dim" id="npcChatRole"></div></div>
+      <div class="ai-pulse" style="margin-left:auto"></div>
+    </div>
+    <div class="chat-messages" id="npcMessages"></div>
+    <div class="chat-input-area">
+      <input class="chat-input" id="npcInput" placeholder="Ask your NPC anything..." onkeydown="if(event.key==='Enter')sendNPCMsg()"/>
+      <button class="btn-send" onclick="sendNPCMsg()">Send</button>
+    </div>
+  </div>`;
+}
+
+// ── SOCIAL GRAPH ──
+function renderSocialGraph() {
+  return `
+  <div class="sec-title">🕸️ AI Social Graph Evolution <span class="sec-badge">Module 15</span></div>
+  <p class="text-sm text-muted mb-16">AI continuously learns relationships, interests, and behaviors to improve recommendations across the entire platform.</p>
+  <div class="grid-4">
+    ${[
+      {icon:'🔗',label:'Connections Mapped',val:'2.4M',color:'var(--cyan)'},
+      {icon:'❤️',label:'Interests Tracked',val:'847',color:'var(--pink)'},
+      {icon:'🧠',label:'Behaviors Learned',val:'12.8M',color:'var(--purple)'},
+      {icon:'🎯',label:'Rec Accuracy',val:'94.7%',color:'var(--green)'},
+    ].map(s=>`<div class="stat-card"><div class="sc-icon">${s.icon}</div><div class="sc-val" style="color:${s.color}">${s.val}</div><div class="sc-lbl">${s.label}</div></div>`).join('')}
+  </div>
+  <div class="analytics-container">
+    <div class="coord-title">📊 Graph Insights</div>
+    ${[
+      ['🌐','Average connections per user','47.3 connections'],
+      ['🔥','Most connected community','Social Universe Prime — 125K nodes'],
+      ['💡','Top interest cluster','E-commerce & Trading (34% of users)'],
+      ['📈','Graph growth rate','↑+12% connections this week'],
+      ['🎯','Recommendation CTR','23.4% (industry avg: 8%)'],
+    ].map(([i,l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span class="text-sm text-muted">${i} ${l}</span><span class="fw-700">${v}</span></div>`).join('')}
+  </div>`;
+}
+
+// ── CREATOR COACH ──
+function renderCreatorCoach() {
+  return `
+  <div class="sec-title">🎬 AI Creator Coach <span class="sec-badge">Module 10</span></div>
+  <p class="text-sm text-muted mb-16">AI helps creators grow their audience, improve content quality, and optimize engagement strategies.</p>
+  <div class="grid-3">
+    ${[
+      {creator:'@CreatorKing',advice:'Post 3x per day — your peak engagement is 7PM-9PM',metric:'↑+234% reach',type:'Timing'},
+      {creator:'@TechGuru',advice:'Add more video reels — your reel views are 4x your post views',metric:'↑+189% engagement',type:'Format'},
+      {creator:'@MarketQueen',advice:'Collaborate with @TechGuru — 67% audience overlap detected',metric:'↑+45K potential reach',type:'Collab'},
+    ].map(c=>`
+    <div class="mod-card">
+      <div class="mod-header">
+        <div class="mod-icon" style="background:rgba(236,72,153,.15)">🎬</div>
+        <div><div class="mod-title">${c.creator}</div><div class="mod-sub">AI Coaching Session</div></div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:12px;font-size:13px;color:var(--text2);line-height:1.6">💡 ${c.advice}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="tag tag-active">${c.metric}</span>
+        <span style="font-size:11px;color:var(--text3)">${c.type} tip</span>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── ECONOMY ANALYZER ──
+function renderEconomy() {
+  return `
+  <div class="sec-title">💰 AI Economy Analyzer <span class="sec-badge">Module 8</span></div>
+  <p class="text-sm text-muted mb-16">AI analyzes sales, transactions, demand, and supply — then provides recommendations to grow the ecosystem economy.</p>
+  <div class="grid-4">
+    ${[
+      {icon:'📈',label:'Total GMV',val:'2.4B₫',color:'var(--green)'},
+      {icon:'🔄',label:'Transactions Today',val:'12,847',color:'var(--cyan)'},
+      {icon:'📊',label:'Supply-Demand Ratio',val:'1.23',color:'var(--gold)'},
+      {icon:'💹',label:'Economy Health',val:'94.2/100',color:'var(--accent)'},
+    ].map(s=>`<div class="stat-card"><div class="sc-icon">${s.icon}</div><div class="sc-val" style="color:${s.color}">${s.val}</div><div class="sc-lbl">${s.label}</div></div>`).join('')}
+  </div>
+  <div class="analytics-container">
+    <div class="coord-title">🤖 AI Recommendations</div>
+    ${[
+      {level:'high',text:'⚠️ Electronics category oversupplied — 3.2x more sellers than buyers. Recommend: pause new electronics listings for 48h'},
+      {level:'medium',text:'📈 Fashion demand up 180% — only 12 sellers. Recommend: incentivize sellers with reduced fees this weekend'},
+      {level:'low',text:'💡 Peak transaction time is 7-9PM daily. Recommend: schedule flash sales at 6PM for maximum conversion'},
+      {level:'high',text:'🚨 Escrow completion rate dropped to 87% (normal: 94%). Recommend: automatic buyer reminder at 36h mark'},
+    ].map(r=>`
+    <div class="mod-log-row">
+      <span class="mod-action ${r.level==='high'?'ma-blocked':r.level==='medium'?'ma-flagged':'ma-warned'}">${r.level.toUpperCase()}</span>
+      <span class="mod-reason">${r.text}</span>
+      <button class="btn-sm btn-outline" onclick="toast('✅ Recommendation applied!','success')" style="flex-shrink:0">Apply</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── MARKETPLACE AI ──
+function renderMarketplaceAI() {
+  return `
+  <div class="sec-title">🏪 AI Marketplace Manager <span class="sec-badge">Module 9</span></div>
+  <p class="text-sm text-muted mb-16">AI detects fraud, suspicious listings, and unusual activity — continuously improving marketplace quality and trust.</p>
+  <div class="grid-4">
+    ${[
+      {icon:'🚫',label:'Fraud Detected',val:'23',color:'var(--red)'},
+      {icon:'⚠️',label:'Suspicious Listings',val:'67',color:'var(--gold)'},
+      {icon:'✅',label:'Verified Listings',val:'12,847',color:'var(--green)'},
+      {icon:'🛡️',label:'Trust Score Avg',val:'89.3%',color:'var(--cyan)'},
+    ].map(s=>`<div class="stat-card"><div class="sc-icon">${s.icon}</div><div class="sc-val" style="color:${s.color}">${s.val}</div><div class="sc-lbl">${s.label}</div></div>`).join('')}
+  </div>
+  <div class="sec-title">🔍 Recent Detections</div>
+  <div class="mod-list">
+    ${[
+      {action:'BLOCKED',reason:'Duplicate listing — same product posted 12 times with different prices to test market'},
+      {action:'FLAGGED',reason:'Unusually low price — iPhone 16 Pro listed at 1,000₫ (market avg 28,000,000₫)'},
+      {action:'FLAGGED',reason:'New seller, high value — account 2 hours old attempting to sell luxury goods worth 50M₫'},
+      {action:'WARNED',reason:'Description mismatch — product images show different item than title'},
+    ].map(l=>`
+    <div class="mod-log-row">
+      <span class="mod-action ${l.action==='BLOCKED'?'ma-blocked':'ma-flagged'}">${l.action}</span>
+      <span class="mod-reason">${l.reason}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── BUSINESS AI ──
+function renderBusinessAI() {
+  return `
+  <div class="sec-title">📈 AI Business Assistant <span class="sec-badge">Module 11</span></div>
+  <p class="text-sm text-muted mb-16">AI helps businesses create campaigns, analyze sales performance, and continuously improve their results.</p>
+  <div class="grid-3">
+    ${[
+      {biz:'SafeShop Pro',revenue:'240M₫',tip:'Run flash sale this Friday 6PM — 67% of your customers are online then',action:'Create Campaign'},
+      {biz:'TechGear VN',revenue:'180M₫',tip:'Your product photos have <3 images avg — adding 5+ images increases conversion by 34%',action:'Optimize Listings'},
+      {biz:'Fashion Forward',revenue:'120M₫',tip:'Bundle your top 3 products — customers who buy 2+ items spend 2.4x more',action:'Create Bundle'},
+    ].map(b=>`
+    <div class="mod-card">
+      <div class="mod-header">
+        <div class="mod-icon" style="background:rgba(16,185,129,.15)">🏢</div>
+        <div><div class="mod-title">${b.biz}</div><div class="mod-sub">Revenue: ${b.revenue}/month</div></div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:12px;font-size:13px;color:var(--text2);line-height:1.6">🤖 ${b.tip}</div>
+      <button class="btn-sm btn-primary" onclick="toast('📈 ${b.action} started!','success')">${b.action}</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── WORLD BUILDER ──
+function renderWorldBuilder() {
+  const templates = [
+    {icon:'🏙️',name:'City State'},
+    {icon:'🌿',name:'Nature World'},
+    {icon:'🚀',name:'Sci-Fi Universe'},
+    {icon:'⚔️',name:'Fantasy Realm'},
+    {icon:'💼',name:'Business Hub'},
+    {icon:'🎓',name:'Academy World'},
+  ];
+  return `
+  <div class="sec-title">🌍 AI World Builder <span class="sec-badge">Module 12</span></div>
+  <p class="text-sm text-muted mb-16">AI assists world owners by generating descriptions, structures, community templates, and governance frameworks.</p>
+  <div class="wb-form">
+    <div class="coord-title">🤖 AI World Generator</div>
+    <div class="template-grid">
+      ${templates.map((t,i)=>`<div class="tmpl-card ${i===0?'sel':''}" onclick="selectTemplate(this,'${t.name}')"><div class="tmpl-icon">${t.icon}</div><div class="tmpl-name">${t.name}</div></div>`).join('')}
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">World Name</label><input class="form-input" id="wbName" placeholder="e.g. Dragon Kingdom"/></div>
+      <div class="form-group"><label class="form-label">Focus</label><select class="form-select" id="wbFocus"><option>commerce</option><option>social</option><option>gaming</option><option>education</option><option>culture</option></select></div>
+    </div>
+    <div class="form-group mb-16"><label class="form-label">Additional Context (optional)</label><textarea class="form-input form-textarea" id="wbContext" placeholder="Describe your vision..."></textarea></div>
+    <button class="btn-generate" onclick="generateWorld()">🤖 Generate World with AI</button>
+    <div class="gen-result" id="wbResult"></div>
+  </div>`;
+}
+
+// ── AGENT MARKETPLACE ──
+function renderAgentMarketplace() {
+  const agents = civData.agents.length ? civData.agents : [
+    {name:'ShopBot Pro',avatar:'🛒',role:'Shop Assistant',description:'AI-powered shopping assistant that helps customers find products and close sales',price_coins:500,rating:4.8,deployments:2341},
+    {name:'CommunityMind',avatar:'🌐',role:'Community Manager',description:'Monitors discussions, engages members, and grows community health automatically',price_coins:800,rating:4.9,deployments:1823},
+    {name:'EventHost AI',avatar:'🎉',role:'Event Host',description:'Creates and manages community events, competitions, and festivals automatically',price_coins:600,rating:4.7,deployments:1234},
+    {name:'LearnBot',avatar:'📚',role:'Learning Assistant',description:'Personalizes learning paths and tracks progress for each user',price_coins:400,rating:4.6,deployments:3421},
+    {name:'TrustGuard',avatar:'🛡️',role:'Moderation Agent',description:'Detects spam, abuse, and suspicious behavior in real-time across all channels',price_coins:1000,rating:4.9,deployments:892},
+  ];
+  return `
+  <div class="sec-title">🤖 AI Agent Marketplace <span class="sec-badge">Module 17</span></div>
+  <p class="text-sm text-muted mb-16">Create, deploy, and monetize AI agents. Shop assistants, community managers, event hosts, learning assistants — all available to deploy in your world.</p>
+  <div class="grid-auto">
+    ${agents.map(a=>`
+    <div class="agent-card">
+      <div class="agent-avatar">${a.avatar}</div>
+      <div class="agent-name">${a.name}</div>
+      <div class="agent-role">${a.role}</div>
+      <div class="agent-desc">${a.description}</div>
+      <div class="agent-meta">
+        <span>🚀 ${fmtBig(a.deployments)} deployed</span>
+      </div>
+      <div class="agent-footer">
+        <div class="rating">⭐ ${a.rating}</div>
+        <div class="price">🪙 ${a.price_coins} coins</div>
+        <button class="btn-sm btn-primary" onclick="deployAgent('${a.name}')">Deploy</button>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div class="wb-form">
+    <div class="coord-title">➕ Create Your Own AI Agent</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Agent Name</label><input class="form-input" id="agentName" placeholder="e.g. MyShopBot"/></div>
+      <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="agentRole"><option>Shop Assistant</option><option>Community Manager</option><option>Event Host</option><option>Learning Assistant</option><option>Moderation Agent</option></select></div>
+    </div>
+    <div class="form-group mb-16"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="agentDesc" placeholder="What does your agent do?"></textarea></div>
+    <button class="btn-generate" onclick="createAgent()">🤖 Create AI Agent</button>
+  </div>`;
+}
+
+// ── COORDINATION ──
+function renderCoordination() {
+  return `
+  <div class="sec-title">⚡ Multi-AI Coordination <span class="sec-badge">Module 19</span></div>
+  <p class="text-sm text-muted mb-16">Multiple AI systems collaborate in real-time to deliver coordinated governance, economy management, event creation, and user support.</p>
+  <div class="coord-panel">
+    <div class="coord-title">🤖 Active AI Collaboration Network</div>
+    <div class="ai-flow">
+      ${[
+        {icon:'🌌',name:'Governor AI',status:'Governing'},
+        {icon:'💰',name:'Economy AI',status:'Analyzing'},
+        {icon:'🎉',name:'Event AI',status:'Generating'},
+        {icon:'🛡️',name:'Moderation AI',status:'Monitoring'},
+        {icon:'🔭',name:'Discovery AI',status:'Recommending'},
+      ].map((n,i,arr)=>`
+      <div class="ai-node">
+        <div class="ai-node-icon">${n.icon}</div>
+        <div class="ai-node-name">${n.name}</div>
+        <div class="ai-node-status">● ${n.status}</div>
+        <div class="signal-bar"><div class="sig"></div><div class="sig"></div><div class="sig"></div><div class="sig"></div></div>
+      </div>
+      ${i<arr.length-1?'<div class="ai-connector">⟷</div>':''}`).join('')}
+    </div>
+  </div>
+  <div class="grid-3">
+    ${[
+      {title:'🌌 + 💰 Coordination',desc:'Governor AI + Economy AI detected market slowdown → Auto-created flash sale event + reduced escrow fees for 24h → +34% transaction volume'},
+      {title:'🎉 + 🛡️ Coordination',desc:'Event AI + Moderation AI: Festival event created → Moderation enabled stricter rules → Zero incidents during 45K-participant event'},
+      {title:'🔭 + 🤝 Coordination',desc:'Discovery AI + Community AI: Identified 234 isolated users → Recommended matching communities → 89% joined within 48 hours'},
+    ].map(c=>`
+    <div class="analytics-container" style="margin-bottom:0">
+      <div class="coord-title" style="font-size:14px">${c.title}</div>
+      <p class="text-sm text-muted" style="line-height:1.7">${c.desc}</p>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── AUTONOMOUS WORLDS ──
+function renderAutonomous() {
+  return `
+  <div class="sec-title">🚀 Foundation for Autonomous Worlds <span class="sec-badge">Module 20</span></div>
+  <p class="text-sm text-muted mb-16">Architecture for self-running communities, economies, and events — always human-supervised but AI-operated.</p>
+  <div class="grid-auto">
+    ${[
+      {icon:'🤖',title:'Self-Running Communities',desc:'AI manages member onboarding, content moderation, engagement campaigns, and growth strategies without manual intervention.',status:'Architecture Ready'},
+      {icon:'💰',title:'Self-Running Economies',desc:'AI balances supply and demand, adjusts fees, detects fraud, and optimizes marketplace health in real-time.',status:'Beta Active'},
+      {icon:'🎉',title:'Self-Running Events',desc:'AI automatically generates, promotes, runs, and analyzes community events tailored to each world\'s culture.',status:'Live'},
+      {icon:'🏛️',title:'AI Governance Council',desc:'Multiple AI governors coordinate to manage large universes — each specializing in different domains.',status:'In Development'},
+      {icon:'📊',title:'Autonomous Analytics',desc:'Continuous monitoring and reporting across all universe metrics — no human analyst needed.',status:'Live'},
+      {icon:'🌐',title:'Cross-Universe Protocols',desc:'Standard protocols for AI systems in different universes to communicate and collaborate safely.',status:'Architecture Ready'},
+    ].map(a=>`
+    <div class="auto-card">
+      <div class="auto-icon">${a.icon}</div>
+      <div class="auto-title">${a.title}</div>
+      <div class="auto-desc">${a.desc}</div>
+      <div class="auto-status"><div class="auto-dot"></div>${a.status}</div>
+    </div>`).join('')}
+  </div>
+  <div class="coord-panel" style="margin-top:8px">
+    <div class="coord-title">👁️ Human Supervision Layer</div>
+    <p class="text-sm text-muted mb-16">All autonomous AI actions are logged, auditable, and reversible. Human admins retain full override control at all times.</p>
+    <div class="grid-4">
+      ${[
+        {icon:'📋',label:'AI Actions Today',val:'48,234',color:'var(--cyan)'},
+        {icon:'👁️',label:'Human Reviews',val:'127',color:'var(--gold)'},
+        {icon:'↩️',label:'Actions Reversed',val:'3',color:'var(--red)'},
+        {icon:'✅',label:'Autonomy Score',val:'99.4%',color:'var(--green)'},
+      ].map(s=>`<div style="text-align:center;padding:16px;background:var(--bg3);border-radius:12px"><div style="font-size:22px">${s.icon}</div><div class="sc-val" style="color:${s.color};font-size:20px;margin:8px 0">${s.val}</div><div class="text-xs text-dim">${s.label}</div></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ── NPC CHAT ──
+let activenpc = {name:'Sage Lumis',avatar:'🧙',role:'World Guide'};
+const npcResponses = {
+  default: ['Chào bạn! Tôi là AI của SafePass Universe. Tôi có thể giúp gì cho bạn?','Tuyệt vời! Bạn đã khám phá được nhiều thứ thú vị trong universe này chưa?','Hãy để tôi hướng dẫn bạn qua SafePass Universe nhé!'],
+  help: ['Bạn có thể mua bán vé sự kiện, tham gia cộng đồng, tạo thế giới riêng, và kiếm SP Coins!','Để bắt đầu, hãy hoàn thiện hồ sơ và tham gia một cộng đồng phù hợp với bạn.'],
+  market: ['Thị trường SafePass có hơn 12,847 sản phẩm đang được bán!','Hệ thống escrow đảm bảo mọi giao dịch đều an toàn 100%.'],
+  quest: ['Hiện có 6 quest đang chờ bạn khám phá! Quest dễ nhất là "First Steps" với phần thưởng 50 SP Coins.'],
+};
+function openNPCChat(name, avatar, role) {
+  activenpc = {name, avatar, role};
+  document.getElementById('npcChatPanel').style.display = 'block';
+  document.getElementById('npcChatName').textContent = name;
+  document.getElementById('npcChatAvatar').textContent = avatar;
+  document.getElementById('npcChatRole').textContent = role;
+  const msgs = document.getElementById('npcMessages');
+  msgs.innerHTML = `<div class="msg msg-ai">Xin chào! Tôi là ${name}, ${role} của SafePass Universe. Tôi có thể giúp gì cho bạn hôm nay? 😊</div>`;
+  document.getElementById('npcInput').focus();
+}
+function sendNPCMsg() {
+  const inp = document.getElementById('npcInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  const msgs = document.getElementById('npcMessages');
+  msgs.innerHTML += `<div class="msg msg-user">${text}</div>`;
+  inp.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+  setTimeout(() => {
+    const lower = text.toLowerCase();
+    let pool = npcResponses.default;
+    if (lower.includes('help')||lower.includes('giúp')) pool = npcResponses.help;
+    else if (lower.includes('market')||lower.includes('mua')||lower.includes('bán')) pool = npcResponses.market;
+    else if (lower.includes('quest')||lower.includes('nhiệm')) pool = npcResponses.quest;
+    const reply = pool[Math.floor(Math.random()*pool.length)];
+    msgs.innerHTML += `<div class="msg msg-ai">${reply}</div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 700);
+}
+
+// ── WORLD BUILDER GENERATE ──
+let selTemplate = 'City State';
+function selectTemplate(el, name) {
+  document.querySelectorAll('.tmpl-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  selTemplate = name;
+}
+const worldTemplates = {
+  'City State': {desc:'A thriving urban civilization with commerce districts, government halls, and cultural centers.',governance:'Democratic council with elected AI governors. 3-month terms.',structures:'City Hall, Commerce Square, Cultural Center, Innovation Hub, Security Tower',rules:'All citizens must complete KYC. Commerce fee: 2%. Disputes resolved within 48h.'},
+  'Nature World': {desc:'An eco-conscious world built around sustainable living and nature preservation.',governance:'Council of Elders guided by community consensus.',structures:'Forest Sanctuary, River Market, Healing Gardens, Star Observatory, Council Grove',rules:'Eco-friendly products only. Carbon-neutral events. Nature preservation fund: 1% of all sales.'},
+  'Sci-Fi Universe': {desc:'An advanced space civilization with cutting-edge technology and interstellar trade.',governance:'AI Supreme Council with human oversight committee.',structures:'Space Station Alpha, Tech Labs, Quantum Market, Neural Network Hub, Defense Grid',rules:'Technology must be verified authentic. IP protection enforced. Trade tariffs: 3%.'},
+};
+function generateWorld() {
+  const name = document.getElementById('wbName').value.trim() || 'New World';
+  const focus = document.getElementById('wbFocus').value;
+  const tmpl = worldTemplates[selTemplate] || worldTemplates['City State'];
+  const result = `🌍 WORLD: ${name}\n📋 Template: ${selTemplate} • Focus: ${focus}\n\n📝 Description:\n${tmpl.desc}\n\n🏛️ Governance:\n${tmpl.governance}\n\n🏗️ Key Structures:\n${tmpl.structures}\n\n📜 Core Rules:\n${tmpl.rules}\n\n✨ AI Recommendation: Start with 100 founding members and host a "World Launch Festival" in week 1 to build momentum.`;
+  const el = document.getElementById('wbResult');
+  el.style.display = 'block';
+  el.textContent = result;
+  toast('🌍 World generated by AI!','success');
+}
+
+// ── EVENT GENERATE ──
+const eventTemplates = {
+  festival: ['Universe Grand Harvest Festival','Cultural Exchange Extravaganza','Spring Celebration 2026','Universe Anniversary Gala'],
+  competition: ['Ultimate Trader Championship','Creator Wars Season 4','Build-a-World Contest','Fastest Fingers Market Challenge'],
+  challenge: ['30-Day Community Growth Challenge','Eco-Warrior Initiative','Knowledge Masters Quiz','Referral Race to 1000'],
+  community: ['New Member Welcome Week','Cross-Universe Meet & Greet','Community Town Hall','Feedback & Ideas Forum'],
+};
+function generateEvent() {
+  const type = document.getElementById('evtType').value;
+  const world = document.getElementById('evtWorld').value || 'All Worlds';
+  const names = eventTemplates[type] || eventTemplates.community;
+  const name = names[Math.floor(Math.random()*names.length)];
+  const el = document.getElementById('evtResult');
+  el.style.display = 'block';
+  el.textContent = `🎉 EVENT GENERATED\n\nTitle: ${name}\nType: ${type} • World: ${world}\nParticipants Target: ${fmtBig(Math.floor(Math.random()*50000+1000))}\nReward Pool: ${fmtBig(Math.floor(Math.random()*500+100))} SP Coins\nDuration: ${Math.floor(Math.random()*6+1)} days\n\nAI will auto-promote this event to matching users!`;
+  toast('🎉 Event generated!','success');
+}
+
+// ── ACTIONS ──
+function deployGovernor() {
+  const name = document.getElementById('govName')?.value?.trim();
+  if (!name) { toast('Enter a governor name!','error'); return; }
+  toast(`🌌 Governor "${name}" deployed!`,'success');
+  document.getElementById('govName').value = '';
+}
+function deployAgent(name) {
+  if (!token) { toast('Please log in to deploy agents','error'); return; }
+  toast(`🤖 ${name} is being deployed to your world!`,'success');
+}
+function createAgent() {
+  const name = document.getElementById('agentName')?.value?.trim();
+  if (!name) { toast('Enter an agent name!','error'); return; }
+  toast(`🤖 Agent "${name}" created and ready to deploy!`,'success');
+}
+function handleSearch(q) {
+  if (!q) return;
+  toast(`🔍 Searching for "${q}" across all AI modules...`,'info');
+}
+
+// ── UTILS ──
+function fmt(n) { return Number(n||0).toLocaleString('vi-VN'); }
+function fmtBig(n) { n=Number(n||0); if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(0)+'K'; return n.toLocaleString('vi-VN'); }
+function toast(msg,type='info') { const t=document.createElement('div'); t.className=`toast ${type}`; t.innerHTML=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+
+// ── INIT ──
+render(currentView); // Render immediately with fallback data
+loadAll();           // Then fetch real data and re-render
+</script>
+</body>
+</html>
