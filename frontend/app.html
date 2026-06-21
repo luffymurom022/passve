@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>SafePass App — Super App Ecosystem</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--bg4:#22223a;
+  --brand:#f97316;--brandL:#1a0f06;--brandD:#ea6c0a;
+  --text:#f1f1f3;--sub:#9898b0;--hint:#5a5a7a;--border:#2a2a40;
+  --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;
+  --gold:#f59e0b;--teal:#14b8a6;
+  --r:14px;--r2:10px;--shadow:0 4px 20px rgba(0,0,0,.4);
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;overflow-x:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:240px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;overflow-y:auto}
+.sidebar-logo{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-logo .logo-icon{width:36px;height:36px;background:var(--brand);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sidebar-logo .logo-text{font-weight:800;font-size:16px;letter-spacing:-0.3px}
+.sidebar-logo .logo-sub{font-size:10px;color:var(--sub)}
+.sidebar-nav{padding:8px 8px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:var(--r2);cursor:pointer;color:var(--sub);font-size:14px;font-weight:500;transition:all .18s;margin-bottom:2px;user-select:none}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--brandL);color:var(--brand);font-weight:700}
+.nav-item .ni{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg3);flex-shrink:0}
+.nav-item.active .ni{background:rgba(249,115,22,.2)}
+.nav-sep{height:1px;background:var(--border);margin:8px 0}
+.nav-label{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;padding:6px 10px 2px;font-weight:700}
+.sidebar-footer{padding:12px;border-top:1px solid var(--border)}
+.user-card{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:var(--r2);padding:10px;cursor:pointer}
+.user-av{width:36px;height:36px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden}
+.user-av img{width:100%;height:100%;object-fit:cover}
+.user-name{font-size:13px;font-weight:700;line-height:1.2}
+.user-lvl{font-size:11px;color:var(--brand)}
+
+/* ── MAIN ── */
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:50}
+.topbar-title{font-weight:800;font-size:17px;flex:1}
+.search-wrap{flex:1;max-width:400px}
+.search-box{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:8px 16px 8px 36px;color:var(--text);font-size:14px;outline:none;transition:border .2s;position:relative}
+.search-box:focus{border-color:var(--brand)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--hint);font-size:15px;pointer-events:none}
+.search-cont{position:relative}
+.btn{padding:8px 16px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .18s}
+.btn-brand{background:var(--brand);color:#fff}
+.btn-brand:hover{background:var(--brandD)}
+.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg4)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:12px}
+.content{padding:20px;flex:1}
+.page{display:none}
+.page.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* ── STATS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center}
+.stat-val{font-size:24px;font-weight:800;line-height:1}
+.stat-lbl{font-size:11px;color:var(--sub);margin-top:4px}
+.stat-ic{font-size:28px;margin-bottom:6px}
+
+/* ── MINI APPS ── */
+.mini-app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mini-app-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 8px;text-align:center;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:8px}
+.mini-app-item:hover{border-color:var(--brand);transform:translateY(-2px)}
+.mini-app-ic{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto}
+.mini-app-name{font-size:12px;font-weight:700;line-height:1.3;text-align:center}
+.mini-app-cat{font-size:10px;color:var(--sub)}
+
+/* ── EVENT CARDS ── */
+.event-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .18s}
+.event-card:hover{border-color:var(--brand)}
+.event-img{height:120px;background:linear-gradient(135deg,var(--purple),var(--blue));display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden}
+.event-img img{width:100%;height:100%;object-fit:cover}
+.event-body{padding:12px}
+.event-type{display:inline-block;background:var(--brandL);color:var(--brand);font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-bottom:6px;text-transform:uppercase}
+.event-title{font-size:13px;font-weight:700;margin-bottom:4px;line-height:1.3}
+.event-meta{font-size:11px;color:var(--sub);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.event-actions{display:flex;gap:8px;margin-top:10px}
+
+/* ── SERVICE CARDS ── */
+.svc-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:all .18s}
+.svc-card:hover{border-color:var(--blue)}
+.svc-img{height:100px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:36px}
+.svc-body{padding:12px}
+.svc-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.svc-price{font-size:15px;font-weight:800;color:var(--green);margin-bottom:4px}
+.svc-meta{font-size:11px;color:var(--sub)}
+.svc-type{display:inline-block;background:rgba(59,130,246,.15);color:var(--blue);font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-bottom:6px}
+
+/* ── DIGITAL PRODUCT CARDS ── */
+.dp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:all .18s}
+.dp-card:hover{border-color:var(--purple)}
+.dp-img{height:110px;background:linear-gradient(135deg,var(--purple),#4f46e5);display:flex;align-items:center;justify-content:center;font-size:40px}
+.dp-body{padding:12px}
+.dp-type{display:inline-block;background:rgba(139,92,246,.15);color:var(--purple);font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-bottom:6px;text-transform:uppercase}
+.dp-title{font-size:13px;font-weight:700;margin-bottom:4px;line-height:1.3}
+.dp-price{font-size:15px;font-weight:800;color:var(--green)}
+.dp-meta{font-size:11px;color:var(--sub);margin-top:4px}
+
+/* ── LOYALTY ── */
+.loyalty-hero{background:linear-gradient(135deg,#1a1030,#2d1b5e);border:1px solid #4c2a9e;border-radius:var(--r);padding:24px;margin-bottom:20px;text-align:center}
+.loyalty-level{font-size:40px;margin-bottom:8px}
+.loyalty-pts{font-size:36px;font-weight:900;color:var(--gold)}
+.loyalty-streak{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.15);color:var(--gold);font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;margin-top:10px}
+.level-bar{height:8px;background:var(--bg4);border-radius:4px;margin:12px 0 4px;overflow:hidden}
+.level-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--brand));border-radius:4px;transition:width .6s}
+.level-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--sub)}
+.txn-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.txn-item:last-child{border-bottom:none}
+.txn-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.txn-pts{font-weight:800;font-size:15px;min-width:60px;text-align:right}
+.txn-pts.earn{color:var(--green)}
+.txn-pts.spend{color:var(--red)}
+.leader-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.leader-rank{width:24px;font-weight:800;font-size:14px;color:var(--sub);text-align:center}
+.leader-rank.top{color:var(--gold)}
+
+/* ── SEARCH ── */
+.search-results{margin-top:20px}
+.result-section{margin-bottom:20px}
+.result-section h3{font-size:13px;font-weight:700;color:var(--sub);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.result-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:6px;cursor:pointer;transition:all .18s}
+.result-item:hover{border-color:var(--brand)}
+.result-icon{width:36px;height:36px;border-radius:var(--r2);object-fit:cover;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.result-info{flex:1;min-width:0}
+.result-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-meta{font-size:11px;color:var(--sub)}
+
+/* ── SUBSCRIPTIONS ── */
+.plan-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;transition:all .18s}
+.plan-card:hover{border-color:var(--purple)}
+.plan-tier{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px}
+.tier-basic{background:rgba(148,163,184,.15);color:#94a3b8}
+.tier-standard{background:rgba(59,130,246,.15);color:var(--blue)}
+.tier-premium{background:rgba(139,92,246,.15);color:var(--purple)}
+.plan-price{font-size:24px;font-weight:900;color:var(--text);margin-bottom:4px}
+.plan-price span{font-size:13px;color:var(--sub);font-weight:400}
+.plan-perks{margin:10px 0;list-style:none}
+.plan-perks li{font-size:12px;color:var(--sub);padding:3px 0;padding-left:18px;position:relative}
+.plan-perks li::before{content:'✓';position:absolute;left:0;color:var(--green)}
+
+/* ── DISCOVERY ── */
+.discover-section{margin-bottom:28px}
+.discover-title{font-size:16px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.trending-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.trending-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .18s}
+.trending-item:hover{border-color:var(--brand);transform:translateY(-2px)}
+.trending-img{height:90px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden}
+.trending-img img{width:100%;height:100%;object-fit:cover}
+.trending-body{padding:8px}
+.trending-name{font-size:12px;font-weight:700;line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trending-meta{font-size:10px;color:var(--sub)}
+
+/* ── BOOKING ── */
+.booking-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;gap:14px;margin-bottom:10px;transition:all .18s}
+.booking-card:hover{border-color:var(--teal)}
+.booking-img{width:60px;height:60px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden}
+.booking-img img{width:100%;height:100%;object-fit:cover}
+.booking-info{flex:1}
+.booking-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.booking-price{font-size:16px;font-weight:800;color:var(--green);margin-bottom:4px}
+.booking-meta{font-size:11px;color:var(--sub)}
+.rating-stars{color:var(--gold);font-size:11px}
+
+/* ── AI ASSISTANT ── */
+.ai-chat{display:flex;flex-direction:column;height:calc(100vh - 120px);background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.ai-chat-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.ai-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--blue));display:flex;align-items:center;justify-content:center;font-size:20px}
+.ai-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ai-msg{max-width:75%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.5}
+.ai-msg.bot{background:var(--bg3);border-bottom-left-radius:4px;align-self:flex-start}
+.ai-msg.user{background:var(--brand);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+.ai-input-wrap{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+.ai-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:10px 16px;color:var(--text);font-size:14px;outline:none}
+.ai-input:focus{border-color:var(--brand)}
+.ai-send{width:40px;height:40px;border-radius:50%;background:var(--brand);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 12px}
+.ai-chip{background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .15s}
+.ai-chip:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ── ADMIN ── */
+.admin-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.admin-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:12px}
+.admin-stat-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.admin-stat-info .val{font-size:22px;font-weight:800;line-height:1}
+.admin-stat-info .lbl{font-size:11px;color:var(--sub);margin-top:2px}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px}
+.admin-table th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--sub);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.admin-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.admin-table tr:hover td{background:var(--bg3)}
+
+/* ── FORM ── */
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:var(--sub);font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;color:var(--text);font-size:14px;outline:none;transition:border .2s}
+.form-input:focus{border-color:var(--brand)}
+.form-input::placeholder{color:var(--hint)}
+select.form-input option{background:var(--bg3);color:var(--text)}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:800}
+.modal-close{background:none;border:none;color:var(--sub);font-size:22px;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+
+/* ── BADGES / LEVEL ── */
+.badge-bronze{color:#cd7f32;background:rgba(205,127,50,.15)}
+.badge-silver{color:#c0c0c0;background:rgba(192,192,192,.15)}
+.badge-gold{color:var(--gold);background:rgba(245,158,11,.15)}
+.badge-platinum{color:#e5e4e2;background:rgba(229,228,226,.15)}
+.badge-diamond{color:#b9f2ff;background:rgba(185,242,255,.15)}
+.level-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:800;text-transform:capitalize}
+.level-icon-bronze::before{content:'🥉'}
+.level-icon-silver::before{content:'🥈'}
+.level-icon-gold::before{content:'🥇'}
+.level-icon-platinum::before{content:'💎'}
+.level-icon-diamond::before{content:'💠'}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;right:20px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+
+/* ── MOBILE BOTTOM NAV ── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:200;height:56px}
+.bottom-nav-inner{display:flex;height:100%}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--sub);font-size:10px;font-weight:600;transition:color .15s}
+.bn-item.active{color:var(--brand)}
+.bn-item .bn-icon{font-size:20px;line-height:1}
+
+/* ── LOGIN GATE ── */
+.login-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:12px}
+.login-gate .gate-icon{font-size:60px}
+.login-gate h2{font-size:22px;font-weight:800}
+.login-gate p{color:var(--sub);font-size:14px}
+.login-gate a{color:var(--brand);font-size:14px}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:var(--sub)}
+.empty .empty-icon{font-size:48px;margin-bottom:12px}
+.empty h3{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.empty p{font-size:13px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .stat-grid,.admin-stat-grid{grid-template-columns:repeat(2,1fr)}
+  .mini-app-grid,.trending-grid{grid-template-columns:repeat(3,1fr)}
+  .grid-3{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:700px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding-bottom:60px}
+  .bottom-nav{display:block}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr}
+  .mini-app-grid{grid-template-columns:repeat(4,1fr)}
+  .trending-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-grid,.admin-stat-grid{grid-template-columns:repeat(2,1fr)}
+  .content{padding:12px}
+  .topbar{padding:0 12px}
+  .ai-chat{height:calc(100vh - 180px)}
+}
+@media(max-width:400px){
+  .mini-app-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">SafePass App</div>
+      <div class="logo-sub">Super App Ecosystem</div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-label">Chính</div>
+    <div class="nav-item active" onclick="showPage('home')">
+      <div class="ni">🏠</div>Trang chủ
+    </div>
+    <div class="nav-item" onclick="showPage('discover')">
+      <div class="ni">🔥</div>Khám phá
+    </div>
+    <div class="nav-item" onclick="showPage('search')">
+      <div class="ni">🔍</div>Tìm kiếm
+    </div>
+    <div class="nav-sep"></div>
+    <div class="nav-label">Dịch vụ</div>
+    <div class="nav-item" onclick="showPage('events')">
+      <div class="ni">🎪</div>Sự kiện
+    </div>
+    <div class="nav-item" onclick="showPage('booking')">
+      <div class="ni">📅</div>Đặt lịch
+    </div>
+    <div class="nav-item" onclick="showPage('digital')">
+      <div class="ni">📦</div>Sản phẩm số
+    </div>
+    <div class="nav-item" onclick="showPage('subscriptions')">
+      <div class="ni">⭐</div>Đăng ký
+    </div>
+    <div class="nav-sep"></div>
+    <div class="nav-label">Cá nhân</div>
+    <div class="nav-item" onclick="showPage('loyalty')">
+      <div class="ni">🏆</div>Điểm thưởng
+    </div>
+    <div class="nav-item" onclick="showPage('apps')">
+      <div class="ni">📱</div>Mini Apps
+    </div>
+    <div class="nav-item" onclick="showPage('ai')">
+      <div class="ni">🤖</div>AI Assistant
+    </div>
+    <div class="nav-sep"></div>
+    <div class="nav-label">Khác</div>
+    <div class="nav-item" id="adminNavItem" style="display:none" onclick="showPage('admin')">
+      <div class="ni">🛡️</div>Admin Center
+    </div>
+    <div class="nav-item" onclick="window.location.href='/'">
+      <div class="ni">🏪</div>Marketplace
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-card" id="sidebarUser" onclick="window.location.href='/'">
+      <div class="user-av" id="sidebarAv">👤</div>
+      <div>
+        <div class="user-name" id="sidebarName">Chưa đăng nhập</div>
+        <div class="user-lvl" id="sidebarLvl">Đăng nhập để tiếp tục</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="pageTitle">Trang chủ</div>
+    <div class="search-cont">
+      <div style="position:relative">
+        <span class="search-icon">🔍</span>
+        <input class="search-box" id="quickSearch" type="text" placeholder="Tìm kiếm mọi thứ..." onkeydown="if(event.key==='Enter'){showPage('search');doSearch()}" oninput="debounceSearch()">
+      </div>
+    </div>
+    <button class="btn btn-brand btn-sm" onclick="window.location.href='/'">← Về Marketplace</button>
+  </div>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="stat-grid" id="homeStats">
+        <div class="stat-card"><div class="stat-ic">🎪</div><div class="stat-val" id="hs-events">—</div><div class="stat-lbl">Sự kiện</div></div>
+        <div class="stat-card"><div class="stat-ic">📅</div><div class="stat-val" id="hs-bookings">—</div><div class="stat-lbl">Dịch vụ đặt lịch</div></div>
+        <div class="stat-card"><div class="stat-ic">📦</div><div class="stat-ic">📦</div><div class="stat-val" id="hs-digital">—</div><div class="stat-lbl">Sản phẩm số</div></div>
+        <div class="stat-card"><div class="stat-ic">📱</div><div class="stat-val" id="hs-apps">—</div><div class="stat-lbl">Mini Apps</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📱 Quick Launch</div>
+        <div class="mini-app-grid" id="featuredApps"></div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-title">🎪 Sự kiện nổi bật</div>
+            <div id="homeEvents"></div>
+            <button class="btn btn-ghost btn-sm" style="width:100%" onclick="showPage('events')">Xem tất cả →</button>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">📦 Sản phẩm số hot</div>
+            <div id="homeDigital"></div>
+            <button class="btn btn-ghost btn-sm" style="width:100%" onclick="showPage('digital')">Xem tất cả →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loyalty mini widget (only if logged in) -->
+      <div id="homeLoyaltyWidget" style="display:none">
+        <div class="card" style="background:linear-gradient(135deg,#1a1030,#2d1b5e);border-color:#4c2a9e">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:12px;color:var(--sub);margin-bottom:4px">Điểm thưởng của bạn</div>
+              <div style="font-size:28px;font-weight:900;color:var(--gold)" id="hw-pts">0</div>
+              <div class="level-badge badge-bronze" id="hw-lvl" style="margin-top:4px">🥉 Bronze</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:12px;color:var(--sub);margin-bottom:6px">Streak <span id="hw-streak">0</span> ngày 🔥</div>
+              <button class="btn btn-brand btn-sm" id="hw-checkin" onclick="doCheckin()">Điểm danh +5đ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="page" id="page-events">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-size:20px;font-weight:800">🎪 Sự kiện</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="form-input" style="width:auto;padding:6px 10px;font-size:13px" onchange="filterEvents(this.value)">
+            <option value="">Tất cả loại</option>
+            <option value="concert">Âm nhạc</option>
+            <option value="festival">Lễ hội</option>
+            <option value="workshop">Workshop</option>
+            <option value="conference">Hội nghị</option>
+            <option value="other">Khác</option>
+          </select>
+          <button class="btn btn-brand btn-sm" onclick="openModal('createEventModal')">+ Tạo sự kiện</button>
+        </div>
+      </div>
+      <div class="grid-3" id="eventGrid"></div>
+      <div id="eventEmpty" class="empty" style="display:none">
+        <div class="empty-icon">🎪</div>
+        <h3>Chưa có sự kiện nào</h3>
+        <p>Hãy là người đầu tiên tạo sự kiện!</p>
+      </div>
+    </div>
+
+    <!-- BOOKING -->
+    <div class="page" id="page-booking">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-size:20px;font-weight:800">📅 Đặt lịch dịch vụ</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="form-input" style="width:auto;padding:6px 10px;font-size:13px" onchange="filterServices(this.value)">
+            <option value="">Tất cả danh mục</option>
+            <option value="photography">Nhiếp ảnh</option>
+            <option value="coaching">Coaching</option>
+            <option value="classes">Lớp học</option>
+            <option value="consultation">Tư vấn</option>
+            <option value="other">Khác</option>
+          </select>
+          <button class="btn btn-brand btn-sm" onclick="openModal('createServiceModal')">+ Đăng dịch vụ</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadMyBookings();openModal('myBookingsModal')">Lịch của tôi</button>
+        </div>
+      </div>
+      <div id="serviceList"></div>
+      <div id="serviceEmpty" class="empty" style="display:none">
+        <div class="empty-icon">📅</div>
+        <h3>Chưa có dịch vụ nào</h3>
+        <p>Hãy đăng dịch vụ của bạn!</p>
+      </div>
+    </div>
+
+    <!-- DIGITAL PRODUCTS -->
+    <div class="page" id="page-digital">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-size:20px;font-weight:800">📦 Sản phẩm số</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="form-input" style="width:auto;padding:6px 10px;font-size:13px" onchange="filterDigital(this.value)">
+            <option value="">Tất cả</option>
+            <option value="ebook">E-book</option>
+            <option value="course">Khóa học</option>
+            <option value="membership">Membership</option>
+            <option value="download">Tải về</option>
+            <option value="template">Template</option>
+          </select>
+          <button class="btn btn-brand btn-sm" onclick="openModal('createDigitalModal')">+ Đăng bán</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadMyPurchases();openModal('myPurchasesModal')">Đã mua</button>
+        </div>
+      </div>
+      <div class="grid-3" id="digitalGrid"></div>
+      <div id="digitalEmpty" class="empty" style="display:none">
+        <div class="empty-icon">📦</div>
+        <h3>Chưa có sản phẩm nào</h3>
+        <p>Hãy đăng bán sản phẩm số của bạn!</p>
+      </div>
+    </div>
+
+    <!-- SUBSCRIPTIONS -->
+    <div class="page" id="page-subscriptions">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-size:20px;font-weight:800">⭐ Gói đăng ký</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-brand btn-sm" onclick="openModal('createPlanModal')">+ Tạo gói</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadMySubs();openModal('mySubsModal')">Gói của tôi</button>
+        </div>
+      </div>
+      <div class="grid-3" id="planGrid"></div>
+      <div id="planEmpty" class="empty" style="display:none">
+        <div class="empty-icon">⭐</div>
+        <h3>Chưa có gói nào</h3>
+        <p>Hãy tạo gói đăng ký cho fan của bạn!</p>
+      </div>
+    </div>
+
+    <!-- LOYALTY -->
+    <div class="page" id="page-loyalty">
+      <div id="loyaltyLoginGate" class="login-gate" style="display:none">
+        <div class="gate-icon">🏆</div>
+        <h2>Đăng nhập để xem điểm</h2>
+        <p>Tích lũy điểm từ mua sắm, nội dung và giới thiệu bạn bè</p>
+        <a href="/">← Về trang chủ để đăng nhập</a>
+      </div>
+      <div id="loyaltyContent">
+        <div class="loyalty-hero" id="loyaltyHero">
+          <div class="loyalty-level" id="loyaltyLevelIcon">🥉</div>
+          <div style="font-size:13px;color:var(--sub);margin-bottom:4px">Tổng điểm của bạn</div>
+          <div class="loyalty-pts" id="loyaltyPts">0</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:4px">Điểm tích lũy: <span id="loyaltyLife">0</span></div>
+          <div class="level-bar"><div class="level-fill" id="loyaltyBar" style="width:0%"></div></div>
+          <div class="level-labels">
+            <span>Bronze</span><span>Silver 1K</span><span>Gold 5K</span><span>Platinum 20K</span><span>Diamond 100K</span>
+          </div>
+          <div class="loyalty-streak">🔥 Streak <span id="loyaltyStreak">0</span> ngày</div>
+          <button class="btn btn-brand" style="margin-top:16px" id="checkinBtn" onclick="doCheckin()">Điểm danh hôm nay</button>
+        </div>
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <div class="card-title">📜 Lịch sử điểm</div>
+              <div id="loyaltyTxns"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">🏆 Bảng xếp hạng</div>
+              <div id="loyaltyLeaders"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">💡 Cách kiếm điểm</div>
+          <div class="grid-3">
+            <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2)"><div style="font-size:24px">📅</div><div style="font-size:13px;font-weight:700;margin-top:4px">Điểm danh</div><div style="font-size:12px;color:var(--green)">+5~17 điểm/ngày</div></div>
+            <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2)"><div style="font-size:24px">🛒</div><div style="font-size:13px;font-weight:700;margin-top:4px">Mua hàng</div><div style="font-size:12px;color:var(--green)">+10 điểm</div></div>
+            <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2)"><div style="font-size:24px">💰</div><div style="font-size:13px;font-weight:700;margin-top:4px">Bán hàng</div><div style="font-size:12px;color:var(--green)">+20 điểm</div></div>
+            <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2)"><div style="font-size:24px">🎪</div><div style="font-size:13px;font-weight:700;margin-top:4px">Tham gia sự kiện</div><div style="font-size:12px;color:var(--green)">+10 điểm</div></div>
+            <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2)"><div style="font-size:24px">📅</div><div style="font-size:13px;font-weight:700;margin-top:4px">Đặt dịch vụ</div><div style="font-size:12px;color:var(--green)">+5 điểm</div></div>
+            <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2)"><div style="font-size:24px">⭐</div><div style="font-size:13px;font-weight:700;margin-top:4px">Đăng ký gói</div><div style="font-size:12px;color:var(--green)">+15 điểm</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPS -->
+    <div class="page" id="page-apps">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:16px">📱 Mini App Center</h2>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="appCatFilter">
+        <button class="btn btn-brand btn-sm" onclick="filterApps('')" data-cat="">Tất cả</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterApps('finance')" data-cat="finance">💰 Tài chính</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterApps('social')" data-cat="social">👥 Xã hội</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterApps('business')" data-cat="business">🏬 Kinh doanh</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterApps('lifestyle')" data-cat="lifestyle">🌟 Lifestyle</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterApps('entertainment')" data-cat="entertainment">🎮 Giải trí</button>
+        <button class="btn btn-ghost btn-sm" onclick="filterApps('utilities')" data-cat="utilities">🔧 Tiện ích</button>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title">⭐ Nổi bật</div>
+        <div class="mini-app-grid" id="featuredAppsFull"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📱 Tất cả ứng dụng</div>
+        <div class="mini-app-grid" id="allAppsGrid"></div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="page" id="page-search">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:16px">🔍 Tìm kiếm toàn cục</h2>
+      <div style="position:relative;margin-bottom:20px">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--hint)">🔍</span>
+        <input class="form-input" id="mainSearchInput" type="text" placeholder="Tìm người dùng, sản phẩm, sự kiện, dịch vụ..." style="padding-left:44px;font-size:15px" oninput="debounceMainSearch()" onkeydown="if(event.key==='Enter')doMainSearch()">
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- DISCOVER -->
+    <div class="page" id="page-discover">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:20px">🔥 Khám phá & Xu hướng</h2>
+      <div id="discoverContent">
+        <div class="discover-section">
+          <div class="discover-title">🛒 Sản phẩm hot</div>
+          <div class="trending-grid" id="trendingProducts"></div>
+        </div>
+        <div class="discover-section">
+          <div class="discover-title">🎪 Sự kiện nổi bật</div>
+          <div class="trending-grid" id="trendingEvents"></div>
+        </div>
+        <div class="discover-section">
+          <div class="discover-title">📅 Dịch vụ được đặt nhiều</div>
+          <div class="trending-grid" id="trendingServices"></div>
+        </div>
+        <div class="discover-section">
+          <div class="discover-title">📦 Sản phẩm số bán chạy</div>
+          <div class="trending-grid" id="trendingDigital"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI ASSISTANT -->
+    <div class="page" id="page-ai">
+      <div class="ai-chat">
+        <div class="ai-chat-header">
+          <div class="ai-avatar">🤖</div>
+          <div>
+            <div style="font-weight:800;font-size:15px">SafePass AI</div>
+            <div style="font-size:11px;color:var(--green)">● Đang hoạt động</div>
+          </div>
+        </div>
+        <div class="ai-messages" id="aiMessages">
+          <div class="ai-msg bot">Xin chào! Tôi là SafePass AI — trợ lý thông minh của bạn. Tôi có thể giúp bạn mua sắm, bán hàng, đặt lịch, khám phá sự kiện và nhiều hơn nữa! 🚀</div>
+        </div>
+        <div class="ai-chips">
+          <div class="ai-chip" onclick="sendAIMsg('Sự kiện nào đang diễn ra?')">🎪 Sự kiện</div>
+          <div class="ai-chip" onclick="sendAIMsg('Cách kiếm điểm thưởng?')">🏆 Điểm thưởng</div>
+          <div class="ai-chip" onclick="sendAIMsg('Tìm dịch vụ chụp ảnh')">📷 Chụp ảnh</div>
+          <div class="ai-chip" onclick="sendAIMsg('Mua ebook lập trình')">📚 E-book</div>
+          <div class="ai-chip" onclick="sendAIMsg('Hướng dẫn đăng bán')">💰 Bán hàng</div>
+          <div class="ai-chip" onclick="sendAIMsg('SafePass có gì mới?')">⚡ Tin tức</div>
+        </div>
+        <div class="ai-input-wrap">
+          <input class="ai-input" id="aiInput" placeholder="Hỏi gì đó..." onkeydown="if(event.key==='Enter')sendAIMsg()">
+          <button class="ai-send" onclick="sendAIMsg()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="page" id="page-admin">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:20px">🛡️ Admin Super App Center</h2>
+      <div class="admin-stat-grid" id="adminStats"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">📱 Mini Apps quản lý</div>
+          <table class="admin-table" id="adminAppsTable">
+            <thead><tr><th>Tên</th><th>Lượt mở</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+            <tbody id="adminAppsBody"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">🎪 Sự kiện quản lý</div>
+          <table class="admin-table">
+            <thead><tr><th>Tên</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+            <tbody id="adminEventsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MOBILE BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="bn-item active" onclick="showPage('home')"><div class="bn-icon">🏠</div>Chính</div>
+    <div class="bn-item" onclick="showPage('events')"><div class="bn-icon">🎪</div>Sự kiện</div>
+    <div class="bn-item" onclick="showPage('discover')"><div class="bn-icon">🔥</div>Khám phá</div>
+    <div class="bn-item" onclick="showPage('apps')"><div class="bn-icon">📱</div>Apps</div>
+    <div class="bn-item" onclick="showPage('loyalty')"><div class="bn-icon">🏆</div>Điểm</div>
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Create Event -->
+<div class="modal-overlay" id="createEventModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🎪 Tạo sự kiện mới</div><button class="modal-close" onclick="closeModal('createEventModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tên sự kiện *</label><input class="form-input" id="ev-title" placeholder="Ví dụ: Đêm nhạc Acoustic Hà Nội"></div>
+      <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-input" id="ev-desc" rows="3" placeholder="Mô tả chi tiết sự kiện..."></textarea></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Loại sự kiện</label><select class="form-input" id="ev-type"><option value="concert">🎵 Âm nhạc/Concert</option><option value="festival">🎉 Lễ hội</option><option value="workshop">🛠️ Workshop</option><option value="conference">🎤 Hội nghị</option><option value="other">📌 Khác</option></select></div>
+        <div class="form-group"><label class="form-label">Giá vé (₫)</label><input class="form-input" id="ev-price" type="number" placeholder="0 = miễn phí"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Bắt đầu</label><input class="form-input" id="ev-start" type="datetime-local"></div>
+        <div class="form-group"><label class="form-label">Kết thúc</label><input class="form-input" id="ev-end" type="datetime-local"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Địa điểm</label><input class="form-input" id="ev-location" placeholder="TP. Hồ Chí Minh"></div>
+      <div class="form-group"><label class="form-label">Sức chứa</label><input class="form-input" id="ev-capacity" type="number" placeholder="100"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('createEventModal')">Hủy</button>
+      <button class="btn btn-brand" onclick="createEvent()">Tạo sự kiện</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Service -->
+<div class="modal-overlay" id="createServiceModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📅 Đăng dịch vụ</div><button class="modal-close" onclick="closeModal('createServiceModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tên dịch vụ *</label><input class="form-input" id="svc-name" placeholder="Ví dụ: Chụp ảnh chân dung"></div>
+      <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-input" id="svc-desc" rows="3" placeholder="Mô tả dịch vụ của bạn..."></textarea></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Danh mục</label><select class="form-input" id="svc-cat"><option value="photography">Nhiếp ảnh</option><option value="coaching">Coaching</option><option value="classes">Lớp học</option><option value="consultation">Tư vấn</option><option value="other">Khác</option></select></div>
+        <div class="form-group"><label class="form-label">Loại</label><select class="form-input" id="svc-type"><option value="appointment">Lịch hẹn</option><option value="experience">Trải nghiệm</option><option value="class">Lớp học</option><option value="consultation">Tư vấn</option></select></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Giá (₫)</label><input class="form-input" id="svc-price" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Thời lượng (phút)</label><input class="form-input" id="svc-duration" type="number" placeholder="60"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('createServiceModal')">Hủy</button>
+      <button class="btn btn-brand" onclick="createService()">Đăng dịch vụ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Book Service -->
+<div class="modal-overlay" id="bookServiceModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="bookModalTitle">📅 Đặt lịch</div><button class="modal-close" onclick="closeModal('bookServiceModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Thời gian đặt *</label><input class="form-input" id="book-time" type="datetime-local"></div>
+      <div class="form-group"><label class="form-label">Ghi chú</label><textarea class="form-input" id="book-notes" rows="2" placeholder="Yêu cầu đặc biệt..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('bookServiceModal')">Hủy</button>
+      <button class="btn btn-brand" onclick="confirmBooking()">Xác nhận đặt lịch</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Digital Product -->
+<div class="modal-overlay" id="createDigitalModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📦 Đăng sản phẩm số</div><button class="modal-close" onclick="closeModal('createDigitalModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tiêu đề *</label><input class="form-input" id="dp-title" placeholder="Ví dụ: Ebook Lập trình Python từ A-Z"></div>
+      <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-input" id="dp-desc" rows="3" placeholder="Mô tả sản phẩm..."></textarea></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Loại</label><select class="form-input" id="dp-type"><option value="ebook">📚 E-book</option><option value="course">🎓 Khóa học</option><option value="membership">💎 Membership</option><option value="download">⬇️ File tải về</option><option value="template">📄 Template</option></select></div>
+        <div class="form-group"><label class="form-label">Giá (₫)</label><input class="form-input" id="dp-price" type="number" placeholder="0"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Định dạng</label><input class="form-input" id="dp-format" placeholder="PDF, MP4, ZIP..."></div>
+        <div class="form-group"><label class="form-label">Dung lượng</label><input class="form-input" id="dp-size" placeholder="10 MB"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('createDigitalModal')">Hủy</button>
+      <button class="btn btn-brand" onclick="createDigitalProduct()">Đăng bán</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Subscription Plan -->
+<div class="modal-overlay" id="createPlanModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">⭐ Tạo gói đăng ký</div><button class="modal-close" onclick="closeModal('createPlanModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tên gói *</label><input class="form-input" id="plan-name" placeholder="Ví dụ: Gói VIP Creator"></div>
+      <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-input" id="plan-desc" rows="2" placeholder="Quyền lợi gói..."></textarea></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Tier</label><select class="form-input" id="plan-tier"><option value="basic">Basic</option><option value="standard">Standard</option><option value="premium">Premium</option></select></div>
+        <div class="form-group"><label class="form-label">Giá/tháng (₫)</label><input class="form-input" id="plan-price" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Quyền lợi (mỗi dòng một mục)</label><textarea class="form-input" id="plan-perks" rows="4" placeholder="Truy cập nội dung độc quyền&#10;Badge đặc biệt&#10;Hỗ trợ ưu tiên"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('createPlanModal')">Hủy</button>
+      <button class="btn btn-brand" onclick="createPlan()">Tạo gói</button>
+    </div>
+  </div>
+</div>
+
+<!-- My Bookings -->
+<div class="modal-overlay" id="myBookingsModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header"><div class="modal-title">📅 Lịch của tôi</div><button class="modal-close" onclick="closeModal('myBookingsModal')">×</button></div>
+    <div class="modal-body" id="myBookingsBody"><div class="empty"><div class="empty-icon">⏳</div><p>Đang tải...</p></div></div>
+  </div>
+</div>
+
+<!-- My Purchases -->
+<div class="modal-overlay" id="myPurchasesModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header"><div class="modal-title">📦 Sản phẩm đã mua</div><button class="modal-close" onclick="closeModal('myPurchasesModal')">×</button></div>
+    <div class="modal-body" id="myPurchasesBody"><div class="empty"><div class="empty-icon">⏳</div><p>Đang tải...</p></div></div>
+  </div>
+</div>
+
+<!-- My Subscriptions -->
+<div class="modal-overlay" id="mySubsModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header"><div class="modal-title">⭐ Đăng ký của tôi</div><button class="modal-close" onclick="closeModal('mySubsModal')">×</button></div>
+    <div class="modal-body" id="mySubsBody"><div class="empty"><div class="empty-icon">⏳</div><p>Đang tải...</p></div></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const token = localStorage.getItem('token');
+const user = (() => { try { return JSON.parse(localStorage.getItem('user')||'null'); } catch { return null; } })();
+
+let allAppsData = [];
+let currentServiceId = null;
+let currentPage = 'home';
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  setupUser();
+  loadHome();
+  loadApps();
+});
+
+function setupUser() {
+  if (user) {
+    document.getElementById('sidebarName').textContent = user.name || user.phone || 'Người dùng';
+    if (user.avatar_url) {
+      document.getElementById('sidebarAv').innerHTML = `<img src="${user.avatar_url}" onerror="this.parentElement.textContent='👤'">`;
+    }
+    if (user.is_admin) document.getElementById('adminNavItem').style.display = 'flex';
+  }
+}
+
+// ── NAVIGATION ──
+const PAGE_TITLES = {
+  home:'Trang chủ',events:'Sự kiện',booking:'Đặt lịch',digital:'Sản phẩm số',
+  subscriptions:'Gói đăng ký',loyalty:'Điểm thưởng',apps:'Mini App Center',
+  search:'Tìm kiếm',discover:'Khám phá',ai:'AI Assistant',admin:'Admin Center'
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+id);
+  if (pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.toLowerCase().includes(PAGE_TITLES[id]?.toLowerCase().slice(0,5)||id)) n.classList.add('active');});
+  document.querySelectorAll('.bn-item').forEach(n=>{if(n.onclick && n.onclick.toString().includes(id)) n.classList.add('active');});
+  document.getElementById('pageTitle').textContent = PAGE_TITLES[id] || id;
+  currentPage = id;
+  // Lazy load
+  if (id==='events') loadEvents();
+  if (id==='booking') loadServices();
+  if (id==='digital') loadDigital();
+  if (id==='subscriptions') loadPlans();
+  if (id==='loyalty') loadLoyalty();
+  if (id==='discover') loadDiscover();
+  if (id==='admin') loadAdmin();
+  window.scrollTo(0,0);
+}
+
+// ── UTILS ──
+function api(path, opts={}) {
+  return fetch(path, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', ...(token?{'Authorization':'Bearer '+token}:{}), ...(opts.headers||{}) }
+  }).then(r=>r.json());
+}
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  setTimeout(()=>t.className='toast',3000);
+}
+function fmtPrice(v) { return v>0 ? new Intl.NumberFormat('vi-VN').format(v)+'₫' : 'Miễn phí'; }
+function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function levelIcon(l) { return {bronze:'🥉',silver:'🥈',gold:'🥇',platinum:'💎',diamond:'💠'}[l]||'🥉'; }
+
+// ── HOME ──
+async function loadHome() {
+  // Mini apps (featured)
+  const { apps, featured } = await api('/api/app8/mini-apps');
+  renderFeaturedApps(featured.slice(0,8), 'featuredApps');
+
+  // Stats from superapp
+  const stats = await api('/api/superapp/stats').catch(()=>({}));
+  document.getElementById('hs-events').textContent = stats.active_listings||'0';
+  document.getElementById('hs-bookings').textContent = stats.active_drivers||'0';
+  document.getElementById('hs-digital').textContent = stats.active_listings||'0';
+  document.getElementById('hs-apps').textContent = (apps||[]).length;
+
+  // Events
+  const { events } = await api('/api/app8/events?limit=4');
+  const evEl = document.getElementById('homeEvents');
+  if (events&&events.length) {
+    evEl.innerHTML = events.slice(0,3).map(e=>`
+      <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showPage('events')">
+        <div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--blue));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">${evTypeIcon(e.type)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.title}</div>
+          <div style="font-size:11px;color:var(--sub)">${fmtDate(e.start_at)} · ${e.attendees_count||0} người</div>
+        </div>
+      </div>`).join('');
+  } else evEl.innerHTML = '<div style="color:var(--sub);font-size:13px;padding:10px 0">Chưa có sự kiện nào</div>';
+
+  // Digital
+  const { products } = await api('/api/app8/digital?limit=4');
+  const dpEl = document.getElementById('homeDigital');
+  if (products&&products.length) {
+    dpEl.innerHTML = products.slice(0,3).map(p=>`
+      <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showPage('digital')">
+        <div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--purple),#4f46e5);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">${dpTypeIcon(p.type)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
+          <div style="font-size:11px;color:var(--green)">${fmtPrice(p.price)}</div>
+        </div>
+      </div>`).join('');
+  } else dpEl.innerHTML = '<div style="color:var(--sub);font-size:13px;padding:10px 0">Chưa có sản phẩm nào</div>';
+
+  // Loyalty widget
+  if (token) {
+    document.getElementById('homeLoyaltyWidget').style.display = 'block';
+    const { loyalty } = await api('/api/app8/loyalty').catch(()=>({loyalty:null}));
+    if (loyalty) {
+      document.getElementById('hw-pts').textContent = (loyalty.points||0).toLocaleString();
+      document.getElementById('hw-lvl').textContent = `${levelIcon(loyalty.level)} ${loyalty.level}`;
+      document.getElementById('hw-streak').textContent = loyalty.streak_days||0;
+      if (loyalty.last_checkin === new Date().toISOString().slice(0,10)) {
+        document.getElementById('hw-checkin').textContent = '✓ Đã điểm danh';
+        document.getElementById('hw-checkin').disabled = true;
+      }
+    }
+  }
+}
+
+function evTypeIcon(t) { return {concert:'🎵',festival:'🎉',workshop:'🛠️',conference:'🎤',other:'📌'}[t]||'🎪'; }
+function dpTypeIcon(t) { return {ebook:'📚',course:'🎓',membership:'💎',download:'⬇️',template:'📄'}[t]||'📦'; }
+
+// ── MINI APPS ──
+async function loadApps() {
+  const { apps, featured } = await api('/api/app8/mini-apps');
+  allAppsData = apps||[];
+  renderFeaturedApps(featured, 'featuredAppsFull');
+  renderAllApps(apps);
+}
+
+function renderFeaturedApps(apps, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!apps||!apps.length) { el.innerHTML = '<div style="color:var(--sub);font-size:13px">Chưa có ứng dụng</div>'; return; }
+  el.innerHTML = apps.map(a=>`
+    <div class="mini-app-item" onclick="openApp('${a.id}','${a.url}','${escHtml(a.name)}')">
+      <div class="mini-app-ic" style="background:${a.color}22;border:1px solid ${a.color}40">${a.icon||'📱'}</div>
+      <div class="mini-app-name">${escHtml(a.name)}</div>
+      <div class="mini-app-cat">${a.category||''}</div>
+    </div>`).join('');
+}
+
+function renderAllApps(apps) {
+  const el = document.getElementById('allAppsGrid');
+  if (!el) return;
+  el.innerHTML = apps.map(a=>`
+    <div class="mini-app-item" onclick="openApp('${a.id}','${a.url}','${escHtml(a.name)}')">
+      <div class="mini-app-ic" style="background:${a.color}22;border:1px solid ${a.color}40">${a.icon||'📱'}</div>
+      <div class="mini-app-name">${escHtml(a.name)}</div>
+      <div class="mini-app-cat">${a.category}</div>
+    </div>`).join('');
+}
+
+function filterApps(cat) {
+  document.querySelectorAll('#appCatFilter button').forEach(b=>{
+    b.className = b.dataset.cat===cat ? 'btn btn-brand btn-sm' : 'btn btn-ghost btn-sm';
+  });
+  const filtered = cat ? allAppsData.filter(a=>a.category===cat) : allAppsData;
+  renderAllApps(filtered);
+}
+
+async function openApp(id, url, name) {
+  await fetch(`/api/app8/mini-apps/${id}/open`,{method:'POST'}).catch(()=>{});
+  window.location.href = url;
+}
+
+// ── EVENTS ──
+let currentEventType = '';
+async function loadEvents(type='') {
+  currentEventType = type;
+  const el = document.getElementById('eventGrid');
+  const empty = document.getElementById('eventEmpty');
+  el.innerHTML = '<div style="color:var(--sub);padding:20px;text-align:center">Đang tải...</div>';
+  const url = `/api/app8/events?limit=20${type?'&type='+type:''}`;
+  const { events } = await api(url);
+  if (!events||!events.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  el.innerHTML = events.map(e=>`
+    <div class="event-card">
+      <div class="event-img">${e.image_url?`<img src="${e.image_url}" onerror="this.parentElement.innerHTML='${evTypeIcon(e.type)}'">`:evTypeIcon(e.type)}</div>
+      <div class="event-body">
+        <div class="event-type">${e.type||'event'}</div>
+        <div class="event-title">${escHtml(e.title)}</div>
+        <div class="event-meta">
+          <span>📍 ${e.location||'Online'}</span>
+          <span>📅 ${fmtDate(e.start_at)}</span>
+          <span>👥 ${e.attendees_count||0}/${e.capacity}</span>
+        </div>
+        <div class="event-meta" style="margin-top:4px"><span style="color:var(--green);font-weight:700">${fmtPrice(e.ticket_price)}</span></div>
+        <div class="event-actions">
+          <button class="btn btn-brand btn-sm" style="flex:1" onclick="joinEvent('${e.id}','${escHtml(e.title)}')">Tham gia</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterEvents(type) { loadEvents(type); }
+
+async function createEvent() {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const body = {
+    title: document.getElementById('ev-title').value.trim(),
+    description: document.getElementById('ev-desc').value.trim(),
+    type: document.getElementById('ev-type').value,
+    ticket_price: document.getElementById('ev-price').value,
+    start_at: document.getElementById('ev-start').value,
+    end_at: document.getElementById('ev-end').value,
+    location: document.getElementById('ev-location').value.trim(),
+    capacity: document.getElementById('ev-capacity').value || 100
+  };
+  if (!body.title) return toast('Vui lòng nhập tên sự kiện','error');
+  const r = await api('/api/app8/events',{method:'POST',body:JSON.stringify(body)});
+  if (r.error) return toast(r.error,'error');
+  toast('Tạo sự kiện thành công!');
+  closeModal('createEventModal');
+  loadEvents();
+}
+
+async function joinEvent(id, title) {
+  if (!token) return toast('Vui lòng đăng nhập để tham gia','error');
+  const r = await api(`/api/app8/events/${id}/join`,{method:'POST'});
+  if (r.error) return toast(r.error,'error');
+  toast(`Đã đăng ký tham gia: ${title}! +10 điểm 🎉`);
+  loadEvents(currentEventType);
+}
+
+// ── BOOKING ──
+let currentSvcCat = '';
+async function loadServices(cat='') {
+  currentSvcCat = cat;
+  const el = document.getElementById('serviceList');
+  const empty = document.getElementById('serviceEmpty');
+  el.innerHTML = '<div style="color:var(--sub);padding:20px">Đang tải...</div>';
+  const url = `/api/app8/booking/services?limit=20${cat?'&category='+cat:''}`;
+  const { services } = await api(url);
+  if (!services||!services.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  el.innerHTML = services.map(s=>`
+    <div class="booking-card">
+      <div class="booking-img">${s.image_url?`<img src="${s.image_url}" onerror="this.parentElement.innerHTML='📷'">`:catIcon(s.category)}</div>
+      <div class="booking-info">
+        <div class="booking-name">${escHtml(s.name)}</div>
+        <div class="svc-type">${s.type||'appointment'}</div>
+        <div class="booking-price">${fmtPrice(s.price)}</div>
+        <div class="booking-meta">⏱️ ${s.duration_mins||60} phút · ⭐ ${(s.rating||0).toFixed(1)} · ${s.bookings_count||0} đặt</div>
+        <div class="booking-meta" style="margin-top:4px">👤 ${s.users?.name||'Ẩn danh'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        <button class="btn btn-brand btn-sm" onclick="openBookModal('${s.id}','${escHtml(s.name)}')">Đặt lịch</button>
+      </div>
+    </div>`).join('');
+}
+
+function filterServices(cat) { loadServices(cat); }
+function catIcon(c) { return {photography:'📷',coaching:'🧠',classes:'📖',consultation:'💬',other:'🔧'}[c]||'📅'; }
+
+async function createService() {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const body = {
+    name: document.getElementById('svc-name').value.trim(),
+    description: document.getElementById('svc-desc').value.trim(),
+    category: document.getElementById('svc-cat').value,
+    type: document.getElementById('svc-type').value,
+    price: document.getElementById('svc-price').value,
+    duration_mins: document.getElementById('svc-duration').value || 60
+  };
+  if (!body.name) return toast('Vui lòng nhập tên dịch vụ','error');
+  const r = await api('/api/app8/booking/services',{method:'POST',body:JSON.stringify(body)});
+  if (r.error) return toast(r.error,'error');
+  toast('Đăng dịch vụ thành công!');
+  closeModal('createServiceModal');
+  loadServices();
+}
+
+function openBookModal(svcId, svcName) {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  currentServiceId = svcId;
+  document.getElementById('bookModalTitle').textContent = '📅 Đặt lịch: '+svcName;
+  openModal('bookServiceModal');
+}
+
+async function confirmBooking() {
+  const scheduled_at = document.getElementById('book-time').value;
+  const notes = document.getElementById('book-notes').value;
+  if (!scheduled_at) return toast('Vui lòng chọn thời gian','error');
+  const r = await api('/api/app8/bookings',{method:'POST',body:JSON.stringify({service_id:currentServiceId,scheduled_at,notes})});
+  if (r.error) return toast(r.error,'error');
+  toast('Đặt lịch thành công! +5 điểm 🎉');
+  closeModal('bookServiceModal');
+}
+
+async function loadMyBookings() {
+  const el = document.getElementById('myBookingsBody');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub)">Đang tải...</div>';
+  if (!token) { el.innerHTML='<div class="login-gate"><div class="gate-icon">🔐</div><p>Vui lòng đăng nhập</p></div>'; return; }
+  const { as_customer, as_provider } = await api('/api/app8/bookings/my');
+  let html = '';
+  if (as_customer&&as_customer.length) {
+    html += '<div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:8px">Lịch đã đặt</div>';
+    html += as_customer.map(b=>`
+      <div style="background:var(--bg3);border-radius:var(--r2);padding:12px;margin-bottom:8px">
+        <div style="font-weight:700">${escHtml(b.service_name)}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px">📅 ${fmtDate(b.scheduled_at)} · ${fmtPrice(b.price)}</div>
+        <div style="font-size:11px;margin-top:4px"><span style="background:${statusColor(b.status)}22;color:${statusColor(b.status)};padding:2px 8px;border-radius:6px">${b.status}</span></div>
+      </div>`).join('');
+  }
+  if (as_provider&&as_provider.length) {
+    html += '<div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;margin:16px 0 8px">Khách đặt dịch vụ của tôi</div>';
+    html += as_provider.map(b=>`
+      <div style="background:var(--bg3);border-radius:var(--r2);padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:700">${escHtml(b.service_name)}</div>
+          <div style="font-size:12px;color:var(--sub)">👤 ${b.users?.name||'Ẩn danh'} · 📅 ${fmtDate(b.scheduled_at)}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          ${b.status==='pending'?`<button class="btn btn-brand btn-sm" onclick="updateBookStatus('${b.id}','confirmed')">Xác nhận</button><button class="btn btn-ghost btn-sm" onclick="updateBookStatus('${b.id}','cancelled')">Từ chối</button>`:`<span style="font-size:12px;color:var(--sub)">${b.status}</span>`}
+        </div>
+      </div>`).join('');
+  }
+  if (!html) html='<div class="empty"><div class="empty-icon">📅</div><h3>Chưa có lịch nào</h3></div>';
+  el.innerHTML = html;
+}
+
+async function updateBookStatus(id, status) {
+  const r = await api(`/api/app8/bookings/${id}/status`,{method:'PATCH',body:JSON.stringify({status})});
+  if (r.error) return toast(r.error,'error');
+  toast('Đã cập nhật!');
+  loadMyBookings();
+}
+
+function statusColor(s) { return {confirmed:'var(--green)',pending:'var(--gold)',cancelled:'var(--red)',completed:'var(--blue)'}[s]||'var(--sub)'; }
+
+// ── DIGITAL PRODUCTS ──
+let dpTypeFilter = '';
+async function loadDigital(type='') {
+  dpTypeFilter = type;
+  const el = document.getElementById('digitalGrid');
+  const empty = document.getElementById('digitalEmpty');
+  el.innerHTML = '<div style="color:var(--sub);padding:20px">Đang tải...</div>';
+  const url = `/api/app8/digital?limit=20${type?'&type='+type:''}`;
+  const { products } = await api(url);
+  if (!products||!products.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  el.innerHTML = products.map(p=>`
+    <div class="dp-card">
+      <div class="dp-img">${p.image_url?`<img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='${dpTypeIcon(p.type)}'">`:dpTypeIcon(p.type)}</div>
+      <div class="dp-body">
+        <div class="dp-type">${p.type}</div>
+        <div class="dp-title">${escHtml(p.title)}</div>
+        <div class="dp-price">${fmtPrice(p.price)}</div>
+        <div class="dp-meta">📦 ${p.format||'PDF'} · ${p.file_size||''} · ${p.sales_count||0} đã bán</div>
+        <div class="dp-meta" style="margin-top:4px">👤 ${p.users?.name||'Ẩn danh'}</div>
+        <button class="btn btn-brand btn-sm" style="width:100%;margin-top:8px" onclick="purchaseDigital('${p.id}','${escHtml(p.title)}','${p.price}')">Mua ngay</button>
+      </div>
+    </div>`).join('');
+}
+
+function filterDigital(type) { loadDigital(type); }
+
+async function createDigitalProduct() {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const body = {
+    title: document.getElementById('dp-title').value.trim(),
+    description: document.getElementById('dp-desc').value.trim(),
+    type: document.getElementById('dp-type').value,
+    price: document.getElementById('dp-price').value,
+    format: document.getElementById('dp-format').value.trim(),
+    file_size: document.getElementById('dp-size').value.trim()
+  };
+  if (!body.title) return toast('Vui lòng nhập tiêu đề','error');
+  const r = await api('/api/app8/digital',{method:'POST',body:JSON.stringify(body)});
+  if (r.error) return toast(r.error,'error');
+  toast('Đăng sản phẩm thành công!');
+  closeModal('createDigitalModal');
+  loadDigital();
+}
+
+async function purchaseDigital(id, title, price) {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  if (!confirm(`Mua "${title}" với giá ${fmtPrice(+price)}?`)) return;
+  const r = await api(`/api/app8/digital/${id}/purchase`,{method:'POST'});
+  if (r.error) return toast(r.error,'error');
+  toast(`Mua thành công! +10 điểm 🎉`);
+}
+
+async function loadMyPurchases() {
+  const el = document.getElementById('myPurchasesBody');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub)">Đang tải...</div>';
+  if (!token) { el.innerHTML='<div class="login-gate"><div class="gate-icon">🔐</div><p>Vui lòng đăng nhập</p></div>'; return; }
+  const data = await api('/api/app8/digital/my-purchases');
+  if (!data||!data.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><h3>Chưa mua sản phẩm nào</h3></div>'; return; }
+  el.innerHTML = data.map(d=>`
+    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--purple),#4f46e5);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${dpTypeIcon(d.sp_digital_products?.type||'')}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${escHtml(d.sp_digital_products?.title||'—')}</div>
+        <div style="font-size:11px;color:var(--green)">${fmtPrice(d.amount)}</div>
+        <div style="font-size:11px;color:var(--sub)">${fmtDate(d.created_at)}</div>
+      </div>
+      <span style="background:var(--green)22;color:var(--green);font-size:11px;padding:2px 8px;border-radius:6px;height:fit-content">✓ Đã mua</span>
+    </div>`).join('');
+}
+
+// ── SUBSCRIPTIONS ──
+async function loadPlans() {
+  const el = document.getElementById('planGrid');
+  const empty = document.getElementById('planEmpty');
+  el.innerHTML = '<div style="color:var(--sub);padding:20px">Đang tải...</div>';
+  const plans = await api('/api/app8/subscriptions/plans');
+  if (!plans||!plans.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  el.innerHTML = plans.map(p=>`
+    <div class="plan-card">
+      <div class="plan-tier tier-${p.tier}">${p.tier}</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">${escHtml(p.name)}</div>
+      <div class="plan-price">${fmtPrice(p.price_monthly)}<span>/tháng</span></div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:8px">${escHtml(p.description||'')}</div>
+      ${p.perks&&p.perks.length?`<ul class="plan-perks">${p.perks.map(k=>`<li>${escHtml(k)}</li>`).join('')}</ul>`:''}
+      <div style="font-size:11px;color:var(--sub);margin:8px 0">👤 ${p.users?.name||'Creator'} · ⭐ ${p.subscribers_count||0} thành viên</div>
+      <button class="btn btn-brand btn-sm" style="width:100%" onclick="subscribePlan('${p.id}','${escHtml(p.name)}')">Đăng ký ngay</button>
+    </div>`).join('');
+}
+
+async function createPlan() {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const perksRaw = document.getElementById('plan-perks').value.trim();
+  const body = {
+    name: document.getElementById('plan-name').value.trim(),
+    description: document.getElementById('plan-desc').value.trim(),
+    tier: document.getElementById('plan-tier').value,
+    price_monthly: document.getElementById('plan-price').value,
+    perks: perksRaw ? perksRaw.split('\n').map(s=>s.trim()).filter(Boolean) : []
+  };
+  if (!body.name) return toast('Vui lòng nhập tên gói','error');
+  const r = await api('/api/app8/subscriptions/plans',{method:'POST',body:JSON.stringify(body)});
+  if (r.error) return toast(r.error,'error');
+  toast('Tạo gói thành công!');
+  closeModal('createPlanModal');
+  loadPlans();
+}
+
+async function subscribePlan(id, name) {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const r = await api(`/api/app8/subscriptions/${id}/subscribe`,{method:'POST'});
+  if (r.error) return toast(r.error,'error');
+  toast(`Đăng ký "${name}" thành công! +15 điểm 🎉`);
+  loadPlans();
+}
+
+async function loadMySubs() {
+  const el = document.getElementById('mySubsBody');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub)">Đang tải...</div>';
+  if (!token) { el.innerHTML='<div class="login-gate"><div class="gate-icon">🔐</div><p>Vui lòng đăng nhập</p></div>'; return; }
+  const { subscriptions, my_plans } = await api('/api/app8/subscriptions/mine');
+  let html = '';
+  if (subscriptions&&subscriptions.length) {
+    html += '<div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:8px">Gói đang đăng ký</div>';
+    html += subscriptions.map(s=>`
+      <div style="background:var(--bg3);border-radius:var(--r2);padding:12px;margin-bottom:8px">
+        <div style="font-weight:700">${escHtml(s.sp_subscription_plans?.name||'—')}</div>
+        <div style="font-size:12px;color:var(--sub)">👤 ${s.users?.name||'—'} · Hết hạn: ${s.expires_at?fmtDate(s.expires_at):'—'}</div>
+      </div>`).join('');
+  }
+  if (my_plans&&my_plans.length) {
+    html += '<div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;margin:16px 0 8px">Gói của tôi đang cung cấp</div>';
+    html += my_plans.map(p=>`
+      <div style="background:var(--bg3);border-radius:var(--r2);padding:12px;margin-bottom:8px">
+        <div style="font-weight:700">${escHtml(p.name)} <span style="font-size:11px;color:var(--sub)">(${p.sp_subscriptions?.length||0} thành viên)</span></div>
+        <div style="font-size:12px;color:var(--green)">${fmtPrice(p.price_monthly)}/tháng</div>
+      </div>`).join('');
+  }
+  if (!html) html='<div class="empty"><div class="empty-icon">⭐</div><h3>Chưa có đăng ký nào</h3></div>';
+  el.innerHTML = html;
+}
+
+// ── LOYALTY ──
+async function loadLoyalty() {
+  if (!token) {
+    document.getElementById('loyaltyLoginGate').style.display='flex';
+    document.getElementById('loyaltyContent').style.display='none';
+    return;
+  }
+  const { loyalty, txns, leaders } = await api('/api/app8/loyalty');
+  if (!loyalty) return;
+  // Hero
+  document.getElementById('loyaltyPts').textContent = (loyalty.points||0).toLocaleString();
+  document.getElementById('loyaltyLife').textContent = (loyalty.lifetime_points||0).toLocaleString();
+  document.getElementById('loyaltyStreak').textContent = loyalty.streak_days||0;
+  document.getElementById('loyaltyLevelIcon').textContent = levelIcon(loyalty.level);
+  // Progress bar
+  const thresholds = [0,1000,5000,20000,100000,200000];
+  const life = loyalty.lifetime_points||0;
+  let pct = 0;
+  if (life<1000) pct = life/10;
+  else if (life<5000) pct = 20 + (life-1000)/200;
+  else if (life<20000) pct = 40 + (life-5000)/500;
+  else if (life<100000) pct = 60 + (life-20000)/2000;
+  else pct = 80 + Math.min(20, (life-100000)/5000);
+  document.getElementById('loyaltyBar').style.width = Math.min(100,pct)+'%';
+  // Checkin btn
+  const today = new Date().toISOString().slice(0,10);
+  const btn = document.getElementById('checkinBtn');
+  if (loyalty.last_checkin===today) { btn.textContent='✓ Đã điểm danh hôm nay'; btn.disabled=true; }
+  else { btn.textContent=`Điểm danh (+${5+Math.min(loyalty.streak_days||0,6)*2} điểm)`; btn.disabled=false; }
+  // Transactions
+  const txnEl = document.getElementById('loyaltyTxns');
+  txnEl.innerHTML = txns.length ? txns.map(t=>`
+    <div class="txn-item">
+      <div class="txn-icon" style="background:${t.points>0?'var(--green)':'var(--red)'}22">${txnTypeIcon(t.type)}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${escHtml(t.description||t.type)}</div><div style="font-size:11px;color:var(--sub)">${fmtDate(t.created_at)}</div></div>
+      <div class="txn-pts ${t.points>0?'earn':'spend'}">${t.points>0?'+':''}${t.points}</div>
+    </div>`).join('') : '<div style="color:var(--sub);font-size:13px;padding:10px 0">Chưa có giao dịch điểm nào</div>';
+  // Leaderboard
+  const ldEl = document.getElementById('loyaltyLeaders');
+  ldEl.innerHTML = leaders.map((l,i)=>`
+    <div class="leader-item">
+      <div class="leader-rank ${i<3?'top'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="level-badge badge-${l.level}">${levelIcon(l.level)}</div>
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--sub)">Người dùng</div>
+      <div style="font-weight:800;color:var(--gold)">${(l.lifetime_points||0).toLocaleString()} đ</div>
+    </div>`).join('');
+}
+
+function txnTypeIcon(t) { return {login:'📅',purchase:'🛒',sale:'💰',event:'🎪',booking:'📅',subscription:'⭐',content:'📝',referral:'🎁'}[t]||'💫'; }
+
+async function doCheckin() {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const r = await api('/api/app8/loyalty/checkin',{method:'POST'});
+  if (r.error) return toast(r.error,'error');
+  toast(`${r.message} 🔥 Streak ${r.streak} ngày`);
+  loadLoyalty();
+  // Update home widget too
+  if (document.getElementById('hw-pts')) {
+    document.getElementById('hw-pts').textContent = (r.points||0).toLocaleString();
+    document.getElementById('hw-checkin').textContent = '✓ Đã điểm danh';
+    document.getElementById('hw-checkin').disabled = true;
+  }
+}
+
+// ── SEARCH ──
+let searchTimer;
+function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(()=>{ if(document.getElementById('quickSearch').value.length>1) { showPage('search'); document.getElementById('mainSearchInput').value=document.getElementById('quickSearch').value; doMainSearch(); } }, 400); }
+function debounceMainSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(doMainSearch, 400); }
+
+async function doSearch() {
+  const q = document.getElementById('quickSearch').value;
+  if (q) { document.getElementById('mainSearchInput').value=q; doMainSearch(); }
+}
+
+async function doMainSearch() {
+  const q = document.getElementById('mainSearchInput').value.trim();
+  const el = document.getElementById('searchResults');
+  if (!q || q.length < 2) { el.innerHTML=''; return; }
+  el.innerHTML = '<div style="color:var(--sub);padding:20px;text-align:center">Đang tìm kiếm...</div>';
+  const data = await api(`/api/app8/search?q=${encodeURIComponent(q)}`);
+  let html = '';
+  if (data.users&&data.users.length) {
+    html += `<div class="result-section"><h3>👤 Người dùng</h3>${data.users.map(u=>`<div class="result-item"><div class="result-icon">${u.avatar_url?`<img src="${u.avatar_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" onerror="this.outerHTML='👤'">`:u.name?.charAt(0)||'?'}</div><div class="result-info"><div class="result-name">${escHtml(u.name||'')}</div></div></div>`).join('')}</div>`;
+  }
+  if (data.tickets&&data.tickets.length) {
+    html += `<div class="result-section"><h3>🛒 Sản phẩm</h3>${data.tickets.map(t=>`<div class="result-item" onclick="window.location.href='/'"><div class="result-icon">${t.images&&t.images[0]?`<img src="${t.images[0]}" style="width:36px;height:36px;border-radius:8px;object-fit:cover">`:🛒}</div><div class="result-info"><div class="result-name">${escHtml(t.title)}</div><div class="result-meta">${fmtPrice(t.price)}</div></div></div>`).join('')}</div>`;
+  }
+  if (data.events&&data.events.length) {
+    html += `<div class="result-section"><h3>🎪 Sự kiện</h3>${data.events.map(e=>`<div class="result-item" onclick="showPage('events')"><div class="result-icon">${evTypeIcon(e.type)}</div><div class="result-info"><div class="result-name">${escHtml(e.title)}</div><div class="result-meta">${fmtDate(e.start_at)}</div></div></div>`).join('')}</div>`;
+  }
+  if (data.services&&data.services.length) {
+    html += `<div class="result-section"><h3>📅 Dịch vụ</h3>${data.services.map(s=>`<div class="result-item" onclick="showPage('booking')"><div class="result-icon">${catIcon(s.category)}</div><div class="result-info"><div class="result-name">${escHtml(s.name)}</div><div class="result-meta">${fmtPrice(s.price)}</div></div></div>`).join('')}</div>`;
+  }
+  if (data.digital&&data.digital.length) {
+    html += `<div class="result-section"><h3>📦 Sản phẩm số</h3>${data.digital.map(d=>`<div class="result-item" onclick="showPage('digital')"><div class="result-icon">${dpTypeIcon(d.type)}</div><div class="result-info"><div class="result-name">${escHtml(d.title)}</div><div class="result-meta">${fmtPrice(d.price)}</div></div></div>`).join('')}</div>`;
+  }
+  if (data.groups&&data.groups.length) {
+    html += `<div class="result-section"><h3>👥 Nhóm</h3>${data.groups.map(g=>`<div class="result-item" onclick="window.location.href='/social'"><div class="result-icon">${g.cover_url?`<img src="${g.cover_url}" style="width:36px;height:36px;border-radius:8px;object-fit:cover">`:👥}</div><div class="result-info"><div class="result-name">${escHtml(g.name)}</div><div class="result-meta">${g.members_count||0} thành viên</div></div></div>`).join('')}</div>`;
+  }
+  if (!html) html = `<div class="empty"><div class="empty-icon">🔍</div><h3>Không tìm thấy kết quả cho "${escHtml(q)}"</h3><p>Thử từ khóa khác nhé</p></div>`;
+  el.innerHTML = html;
+}
+
+// ── DISCOVER ──
+async function loadDiscover() {
+  const data = await api('/api/app8/discover');
+  renderTrending(data.trending_products||[], 'trendingProducts', p=>`
+    <div class="trending-item" onclick="window.location.href='/'">
+      <div class="trending-img">${p.images&&p.images[0]?`<img src="${p.images[0]}" onerror="this.parentElement.innerHTML='🛒'">`:🛒}</div>
+      <div class="trending-body"><div class="trending-name">${escHtml(p.title)}</div><div class="trending-meta">${fmtPrice(p.price)}</div></div>
+    </div>`);
+  renderTrending(data.trending_events||[], 'trendingEvents', e=>`
+    <div class="trending-item" onclick="showPage('events')">
+      <div class="trending-img">${evTypeIcon(e.type)}</div>
+      <div class="trending-body"><div class="trending-name">${escHtml(e.title)}</div><div class="trending-meta">👥 ${e.attendees_count||0} người</div></div>
+    </div>`);
+  renderTrending(data.trending_services||[], 'trendingServices', s=>`
+    <div class="trending-item" onclick="showPage('booking')">
+      <div class="trending-img">${catIcon(s.category)}</div>
+      <div class="trending-body"><div class="trending-name">${escHtml(s.name)}</div><div class="trending-meta">${fmtPrice(s.price)}</div></div>
+    </div>`);
+  renderTrending(data.trending_digital||[], 'trendingDigital', d=>`
+    <div class="trending-item" onclick="showPage('digital')">
+      <div class="trending-img">${dpTypeIcon(d.type)}</div>
+      <div class="trending-body"><div class="trending-name">${escHtml(d.title)}</div><div class="trending-meta">${fmtPrice(d.price)}</div></div>
+    </div>`);
+}
+function renderTrending(items, containerId, tmpl) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items.length) { el.innerHTML='<div style="color:var(--sub);font-size:13px">Chưa có dữ liệu</div>'; return; }
+  el.innerHTML = items.map(tmpl).join('');
+}
+
+// ── AI ASSISTANT ──
+const AI_KB = {
+  'sự kiện': 'Truy cập mục 🎪 Sự kiện để xem và tham gia các sự kiện. Bạn sẽ nhận +10 điểm khi tham gia!',
+  'điểm': 'Bạn kiếm điểm bằng cách: điểm danh hàng ngày (+5~17đ), mua hàng (+10đ), bán hàng (+20đ), đặt dịch vụ (+5đ), tham gia sự kiện (+10đ), đăng ký gói (+15đ).',
+  'thưởng': 'Hệ thống điểm thưởng SafePass có 5 cấp: Bronze, Silver (1000đ), Gold (5000đ), Platinum (20000đ), Diamond (100000đ).',
+  'đặt lịch': 'Truy cập mục 📅 Đặt lịch để tìm và đặt dịch vụ từ các provider. Bạn sẽ được +5 điểm mỗi khi đặt thành công.',
+  'ebook': 'Truy cập mục 📦 Sản phẩm số để mua e-books, khóa học và tài nguyên số từ các tác giả uy tín.',
+  'bán': 'Bạn có thể bán: sản phẩm thực trên Marketplace, sản phẩm số tại mục Sản phẩm số, hoặc dịch vụ tại mục Đặt lịch.',
+  'chụp ảnh': 'Tìm dịch vụ chụp ảnh tại mục 📅 Đặt lịch, chọn danh mục "Nhiếp ảnh".',
+  'gói': 'Creator và Brand có thể tạo gói đăng ký tại mục ⭐ Đăng ký. Fan đăng ký sẽ nhận đặc quyền độc quyền.',
+  'mới': 'SafePass vừa ra mắt Phase Social 8 với Event Hub, Booking, Digital Products, Loyalty Points và Subscription System!',
+  'an toàn': 'SafePass sử dụng hệ thống Escrow an toàn — tiền được giữ bởi SafePass cho đến khi giao dịch hoàn tất.',
+  'wallet': 'Truy cập SafePass Pay tại /pay để xem ví, gửi tiền và nhận SafeCoin.',
+};
+
+function sendAIMsg(text) {
+  const input = document.getElementById('aiInput');
+  const msg = text || input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const msgs = document.getElementById('aiMessages');
+  msgs.innerHTML += `<div class="ai-msg user">${escHtml(msg)}</div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  setTimeout(() => {
+    const lower = msg.toLowerCase();
+    let reply = 'Xin lỗi, tôi chưa có thông tin về chủ đề đó. Bạn có thể hỏi về: sự kiện, điểm thưởng, đặt lịch, sản phẩm số, gói đăng ký, hay bán hàng không? 😊';
+    for (const [kw, ans] of Object.entries(AI_KB)) {
+      if (lower.includes(kw)) { reply = ans; break; }
+    }
+    msgs.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 600);
+}
+
+// ── ADMIN ──
+async function loadAdmin() {
+  const ov = await api('/api/admin/app8/overview').catch(()=>null);
+  if (!ov) { document.getElementById('adminStats').innerHTML='<div style="color:var(--red)">Cần quyền Admin</div>'; return; }
+  document.getElementById('adminStats').innerHTML = [
+    {ic:'🎪',val:ov.total_events,lbl:'Sự kiện',bg:'#f97316'},
+    {ic:'📅',val:ov.total_bookings,lbl:'Lịch đặt',bg:'#14b8a6'},
+    {ic:'📱',val:ov.mini_app_opens,lbl:'Lượt mở App',bg:'#8b5cf6'},
+    {ic:'📦',val:ov.digital_sales,lbl:'DL đã bán',bg:'#3b82f6'},
+    {ic:'⭐',val:ov.active_subscriptions,lbl:'Đăng ký',bg:'#f59e0b'},
+    {ic:'🏆',val:ov.loyalty_members,lbl:'Thành viên Loyalty',bg:'#22c55e'},
+  ].map(s=>`<div class="admin-stat"><div class="admin-stat-ic" style="background:${s.bg}22">${s.ic}</div><div class="admin-stat-info"><div class="val">${(s.val||0).toLocaleString()}</div><div class="lbl">${s.lbl}</div></div></div>`).join('');
+
+  // Mini Apps table
+  const apps = await api('/api/admin/app8/mini-apps').catch(()=>[]);
+  document.getElementById('adminAppsBody').innerHTML = (apps||[]).map(a=>`
+    <tr>
+      <td>${a.icon||''} ${escHtml(a.name)}</td>
+      <td>${(a.opens_count||0).toLocaleString()}</td>
+      <td><span style="color:${a.is_active?'var(--green)':'var(--red)'}">${a.is_active?'Active':'Inactive'}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="toggleApp('${a.id}',${!a.is_active})">${a.is_active?'Ẩn':'Hiện'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleFeatured('${a.id}',${!a.is_featured})" style="margin-left:4px">${a.is_featured?'Bỏ nổi bật':'Nổi bật'}</button>
+      </td>
+    </tr>`).join('');
+
+  // Events table
+  const evRes = await api('/api/admin/app8/events').catch(()=>({events:[]}));
+  document.getElementById('adminEventsBody').innerHTML = (evRes.events||[]).slice(0,10).map(e=>`
+    <tr>
+      <td>${escHtml(e.title)}</td>
+      <td><span style="color:${e.status==='upcoming'?'var(--green)':'var(--sub)'}">${e.status}</span></td>
+      <td>
+        ${e.status==='upcoming'?`<button class="btn btn-ghost btn-sm" onclick="updateEvent('${e.id}','ended')">Kết thúc</button>`:''} 
+        ${e.status!=='cancelled'?`<button class="btn btn-ghost btn-sm" onclick="updateEvent('${e.id}','cancelled')" style="margin-left:4px">Hủy</button>`:''}
+      </td>
+    </tr>`).join('');
+}
+
+async function toggleApp(id, val) { await api(`/api/admin/app8/mini-apps/${id}`,{method:'PATCH',body:JSON.stringify({is_active:val})}); loadAdmin(); }
+async function toggleFeatured(id, val) { await api(`/api/admin/app8/mini-apps/${id}`,{method:'PATCH',body:JSON.stringify({is_featured:val})}); loadAdmin(); }
+async function updateEvent(id, status) { await api(`/api/admin/app8/events/${id}`,{method:'PATCH',body:JSON.stringify({status})}); loadAdmin(); }
+
+// ── HTML ESCAPE ──
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── CLOSE MODAL ON OVERLAY CLICK ──
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show')}));
+</script>
+</body>
+</html>

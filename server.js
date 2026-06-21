@@ -8739,6 +8739,371 @@ app.post('/api/admin/pay/withdrawals/:id/process', adminAuth, async (req, res) =
 });
 
 // ═══════════════════════════════════════════════════════════
+// PHASE SOCIAL 8: SUPER APP ECOSYSTEM
+// ═══════════════════════════════════════════════════════════
+
+// Serve Super App 8 page
+app.get('/app', (req, res) => {
+  res.sendFile(new URL('./frontend/app.html', import.meta.url).pathname);
+});
+
+// ── Loyalty helpers ──
+async function getOrCreateLoyalty(userId) {
+  let { data } = await supabase.from('sp_loyalty').select('*').eq('user_id', userId).single();
+  if (!data) {
+    const { data: d } = await supabase.from('sp_loyalty').insert({ user_id: userId }).select().single();
+    data = d;
+  }
+  return data;
+}
+async function addLoyaltyPoints(userId, points, type, description, referenceId=null) {
+  await supabase.from('sp_loyalty_txns').insert({ user_id:userId, points, type, description, reference_id:referenceId });
+  const cur = await getOrCreateLoyalty(userId);
+  const newPts = (cur.points||0) + points;
+  const newLife = (cur.lifetime_points||0) + (points>0?points:0);
+  let level = 'bronze';
+  if (newLife >= 100000) level = 'diamond';
+  else if (newLife >= 20000) level = 'platinum';
+  else if (newLife >= 5000) level = 'gold';
+  else if (newLife >= 1000) level = 'silver';
+  await supabase.from('sp_loyalty').update({ points: Math.max(0,newPts), lifetime_points: newLife, level }).eq('user_id', userId);
+  return { points: Math.max(0,newPts), lifetime_points: newLife, level };
+}
+
+// ── GET /api/app8/loyalty ──
+app.get('/api/app8/loyalty', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const loyalty = await getOrCreateLoyalty(uid);
+  const { data: txns } = await supabase.from('sp_loyalty_txns').select('*').eq('user_id', uid).order('created_at',{ascending:false}).limit(20);
+  const { data: leaders } = await supabase.from('sp_loyalty').select('user_id,points,lifetime_points,level').order('lifetime_points',{ascending:false}).limit(10);
+  res.json({ loyalty, txns: txns||[], leaders: leaders||[] });
+});
+
+// ── POST /api/app8/loyalty/checkin ──
+app.post('/api/app8/loyalty/checkin', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const loyalty = await getOrCreateLoyalty(uid);
+  const today = new Date().toISOString().slice(0,10);
+  if (loyalty.last_checkin === today) return res.status(400).json({ error: 'Đã điểm danh hôm nay rồi' });
+  const streak = loyalty.last_checkin === new Date(Date.now()-86400000).toISOString().slice(0,10) ? (loyalty.streak_days||0)+1 : 1;
+  const pts = 5 + Math.min(streak-1, 6)*2;
+  await supabase.from('sp_loyalty').update({ last_checkin: today, streak_days: streak }).eq('user_id', uid);
+  const result = await addLoyaltyPoints(uid, pts, 'login', `Điểm danh ngày ${today} (streak ${streak})`);
+  res.json({ message: `Điểm danh thành công! +${pts} điểm`, points_earned: pts, streak, ...result });
+});
+
+// ── Events: list ──
+app.get('/api/app8/events', async (req, res) => {
+  const { type, status='upcoming', limit=20, offset=0 } = req.query;
+  let q = supabase.from('sp_events').select('*,users!sp_events_organizer_id_fkey(name,avatar_url)',{count:'exact'}).eq('status', status).order('start_at',{ascending:true}).range(+offset, +offset + +limit - 1);
+  if (type) q = q.eq('type', type);
+  const { data, count } = await q;
+  res.json({ events: data||[], total: count||0 });
+});
+
+// ── Events: create ──
+app.post('/api/app8/events', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { title,description,type,image_url,location,venue,start_at,end_at,ticket_price,capacity,tags } = req.body;
+  if (!title) return res.status(400).json({ error: 'Tên sự kiện là bắt buộc' });
+  const { data, error } = await supabase.from('sp_events').insert({ organizer_id:uid, title,description,type:type||'other',image_url,location,venue,start_at,end_at,ticket_price:+ticket_price||0,capacity:+capacity||100,tags }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Events: join ──
+app.post('/api/app8/events/:id/join', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { id } = req.params;
+  const { data: ev } = await supabase.from('sp_events').select('*').eq('id',id).single();
+  if (!ev) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+  if (ev.attendees_count >= ev.capacity) return res.status(400).json({ error: 'Sự kiện đã đầy' });
+  const { error } = await supabase.from('sp_event_attendees').insert({ event_id:id, user_id:uid });
+  if (error) return res.status(400).json({ error: 'Bạn đã tham gia sự kiện này rồi' });
+  await supabase.from('sp_events').update({ attendees_count: ev.attendees_count+1 }).eq('id', id);
+  await addLoyaltyPoints(uid, 10, 'event', `Tham gia sự kiện: ${ev.title}`, id);
+  res.json({ message: 'Đã đăng ký tham gia sự kiện!' });
+});
+
+// ── Events: my events ──
+app.get('/api/app8/events/my', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: created } = await supabase.from('sp_events').select('*').eq('organizer_id', uid).order('created_at',{ascending:false});
+  const { data: joined } = await supabase.from('sp_event_attendees').select('*,sp_events(*)').eq('user_id', uid).order('created_at',{ascending:false});
+  res.json({ created: created||[], joined: (joined||[]).map(j=>({...j.sp_events, joined_at: j.created_at})) });
+});
+
+// ── Events: admin ──
+app.get('/api/admin/app8/events', adminAuth, async (req, res) => {
+  const { data, count } = await supabase.from('sp_events').select('*,users!sp_events_organizer_id_fkey(name)',{count:'exact'}).order('created_at',{ascending:false}).limit(50);
+  res.json({ events: data||[], total: count||0 });
+});
+app.patch('/api/admin/app8/events/:id', adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  await supabase.from('sp_events').update({ status }).eq('id', id);
+  res.json({ message: 'Đã cập nhật' });
+});
+
+// ── Booking Services: list ──
+app.get('/api/app8/booking/services', async (req, res) => {
+  const { category, limit=20, offset=0 } = req.query;
+  let q = supabase.from('sp_booking_services').select('*,users!sp_booking_services_provider_id_fkey(name,avatar_url)',{count:'exact'}).eq('is_active', true).order('rating',{ascending:false}).range(+offset, +offset + +limit - 1);
+  if (category) q = q.eq('category', category);
+  const { data, count } = await q;
+  res.json({ services: data||[], total: count||0 });
+});
+
+// ── Booking Services: create ──
+app.post('/api/app8/booking/services', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { name,description,type,price,duration_mins,image_url,category } = req.body;
+  if (!name) return res.status(400).json({ error: 'Tên dịch vụ là bắt buộc' });
+  const { data, error } = await supabase.from('sp_booking_services').insert({ provider_id:uid, name,description,type:type||'appointment',price:+price||0,duration_mins:+duration_mins||60,image_url,category:category||'other' }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Booking Services: my services ──
+app.get('/api/app8/booking/my-services', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data } = await supabase.from('sp_booking_services').select('*').eq('provider_id', uid).order('created_at',{ascending:false});
+  res.json(data||[]);
+});
+
+// ── Bookings: create ──
+app.post('/api/app8/bookings', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { service_id, scheduled_at, notes } = req.body;
+  if (!service_id || !scheduled_at) return res.status(400).json({ error: 'Thiếu thông tin đặt lịch' });
+  const { data: svc } = await supabase.from('sp_booking_services').select('*').eq('id',service_id).single();
+  if (!svc) return res.status(404).json({ error: 'Dịch vụ không tồn tại' });
+  if (svc.provider_id === uid) return res.status(400).json({ error: 'Không thể tự đặt dịch vụ của mình' });
+  const { data, error } = await supabase.from('sp_bookings').insert({ service_id, provider_id:svc.provider_id, customer_id:uid, service_name:svc.name, price:svc.price, scheduled_at, duration_mins:svc.duration_mins, notes }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await supabase.from('sp_booking_services').update({ bookings_count: (svc.bookings_count||0)+1 }).eq('id', service_id);
+  await addLoyaltyPoints(uid, 5, 'booking', `Đặt dịch vụ: ${svc.name}`, service_id);
+  res.json(data);
+});
+
+// ── Bookings: my bookings ──
+app.get('/api/app8/bookings/my', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: asCustomer } = await supabase.from('sp_bookings').select('*,sp_booking_services(name,image_url),users!sp_bookings_provider_id_fkey(name,avatar_url)').eq('customer_id', uid).order('created_at',{ascending:false});
+  const { data: asProvider } = await supabase.from('sp_bookings').select('*,users!sp_bookings_customer_id_fkey(name,avatar_url)').eq('provider_id', uid).order('created_at',{ascending:false});
+  res.json({ as_customer: asCustomer||[], as_provider: asProvider||[] });
+});
+
+// ── Bookings: update status ──
+app.patch('/api/app8/bookings/:id/status', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { id } = req.params;
+  const { status } = req.body;
+  const { data: bk } = await supabase.from('sp_bookings').select('*').eq('id',id).single();
+  if (!bk) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (bk.provider_id !== uid && bk.customer_id !== uid) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('sp_bookings').update({ status }).eq('id', id);
+  res.json({ message: 'Đã cập nhật trạng thái' });
+});
+
+// ── Mini Apps: list ──
+app.get('/api/app8/mini-apps', async (req, res) => {
+  const { category } = req.query;
+  let q = supabase.from('sp_mini_apps').select('*').eq('is_active', true).order('opens_count',{ascending:false});
+  if (category) q = q.eq('category', category);
+  const { data } = await q;
+  const featured = (data||[]).filter(a=>a.is_featured);
+  res.json({ apps: data||[], featured });
+});
+
+// ── Mini Apps: open (track) ──
+app.post('/api/app8/mini-apps/:id/open', async (req, res) => {
+  const { id } = req.params;
+  const { data: app_item } = await supabase.from('sp_mini_apps').select('opens_count').eq('id',id).single();
+  if (app_item) await supabase.from('sp_mini_apps').update({ opens_count: (app_item.opens_count||0)+1 }).eq('id', id);
+  res.json({ ok: true });
+});
+
+// ── Mini Apps: admin create ──
+app.post('/api/admin/app8/mini-apps', adminAuth, async (req, res) => {
+  const { name,description,icon,color,url,category,is_featured,developer } = req.body;
+  const { data, error } = await supabase.from('sp_mini_apps').insert({ name,description,icon,color,url,category,is_featured:!!is_featured,developer }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Digital Products: list ──
+app.get('/api/app8/digital', async (req, res) => {
+  const { type, limit=20, offset=0 } = req.query;
+  let q = supabase.from('sp_digital_products').select('*,users!sp_digital_products_seller_id_fkey(name,avatar_url)',{count:'exact'}).eq('status','active').order('sales_count',{ascending:false}).range(+offset, +offset + +limit - 1);
+  if (type) q = q.eq('type', type);
+  const { data, count } = await q;
+  res.json({ products: data||[], total: count||0 });
+});
+
+// ── Digital Products: create ──
+app.post('/api/app8/digital', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { title,description,type,price,image_url,file_size,format,tags } = req.body;
+  if (!title) return res.status(400).json({ error: 'Tên sản phẩm là bắt buộc' });
+  const { data, error } = await supabase.from('sp_digital_products').insert({ seller_id:uid, title,description,type:type||'ebook',price:+price||0,image_url,file_size,format,tags }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Digital Products: purchase ──
+app.post('/api/app8/digital/:id/purchase', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { id } = req.params;
+  const { data: prod } = await supabase.from('sp_digital_products').select('*').eq('id',id).single();
+  if (!prod) return res.status(404).json({ error: 'Sản phẩm không tồn tại' });
+  if (prod.seller_id === uid) return res.status(400).json({ error: 'Không thể mua sản phẩm của chính mình' });
+  const { error } = await supabase.from('sp_digital_purchases').insert({ product_id:id, buyer_id:uid, seller_id:prod.seller_id, amount:prod.price });
+  if (error) return res.status(400).json({ error: 'Bạn đã mua sản phẩm này rồi' });
+  await supabase.from('sp_digital_products').update({ sales_count: (prod.sales_count||0)+1 }).eq('id', id);
+  await addLoyaltyPoints(uid, 10, 'purchase', `Mua sản phẩm: ${prod.title}`, id);
+  await addLoyaltyPoints(prod.seller_id, 20, 'sale', `Bán sản phẩm: ${prod.title}`, id);
+  res.json({ message: 'Mua thành công! Cảm ơn bạn.', product: prod });
+});
+
+// ── Digital Products: my purchases ──
+app.get('/api/app8/digital/my-purchases', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data } = await supabase.from('sp_digital_purchases').select('*,sp_digital_products(*)').eq('buyer_id', uid).order('created_at',{ascending:false});
+  res.json(data||[]);
+});
+
+// ── Digital Products: my products ──
+app.get('/api/app8/digital/my-products', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data } = await supabase.from('sp_digital_products').select('*').eq('seller_id', uid).order('created_at',{ascending:false});
+  res.json(data||[]);
+});
+
+// ── Subscription Plans: list (public) ──
+app.get('/api/app8/subscriptions/plans', async (req, res) => {
+  const { owner_id } = req.query;
+  let q = supabase.from('sp_subscription_plans').select('*,users!sp_subscription_plans_owner_id_fkey(name,avatar_url)').eq('is_active', true).order('subscribers_count',{ascending:false}).limit(30);
+  if (owner_id) q = q.eq('owner_id', owner_id);
+  const { data } = await q;
+  res.json(data||[]);
+});
+
+// ── Subscription Plans: create ──
+app.post('/api/app8/subscriptions/plans', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { name,description,tier,price_monthly,perks,owner_type } = req.body;
+  if (!name) return res.status(400).json({ error: 'Tên gói là bắt buộc' });
+  const { data, error } = await supabase.from('sp_subscription_plans').insert({ owner_id:uid, owner_type:owner_type||'creator', tier:tier||'basic', name,description,price_monthly:+price_monthly||0,perks }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Subscriptions: subscribe ──
+app.post('/api/app8/subscriptions/:plan_id/subscribe', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { plan_id } = req.params;
+  const { data: plan } = await supabase.from('sp_subscription_plans').select('*').eq('id',plan_id).single();
+  if (!plan) return res.status(404).json({ error: 'Gói không tồn tại' });
+  if (plan.owner_id === uid) return res.status(400).json({ error: 'Không thể tự đăng ký gói của mình' });
+  const expires_at = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+  const { error } = await supabase.from('sp_subscriptions').insert({ subscriber_id:uid, plan_id, owner_id:plan.owner_id, expires_at });
+  if (error) return res.status(400).json({ error: 'Đã đăng ký gói này rồi' });
+  await supabase.from('sp_subscription_plans').update({ subscribers_count: (plan.subscribers_count||0)+1 }).eq('id', plan_id);
+  await addLoyaltyPoints(uid, 15, 'subscription', `Đăng ký gói: ${plan.name}`, plan_id);
+  res.json({ message: 'Đăng ký thành công!' });
+});
+
+// ── Subscriptions: my subscriptions ──
+app.get('/api/app8/subscriptions/mine', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: subs } = await supabase.from('sp_subscriptions').select('*,sp_subscription_plans(*),users!sp_subscriptions_owner_id_fkey(name,avatar_url)').eq('subscriber_id', uid).order('created_at',{ascending:false});
+  const { data: plans } = await supabase.from('sp_subscription_plans').select('*,sp_subscriptions(id,subscriber_id)').eq('owner_id', uid);
+  res.json({ subscriptions: subs||[], my_plans: plans||[] });
+});
+
+// ── Super Search ──
+app.get('/api/app8/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.trim().length < 2) return res.json({ results: [] });
+  const term = q.trim();
+  const like = `%${term}%`;
+  const [users, tickets, events, services, digital, groups] = await Promise.all([
+    supabase.from('users').select('id,name,avatar_url').ilike('name', like).limit(5),
+    supabase.from('tickets').select('id,title,price,images').ilike('title', like).eq('status','active').limit(6),
+    supabase.from('sp_events').select('id,title,type,start_at,image_url').ilike('title', like).eq('status','upcoming').limit(5),
+    supabase.from('sp_booking_services').select('id,name,type,price,image_url').ilike('name', like).eq('is_active',true).limit(5),
+    supabase.from('sp_digital_products').select('id,title,type,price,image_url').ilike('title', like).eq('status','active').limit(5),
+    supabase.from('social_groups').select('id,name,cover_url,members_count').ilike('name', like).limit(4)
+  ]);
+  res.json({
+    users: users.data||[], tickets: tickets.data||[], events: events.data||[],
+    services: services.data||[], digital: digital.data||[], groups: groups.data||[]
+  });
+});
+
+// ── Discovery Center ──
+app.get('/api/app8/discover', async (req, res) => {
+  const [topProducts, topEvents, topServices, topDigital] = await Promise.all([
+    supabase.from('tickets').select('id,title,price,images,view_count').eq('status','active').order('view_count',{ascending:false}).limit(8),
+    supabase.from('sp_events').select('id,title,type,image_url,start_at,attendees_count').eq('status','upcoming').order('attendees_count',{ascending:false}).limit(6),
+    supabase.from('sp_booking_services').select('id,name,type,price,image_url,rating,bookings_count').eq('is_active',true).order('bookings_count',{ascending:false}).limit(6),
+    supabase.from('sp_digital_products').select('id,title,type,price,image_url,sales_count').eq('status','active').order('sales_count',{ascending:false}).limit(6)
+  ]);
+  res.json({
+    trending_products: topProducts.data||[], trending_events: topEvents.data||[],
+    trending_services: topServices.data||[], trending_digital: topDigital.data||[]
+  });
+});
+
+// ── Admin Super App Overview ──
+app.get('/api/admin/app8/overview', adminAuth, async (req, res) => {
+  const [events, bookings, miniapps, digital, subs, loyalty] = await Promise.all([
+    supabase.from('sp_events').select('id',{count:'exact'}),
+    supabase.from('sp_bookings').select('id',{count:'exact'}),
+    supabase.from('sp_mini_apps').select('id,opens_count').eq('is_active',true),
+    supabase.from('sp_digital_products').select('id,sales_count').eq('status','active'),
+    supabase.from('sp_subscriptions').select('id',{count:'exact'}).eq('status','active'),
+    supabase.from('sp_loyalty').select('id,points,level',{count:'exact'})
+  ]);
+  const totalOpens = (miniapps.data||[]).reduce((s,a)=>s+(a.opens_count||0),0);
+  const totalSales = (digital.data||[]).reduce((s,d)=>s+(d.sales_count||0),0);
+  const levelCounts = {};
+  (loyalty.data||[]).forEach(l=>{ levelCounts[l.level]=(levelCounts[l.level]||0)+1; });
+  res.json({
+    total_events: events.count||0,
+    total_bookings: bookings.count||0,
+    mini_app_opens: totalOpens,
+    total_mini_apps: (miniapps.data||[]).length,
+    digital_sales: totalSales,
+    active_subscriptions: subs.count||0,
+    loyalty_members: loyalty.count||0,
+    level_counts: levelCounts
+  });
+});
+
+// ── Admin: manage mini apps ──
+app.get('/api/admin/app8/mini-apps', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('sp_mini_apps').select('*').order('opens_count',{ascending:false});
+  res.json(data||[]);
+});
+app.patch('/api/admin/app8/mini-apps/:id', adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { is_active, is_featured } = req.body;
+  const updates = {};
+  if (is_active !== undefined) updates.is_active = !!is_active;
+  if (is_featured !== undefined) updates.is_featured = !!is_featured;
+  await supabase.from('sp_mini_apps').update(updates).eq('id', id);
+  res.json({ message: 'Đã cập nhật' });
+});
+
+// ── Admin: digital products ──
+app.get('/api/admin/app8/digital', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('sp_digital_products').select('*,users!sp_digital_products_seller_id_fkey(name)').order('created_at',{ascending:false}).limit(50);
+  res.json(data||[]);
+});
+
+// ═══════════════════════════════════════════════════════════
 // PHASE 17: SAFEPASS SUPER APP
 // ═══════════════════════════════════════════════════════════
 
