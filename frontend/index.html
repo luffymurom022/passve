@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SafePass — Mua Bán Đồ Cũ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SAFEPASS — FACEBOOK STYLE UI
@@ -8768,6 +8771,73 @@ function bindSvcEvents(){
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function showToast(msg,type){ if(typeof toast==='function') toast(msg,type==='ok'?'success':type==='err'?'error':type); }
 
+</script>
+
+<!-- ══════════════════════════════════════════
+     PERFORMANCE: Lazy Image Loading + Infinite Scroll Observer
+══════════════════════════════════════════ -->
+<script>
+(function(){
+  // 1. Lazy-load images via IntersectionObserver
+  const imgObserver = ('IntersectionObserver' in window) && new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      if (img.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; }
+      imgObserver.unobserve(img);
+    });
+  }, { rootMargin: '200px 0px' });
+
+  function observeLazyImages(root) {
+    (root || document).querySelectorAll('img[data-src]').forEach(img => imgObserver && imgObserver.observe(img));
+  }
+  window.observeLazyImages = observeLazyImages;
+
+  // 2. Observe newly added images via MutationObserver
+  if ('MutationObserver' in window) {
+    new MutationObserver(mutations => {
+      mutations.forEach(m => m.addedNodes.forEach(node => {
+        if (node.nodeType !== 1) return;
+        if (node.tagName === 'IMG' && node.dataset.src) imgObserver && imgObserver.observe(node);
+        node.querySelectorAll && node.querySelectorAll('img[data-src]').forEach(img => imgObserver && imgObserver.observe(img));
+      }));
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  // 3. Infinite scroll sentinel — attach to any container with data-infinite-load attribute
+  // Usage: <div data-infinite-load="loadMoreFn" data-infinite-page="1"></div>
+  if ('IntersectionObserver' in window) {
+    const sentinelObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        const fnName = el.dataset.infiniteLoad;
+        const fn = window[fnName];
+        if (typeof fn === 'function' && !el.dataset.loading) {
+          el.dataset.loading = '1';
+          const page = parseInt(el.dataset.infinitePage || '1') + 1;
+          el.dataset.infinitePage = page;
+          Promise.resolve(fn(page)).finally(() => { delete el.dataset.loading; });
+        }
+      });
+    }, { rootMargin: '300px 0px' });
+    window.attachInfiniteScroll = (el, fnName) => {
+      el.dataset.infiniteLoad = fnName;
+      sentinelObserver.observe(el);
+    };
+  }
+
+  // 4. Prefetch next page of feed on idle
+  if ('requestIdleCallback' in window && typeof TOKEN !== 'undefined') {
+    requestIdleCallback(() => {
+      // Pre-warm the second page of tickets for faster nav
+      fetch('/api/tickets?page=2&limit=20', {
+        headers: { 'Authorization': 'Bearer ' + TOKEN },
+        priority: 'low'
+      }).catch(() => {});
+    }, { timeout: 5000 });
+  }
+})();
 </script>
 
 </body>

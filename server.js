@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
+import compression from 'compression';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import ws, { WebSocketServer } from 'ws';
@@ -36,7 +37,31 @@ app.use(helmet({
   contentSecurityPolicy: false, // disabled to allow inline scripts in frontend
   crossOriginEmbedderPolicy: false
 }));
+app.use(compression({ level: 6, threshold: 1024 }));
 app.use(express.json());
+
+// ══════════════════════════════════════════════════════════
+// TTL IN-MEMORY CACHE — feed, prefs, stats, counts
+// ══════════════════════════════════════════════════════════
+class TtlCache {
+  constructor() { this._store = new Map(); }
+  get(key) {
+    const e = this._store.get(key);
+    if (!e) return null;
+    if (Date.now() > e.exp) { this._store.delete(key); return null; }
+    return e.val;
+  }
+  set(key, val, ttlMs) { this._store.set(key, { val, exp: Date.now() + ttlMs }); }
+  del(key) { this._store.delete(key); }
+  delPrefix(prefix) { for (const k of this._store.keys()) if (k.startsWith(prefix)) this._store.delete(k); }
+}
+const ttlCache = new TtlCache();
+
+// Auto-purge expired cache entries every 2 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of ttlCache._store) if (now > v.exp) ttlCache._store.delete(k);
+}, 120_000);
 
 // ── RATE LIMITING ──
 const generalLimit = rateLimit({
@@ -2927,15 +2952,21 @@ app.get('/api/admin/export', async (req, res) => {
 
 app.get('/api/notifications', auth, async (req, res) => {
   try {
+    const cacheKey = `notifs:${req.user.id}`;
+    const cached = ttlCache.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const { data, error } = await supabase
       .from('notifications')
-      .select('*')
+      .select('id,user_id,type,title,body,is_read,created_at,ref_id')
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false })
       .limit(20);
     if (error) return res.json({ notifications: [], unread: 0 });
     const unread = (data || []).filter(n => !n.is_read).length;
-    res.json({ notifications: data || [], unread });
+    const result = { notifications: data || [], unread };
+    ttlCache.set(cacheKey, result, 15_000); // 15s TTL
+    res.json(result);
   } catch (e) {
     res.json({ notifications: [], unread: 0 });
   }
@@ -2947,6 +2978,7 @@ app.post('/api/notifications/read-all', auth, async (req, res) => {
       .update({ is_read: true })
       .eq('user_id', req.user.id)
       .eq('is_read', false);
+    ttlCache.del(`notifs:${req.user.id}`);
   } catch (e) {}
   res.json({ ok: true });
 });
@@ -2957,6 +2989,7 @@ app.post('/api/notifications/:id/read', auth, async (req, res) => {
       .update({ is_read: true })
       .eq('id', req.params.id)
       .eq('user_id', req.user.id);
+    ttlCache.del(`notifs:${req.user.id}`);
   } catch (e) {}
   res.json({ ok: true });
 });
@@ -4237,8 +4270,19 @@ async function autoReleaseServiceOrders() {
   }
 }
 
-// ── SERVE FRONTEND STATIC FILES ──
-app.use(express.static(join(__dirname, 'frontend')));
+// ── SERVE FRONTEND STATIC FILES (with caching headers) ──
+app.use(express.static(join(__dirname, 'frontend'), {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
+  setHeaders(res, filePath) {
+    // HTML files: no-cache so fresh navigation always fetches latest
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+    // JS/CSS/images: 1-day cache with revalidation
+  }
+}));
 // Note: catch-all moved to end of file so named routes take priority
 
 // ── Chuẩn hóa số điện thoại cũ khi khởi động ──
@@ -11801,19 +11845,58 @@ app.get('/api/sn/groups/discover', async (req, res) => {
 app.get('/api/social/reels', async (req, res) => {
   try {
     const { page=1, limit=10, hashtag } = req.query;
-    const offset = (parseInt(page)-1)*parseInt(limit);
-    let q = supabase.from('social_videos').select('*').eq('status','active');
+    const lim = Math.min(20, parseInt(limit));
+    const offset = (parseInt(page)-1)*lim;
+
+    // Check cache for anonymous/unfiltered first page
+    const cacheKey = `social_reels:${hashtag||''}:${page}:${lim}`;
+    const cached = ttlCache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    let q = supabase.from('social_videos')
+      .select('id,user_id,title,url,thumbnail_url,hashtags,likes_count,comments_count,saves_count,views_count,completion_rate,duration,created_at,status')
+      .eq('status','active');
     if (hashtag) q = q.contains('hashtags', [hashtag]);
-    // Smart sort: weighted score (views*0.3 + likes*1 + comments*2 + recency boost)
-    const { data: videos } = await q.order('likes_count',{ascending:false}).order('created_at',{ascending:false}).range(offset, offset+parseInt(limit)-1);
-    const enriched = await Promise.all((videos||[]).map(async v => {
-      const { data: u } = await supabase.from('users').select('id,name').eq('id',v.user_id).single();
-      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id',v.user_id).maybeSingle();
-      const { data: products } = await supabase.from('social_video_products').select('*').eq('video_id',v.id).limit(3);
-      const { count: followers } = await supabase.from('social_follows').select('id',{count:'exact',head:true}).eq('following_id',v.user_id);
-      return { ...v, user: { ...u, avatar_url: prof?.avatar_url, followers_count: followers||0 }, products: products||[] };
+    const { data: videos } = await q
+      .order('likes_count',{ascending:false})
+      .order('created_at',{ascending:false})
+      .range(offset, offset+lim-1);
+
+    if (!videos || !videos.length) return res.json({ reels: [], has_more: false });
+
+    // ── Batch all enrichment queries (fix N+1) ──
+    const userIds = [...new Set(videos.map(v => v.user_id).filter(Boolean))];
+    const videoIds = videos.map(v => v.id);
+
+    const [usersRes, profsRes, productsRes, followsRes] = await Promise.all([
+      supabase.from('users').select('id,name').in('id', userIds),
+      supabase.from('sn_profiles').select('user_id,avatar_url').in('user_id', userIds),
+      supabase.from('social_video_products').select('*').in('video_id', videoIds),
+      supabase.from('social_follows')
+        .select('following_id')
+        .in('following_id', userIds)
+    ]);
+
+    const userMap = Object.fromEntries((usersRes.data||[]).map(u => [u.id, u]));
+    const profMap = Object.fromEntries((profsRes.data||[]).map(p => [p.user_id, p.avatar_url]));
+    const prodMap = {};
+    (productsRes.data||[]).forEach(p => { (prodMap[p.video_id] = prodMap[p.video_id] || []).push(p); });
+    const followCounts = {};
+    (followsRes.data||[]).forEach(f => { followCounts[f.following_id] = (followCounts[f.following_id]||0)+1; });
+
+    const enriched = videos.map(v => ({
+      ...v,
+      user: {
+        ...(userMap[v.user_id] || {}),
+        avatar_url: profMap[v.user_id] || null,
+        followers_count: followCounts[v.user_id] || 0
+      },
+      products: (prodMap[v.id] || []).slice(0, 3)
     }));
-    res.json({ reels: enriched, has_more: (videos||[]).length === parseInt(limit) });
+
+    const result = { reels: enriched, has_more: videos.length === lim };
+    if (!hashtag) ttlCache.set(cacheKey, result, 30_000); // 30s cache for public reels
+    res.json(result);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -11873,26 +11956,58 @@ app.post('/api/social/videos/:id/share', auth, async (req, res) => {
 app.get('/api/dm/conversations', auth, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { data: parts } = await supabase.from('dm_participants').select('conversation_id,last_read_at').eq('user_id',uid).order('joined_at',{ascending:false});
+
+    // Short-lived cache (10s) — fast repeat calls, still near-realtime
+    const cacheKey = `dm_convs:${uid}`;
+    const cached = ttlCache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    const { data: parts } = await supabase.from('dm_participants')
+      .select('conversation_id,last_read_at').eq('user_id',uid).order('joined_at',{ascending:false});
     if (!parts?.length) return res.json({ conversations: [] });
+
     const ids = parts.map(p=>p.conversation_id);
-    const { data: convs } = await supabase.from('dm_conversations').select('*').in('id',ids).order('last_message_at',{ascending:false});
-    const enriched = await Promise.all((convs||[]).map(async c => {
-      const { data: allParts } = await supabase.from('dm_participants').select('user_id').eq('conversation_id',c.id);
-      const otherIds = (allParts||[]).map(p=>p.user_id).filter(id=>id!==uid);
-      let displayName = c.name;
-      let displayAvatar = c.avatar_url;
-      if (c.type==='direct' && otherIds.length>0) {
-        const { data: ou } = await supabase.from('users').select('name').eq('id',otherIds[0]).single();
-        const { data: op } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id',otherIds[0]).maybeSingle();
-        displayName = ou?.name || 'Người dùng';
-        displayAvatar = op?.avatar_url;
-      }
-      const myPart = parts.find(p=>p.conversation_id===c.id);
-      const { count: unread } = await supabase.from('dm_messages').select('id',{count:'exact',head:true}).eq('conversation_id',c.id).neq('sender_id',uid).is('is_deleted',false).gte('created_at',myPart?.last_read_at||'2000-01-01');
-      return { ...c, display_name: displayName, display_avatar: displayAvatar, other_user_id: c.type==='direct'?otherIds[0]:null, unread_count: unread||0 };
-    }));
-    res.json({ conversations: enriched });
+    const partLookup = Object.fromEntries(parts.map(p=>[p.conversation_id, p]));
+
+    // ── Batch all enrichment queries (fix N+1) ──
+    const [convsRes, allPartsRes] = await Promise.all([
+      supabase.from('dm_conversations').select('*').in('id',ids).order('last_message_at',{ascending:false}),
+      supabase.from('dm_participants').select('conversation_id,user_id').in('conversation_id',ids)
+    ]);
+    const convs = convsRes.data || [];
+
+    // Build other-user map for direct convs
+    const otherUserMap = {};
+    (allPartsRes.data||[]).forEach(p => {
+      if (p.user_id !== uid) otherUserMap[p.conversation_id] = p.user_id;
+    });
+    const otherUserIds = [...new Set(Object.values(otherUserMap))].filter(Boolean);
+
+    const [usersRes, profsRes, unreadRes] = await Promise.all([
+      otherUserIds.length ? supabase.from('users').select('id,name').in('id',otherUserIds) : { data: [] },
+      otherUserIds.length ? supabase.from('sn_profiles').select('user_id,avatar_url').in('user_id',otherUserIds) : { data: [] },
+      supabase.from('dm_messages').select('conversation_id').in('conversation_id',ids).neq('sender_id',uid).is('is_deleted',false)
+    ]);
+
+    const userMap = Object.fromEntries((usersRes.data||[]).map(u=>[u.id,u]));
+    const profMap = Object.fromEntries((profsRes.data||[]).map(p=>[p.user_id,p.avatar_url]));
+    // Rough unread count per conv from batch
+    const unreadMap = {};
+    (unreadRes.data||[]).forEach(m => {
+      const part = partLookup[m.conversation_id];
+      unreadMap[m.conversation_id] = (unreadMap[m.conversation_id]||0) + 1;
+    });
+
+    const enriched = convs.map(c => {
+      const otherId = otherUserMap[c.id];
+      const displayName = c.type==='direct' && otherId ? (userMap[otherId]?.name||'Người dùng') : (c.name||'Nhóm');
+      const displayAvatar = c.type==='direct' && otherId ? profMap[otherId] : c.avatar_url;
+      return { ...c, display_name: displayName, display_avatar: displayAvatar||null, other_user_id: otherId||null, unread_count: unreadMap[c.id]||0 };
+    });
+
+    const result = { conversations: enriched };
+    ttlCache.set(cacheKey, result, 10_000); // 10s TTL — near-realtime
+    res.json(result);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -11961,6 +12076,8 @@ app.post('/api/dm/conversations/:id/messages', auth, async (req, res) => {
     const payload = { type:'dm_message', message: { ...msg, sender_name: u?.name, reactions:[] } };
     const { data: participants } = await supabase.from('dm_participants').select('user_id').eq('conversation_id',req.params.id);
     (participants||[]).forEach(p => {
+      // Invalidate conversation list cache for all participants (triggers fresh fetch)
+      ttlCache.del(`dm_convs:${p.user_id}`);
       if (p.user_id!==uid) {
         const sock = dmSockets.get(p.user_id);
         if (sock) try { sock.send(JSON.stringify(payload)); } catch(e) {}
@@ -12945,17 +13062,26 @@ function calcReelScore(reel, watchHistory = [], prefTags = {}) {
 }
 
 async function getUserPrefsAndGraph(userId) {
+  const cacheKey = `prefs:${userId}`;
+  const cached = ttlCache.get(cacheKey);
+  if (cached) return cached;
+
   let prefs = { categories: {}, tags: {} };
   let followingIds = [];
   try {
     const [prefRow, follows] = await Promise.all([
-      supabase.from('user_preference_profiles').select('*').eq('user_id', userId).single(),
-      supabase.from('user_follows').select('following_id').eq('follower_id', userId)
+      supabase.from('user_preference_profiles')
+        .select('categories,tags,interaction_summary').eq('user_id', userId).single(),
+      supabase.from('user_follows')
+        .select('following_id').eq('follower_id', userId)
     ]);
     if (prefRow.data) prefs = prefRow.data;
     if (follows.data) followingIds = follows.data.map(f => f.following_id);
   } catch(e) {}
-  return { prefs, followingIds };
+
+  const result = { prefs, followingIds };
+  ttlCache.set(cacheKey, result, 60_000); // 60s TTL
+  return result;
 }
 
 async function updatePreferenceProfile(userId, interactionType, targetType, metadata = {}) {
@@ -12988,6 +13114,10 @@ async function updatePreferenceProfile(userId, interactionType, targetType, meta
       interaction_summary: profile.interaction_summary,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
+    // Invalidate all user-specific caches so next request gets fresh data
+    ttlCache.del(`prefs:${userId}`);
+    ttlCache.del(`ai_feed:${userId}`);
+    ttlCache.delPrefix(`ai_reels:${userId}:`);
   } catch(e) {}
 }
 
@@ -13051,25 +13181,37 @@ app.post('/api/ai/interact', auth, async (req, res) => {
 // ── MODULE 2: AI PERSONALIZED FEED ──
 app.get('/api/ai/feed', auth, async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
+  const pageNum = parseInt(page);
+  const limitNum = Math.min(30, parseInt(limit));
   try {
     const { prefs, followingIds } = await getUserPrefsAndGraph(req.user.id);
 
-    // Fetch recent posts from social network
-    const { data: posts } = await supabase.from('sn_posts')
-      .select('*, users(name)')
-      .order('created_at', { ascending: false })
-      .limit(100);
+    // Cache scored feed per user (30s TTL — fresh enough for real-time feel)
+    const feedCacheKey = `ai_feed:${req.user.id}`;
+    let scored = ttlCache.get(feedCacheKey);
 
-    if (!posts || !posts.length) return res.json([]);
+    if (!scored) {
+      // Fetch only columns needed for scoring + display
+      const { data: posts } = await supabase.from('sn_posts')
+        .select('id,user_id,content,category,image_url,likes_count,comments_count,shares_count,views_count,created_at,users(name)')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(60); // reduced from 100
 
-    const scored = posts.map(p => ({
-      ...p, ai_score: calcPostScore(p, followingIds, prefs.categories || {}),
-      ai_reason: followingIds.includes(p.user_id) ? 'Bạn đang theo dõi' :
-        (prefs.categories[p.category] > 50 ? `Phù hợp sở thích ${p.category}` : 'Nội dung phổ biến')
-    }));
-    scored.sort((a, b) => b.ai_score - a.ai_score);
-    const start = (page - 1) * limit;
-    res.json(scored.slice(start, start + Number(limit)));
+      if (!posts || !posts.length) return res.json([]);
+
+      scored = posts.map(p => ({
+        ...p,
+        ai_score: calcPostScore(p, followingIds, prefs.categories || {}),
+        ai_reason: followingIds.includes(p.user_id) ? 'Bạn đang theo dõi' :
+          ((prefs.categories || {})[p.category] > 50 ? `Phù hợp sở thích ${p.category}` : 'Nội dung phổ biến')
+      }));
+      scored.sort((a, b) => b.ai_score - a.ai_score);
+      ttlCache.set(feedCacheKey, scored, 30_000);
+    }
+
+    const start = (pageNum - 1) * limitNum;
+    res.json(scored.slice(start, start + limitNum));
   } catch(e) {
     res.json([]);
   }
@@ -13078,23 +13220,37 @@ app.get('/api/ai/feed', auth, async (req, res) => {
 // ── MODULE 3: AI REELS RECOMMENDATION ──
 app.get('/api/ai/reels', auth, async (req, res) => {
   const { limit = 20, feed_type = 'for_you' } = req.query;
+  const limitNum = Math.min(30, parseInt(limit));
   try {
     const { prefs, followingIds } = await getUserPrefsAndGraph(req.user.id);
 
-    let query = supabase.from('social_videos')
-      .select('*').order('created_at', { ascending: false }).limit(100);
-    if (feed_type === 'following') query = query.in('user_id', followingIds.length ? followingIds : ['00000000-0000-0000-0000-000000000000']);
+    // Cache per user+feed_type (30s TTL)
+    const reelCacheKey = `ai_reels:${req.user.id}:${feed_type}`;
+    let scored = ttlCache.get(reelCacheKey);
 
-    const { data: reels } = await query;
-    if (!reels || !reels.length) return res.json([]);
+    if (!scored) {
+      let query = supabase.from('social_videos')
+        .select('id,user_id,title,url,thumbnail_url,hashtags,likes_count,comments_count,views_count,completion_rate,duration,created_at')
+        .order('created_at', { ascending: false })
+        .limit(40); // reduced from 100
+      if (feed_type === 'following') {
+        query = query.in('user_id', followingIds.length ? followingIds : ['00000000-0000-0000-0000-000000000000']);
+      }
 
-    const scored = reels.map(r => ({
-      ...r, ai_score: calcReelScore(r, [], prefs.tags || {}),
-      ai_reason: (r.completion_rate > 70) ? 'Tỷ lệ xem hoàn thành cao' :
-        followingIds.includes(r.user_id) ? 'Người bạn theo dõi' : 'Đang thịnh hành'
-    }));
-    scored.sort((a, b) => b.ai_score - a.ai_score);
-    res.json(scored.slice(0, Number(limit)));
+      const { data: reels } = await query;
+      if (!reels || !reels.length) return res.json([]);
+
+      scored = reels.map(r => ({
+        ...r,
+        ai_score: calcReelScore(r, [], prefs.tags || {}),
+        ai_reason: (r.completion_rate > 70) ? 'Tỷ lệ xem hoàn thành cao' :
+          followingIds.includes(r.user_id) ? 'Người bạn theo dõi' : 'Đang thịnh hành'
+      }));
+      scored.sort((a, b) => b.ai_score - a.ai_score);
+      ttlCache.set(reelCacheKey, scored, 30_000);
+    }
+
+    res.json(scored.slice(0, limitNum));
   } catch(e) {
     res.json([]);
   }
@@ -13103,24 +13259,35 @@ app.get('/api/ai/reels', auth, async (req, res) => {
 // ── MODULE 4: PRODUCT RECOMMENDATIONS ──
 app.get('/api/ai/recommendations/products', auth, async (req, res) => {
   const { limit = 12 } = req.query;
+  const limitNum = Math.min(30, parseInt(limit));
   try {
     const { prefs } = await getUserPrefsAndGraph(req.user.id);
     const categories = Object.keys(prefs.categories || {}).filter(c => (prefs.categories[c] || 0) > 30);
 
-    const { data: products } = await supabase.from('tickets')
-      .select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(200);
+    const recCacheKey = `ai_rec_products:${req.user.id}`;
+    let scored = ttlCache.get(recCacheKey);
 
-    if (!products || !products.length) return res.json([]);
+    if (!scored) {
+      const { data: products } = await supabase.from('tickets')
+        .select('id,event_name,price,category,image_url,views_count,escrow_enabled,seller_id,created_at')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(50); // reduced from 200
 
-    const scored = products.map(p => {
-      let score = 50;
-      if (categories.some(c => (p.title || '').toLowerCase().includes(c.toLowerCase()))) score += 40;
-      score += Math.min(30, (p.views_count || 0) / 10);
-      if (p.escrow_enabled) score += 10;
-      return { ...p, ai_score: Math.min(99, Math.round(score)), ai_reason: 'Phù hợp sở thích của bạn' };
-    });
-    scored.sort((a, b) => b.ai_score - a.ai_score);
-    res.json(scored.slice(0, Number(limit)));
+      if (!products || !products.length) return res.json([]);
+
+      scored = products.map(p => {
+        let score = 50;
+        if (categories.some(c => (p.event_name || '').toLowerCase().includes(c.toLowerCase()))) score += 40;
+        score += Math.min(30, (p.views_count || 0) / 10);
+        if (p.escrow_enabled) score += 10;
+        return { ...p, ai_score: Math.min(99, Math.round(score)), ai_reason: 'Phù hợp sở thích của bạn' };
+      });
+      scored.sort((a, b) => b.ai_score - a.ai_score);
+      ttlCache.set(recCacheKey, scored, 60_000); // 1 min cache
+    }
+
+    res.json(scored.slice(0, limitNum));
   } catch(e) {
     res.json([]);
   }
@@ -13436,21 +13603,31 @@ app.get('/api/worlds', async (req, res) => {
 // ── GET /api/worlds/stats ──
 app.get('/api/worlds/stats', async (req, res) => {
   try {
+    const cached = ttlCache.get('worlds:stats');
+    if (cached) return res.json(cached);
     const [wR, mR, pR, eR] = await Promise.all([
       supabase.from('vw_worlds').select('id', { count: 'exact', head: true }),
       supabase.from('vw_world_members').select('id', { count: 'exact', head: true }),
       supabase.from('vw_world_posts').select('id', { count: 'exact', head: true }),
       supabase.from('vw_world_events').select('id', { count: 'exact', head: true })
     ]);
-    res.json({ stats: { worlds: wR.count||0, members: mR.count||0, posts: pR.count||0, events: eR.count||0 } });
+    const result = { stats: { worlds: wR.count||0, members: mR.count||0, posts: pR.count||0, events: eR.count||0 } };
+    ttlCache.set('worlds:stats', result, 300_000); // 5 min cache
+    res.json(result);
   } catch(e) { res.json({ stats: { worlds:0, members:0, posts:0, events:0 } }); }
 });
 
 // ── GET /api/worlds/leaderboard ──
 app.get('/api/worlds/leaderboard', async (req, res) => {
   try {
-    const { data } = await supabase.from('vw_worlds').select('*').eq('status','active').order('members_count',{ascending:false}).limit(20);
-    res.json({ worlds: data||[] });
+    const cached = ttlCache.get('worlds:leaderboard');
+    if (cached) return res.json(cached);
+    const { data } = await supabase.from('vw_worlds')
+      .select('id,name,type,members_count,is_featured,created_at')
+      .eq('status','active').order('members_count',{ascending:false}).limit(20);
+    const result = { worlds: data||[] };
+    ttlCache.set('worlds:leaderboard', result, 120_000); // 2 min cache
+    res.json(result);
   } catch(e) { res.json({ worlds:[] }); }
 });
 
@@ -13982,13 +14159,21 @@ app.put('/api/avatar-economy/avatar', auth, async (req, res) => {
 app.get('/api/avatar-economy/items', async (req, res) => {
   try {
     const { category, featured, limit = 30, page = 1 } = req.query;
-    let q = supabase.from('avatar_items').select('*').eq('is_active', true);
+    const cacheKey = `avatar_items:${category||''}:${featured||''}:${page}:${limit}`;
+    const cached = ttlCache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    let q = supabase.from('avatar_items')
+      .select('id,name,description,category,rarity,price,preview_url,is_featured,tags,created_at')
+      .eq('is_active', true);
     if (category) q = q.eq('category', category);
     if (featured === 'true') q = q.eq('is_featured', true);
     q = q.order('is_featured', { ascending: false }).order('created_at', { ascending: false }).range((page-1)*limit, page*limit-1);
     const { data, error } = await q;
     if (error) return res.json({ items: [] });
-    res.json({ items: data || [] });
+    const result = { items: data || [] };
+    ttlCache.set(cacheKey, result, 120_000); // 2 min — item catalog changes rarely
+    res.json(result);
   } catch(e) { res.json({ items: [] }); }
 });
 

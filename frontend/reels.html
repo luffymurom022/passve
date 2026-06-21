@@ -536,5 +536,27 @@ async function init(){
 }
 init();
 </script>
+
+<!-- PERFORMANCE: Lazy video thumbnail loading -->
+<script>
+(function(){
+  if (!('IntersectionObserver' in window)) return;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      if (el.tagName === 'IMG' && el.dataset.src) { el.src = el.dataset.src; delete el.dataset.src; }
+      if (el.tagName === 'VIDEO' && el.dataset.src) { el.src = el.dataset.src; delete el.dataset.src; el.load(); }
+      obs.unobserve(el);
+    });
+  }, { rootMargin: '400px 0px' });
+  document.addEventListener('DOMNodeInserted', () => {
+    document.querySelectorAll('img[data-src], video[data-src]').forEach(el => obs.observe(el));
+  });
+  window.observeReelMedia = () => {
+    document.querySelectorAll('img[data-src], video[data-src]').forEach(el => obs.observe(el));
+  };
+})();
+</script>
 </body>
 </html>

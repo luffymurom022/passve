@@ -1179,3 +1179,48 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 > **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `aiciv_migration.sql`
 
 *Cập nhật lần cuối: 2026-06-21*
+
+---
+
+## [x] PERFORMANCE OPTIMIZATION PASS — 2026-06-21
+
+**Mục tiêu:** Feed load <1s, Reels load <1s, Messenger latency <200ms
+
+### Server-side (server.js):
+| Tối ưu | Chi tiết |
+|--------|----------|
+| **Gzip Compression** | `compression` middleware level 6 — giảm response 60-80% |
+| **TTL Cache system** | `TtlCache` class — Map với TTL tự động, auto-purge 2 phút |
+| **getUserPrefsAndGraph** | 60s TTL/user — loại bỏ 2 DB queries mỗi AI request |
+| **AI Feed cache** | 30s TTL/user — /api/ai/feed |
+| **AI Reels cache** | 30s TTL/user+feed_type — /api/ai/reels |
+| **Notifications cache** | 15s TTL/user — invalidate khi đọc tin |
+| **Worlds stats/leaderboard** | 5 phút / 2 phút TTL |
+| **Avatar items cache** | 2 phút TTL |
+| **Fix N+1 reels** | /api/social/reels: 4N queries → 4 batch queries |
+| **Fix N+1 DM convs** | /api/dm/conversations: 3N queries → 5 batch queries |
+| **Giảm over-fetching** | limit(100)→60 feed, limit(100)→40 reels, limit(200)→50 products |
+| **Column selects** | Chỉ fetch columns cần thiết thay vì select('*') |
+| **Static file caching** | maxAge 1 ngày cho JS/CSS/images, no-cache cho HTML |
+| **Cache invalidation** | updatePreferenceProfile xoá feed/reels cache; send DM xoá conv cache |
+
+### Database — performance_indexes.sql:
+- 30+ indexes: tickets, orders, order_messages, sn_posts, social_videos, social_follows, users, notifications, avatar_items, worlds...
+- **Cần chạy trong Supabase SQL Editor**
+
+### Frontend:
+| Tối ưu | Chi tiết |
+|--------|----------|
+| **Font loading** | media="print" onload — không block render |
+| **DNS prefetch** | fonts.googleapis.com + fonts.gstatic.com |
+| **Intersection Observer** | Lazy-load `img[data-src]` tự động toàn index.html |
+| **MutationObserver** | Observe ảnh mới inject vào DOM |
+| **Infinite scroll utility** | `window.attachInfiniteScroll(el, fnName)` |
+| **Idle prefetch** | requestIdleCallback prefetch trang 2 khi browser idle |
+| **Reels lazy media** | Observer cho img+video data-src trong reels.html |
+
+**File mới:** `performance_indexes.sql`
+
+> **⚠️ ĐỂ TỐI ĐA HIỆU NĂNG:** Chạy `performance_indexes.sql` trong Supabase SQL Editor
+
+*Cập nhật lần cuối: 2026-06-21 (Performance Pass)*
