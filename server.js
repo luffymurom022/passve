@@ -9104,6 +9104,240 @@ app.get('/api/admin/app8/digital', adminAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// PHASE SOCIAL 9: SPATIAL COMMERCE PLATFORM
+// ═══════════════════════════════════════════════════════════
+
+app.get('/spatial', (req, res) => {
+  res.sendFile(new URL('./frontend/spatial.html', import.meta.url).pathname);
+});
+
+// ── Avatar: get/upsert ──
+app.get('/api/spatial/avatar', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data } = await supabase.from('spatial_avatars').select('*').eq('user_id', uid).single();
+  res.json(data || null);
+});
+app.post('/api/spatial/avatar', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const fields = ['display_name','face','skin_color','hair_style','hair_color','outfit','outfit_color','accessory','badge','bg_color','bg_pattern','bio','status_emoji'];
+  const updates = { user_id: uid, updated_at: new Date().toISOString() };
+  fields.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+  const { data, error } = await supabase.from('spatial_avatars').upsert(updates, { onConflict: 'user_id' }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Avatar: get by userId (public) ──
+app.get('/api/spatial/avatar/:userId', async (req, res) => {
+  const { data } = await supabase.from('spatial_avatars').select('*').eq('user_id', req.params.userId).single();
+  res.json(data || null);
+});
+
+// ── Spaces: world directory ──
+app.get('/api/spatial/world', async (req, res) => {
+  const { type, limit=20, offset=0 } = req.query;
+  let q = supabase.from('spatial_spaces')
+    .select('*,users!spatial_spaces_owner_id_fkey(name,avatar_url)', { count: 'exact' })
+    .eq('is_public', true).eq('status', 'active')
+    .order('visitors_count', { ascending: false })
+    .range(+offset, +offset + +limit - 1);
+  if (type) q = q.eq('type', type);
+  const { data, count } = await q;
+  res.json({ spaces: data || [], total: count || 0 });
+});
+
+// ── Spaces: featured ──
+app.get('/api/spatial/featured', async (req, res) => {
+  const { data } = await supabase.from('spatial_spaces')
+    .select('*,users!spatial_spaces_owner_id_fkey(name,avatar_url)')
+    .eq('is_featured', true).eq('status', 'active').limit(8);
+  res.json(data || []);
+});
+
+// ── Spaces: create ──
+app.post('/api/spatial/spaces', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { name, description, type, theme, accent_color, is_public, tags, location_label } = req.body;
+  if (!name) return res.status(400).json({ error: 'Tên không gian là bắt buộc' });
+  const { data, error } = await supabase.from('spatial_spaces').insert({
+    owner_id: uid, name, description, type: type || 'store', theme: theme || 'modern',
+    accent_color: accent_color || '#3b82f6', is_public: is_public !== false,
+    tags, location_label
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Spaces: get single ──
+app.get('/api/spatial/spaces/:id', async (req, res) => {
+  const { data: space } = await supabase.from('spatial_spaces')
+    .select('*,users!spatial_spaces_owner_id_fkey(name,avatar_url)').eq('id', req.params.id).single();
+  if (!space) return res.status(404).json({ error: 'Không tìm thấy' });
+  const { data: products } = await supabase.from('spatial_space_products').select('*').eq('space_id', req.params.id).order('is_featured', { ascending: false });
+  // track visit (fire and forget)
+  supabase.from('spatial_visits').insert({ space_id: req.params.id }).then(() => {});
+  supabase.from('spatial_spaces').update({ visitors_count: (space.visitors_count || 0) + 1 }).eq('id', req.params.id).then(() => {});
+  res.json({ ...space, products: products || [] });
+});
+
+// ── Spaces: update ──
+app.patch('/api/spatial/spaces/:id', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { id } = req.params;
+  const { data: sp } = await supabase.from('spatial_spaces').select('owner_id').eq('id', id).single();
+  if (!sp || sp.owner_id !== uid) return res.status(403).json({ error: 'Không có quyền' });
+  const allowed = ['name','description','type','theme','accent_color','is_public','tags','location_label','cover_url','status'];
+  const updates = { updated_at: new Date().toISOString() };
+  allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+  const { data, error } = await supabase.from('spatial_spaces').update(updates).eq('id', id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Spaces: my spaces ──
+app.get('/api/spatial/my-spaces', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data } = await supabase.from('spatial_spaces').select('*').eq('owner_id', uid).order('created_at', { ascending: false });
+  res.json(data || []);
+});
+
+// ── Space Products: add ──
+app.post('/api/spatial/spaces/:id/products', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { id } = req.params;
+  const { data: sp } = await supabase.from('spatial_spaces').select('owner_id,products_count').eq('id', id).single();
+  if (!sp || sp.owner_id !== uid) return res.status(403).json({ error: 'Không có quyền' });
+  const { product_title, product_price, product_image, product_description, ticket_id, is_featured } = req.body;
+  if (!product_title) return res.status(400).json({ error: 'Tên sản phẩm là bắt buộc' });
+  const { data, error } = await supabase.from('spatial_space_products').insert({
+    space_id: id, ticket_id, product_title, product_price: +product_price || 0,
+    product_image, product_description, is_featured: !!is_featured
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await supabase.from('spatial_spaces').update({ products_count: (sp.products_count || 0) + 1 }).eq('id', id);
+  res.json(data);
+});
+
+// ── Space Products: delete ──
+app.delete('/api/spatial/spaces/:spaceId/products/:productId', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { spaceId, productId } = req.params;
+  const { data: sp } = await supabase.from('spatial_spaces').select('owner_id,products_count').eq('id', spaceId).single();
+  if (!sp || sp.owner_id !== uid) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('spatial_space_products').delete().eq('id', productId).eq('space_id', spaceId);
+  await supabase.from('spatial_spaces').update({ products_count: Math.max(0, (sp.products_count || 1) - 1) }).eq('id', spaceId);
+  res.json({ message: 'Đã xóa sản phẩm' });
+});
+
+// ── Spatial Events: list ──
+app.get('/api/spatial/events', async (req, res) => {
+  const { status = 'upcoming', limit = 20, offset = 0 } = req.query;
+  const { data, count } = await supabase.from('spatial_events')
+    .select('*,users!spatial_events_organizer_id_fkey(name,avatar_url)', { count: 'exact' })
+    .eq('status', status).order('start_at', { ascending: true })
+    .range(+offset, +offset + +limit - 1);
+  res.json({ events: data || [], total: count || 0 });
+});
+
+// ── Spatial Events: create ──
+app.post('/api/spatial/events', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { title, description, event_type, cover_url, start_at, end_at, max_attendees, ticket_price, space_id, xr_mode } = req.body;
+  if (!title) return res.status(400).json({ error: 'Tên sự kiện là bắt buộc' });
+  const { data, error } = await supabase.from('spatial_events').insert({
+    organizer_id: uid, title, description, event_type: event_type || 'exhibition',
+    cover_url, start_at, end_at, max_attendees: +max_attendees || 100,
+    ticket_price: +ticket_price || 0, space_id, xr_mode: !!xr_mode
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Spatial Events: join ──
+app.post('/api/spatial/events/:id/join', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { id } = req.params;
+  const { data: ev } = await supabase.from('spatial_events').select('*').eq('id', id).single();
+  if (!ev) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+  if (ev.attendees_count >= ev.max_attendees) return res.status(400).json({ error: 'Sự kiện đã đầy' });
+  const { error } = await supabase.from('spatial_event_attendees').insert({ event_id: id, user_id: uid });
+  if (error) return res.status(400).json({ error: 'Bạn đã tham gia rồi' });
+  await supabase.from('spatial_events').update({ attendees_count: (ev.attendees_count || 0) + 1 }).eq('id', id);
+  res.json({ message: 'Đã tham gia sự kiện không gian số!' });
+});
+
+// ── Spatial Events: my events ──
+app.get('/api/spatial/events/my', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: created } = await supabase.from('spatial_events').select('*').eq('organizer_id', uid).order('created_at', { ascending: false });
+  const { data: joined } = await supabase.from('spatial_event_attendees').select('*,spatial_events(*)').eq('user_id', uid);
+  res.json({ created: created || [], joined: (joined || []).map(j => ({ ...j.spatial_events, joined_at: j.joined_at })) });
+});
+
+// ── Avatar Interactions ──
+app.post('/api/spatial/interact', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { to_user, type, emoji, message } = req.body;
+  if (!to_user || !type) return res.status(400).json({ error: 'Thiếu thông tin' });
+  const { data, error } = await supabase.from('spatial_interactions').insert({
+    from_user: uid, to_user, type, emoji: emoji || '👋', message
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ── Spatial Discovery ──
+app.get('/api/spatial/discover', async (req, res) => {
+  const [featuredSpaces, trendingStores, upcomingEvents, popularSpaces] = await Promise.all([
+    supabase.from('spatial_spaces').select('*,users!spatial_spaces_owner_id_fkey(name)').eq('is_featured', true).eq('status', 'active').limit(6),
+    supabase.from('spatial_spaces').select('*,users!spatial_spaces_owner_id_fkey(name)').eq('type', 'store').eq('status', 'active').order('visitors_count', { ascending: false }).limit(8),
+    supabase.from('spatial_events').select('*,users!spatial_events_organizer_id_fkey(name)').eq('status', 'upcoming').order('attendees_count', { ascending: false }).limit(6),
+    supabase.from('spatial_spaces').select('*,users!spatial_spaces_owner_id_fkey(name)').eq('status', 'active').order('visitors_count', { ascending: false }).limit(8)
+  ]);
+  res.json({
+    featured: featuredSpaces.data || [],
+    trending_stores: trendingStores.data || [],
+    upcoming_events: upcomingEvents.data || [],
+    popular: popularSpaces.data || []
+  });
+});
+
+// ── Admin: Spatial overview ──
+app.get('/api/admin/spatial/overview', adminAuth, async (req, res) => {
+  const [spaces, events, avatars, visits] = await Promise.all([
+    supabase.from('spatial_spaces').select('id,type,status', { count: 'exact' }),
+    supabase.from('spatial_events').select('id,status', { count: 'exact' }),
+    supabase.from('spatial_avatars').select('id', { count: 'exact' }),
+    supabase.from('spatial_visits').select('id', { count: 'exact' })
+  ]);
+  const typeCounts = {};
+  (spaces.data || []).forEach(s => { typeCounts[s.type] = (typeCounts[s.type] || 0) + 1; });
+  res.json({
+    total_spaces: spaces.count || 0,
+    total_events: events.count || 0,
+    total_avatars: avatars.count || 0,
+    total_visits: visits.count || 0,
+    type_breakdown: typeCounts
+  });
+});
+
+// ── Admin: spaces ──
+app.get('/api/admin/spatial/spaces', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('spatial_spaces')
+    .select('*,users!spatial_spaces_owner_id_fkey(name)').order('created_at', { ascending: false }).limit(50);
+  res.json(data || []);
+});
+app.patch('/api/admin/spatial/spaces/:id', adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { is_featured, status } = req.body;
+  const updates = {};
+  if (is_featured !== undefined) updates.is_featured = !!is_featured;
+  if (status) updates.status = status;
+  await supabase.from('spatial_spaces').update(updates).eq('id', id);
+  res.json({ message: 'Đã cập nhật' });
+});
+
+// ═══════════════════════════════════════════════════════════
 // PHASE 17: SAFEPASS SUPER APP
 // ═══════════════════════════════════════════════════════════
 

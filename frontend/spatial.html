@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SafePass Spatial — Không gian Thương mại 3D</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#06060f;--bg2:#0e0e1f;--bg3:#161628;--bg4:#1e1e35;
+  --brand:#8b5cf6;--brandL:#1a1030;--brandD:#7c3aed;--brandG:linear-gradient(135deg,#8b5cf6,#06b6d4);
+  --gold:#f59e0b;--green:#22c55e;--red:#ef4444;--cyan:#06b6d4;--pink:#ec4899;
+  --text:#f0f0ff;--sub:#8888bb;--hint:#44446a;--border:#2a2a50;
+  --r:16px;--r2:12px;--shadow:0 8px 32px rgba(0,0,0,.6);
+  --glass:rgba(255,255,255,.04);--glass-border:rgba(255,255,255,.08);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── STARFIELD ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at 20% 50%, rgba(139,92,246,.08) 0%, transparent 60%),
+             radial-gradient(ellipse at 80% 20%, rgba(6,182,212,.06) 0%, transparent 50%),
+             radial-gradient(ellipse at 50% 80%, rgba(236,72,153,.05) 0%, transparent 50%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh;position:relative;z-index:1}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;overflow-y:auto}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-orb{width:36px;height:36px;border-radius:12px;background:var(--brandG);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 0 20px rgba(139,92,246,.4)}
+.logo-text{font-weight:900;font-size:15px;letter-spacing:-.3px;background:var(--brandG);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:10px;color:var(--sub)}
+.nav{padding:8px}
+.nav-section{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;font-weight:700;padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r2);cursor:pointer;color:var(--sub);font-size:13px;font-weight:500;transition:all .16s;margin-bottom:2px;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--brandL);color:var(--brand);font-weight:700}
+.nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--brand);border-radius:0 3px 3px 0}
+.nav-ic{width:26px;height:26px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.nav-item.active .nav-ic{background:rgba(139,92,246,.2)}
+.nav-sep{height:1px;background:var(--border);margin:6px 0}
+.sidebar-footer{padding:10px;border-top:1px solid var(--border);margin-top:auto}
+.user-pill{display:flex;align-items:center;gap:9px;background:var(--bg3);border-radius:var(--r2);padding:9px 10px;cursor:pointer}
+.user-av-sm{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden;background:var(--bg4);position:relative}
+.user-av-sm img{width:100%;height:100%;object-fit:cover}
+.online-dot{width:8px;height:8px;background:var(--green);border-radius:50%;border:2px solid var(--bg2);position:absolute;bottom:0;right:0}
+.user-name-sm{font-size:12px;font-weight:700;line-height:1.2}
+.user-sub-sm{font-size:10px;color:var(--brand)}
+
+/* ── MAIN ── */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:54px;background:rgba(14,14,31,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:50}
+.topbar-title{font-weight:900;font-size:16px;background:var(--brandG);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex:1}
+.topbar-search{flex:1;max-width:300px;position:relative}
+.topbar-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:7px 14px 7px 34px;color:var(--text);font-size:13px;outline:none;transition:border .2s}
+.topbar-search input:focus{border-color:var(--brand)}
+.topbar-search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--hint);font-size:14px;pointer-events:none}
+.topbar-btn{padding:7px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:all .18s}
+.btn-brand{background:var(--brandG);color:#fff;box-shadow:0 0 16px rgba(139,92,246,.3)}
+.btn-brand:hover{opacity:.9;transform:translateY(-1px)}
+.btn-glass{background:var(--glass);color:var(--text);border:1px solid var(--glass-border);backdrop-filter:blur(10px)}
+.btn-glass:hover{background:var(--bg3)}
+.btn{padding:8px 16px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .18s}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.content{padding:20px;flex:1}
+.page{display:none}
+.page.active{display:block}
+
+/* ── GLASS CARDS ── */
+.glass-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--r);backdrop-filter:blur(10px);padding:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.card-title{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* ── GRIDS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* ── SPACE CARDS (3D effect) ── */
+.space-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.space-card{position:relative;border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .3s,box-shadow .3s;aspect-ratio:4/3}
+.space-card:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.space-card-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:60px}
+.space-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,transparent 60%)}
+.space-card-body{position:absolute;bottom:0;left:0;right:0;padding:14px}
+.space-card-type{display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.space-card-name{font-size:15px;font-weight:800;line-height:1.2;margin-bottom:4px}
+.space-card-meta{font-size:11px;color:rgba(255,255,255,.6);display:flex;gap:8px}
+.space-card-xr{position:absolute;top:10px;right:10px;background:rgba(139,92,246,.8);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;backdrop-filter:blur(8px)}
+
+/* ── AVATAR BUILDER ── */
+.avatar-builder{display:grid;grid-template-columns:220px 1fr;gap:20px}
+.avatar-preview{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;text-align:center;position:sticky;top:74px}
+.avatar-display{width:140px;height:140px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:60px;position:relative;overflow:hidden;transition:all .3s;border:3px solid var(--border);box-shadow:0 0 30px rgba(139,92,246,.3)}
+.avatar-display .av-face{position:relative;z-index:2;font-size:64px;line-height:1;user-select:none}
+.avatar-display .av-hair{position:absolute;top:-5px;left:0;right:0;height:60%;z-index:3;border-radius:50% 50% 0 0;opacity:.85}
+.avatar-display .av-outfit-strip{position:absolute;bottom:0;left:0;right:0;height:30%;z-index:1;border-radius:0 0 50% 50%}
+.avatar-name{font-size:16px;font-weight:800;margin-bottom:4px}
+.avatar-bio{font-size:12px;color:var(--sub)}
+.avatar-stats{display:flex;justify-content:center;gap:20px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.av-stat{text-align:center}
+.av-stat-val{font-size:16px;font-weight:800}
+.av-stat-lbl{font-size:10px;color:var(--sub)}
+.option-section{margin-bottom:20px}
+.option-label{font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.option-grid{display:flex;flex-wrap:wrap;gap:8px}
+.opt-btn{width:48px;height:48px;border-radius:10px;border:2px solid var(--border);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;transition:all .15s}
+.opt-btn:hover,.opt-btn.sel{border-color:var(--brand);background:var(--brandL)}
+.color-opt{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0}
+.color-opt.sel{border-color:var(--brand);box-shadow:0 0 8px rgba(139,92,246,.5);transform:scale(1.2)}
+.text-opt{padding:6px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;font-weight:600;color:var(--sub);transition:all .15s;white-space:nowrap}
+.text-opt.sel{border-color:var(--brand);color:var(--brand);background:var(--brandL)}
+
+/* ── 360° VIEWER ── */
+.viewer-360{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center}
+.viewer-scene{width:100%;max-width:400px;height:300px;margin:0 auto 16px;position:relative;perspective:800px}
+.viewer-object{width:200px;height:200px;margin:0 auto;position:relative;transform-style:preserve-3d;transition:transform .1s;border-radius:20px;overflow:hidden}
+.viewer-face{position:absolute;width:200px;height:200px;display:flex;align-items:center;justify-content:center;font-size:80px;border-radius:20px;border:1px solid var(--border)}
+.viewer-face.front{background:linear-gradient(135deg,var(--bg3),var(--bg4));transform:translateZ(100px)}
+.viewer-face.back{background:linear-gradient(135deg,var(--bg4),var(--bg3));transform:rotateY(180deg) translateZ(100px)}
+.viewer-face.left{background:linear-gradient(135deg,var(--bg3),var(--bg4));transform:rotateY(-90deg) translateZ(100px)}
+.viewer-face.right{background:linear-gradient(135deg,var(--bg4),var(--bg3));transform:rotateY(90deg) translateZ(100px)}
+.viewer-controls{display:flex;align-items:center;justify-content:center;gap:12px}
+.view-btn{width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.view-btn:hover{background:var(--brand);border-color:var(--brand)}
+.view-btn.spinning .view-btn{background:var(--brand)}
+
+/* ── EVENTS ── */
+.event-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:all .2s;cursor:pointer}
+.event-card:hover{border-color:var(--brand);transform:translateY(-3px)}
+.event-banner{height:130px;display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;overflow:hidden}
+.event-live-badge{position:absolute;top:10px;left:10px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;animation:pulse 1.5s infinite}
+.event-xr-badge{position:absolute;top:10px;right:10px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.event-body{padding:14px}
+.event-type-tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;margin-bottom:6px;text-transform:uppercase}
+.ev-exhibition{background:rgba(139,92,246,.2);color:var(--brand)}
+.ev-conference{background:rgba(6,182,212,.2);color:var(--cyan)}
+.ev-launch{background:rgba(236,72,153,.2);color:var(--pink)}
+.ev-meetup{background:rgba(34,197,94,.2);color:var(--green)}
+.event-title{font-size:14px;font-weight:800;margin-bottom:6px;line-height:1.3}
+.event-meta{font-size:11px;color:var(--sub);display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.event-actions{display:flex;gap:8px}
+
+/* ── SHOWROOM BUILDER ── */
+.showroom-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-height:300px;background:var(--bg3);border-radius:var(--r2);padding:16px;border:2px dashed var(--border)}
+.showroom-slot{background:var(--bg4);border:1px solid var(--border);border-radius:var(--r2);min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.showroom-slot:hover{border-color:var(--brand);background:var(--brandL)}
+.showroom-slot .sl-icon{font-size:32px;margin-bottom:6px}
+.showroom-slot .sl-name{font-size:11px;color:var(--sub);text-align:center;padding:0 6px}
+.showroom-slot .sl-price{font-size:12px;font-weight:700;color:var(--green)}
+.showroom-slot.has-product::before{content:'✓';position:absolute;top:6px;right:8px;font-size:11px;color:var(--green);font-weight:800}
+.showroom-slot.empty-slot{border-style:dashed;opacity:.6}
+.showroom-slot.empty-slot:hover{opacity:1}
+
+/* ── AI GUIDE ── */
+.ai-guide-container{display:grid;grid-template-columns:160px 1fr;gap:20px;height:calc(100vh - 130px)}
+.guide-avatar-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.guide-av{width:90px;height:90px;border-radius:50%;background:var(--brandG);display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 0 30px rgba(139,92,246,.4);animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.guide-name{font-size:14px;font-weight:800}
+.guide-status{font-size:11px;color:var(--green)}
+.guide-chat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.chat-msg{max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5}
+.chat-msg.bot{background:var(--bg3);border-bottom-left-radius:4px;align-self:flex-start;border:1px solid var(--border)}
+.chat-msg.user{background:var(--brandG);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+.chat-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.chip{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.chat-input-row{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+.chat-inp{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:9px 14px;color:var(--text);font-size:13px;outline:none}
+.chat-inp:focus{border-color:var(--brand)}
+.chat-send{width:38px;height:38px;border-radius:50%;background:var(--brandG);border:none;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px rgba(139,92,246,.4)}
+
+/* ── WORLD MAP ── */
+.world-hero{background:linear-gradient(135deg,#0a0a20,#1a0a30,#0a1a30);border:1px solid var(--border);border-radius:var(--r);padding:32px 24px;text-align:center;margin-bottom:24px;position:relative;overflow:hidden}
+.world-hero::after{content:'🌐';position:absolute;right:-20px;bottom:-20px;font-size:150px;opacity:.05}
+.world-hero h1{font-size:28px;font-weight:900;background:var(--brandG);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.world-hero p{font-size:14px;color:var(--sub);margin-bottom:20px}
+.world-stats{display:flex;justify-content:center;gap:32px;margin-top:16px}
+.ws{text-align:center}
+.ws-val{font-size:24px;font-weight:900;background:var(--brandG);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ws-lbl{font-size:11px;color:var(--sub)}
+
+/* ── SPATIAL PROFILE ── */
+.profile-3d{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:var(--r);padding:24px;display:flex;gap:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.profile-3d::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,rgba(139,92,246,.1) 0%,transparent 60%);pointer-events:none}
+.profile-av-big{width:110px;height:110px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:52px;flex-shrink:0;border:3px solid var(--brand);box-shadow:0 0 30px rgba(139,92,246,.4);position:relative}
+.profile-info{flex:1}
+.profile-name{font-size:22px;font-weight:900;margin-bottom:4px}
+.profile-bio{font-size:13px;color:var(--sub);margin-bottom:12px}
+.profile-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.badge-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.profile-stat-row{display:flex;gap:24px}
+.pstat{text-align:center}
+.pstat-val{font-size:18px;font-weight:800}
+.pstat-lbl{font-size:10px;color:var(--sub)}
+.xr-badge{position:absolute;top:0;right:0;background:var(--brandG);color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:0 var(--r) 0 var(--r2);letter-spacing:.5px}
+
+/* ── ADMIN ── */
+.admin-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.admin-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;display:flex;align-items:center;gap:12px}
+.admin-stat-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.admin-stat-info .val{font-size:22px;font-weight:900;line-height:1}
+.admin-stat-info .lbl{font-size:11px;color:var(--sub)}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px}
+.admin-table th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--sub);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.admin-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.admin-table tr:hover td{background:var(--bg3)}
+
+/* ── FORMS / MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:540px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:800}
+.modal-close{background:none;border:none;color:var(--sub);font-size:22px;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--sub);font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;color:var(--text);font-size:13px;outline:none;transition:border .2s}
+.form-input:focus{border-color:var(--brand)}
+.form-input::placeholder{color:var(--hint)}
+select.form-input option{background:var(--bg3)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:300px;box-shadow:var(--shadow)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+.toast.info{border-color:var(--brand);color:var(--brand)}
+
+/* ── EMPTY / LOADING ── */
+.empty{text-align:center;padding:48px 20px;color:var(--sub)}
+.empty-ic{font-size:52px;margin-bottom:12px}
+.empty h3{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── BOTTOM NAV (mobile) ── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(14,14,31,.95);border-top:1px solid var(--border);z-index:200;height:56px;backdrop-filter:blur(20px)}
+.bn-inner{display:flex;height:100%}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--sub);font-size:10px;font-weight:600;transition:color .15s}
+.bn-item.active{color:var(--brand)}
+.bn-item .bn-ic{font-size:20px;line-height:1}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){.space-grid{grid-template-columns:repeat(2,1fr)}.admin-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){
+  .sidebar{display:none}.main{margin-left:0;padding-bottom:60px}
+  .bottom-nav{display:block}.space-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr}.content{padding:12px}
+  .avatar-builder{grid-template-columns:1fr}.avatar-preview{position:static}
+  .ai-guide-container{grid-template-columns:1fr;height:auto}
+  .guide-avatar-panel{flex-direction:row;text-align:left}.admin-stats{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){.space-grid{grid-template-columns:1fr}.showroom-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-orb">🌐</div>
+    <div>
+      <div class="logo-text">SafePass Spatial</div>
+      <div class="logo-sub">Không gian Thương mại 3D</div>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="nav-section">Khám phá</div>
+    <div class="nav-item active" onclick="showPage('world')"><div class="nav-ic">🌍</div>World Directory</div>
+    <div class="nav-item" onclick="showPage('discover')"><div class="nav-ic">🔥</div>Khám phá</div>
+    <div class="nav-item" onclick="showPage('events')"><div class="nav-ic">🎪</div>Sự kiện XR</div>
+    <div class="nav-sep"></div>
+    <div class="nav-section">Cá nhân</div>
+    <div class="nav-item" onclick="showPage('avatar')"><div class="nav-ic">👤</div>My Avatar</div>
+    <div class="nav-item" onclick="showPage('profile')"><div class="nav-ic">🪐</div>Spatial Profile</div>
+    <div class="nav-item" onclick="showPage('myspace')"><div class="nav-ic">🏪</div>My Space</div>
+    <div class="nav-sep"></div>
+    <div class="nav-section">Công cụ</div>
+    <div class="nav-item" onclick="showPage('showroom')"><div class="nav-ic">🏛️</div>Showroom Builder</div>
+    <div class="nav-item" onclick="showPage('viewer')"><div class="nav-ic">🔄</div>3D Viewer</div>
+    <div class="nav-item" onclick="showPage('guide')"><div class="nav-ic">🤖</div>AI Guide</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" id="adminNavItem" style="display:none" onclick="showPage('admin')"><div class="nav-ic">🛡️</div>Admin Center</div>
+    <div class="nav-item" onclick="window.location.href='/'"><div class="nav-ic">←</div>Marketplace</div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-pill" onclick="window.location.href='/'">
+      <div class="user-av-sm" id="sideAv">👤<div class="online-dot"></div></div>
+      <div>
+        <div class="user-name-sm" id="sideName">Khách</div>
+        <div class="user-sub-sm" id="sideLevel">Đăng nhập</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">SafePass Spatial</div>
+    <div class="topbar-search">
+      <span class="si">🔍</span>
+      <input type="text" placeholder="Tìm không gian, sự kiện..." oninput="quickSearch(this.value)">
+    </div>
+    <button class="topbar-btn btn-brand" onclick="openModal('createSpaceModal')">+ Tạo Space</button>
+    <button class="topbar-btn btn-glass" onclick="window.location.href='/'">← Marketplace</button>
+  </div>
+
+  <div class="content">
+
+    <!-- WORLD DIRECTORY -->
+    <div class="page active" id="page-world">
+      <div class="world-hero">
+        <div style="font-size:40px;margin-bottom:8px">🌐</div>
+        <h1>Chào mừng đến SafePass World</h1>
+        <p>Khám phá các không gian thương mại 3D, cửa hàng ảo và sự kiện XR</p>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn btn-brand btn-sm" onclick="filterWorld('')">🌍 Tất cả</button>
+          <button class="btn btn-glass btn-sm" onclick="filterWorld('store')">🏪 Cửa hàng</button>
+          <button class="btn btn-glass btn-sm" onclick="filterWorld('showroom')">🏛️ Showroom</button>
+          <button class="btn btn-glass btn-sm" onclick="filterWorld('gallery')">🖼️ Gallery</button>
+          <button class="btn btn-glass btn-sm" onclick="filterWorld('event_venue')">🎪 Venue</button>
+          <button class="btn btn-glass btn-sm" onclick="filterWorld('community')">👥 Cộng đồng</button>
+        </div>
+        <div class="world-stats">
+          <div class="ws"><div class="ws-val" id="wStat-spaces">—</div><div class="ws-lbl">Spaces</div></div>
+          <div class="ws"><div class="ws-val" id="wStat-visits">—</div><div class="ws-lbl">Lượt ghé thăm</div></div>
+          <div class="ws"><div class="ws-val" id="wStat-events">—</div><div class="ws-lbl">Sự kiện</div></div>
+        </div>
+      </div>
+      <div class="space-grid" id="worldGrid">
+        <div class="empty"><div class="empty-ic">⏳</div><p>Đang tải thế giới...</p></div>
+      </div>
+      <div id="worldEmpty" class="empty" style="display:none">
+        <div class="empty-ic">🌐</div><h3>Thế giới đang trống</h3>
+        <p>Hãy là người đầu tiên tạo không gian!</p>
+        <button class="btn btn-brand" style="margin-top:12px" onclick="openModal('createSpaceModal')">+ Tạo Space đầu tiên</button>
+      </div>
+    </div>
+
+    <!-- DISCOVER -->
+    <div class="page" id="page-discover">
+      <h2 style="font-size:20px;font-weight:900;margin-bottom:20px">🔥 Khám phá & Xu hướng</h2>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title">⭐ Không gian nổi bật</div>
+        <div class="space-grid" id="featuredGrid"></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🏪 Cửa hàng phổ biến</div>
+          <div id="trendingStores"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🎪 Sự kiện sắp diễn ra</div>
+          <div id="upcomingEventsDiscover"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="page" id="page-events">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-size:20px;font-weight:900">🎪 Sự kiện XR & Spatial</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="form-input" style="width:auto;padding:6px 10px;font-size:12px" onchange="filterEvents(this.value)">
+            <option value="upcoming">Sắp diễn ra</option>
+            <option value="live">Đang diễn ra</option>
+            <option value="ended">Đã kết thúc</option>
+          </select>
+          <button class="btn btn-brand btn-sm" onclick="openModal('createEventModal')">+ Tạo sự kiện</button>
+        </div>
+      </div>
+      <div class="grid-3" id="eventsGrid"></div>
+      <div id="eventsEmpty" class="empty" style="display:none">
+        <div class="empty-ic">🎪</div><h3>Chưa có sự kiện</h3>
+        <button class="btn btn-brand" style="margin-top:12px" onclick="openModal('createEventModal')">+ Tạo sự kiện XR đầu tiên</button>
+      </div>
+    </div>
+
+    <!-- AVATAR BUILDER -->
+    <div class="page" id="page-avatar">
+      <h2 style="font-size:20px;font-weight:900;margin-bottom:20px">👤 Spatial Avatar Creator</h2>
+      <div class="avatar-builder">
+        <div class="avatar-preview">
+          <div class="avatar-display" id="avDisplay">
+            <div class="av-hair" id="avHair"></div>
+            <div class="av-outfit-strip" id="avOutfit"></div>
+            <div class="av-face" id="avFace">😊</div>
+          </div>
+          <div class="avatar-name" id="avName">My Avatar</div>
+          <div class="avatar-bio" id="avBio">Spatial Citizen</div>
+          <div class="avatar-stats">
+            <div class="av-stat"><div class="av-stat-val">0</div><div class="av-stat-lbl">Visits</div></div>
+            <div class="av-stat"><div class="av-stat-val">0</div><div class="av-stat-lbl">Spaces</div></div>
+          </div>
+          <button class="btn btn-brand" style="width:100%;margin-top:14px" onclick="saveAvatar()">💾 Lưu Avatar</button>
+        </div>
+        <div>
+          <div class="card">
+            <div class="option-section">
+              <div class="option-label">Biểu cảm khuôn mặt</div>
+              <div class="option-grid" id="faceOptions"></div>
+            </div>
+            <div class="option-section">
+              <div class="option-label">Màu da</div>
+              <div class="option-grid" id="skinOptions"></div>
+            </div>
+            <div class="option-section">
+              <div class="option-label">Kiểu tóc</div>
+              <div class="option-grid" id="hairStyleOpts"></div>
+            </div>
+            <div class="option-section">
+              <div class="option-label">Màu tóc</div>
+              <div class="option-grid" id="hairColorOpts"></div>
+            </div>
+            <div class="option-section">
+              <div class="option-label">Trang phục</div>
+              <div class="option-grid" id="outfitOpts"></div>
+            </div>
+            <div class="option-section">
+              <div class="option-label">Màu trang phục</div>
+              <div class="option-grid" id="outfitColorOpts"></div>
+            </div>
+            <div class="option-section">
+              <div class="option-label">Phụ kiện</div>
+              <div class="option-grid" id="accessoryOpts"></div>
+            </div>
+            <div class="option-section">
+              <div class="option-label">Màu nền</div>
+              <div class="option-grid" id="bgColorOpts"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Tên hiển thị</label><input class="form-input" id="avNameInput" placeholder="Nhập tên avatar..."></div>
+            <div class="form-group"><label class="form-label">Bio</label><input class="form-input" id="avBioInput" placeholder="Giới thiệu bản thân..."></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPATIAL PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="profile-3d" id="spatialProfile">
+        <div class="profile-av-big" id="profAvatar">👤</div>
+        <div class="profile-info">
+          <div class="profile-name" id="profName">Người dùng</div>
+          <div class="profile-bio" id="profBio">Spatial Citizen</div>
+          <div class="profile-badges" id="profBadges"></div>
+          <div class="profile-stat-row">
+            <div class="pstat"><div class="pstat-val" id="profVisits">0</div><div class="pstat-lbl">Lượt ghé</div></div>
+            <div class="pstat"><div class="pstat-val" id="profSpaces">0</div><div class="pstat-lbl">Spaces</div></div>
+            <div class="pstat"><div class="pstat-val" id="profAvatarAge">—</div><div class="pstat-lbl">Gia nhập</div></div>
+          </div>
+        </div>
+        <div class="xr-badge">XR Ready</div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🏪 My Spaces</div>
+          <div id="profileSpaces"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🎪 Sự kiện đã tham gia</div>
+          <div id="profileEvents"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY SPACE -->
+    <div class="page" id="page-myspace">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-size:20px;font-weight:900">🏪 Không gian của tôi</h2>
+        <button class="btn btn-brand btn-sm" onclick="openModal('createSpaceModal')">+ Tạo Space mới</button>
+      </div>
+      <div class="space-grid" id="mySpaceGrid"></div>
+      <div id="mySpaceEmpty" class="empty" style="display:none">
+        <div class="empty-ic">🌌</div><h3>Bạn chưa có không gian nào</h3>
+        <button class="btn btn-brand" style="margin-top:12px" onclick="openModal('createSpaceModal')">+ Tạo Space đầu tiên</button>
+      </div>
+    </div>
+
+    <!-- SHOWROOM BUILDER -->
+    <div class="page" id="page-showroom">
+      <h2 style="font-size:20px;font-weight:900;margin-bottom:4px">🏛️ Showroom Builder</h2>
+      <p style="color:var(--sub);font-size:13px;margin-bottom:16px">Kéo sản phẩm vào các ô để bố trí showroom ảo</p>
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-title">Chọn Space</div>
+            <select class="form-input" id="showroomSpaceSelect" onchange="loadShowroomProducts(this.value)" style="margin-bottom:12px">
+              <option value="">-- Chọn Space để chỉnh sửa --</option>
+            </select>
+            <div id="showroomGrid" class="showroom-grid">
+              <div class="showroom-slot empty-slot" style="grid-column:span 4"><div class="sl-icon">🏛️</div><div class="sl-name">Chọn space để bắt đầu</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">+ Thêm sản phẩm</div>
+            <div class="form-group"><label class="form-label">Tên sản phẩm *</label><input class="form-input" id="sr-title" placeholder="Ví dụ: iPhone 15 Pro Max"></div>
+            <div class="form-group"><label class="form-label">Giá (₫)</label><input class="form-input" id="sr-price" type="number" placeholder="0"></div>
+            <div class="form-group"><label class="form-label">Mô tả ngắn</label><input class="form-input" id="sr-desc" placeholder="Mô tả sản phẩm..."></div>
+            <div class="form-group"><label class="form-label">Ảnh sản phẩm (URL)</label><input class="form-input" id="sr-img" placeholder="https://..."></div>
+            <button class="btn btn-brand" style="width:100%" onclick="addShowroomProduct()">Thêm vào Showroom</button>
+          </div>
+          <div class="card" style="margin-top:0">
+            <div class="card-title">📦 Sản phẩm trong Space</div>
+            <div id="showroomProductList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D / 360 VIEWER -->
+    <div class="page" id="page-viewer">
+      <h2 style="font-size:20px;font-weight:900;margin-bottom:20px">🔄 AR/3D Product Viewer</h2>
+      <div class="grid-2">
+        <div class="viewer-360">
+          <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Xem sản phẩm góc độ 360° — Kéo để xoay</div>
+          <div class="viewer-scene" id="viewerScene">
+            <div class="viewer-object" id="viewerObj" style="transform-style:preserve-3d">
+              <div class="viewer-face front" id="vFront">📱</div>
+              <div class="viewer-face back" id="vBack">📱</div>
+              <div class="viewer-face left" id="vLeft">📱</div>
+              <div class="viewer-face right" id="vRight">📱</div>
+            </div>
+          </div>
+          <div class="viewer-controls">
+            <button class="view-btn" onclick="rotateViewer(-30, 0)">◀</button>
+            <button class="view-btn" onclick="rotateViewer(0, -30)">▲</button>
+            <button class="view-btn" id="autoSpinBtn" onclick="toggleAutoSpin()">⟳</button>
+            <button class="view-btn" onclick="rotateViewer(0, 30)">▼</button>
+            <button class="view-btn" onclick="rotateViewer(30, 0)">▶</button>
+          </div>
+          <div style="margin-top:16px">
+            <div class="form-group"><label class="form-label">Emoji / Icon sản phẩm</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('📱')">📱</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('💻')">💻</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('⌚')">⌚</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('👟')">👟</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('👜')">👜</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('🎮')">🎮</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('🎧')">🎧</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('📷')">📷</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('🛋️')">🛋️</span>
+                <span style="font-size:24px;cursor:pointer" onclick="setViewerEmoji('🚗')">🚗</span>
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label">Màu nền</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+                <div class="color-opt sel" style="background:#1e3a5f" onclick="setViewerBg('#1e3a5f',this)"></div>
+                <div class="color-opt" style="background:#1a1030" onclick="setViewerBg('#1a1030',this)"></div>
+                <div class="color-opt" style="background:#0f2e1a" onclick="setViewerBg('#0f2e1a',this)"></div>
+                <div class="color-opt" style="background:#2d1b0a" onclick="setViewerBg('#2d1b0a',this)"></div>
+                <div class="color-opt" style="background:#1a1a2e" onclick="setViewerBg('#1a1a2e',this)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔮 XR Ready Architecture</div>
+          <div style="font-size:13px;color:var(--sub);line-height:1.8;margin-bottom:16px">SafePass Spatial được xây dựng sẵn sàng cho trải nghiệm XR thế hệ tiếp theo.</div>
+          <div style="display:grid;gap:10px">
+            <div style="background:var(--bg3);border-radius:var(--r2);padding:14px;display:flex;align-items:center;gap:12px">
+              <div style="font-size:28px">🥽</div>
+              <div><div style="font-weight:700;font-size:13px">Meta Quest / Vision Pro</div><div style="font-size:11px;color:var(--sub)">WebXR API — Immersive VR experience</div></div>
+              <div style="margin-left:auto;font-size:11px;background:rgba(245,158,11,.2);color:var(--gold);padding:3px 8px;border-radius:6px">Sắp ra mắt</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:var(--r2);padding:14px;display:flex;align-items:center;gap:12px">
+              <div style="font-size:28px">📱</div>
+              <div><div style="font-weight:700;font-size:13px">ARCore / ARKit</div><div style="font-size:11px;color:var(--sub)">Augmented Reality trên mobile</div></div>
+              <div style="margin-left:auto;font-size:11px;background:rgba(245,158,11,.2);color:var(--gold);padding:3px 8px;border-radius:6px">Sắp ra mắt</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:var(--r2);padding:14px;display:flex;align-items:center;gap:12px">
+              <div style="font-size:28px">🌐</div>
+              <div><div style="font-weight:700;font-size:13px">WebXR Standard</div><div style="font-size:11px;color:var(--sub)">Trải nghiệm XR ngay trên trình duyệt</div></div>
+              <div style="margin-left:auto;font-size:11px;background:rgba(34,197,94,.2);color:var(--green);padding:3px 8px;border-radius:6px">Architecture ✓</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:var(--r2);padding:14px;display:flex;align-items:center;gap:12px">
+              <div style="font-size:28px">🎮</div>
+              <div><div style="font-weight:700;font-size:13px">3D Spatial Commerce</div><div style="font-size:11px;color:var(--sub)">Mua sắm trong không gian 3D</div></div>
+              <div style="margin-left:auto;font-size:11px;background:rgba(34,197,94,.2);color:var(--green);padding:3px 8px;border-radius:6px">Đang hoạt động</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI SPATIAL GUIDE -->
+    <div class="page" id="page-guide">
+      <h2 style="font-size:20px;font-weight:900;margin-bottom:16px">🤖 AI Spatial Guide</h2>
+      <div class="ai-guide-container">
+        <div class="guide-avatar-panel">
+          <div class="guide-av">🤖</div>
+          <div class="guide-name">ARIA</div>
+          <div class="guide-status">● Đang hoạt động</div>
+          <div style="font-size:11px;color:var(--sub);text-align:center;margin-top:4px">Trợ lý AI Không gian Thương mại</div>
+          <div style="background:var(--bg3);border-radius:var(--r2);padding:10px;margin-top:8px;width:100%">
+            <div style="font-size:10px;color:var(--sub);margin-bottom:4px">Kỹ năng</div>
+            <div style="font-size:11px;line-height:1.8">🏪 Cửa hàng ảo<br>🎪 Sự kiện XR<br>👤 Avatar<br>🔄 3D Viewer<br>💡 Tư vấn mua sắm</div>
+          </div>
+        </div>
+        <div class="guide-chat">
+          <div class="chat-msgs" id="guideMessages">
+            <div class="chat-msg bot">Xin chào! Tôi là <strong>ARIA</strong> — AI Guide của SafePass Spatial 🌐<br><br>Tôi có thể giúp bạn khám phá không gian 3D, tìm cửa hàng ảo, đặt lịch tham dự sự kiện XR và nhiều hơn nữa. Bạn cần trợ giúp gì?</div>
+          </div>
+          <div class="chat-chips">
+            <div class="chip" onclick="sendGuide('Có không gian nào nổi bật không?')">⭐ Không gian nổi bật</div>
+            <div class="chip" onclick="sendGuide('Tôi muốn tạo cửa hàng ảo')">🏪 Tạo cửa hàng</div>
+            <div class="chip" onclick="sendGuide('Sự kiện XR sắp tới?')">🎪 Sự kiện XR</div>
+            <div class="chip" onclick="sendGuide('Avatar là gì?')">👤 Avatar</div>
+            <div class="chip" onclick="sendGuide('Cách sử dụng 3D Viewer?')">🔄 3D Viewer</div>
+            <div class="chip" onclick="sendGuide('Spatial Commerce là gì?')">🌐 Giới thiệu</div>
+          </div>
+          <div class="chat-input-row">
+            <input class="chat-inp" id="guideInput" placeholder="Hỏi ARIA..." onkeydown="if(event.key==='Enter')sendGuide()">
+            <button class="chat-send" onclick="sendGuide()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="page" id="page-admin">
+      <h2 style="font-size:20px;font-weight:900;margin-bottom:20px">🛡️ Admin Spatial Center</h2>
+      <div class="admin-stats" id="adminStats"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🌐 Quản lý Spaces</div>
+          <table class="admin-table">
+            <thead><tr><th>Tên Space</th><th>Loại</th><th>Lượt thăm</th><th>Hành động</th></tr></thead>
+            <tbody id="adminSpacesBody"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Phân bổ theo loại</div>
+          <div id="adminTypeChart"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /layout -->
+
+<!-- MOBILE BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="bn-inner">
+    <div class="bn-item active" onclick="showPage('world')"><div class="bn-ic">🌍</div>World</div>
+    <div class="bn-item" onclick="showPage('events')"><div class="bn-ic">🎪</div>Events</div>
+    <div class="bn-item" onclick="showPage('avatar')"><div class="bn-ic">👤</div>Avatar</div>
+    <div class="bn-item" onclick="showPage('myspace')"><div class="bn-ic">🏪</div>Space</div>
+    <div class="bn-item" onclick="showPage('guide')"><div class="bn-ic">🤖</div>AI</div>
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Create Space -->
+<div class="modal-overlay" id="createSpaceModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🌐 Tạo không gian mới</div><button class="modal-close" onclick="closeModal('createSpaceModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tên Space *</label><input class="form-input" id="sp-name" placeholder="Ví dụ: Fashion World của Minh"></div>
+      <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-input" id="sp-desc" rows="2" placeholder="Mô tả không gian của bạn..."></textarea></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Loại</label>
+          <select class="form-input" id="sp-type">
+            <option value="store">🏪 Cửa hàng</option>
+            <option value="showroom">🏛️ Showroom</option>
+            <option value="gallery">🖼️ Gallery</option>
+            <option value="event_venue">🎪 Venue sự kiện</option>
+            <option value="office">🏢 Văn phòng</option>
+            <option value="community">👥 Cộng đồng</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Chủ đề</label>
+          <select class="form-input" id="sp-theme">
+            <option value="modern">Modern</option>
+            <option value="luxury">Luxury</option>
+            <option value="minimal">Minimal</option>
+            <option value="retro">Retro</option>
+            <option value="nature">Nature</option>
+            <option value="space">Space</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Màu chủ đề</label><input class="form-input" id="sp-color" type="color" value="#8b5cf6" style="height:40px;padding:4px"></div>
+        <div class="form-group"><label class="form-label">Khu vực</label><input class="form-input" id="sp-location" placeholder="Hà Nội, Online..."></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-glass" onclick="closeModal('createSpaceModal')">Hủy</button>
+      <button class="btn btn-brand" onclick="createSpace()">Tạo Space</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Event -->
+<div class="modal-overlay" id="createEventModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🎪 Tạo sự kiện XR</div><button class="modal-close" onclick="closeModal('createEventModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tên sự kiện *</label><input class="form-input" id="ev-title" placeholder="Ví dụ: Virtual Art Exhibition 2026"></div>
+      <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-input" id="ev-desc" rows="2" placeholder="Mô tả sự kiện..."></textarea></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Loại</label>
+          <select class="form-input" id="ev-type">
+            <option value="exhibition">🖼️ Triển lãm</option>
+            <option value="conference">🎤 Hội nghị</option>
+            <option value="launch">🚀 Ra mắt sản phẩm</option>
+            <option value="meetup">👥 Meetup</option>
+            <option value="concert">🎵 Concert</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Giá vé (₫)</label><input class="form-input" id="ev-price" type="number" placeholder="0 = miễn phí"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Bắt đầu</label><input class="form-input" id="ev-start" type="datetime-local"></div>
+        <div class="form-group"><label class="form-label">Kết thúc</label><input class="form-input" id="ev-end" type="datetime-local"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Sức chứa tối đa</label><input class="form-input" id="ev-max" type="number" placeholder="100"></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="ev-xr" style="accent-color:var(--brand)">
+        <label for="ev-xr" style="font-size:13px;cursor:pointer">🥽 Kích hoạt XR Mode (WebXR compatible)</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-glass" onclick="closeModal('createEventModal')">Hủy</button>
+      <button class="btn btn-brand" onclick="createEvent()">Tạo sự kiện</button>
+    </div>
+  </div>
+</div>
+
+<!-- Space Detail -->
+<div class="modal-overlay" id="spaceDetailModal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header"><div class="modal-title" id="sdTitle">—</div><button class="modal-close" onclick="closeModal('spaceDetailModal')">×</button></div>
+    <div class="modal-body" id="sdBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const token = localStorage.getItem('token');
+const user = (() => { try { return JSON.parse(localStorage.getItem('user')||'null'); } catch { return null; } })();
+
+// ── AVATAR STATE ──
+const avState = {
+  face: '😊', skin: '#f5c89a', hairStyle: 'short', hairColor: '#2c1810',
+  outfit: 'casual', outfitColor: '#3b82f6', accessory: 'none', badge: 'none',
+  bgColor: '#1e3a5f', name: 'My Avatar', bio: 'Spatial Citizen'
+};
+
+// ── 3D VIEWER STATE ──
+let viewerRotX = 0, viewerRotY = 0, autoSpinning = false, autoSpinInterval = null;
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  setupUser();
+  loadWorld();
+  initAvatarBuilder();
+  loadAvatarFromServer();
+});
+
+function setupUser() {
+  if (user) {
+    document.getElementById('sideName').textContent = user.name || user.phone || 'Người dùng';
+    if (user.is_admin) document.getElementById('adminNavItem').style.display = 'flex';
+  }
+  document.getElementById('sideLevel').textContent = user ? '🟢 Đang online' : 'Đăng nhập';
+}
+
+// ── PAGE NAV ──
+const PAGE_LABELS = { world:'World Directory', discover:'Khám phá', events:'Sự kiện XR', avatar:'Avatar Creator', profile:'Spatial Profile', myspace:'My Space', showroom:'Showroom Builder', viewer:'3D/AR Viewer', guide:'AI Spatial Guide', admin:'Admin Center' };
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+id);
+  if (pg) pg.classList.add('active');
+  // Highlight nav
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.onclick&&n.onclick.toString().includes(`'${id}'`))n.classList.add('active')});
+  document.querySelectorAll('.bn-item').forEach(n=>{if(n.onclick&&n.onclick.toString().includes(`'${id}'`))n.classList.add('active')});
+  // Lazy load
+  if (id==='events') loadEvents();
+  if (id==='discover') loadDiscover();
+  if (id==='profile') loadProfile();
+  if (id==='myspace') loadMySpaces();
+  if (id==='showroom') loadShowroomSpaces();
+  if (id==='admin') loadAdmin();
+  window.scrollTo(0,0);
+}
+
+// ── UTILS ──
+function api(path, opts={}) {
+  return fetch(path, { ...opts, headers: { 'Content-Type':'application/json', ...(token?{'Authorization':'Bearer '+token}:{}), ...(opts.headers||{}) } }).then(r=>r.json());
+}
+function toast(msg, type='success') {
+  const t=document.getElementById('toast'); t.textContent=msg; t.className=`toast show ${type}`;
+  setTimeout(()=>t.className='toast',3000);
+}
+function fmtPrice(v) { return v>0?new Intl.NumberFormat('vi-VN').format(v)+'₫':'Miễn phí'; }
+function fmtDate(d) { if(!d)return'—'; return new Date(d).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function openModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function spaceTypeEmoji(t){return{store:'🏪',showroom:'🏛️',gallery:'🖼️',event_venue:'🎪',office:'🏢',community:'👥'}[t]||'🌐';}
+function spaceThemeBg(theme){return{modern:'linear-gradient(135deg,#1e3a5f,#0a192f)',luxury:'linear-gradient(135deg,#2d1b00,#4a3000)',minimal:'linear-gradient(135deg,#1a1a1a,#2d2d2d)',retro:'linear-gradient(135deg,#3d1a00,#6b2d00)',nature:'linear-gradient(135deg,#0f2e1a,#1a4a2a)',space:'linear-gradient(135deg,#06060f,#1a0a30)'}[theme]||'linear-gradient(135deg,#1e3a5f,#0a192f)';}
+function eventTypeClass(t){return{exhibition:'ev-exhibition',conference:'ev-conference',launch:'ev-launch',meetup:'ev-meetup'}[t]||'ev-exhibition';}
+
+// ── SPACE CARD HTML ──
+function renderSpaceCard(s) {
+  const em = spaceTypeEmoji(s.type);
+  const bg = spaceThemeBg(s.theme);
+  return `
+    <div class="space-card" onclick="openSpaceDetail('${s.id}')" style="background:${bg}">
+      <div class="space-card-bg">${em}</div>
+      <div class="space-card-overlay"></div>
+      <div class="space-card-body">
+        <div class="space-card-type" style="background:${s.accent_color||'#8b5cf6'}33;color:${s.accent_color||'#8b5cf6'}">${s.type||'space'}</div>
+        <div class="space-card-name">${escHtml(s.name)}</div>
+        <div class="space-card-meta">
+          <span>👁️ ${s.visitors_count||0}</span>
+          <span>📦 ${s.products_count||0} SP</span>
+          <span>👤 ${s.users?.name||'—'}</span>
+        </div>
+      </div>
+      ${s.xr_ready?'<div class="space-card-xr">XR</div>':''}
+    </div>`;
+}
+
+// ── WORLD DIRECTORY ──
+async function loadWorld(type='') {
+  const el = document.getElementById('worldGrid');
+  el.innerHTML = '<div style="grid-column:span 3;text-align:center;padding:40px;color:var(--sub)">Đang tải...</div>';
+  const url = `/api/spatial/world?limit=12${type?'&type='+type:''}`;
+  const { spaces, total } = await api(url);
+  // Load admin stats too
+  const stats = await api('/api/admin/spatial/overview').catch(()=>({total_spaces:0,total_events:0,total_visits:0}));
+  document.getElementById('wStat-spaces').textContent = (spaces||[]).length;
+  document.getElementById('wStat-visits').textContent = stats.total_visits||0;
+  document.getElementById('wStat-events').textContent = stats.total_events||0;
+  if (!spaces||!spaces.length) { el.innerHTML=''; document.getElementById('worldEmpty').style.display='block'; return; }
+  document.getElementById('worldEmpty').style.display='none';
+  el.innerHTML = spaces.map(renderSpaceCard).join('');
+}
+function filterWorld(type) { loadWorld(type); }
+
+// ── SPACE DETAIL ──
+async function openSpaceDetail(id) {
+  const space = await api(`/api/spatial/spaces/${id}`);
+  document.getElementById('sdTitle').textContent = spaceTypeEmoji(space.type)+' '+space.name;
+  const prods = space.products||[];
+  document.getElementById('sdBody').innerHTML = `
+    <div style="background:${spaceThemeBg(space.theme)};border-radius:var(--r2);padding:20px;margin-bottom:16px;text-align:center">
+      <div style="font-size:56px;margin-bottom:8px">${spaceTypeEmoji(space.type)}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.7)">${escHtml(space.description||'Chưa có mô tả')}</div>
+      <div style="display:flex;justify-content:center;gap:20px;margin-top:12px;font-size:12px;color:rgba(255,255,255,.6)">
+        <span>👁️ ${space.visitors_count||0} lượt thăm</span>
+        <span>📦 ${space.products_count||0} sản phẩm</span>
+        <span>📍 ${space.location_label||'Online'}</span>
+        ${space.xr_ready?'<span style="color:#8b5cf6">🥽 XR Ready</span>':''}
+      </div>
+    </div>
+    ${prods.length?`
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px">📦 Sản phẩm trong Space</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        ${prods.map(p=>`
+          <div style="background:var(--bg3);border-radius:var(--r2);padding:12px;text-align:center">
+            ${p.product_image?`<img src="${p.product_image}" style="width:60px;height:60px;object-fit:contain;border-radius:8px;margin-bottom:6px" onerror="this.outerHTML='📦'">`:` <div style="font-size:36px;margin-bottom:6px">📦</div>`}
+            <div style="font-size:12px;font-weight:700;line-height:1.3">${escHtml(p.product_title)}</div>
+            <div style="font-size:12px;color:var(--green);margin-top:4px">${fmtPrice(p.product_price)}</div>
+          </div>`).join('')}
+      </div>`:'<div style="text-align:center;color:var(--sub);padding:20px">Chưa có sản phẩm nào trong Space này</div>'}
+  `;
+  openModal('spaceDetailModal');
+}
+
+// ── EVENTS ──
+async function loadEvents(status='upcoming') {
+  const el = document.getElementById('eventsGrid');
+  el.innerHTML = '<div style="grid-column:span 3;text-align:center;padding:40px;color:var(--sub)">Đang tải...</div>';
+  const { events } = await api(`/api/spatial/events?status=${status}&limit=20`);
+  document.getElementById('eventsEmpty').style.display = (!events||!events.length)?'block':'none';
+  if (!events||!events.length) { el.innerHTML=''; return; }
+  const evTypeIcon = {exhibition:'🖼️',conference:'🎤',launch:'🚀',meetup:'👥',concert:'🎵'};
+  el.innerHTML = events.map(e=>`
+    <div class="event-card">
+      <div class="event-banner" style="background:linear-gradient(135deg,#1a0a30,#0a1a30)">
+        <span style="font-size:52px">${evTypeIcon[e.event_type]||'🎪'}</span>
+        ${e.status==='live'?'<div class="event-live-badge">LIVE</div>':''}
+        ${e.xr_mode?'<div class="event-xr-badge">XR Mode</div>':''}
+      </div>
+      <div class="event-body">
+        <div class="event-type-tag ${eventTypeClass(e.event_type)}">${e.event_type||'event'}</div>
+        <div class="event-title">${escHtml(e.title)}</div>
+        <div class="event-meta">
+          <span>📅 ${fmtDate(e.start_at)}</span>
+          <span>👥 ${e.attendees_count||0}/${e.max_attendees||100}</span>
+          <span style="color:var(--green)">${fmtPrice(e.ticket_price)}</span>
+        </div>
+        <div class="event-meta" style="margin-top:2px"><span>👤 ${e.users?.name||'Ẩn danh'}</span></div>
+        <div class="event-actions">
+          <button class="btn btn-brand btn-sm" style="flex:1" onclick="joinEvent('${e.id}','${escHtml(e.title)}')">Tham gia XR</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function filterEvents(status) { loadEvents(status); }
+
+async function createSpace() {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const body = {
+    name: document.getElementById('sp-name').value.trim(),
+    description: document.getElementById('sp-desc').value.trim(),
+    type: document.getElementById('sp-type').value,
+    theme: document.getElementById('sp-theme').value,
+    accent_color: document.getElementById('sp-color').value,
+    location_label: document.getElementById('sp-location').value.trim()
+  };
+  if (!body.name) return toast('Vui lòng nhập tên Space','error');
+  const r = await api('/api/spatial/spaces',{method:'POST',body:JSON.stringify(body)});
+  if (r.error) return toast(r.error,'error');
+  toast('Tạo Space thành công! 🌐');
+  closeModal('createSpaceModal');
+  loadWorld(); loadMySpaces();
+}
+
+async function createEvent() {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const body = {
+    title: document.getElementById('ev-title').value.trim(),
+    description: document.getElementById('ev-desc').value.trim(),
+    event_type: document.getElementById('ev-type').value,
+    ticket_price: document.getElementById('ev-price').value,
+    start_at: document.getElementById('ev-start').value,
+    end_at: document.getElementById('ev-end').value,
+    max_attendees: document.getElementById('ev-max').value||100,
+    xr_mode: document.getElementById('ev-xr').checked
+  };
+  if (!body.title) return toast('Vui lòng nhập tên sự kiện','error');
+  const r = await api('/api/spatial/events',{method:'POST',body:JSON.stringify(body)});
+  if (r.error) return toast(r.error,'error');
+  toast('Tạo sự kiện XR thành công! 🎪');
+  closeModal('createEventModal');
+  loadEvents();
+}
+
+async function joinEvent(id, title) {
+  if (!token) return toast('Vui lòng đăng nhập','error');
+  const r = await api(`/api/spatial/events/${id}/join`,{method:'POST'});
+  if (r.error) return toast(r.error,'error');
+  toast(`Đã đăng ký: ${title}! 🎉`);
+  loadEvents();
+}
+
+// ── DISCOVER ──
+async function loadDiscover() {
+  const data = await api('/api/spatial/discover');
+  // Featured
+  const fg = document.getElementById('featuredGrid');
+  fg.innerHTML = (data.featured||[]).length ? data.featured.map(renderSpaceCard).join('') : '<div style="grid-column:span 3;text-align:center;color:var(--sub);padding:20px">Chưa có</div>';
+  // Trending stores
+  const ts = document.getElementById('trendingStores');
+  ts.innerHTML = (data.trending_stores||[]).slice(0,4).map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openSpaceDetail('${s.id}')">
+      <div style="width:40px;height:40px;border-radius:10px;background:${spaceThemeBg(s.theme)};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${spaceTypeEmoji(s.type)}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.name)}</div><div style="font-size:11px;color:var(--sub)">👁️ ${s.visitors_count||0} · ${s.users?.name||'—'}</div></div>
+    </div>`).join('') || '<div style="color:var(--sub);padding:16px 0;font-size:13px">Chưa có cửa hàng nào</div>';
+  // Upcoming events
+  const ue = document.getElementById('upcomingEventsDiscover');
+  ue.innerHTML = (data.upcoming_events||[]).slice(0,4).map(e=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="joinEvent('${e.id}','${escHtml(e.title)}')">
+      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1a0a30,#0a1a30);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎪</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(e.title)}</div><div style="font-size:11px;color:var(--sub)">${fmtDate(e.start_at)} · ${e.attendees_count||0} người</div></div>
+    </div>`).join('') || '<div style="color:var(--sub);padding:16px 0;font-size:13px">Chưa có sự kiện nào</div>';
+}
+
+// ── AVATAR BUILDER ──
+const FACES = ['😊','😎','🤩','😄','🥳','😏','🤗','😇','🥸','🤠','😍','🧐'];
+const SKIN_COLORS = ['#f5c89a','#e0a679','#c8845a','#a66040','#7a4520','#fde8d0','#fbd0b0'];
+const HAIR_STYLES = [{val:'none',label:'Không',icon:'∅'},{val:'short',label:'Ngắn',icon:'💇'},{val:'long',label:'Dài',icon:'👩'},{val:'curly',label:'Xoăn',icon:'🧑‍🦱'},{val:'bald',label:'Trọc',icon:'🧑‍🦲'}];
+const HAIR_COLORS = ['#2c1810','#5c3317','#8b4513','#ffd700','#c0c0c0','#f5f5f5','#e74c3c','#9b59b6','#3498db'];
+const OUTFITS = [{val:'casual',label:'Casual',icon:'👕'},{val:'suit',label:'Suit',icon:'👔'},{val:'hoodie',label:'Hoodie',icon:'🧥'},{val:'tshirt',label:'T-Shirt',icon:'👚'},{val:'uniform',label:'Đồng phục',icon:'🥋'}];
+const OUTFIT_COLORS = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#22c55e','#ef4444','#06b6d4','#64748b','#1e293b'];
+const ACCESSORIES = [{val:'none',label:'Không',icon:'∅'},{val:'glasses',label:'Kính',icon:'👓'},{val:'sunglasses',label:'Mắt kính',icon:'🕶️'},{val:'hat',label:'Mũ',icon:'🎩'},{val:'crown',label:'Vương miện',icon:'👑'},{val:'headphone',label:'Tai nghe',icon:'🎧'}];
+const BG_COLORS = ['#1e3a5f','#1a1030','#0f2e1a','#2d1b0a','#1a1a2e','#0a2e2e','#2d0a2e','#2e0a0a'];
+
+function initAvatarBuilder() {
+  renderOpts('faceOptions', FACES, f=>`<div class="opt-btn ${avState.face===f?'sel':''}" onclick="setFace('${f}')">${f}</div>`);
+  renderColorOpts('skinOptions', SKIN_COLORS, 'skin');
+  renderTextOpts('hairStyleOpts', HAIR_STYLES, 'hairStyle');
+  renderColorOpts('hairColorOpts', HAIR_COLORS, 'hairColor');
+  renderTextOpts('outfitOpts', OUTFITS, 'outfit');
+  renderColorOpts('outfitColorOpts', OUTFIT_COLORS, 'outfitColor');
+  renderTextOpts('accessoryOpts', ACCESSORIES, 'accessory');
+  renderColorOpts('bgColorOpts', BG_COLORS, 'bgColor');
+  updateAvatarDisplay();
+}
+
+function renderOpts(el,data,fn){document.getElementById(el).innerHTML=data.map(fn).join('');}
+function renderColorOpts(elId,colors,key){document.getElementById(elId).innerHTML=colors.map(c=>`<div class="color-opt ${avState[key]===c?'sel':''}" style="background:${c}" onclick="setAvColor('${key}','${c}',this)"></div>`).join('');}
+function renderTextOpts(elId,opts,key){document.getElementById(elId).innerHTML=opts.map(o=>`<div class="text-opt ${avState[key]===o.val?'sel':''}" onclick="setAvText('${key}','${o.val}',this)">${o.icon||o.label} ${o.label}</div>`).join('');}
+
+function setFace(f){avState.face=f;document.getElementById('avFace').textContent=f;document.querySelectorAll('#faceOptions .opt-btn').forEach(b=>{b.classList.toggle('sel',b.textContent===f)});}
+function setAvColor(key,val,el){avState[key]=val;updateAvatarDisplay();document.querySelectorAll(`#${key==='skin'?'skin':key==='hair'?'hairColor':key==='outfit'?'outfitColor':'bgColor'}Options .color-opt`).forEach(b=>b.classList.remove('sel'));if(el)el.classList.add('sel');}
+function setAvText(key,val,el){avState[key]=val;updateAvatarDisplay();el.closest('.option-grid').querySelectorAll('.text-opt').forEach(b=>b.classList.remove('sel'));if(el)el.classList.add('sel');}
+
+function updateAvatarDisplay(){
+  const d=document.getElementById('avDisplay');
+  d.style.background=avState.bgColor;
+  d.querySelector('.av-hair').style.background=avState.hairStyle!=='none'?avState.hairColor:'transparent';
+  d.querySelector('.av-outfit-strip').style.background=avState.outfitColor;
+  const nm=document.getElementById('avNameInput').value||avState.name;
+  document.getElementById('avName').textContent=nm;
+  document.getElementById('avBio').textContent=document.getElementById('avBioInput').value||avState.bio;
+}
+
+async function loadAvatarFromServer(){
+  if(!token)return;
+  const data=await api('/api/spatial/avatar').catch(()=>null);
+  if(!data)return;
+  if(data.face)avState.face=data.face;
+  if(data.skin_color)avState.skin=data.skin_color;
+  if(data.hair_style)avState.hairStyle=data.hair_style;
+  if(data.hair_color)avState.hairColor=data.hair_color;
+  if(data.outfit)avState.outfit=data.outfit;
+  if(data.outfit_color)avState.outfitColor=data.outfit_color;
+  if(data.accessory)avState.accessory=data.accessory;
+  if(data.bg_color)avState.bgColor=data.bg_color;
+  if(data.display_name)avState.name=data.display_name;
+  if(data.bio)avState.bio=data.bio;
+  document.getElementById('avFace').textContent=avState.face;
+  document.getElementById('avNameInput').value=avState.name;
+  document.getElementById('avBioInput').value=avState.bio;
+  document.getElementById('sideName').textContent=avState.name||user?.name||'Người dùng';
+  updateAvatarDisplay();
+}
+
+async function saveAvatar(){
+  if(!token)return toast('Vui lòng đăng nhập','error');
+  const nm=document.getElementById('avNameInput').value.trim()||avState.name;
+  const bio=document.getElementById('avBioInput').value.trim()||avState.bio;
+  const body={face:avState.face,skin_color:avState.skin,hair_style:avState.hairStyle,hair_color:avState.hairColor,outfit:avState.outfit,outfit_color:avState.outfitColor,accessory:avState.accessory,badge:avState.badge,bg_color:avState.bgColor,display_name:nm,bio};
+  const r=await api('/api/spatial/avatar',{method:'POST',body:JSON.stringify(body)});
+  if(r.error)return toast(r.error,'error');
+  toast('Đã lưu Avatar! 👤✨');
+  document.getElementById('sideName').textContent=nm;
+}
+
+// ── SPATIAL PROFILE ──
+async function loadProfile(){
+  if(!token){document.getElementById('spatialProfile').innerHTML='<div style="text-align:center;padding:24px;color:var(--sub)">Vui lòng đăng nhập để xem profile</div>';return;}
+  const [avatar, mySpaces, myEvents] = await Promise.all([
+    api('/api/spatial/avatar').catch(()=>null),
+    api('/api/spatial/my-spaces').catch(()=>[]),
+    api('/api/spatial/events/my').catch(()=>({created:[],joined:[]}))
+  ]);
+  if(avatar){
+    const d=document.getElementById('profAvatar');
+    d.textContent=avatar.face||'👤';
+    d.style.background=avatar.bg_color||'var(--bg3)';
+    document.getElementById('profName').textContent=avatar.display_name||user?.name||'Người dùng';
+    document.getElementById('profBio').textContent=avatar.bio||'Spatial Citizen';
+    document.getElementById('profAvatarAge').textContent=new Date(avatar.created_at).getFullYear();
+  }
+  document.getElementById('profSpaces').textContent=(mySpaces||[]).length;
+  document.getElementById('profVisits').textContent='—';
+  // Spaces list
+  const sl=document.getElementById('profileSpaces');
+  sl.innerHTML=(mySpaces||[]).slice(0,4).map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openSpaceDetail('${s.id}')">
+      <div style="width:36px;height:36px;border-radius:10px;background:${spaceThemeBg(s.theme)};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${spaceTypeEmoji(s.type)}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.name)}</div><div style="font-size:11px;color:var(--sub)">👁️ ${s.visitors_count||0}</div></div>
+    </div>`).join('')||'<div style="color:var(--sub);padding:10px 0;font-size:13px">Chưa có Space</div>';
+  // Events joined
+  const ej=document.getElementById('profileEvents');
+  const allEv=[...(myEvents.created||[]),...(myEvents.joined||[])].slice(0,4);
+  ej.innerHTML=allEv.map(e=>`
+    <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700">${escHtml(e.title)}</div>
+      <div style="font-size:11px;color:var(--sub)">${fmtDate(e.start_at)} · ${e.attendees_count||0} người</div>
+    </div>`).join('')||'<div style="color:var(--sub);padding:10px 0;font-size:13px">Chưa có sự kiện</div>';
+}
+
+// ── MY SPACES ──
+async function loadMySpaces(){
+  if(!token){document.getElementById('mySpaceEmpty').style.display='block';return;}
+  const data=await api('/api/spatial/my-spaces');
+  const el=document.getElementById('mySpaceGrid');
+  if(!data||!data.length){el.innerHTML='';document.getElementById('mySpaceEmpty').style.display='block';return;}
+  document.getElementById('mySpaceEmpty').style.display='none';
+  el.innerHTML=data.map(renderSpaceCard).join('');
+}
+
+// ── SHOWROOM BUILDER ──
+let showroomSpaces=[];
+async function loadShowroomSpaces(){
+  if(!token)return;
+  const data=await api('/api/spatial/my-spaces');
+  showroomSpaces=data||[];
+  const sel=document.getElementById('showroomSpaceSelect');
+  sel.innerHTML='<option value="">-- Chọn Space --</option>'+showroomSpaces.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+async function loadShowroomProducts(spaceId){
+  if(!spaceId)return;
+  const space=await api(`/api/spatial/spaces/${spaceId}`);
+  const prods=space.products||[];
+  renderShowroomGrid(prods);
+  renderShowroomProductList(prods, spaceId);
+}
+
+function renderShowroomGrid(prods){
+  const el=document.getElementById('showroomGrid');
+  const slots=8;
+  let html='';
+  for(let i=0;i<slots;i++){
+    const p=prods[i];
+    if(p){
+      html+=`<div class="showroom-slot has-product">
+        ${p.product_image?`<img src="${p.product_image}" style="width:50px;height:50px;object-fit:contain;border-radius:8px" onerror="this.outerHTML='<div class=sl-icon>📦</div>'">`:` <div class="sl-icon">📦</div>`}
+        <div class="sl-name">${escHtml(p.product_title)}</div>
+        <div class="sl-price">${fmtPrice(p.product_price)}</div>
+      </div>`;
+    } else {
+      html+=`<div class="showroom-slot empty-slot"><div class="sl-icon">+</div><div class="sl-name">Ô trống</div></div>`;
+    }
+  }
+  el.innerHTML=html;
+}
+
+function renderShowroomProductList(prods, spaceId){
+  const el=document.getElementById('showroomProductList');
+  el.innerHTML=prods.map(p=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:20px">${p.product_image?`<img src="${p.product_image}" style="width:30px;height:30px;object-fit:contain;border-radius:6px" onerror="this.outerHTML='📦'">`:📦}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.product_title)}</div><div style="font-size:11px;color:var(--green)">${fmtPrice(p.product_price)}</div></div>
+      <button class="btn btn-sm" style="background:var(--red)22;color:var(--red);border:1px solid var(--red)44;padding:4px 8px" onclick="removeProduct('${spaceId}','${p.id}')">×</button>
+    </div>`).join('')||'<div style="color:var(--sub);padding:10px 0;font-size:13px">Chưa có sản phẩm</div>';
+}
+
+async function addShowroomProduct(){
+  if(!token)return toast('Vui lòng đăng nhập','error');
+  const spaceId=document.getElementById('showroomSpaceSelect').value;
+  if(!spaceId)return toast('Vui lòng chọn Space','error');
+  const title=document.getElementById('sr-title').value.trim();
+  if(!title)return toast('Vui lòng nhập tên sản phẩm','error');
+  const body={product_title:title,product_price:document.getElementById('sr-price').value,product_description:document.getElementById('sr-desc').value.trim(),product_image:document.getElementById('sr-img').value.trim()};
+  const r=await api(`/api/spatial/spaces/${spaceId}/products`,{method:'POST',body:JSON.stringify(body)});
+  if(r.error)return toast(r.error,'error');
+  toast('Đã thêm sản phẩm vào showroom!');
+  document.getElementById('sr-title').value='';document.getElementById('sr-price').value='';document.getElementById('sr-desc').value='';document.getElementById('sr-img').value='';
+  loadShowroomProducts(spaceId);
+}
+
+async function removeProduct(spaceId,productId){
+  const r=await api(`/api/spatial/spaces/${spaceId}/products/${productId}`,{method:'DELETE'});
+  if(r.error)return toast(r.error,'error');
+  toast('Đã xóa sản phẩm');
+  loadShowroomProducts(spaceId);
+}
+
+// ── 3D VIEWER ──
+function rotateViewer(dY,dX){
+  viewerRotY+=dY; viewerRotX+=dX;
+  document.getElementById('viewerObj').style.transform=`rotateY(${viewerRotY}deg) rotateX(${viewerRotX}deg)`;
+}
+function toggleAutoSpin(){
+  autoSpinning=!autoSpinning;
+  document.getElementById('autoSpinBtn').style.background=autoSpinning?'var(--brand)':'';
+  if(autoSpinning){
+    autoSpinInterval=setInterval(()=>rotateViewer(3,0),50);
+  } else {
+    clearInterval(autoSpinInterval);
+  }
+}
+function setViewerEmoji(em){
+  document.querySelectorAll('.viewer-face').forEach(f=>f.textContent=em);
+}
+function setViewerBg(color,el){
+  document.querySelectorAll('.viewer-face').forEach(f=>f.style.background=`linear-gradient(135deg,${color},${color}bb)`);
+  document.querySelectorAll('.color-opt').forEach(b=>b.classList.remove('sel'));
+  if(el)el.classList.add('sel');
+}
+
+// Drag to rotate
+let isDragging=false,lastX=0,lastY=0;
+const scene=()=>document.getElementById('viewerScene');
+document.addEventListener('DOMContentLoaded',()=>{
+  const s=document.getElementById('viewerScene');
+  if(s){
+    s.addEventListener('mousedown',e=>{isDragging=true;lastX=e.clientX;lastY=e.clientY;});
+    document.addEventListener('mousemove',e=>{if(!isDragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;rotateViewer(dx/2,dy/2);lastX=e.clientX;lastY=e.clientY;});
+    document.addEventListener('mouseup',()=>isDragging=false);
+    s.addEventListener('touchstart',e=>{const t=e.touches[0];lastX=t.clientX;lastY=t.clientY;},{passive:true});
+    s.addEventListener('touchmove',e=>{const t=e.touches[0];const dx=t.clientX-lastX,dy=t.clientY-lastY;rotateViewer(dx/2,dy/2);lastX=t.clientX;lastY=t.clientY;},{passive:true});
+  }
+});
+
+// ── AI SPATIAL GUIDE ──
+const ARIA_KB = {
+  'không gian': 'SafePass Spatial có nhiều loại không gian: 🏪 Cửa hàng, 🏛️ Showroom, 🖼️ Gallery, 🎪 Event Venue và 👥 Cộng đồng. Mỗi space có thể chứa sản phẩm và tổ chức sự kiện.',
+  'cửa hàng': 'Tạo cửa hàng ảo tại mục "My Space" → "Tạo Space mới" → chọn loại "Cửa hàng". Sau đó dùng Showroom Builder để thêm sản phẩm vào.',
+  'showroom': 'Showroom Builder cho phép bạn bố trí sản phẩm vào các ô hiển thị. Vào mục 🏛️ Showroom Builder, chọn Space và thêm sản phẩm.',
+  'sự kiện': 'SafePass Spatial hỗ trợ nhiều loại sự kiện XR: 🖼️ Triển lãm, 🎤 Hội nghị, 🚀 Ra mắt sản phẩm và 👥 Meetup. Tạo sự kiện tại mục 🎪 Sự kiện XR.',
+  'avatar': 'Tạo avatar của bạn tại mục 👤 Avatar Creator! Bạn có thể tùy chỉnh khuôn mặt, màu da, tóc, trang phục và phụ kiện.',
+  'xr': 'XR (Extended Reality) là tổng hợp AR + VR. SafePass đã chuẩn bị kiến trúc cho WebXR, ARCore và ARKit. Khi bật XR Mode cho sự kiện, nó sẽ sẵn sàng cho tích hợp thiết bị XR trong tương lai.',
+  '3d': 'Dùng 3D Viewer để xem sản phẩm theo góc độ 360°! Kéo để xoay, hoặc nhấn ⟳ để tự động xoay. Chọn emoji sản phẩm và màu nền.',
+  'mua sắm': 'Trong SafePass Spatial, bạn có thể mua sắm tại các Cửa hàng ảo và Showroom. Mỗi Space hiển thị sản phẩm kèm giá. Thanh toán qua hệ thống Escrow an toàn.',
+  'tạo': 'Để tạo Space: Nhấn "+ Tạo Space" ở góc trên. Chọn loại, chủ đề, màu sắc. Sau đó dùng Showroom Builder để thêm sản phẩm.',
+  'thế giới': 'World Directory hiển thị tất cả không gian công khai trên SafePass. Bạn có thể lọc theo loại: Cửa hàng, Showroom, Gallery, Venue hay Cộng đồng.',
+};
+function sendGuide(text){
+  const inp=document.getElementById('guideInput');
+  const msg=text||inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  const msgs=document.getElementById('guideMessages');
+  msgs.innerHTML+=`<div class="chat-msg user">${escHtml(msg)}</div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  setTimeout(()=>{
+    const lower=msg.toLowerCase();
+    let reply='Xin lỗi, tôi chưa có thông tin về chủ đề đó. Bạn có thể hỏi về: không gian, cửa hàng, showroom, sự kiện, avatar, XR, 3D viewer, hoặc mua sắm. 😊';
+    for(const [kw,ans] of Object.entries(ARIA_KB)){if(lower.includes(kw)){reply=ans;break;}}
+    msgs.innerHTML+=`<div class="chat-msg bot">🤖 ${reply}</div>`;
+    msgs.scrollTop=msgs.scrollHeight;
+  },700);
+}
+
+// ── QUICK SEARCH ──
+function quickSearch(val){
+  if(val.length>1)toast(`Tìm kiếm: "${val}" trong SafePass World`,'info');
+}
+
+// ── ADMIN ──
+async function loadAdmin(){
+  const ov=await api('/api/admin/spatial/overview').catch(()=>null);
+  if(!ov){document.getElementById('adminStats').innerHTML='<div style="color:var(--red);grid-column:span 4">Cần quyền Admin</div>';return;}
+  document.getElementById('adminStats').innerHTML=[
+    {ic:'🌐',val:ov.total_spaces,lbl:'Total Spaces',bg:'#8b5cf6'},
+    {ic:'🎪',val:ov.total_events,lbl:'Sự kiện',bg:'#ec4899'},
+    {ic:'👤',val:ov.total_avatars,lbl:'Avatars',bg:'#06b6d4'},
+    {ic:'👁️',val:ov.total_visits,lbl:'Lượt thăm',bg:'#22c55e'},
+  ].map(s=>`<div class="admin-stat"><div class="admin-stat-ic" style="background:${s.bg}22">${s.ic}</div><div class="admin-stat-info"><div class="val">${(s.val||0).toLocaleString()}</div><div class="lbl">${s.lbl}</div></div></div>`).join('');
+  const spaces=await api('/api/admin/spatial/spaces').catch(()=>[]);
+  document.getElementById('adminSpacesBody').innerHTML=(spaces||[]).slice(0,10).map(s=>`
+    <tr>
+      <td>${spaceTypeEmoji(s.type)} ${escHtml(s.name)}</td>
+      <td>${s.type}</td>
+      <td>${s.visitors_count||0}</td>
+      <td>
+        ${!s.is_featured?`<button class="btn btn-sm btn-brand" onclick="featureSpace('${s.id}',true)">Nổi bật</button>`:`<button class="btn btn-sm btn-glass" onclick="featureSpace('${s.id}',false)">Bỏ</button>`}
+        ${s.status==='active'?`<button class="btn btn-sm btn-glass" style="margin-left:4px" onclick="updateSpace('${s.id}','closed')">Đóng</button>`:``}
+      </td>
+    </tr>`).join('');
+  // Type breakdown chart (text-based)
+  const tb=ov.type_breakdown||{};
+  document.getElementById('adminTypeChart').innerHTML=`<div style="display:grid;gap:8px;padding:8px 0">${Object.entries(tb).map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px"><div style="width:70px;font-size:12px;color:var(--sub)">${spaceTypeEmoji(k)} ${k}</div><div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="width:${Math.min(100,v*10)}%;height:100%;background:var(--brandG);border-radius:4px"></div></div><div style="font-size:12px;font-weight:700;min-width:20px">${v}</div></div>`).join('')}</div>`;
+}
+async function featureSpace(id,val){await api(`/api/admin/spatial/spaces/${id}`,{method:'PATCH',body:JSON.stringify({is_featured:val})});toast('Đã cập nhật');loadAdmin();}
+async function updateSpace(id,status){await api(`/api/admin/spatial/spaces/${id}`,{method:'PATCH',body:JSON.stringify({status})});toast('Đã cập nhật');loadAdmin();}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show')}));
+</script>
+</body>
+</html>

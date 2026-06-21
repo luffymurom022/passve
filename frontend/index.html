@@ -1781,6 +1781,7 @@ function render(){
     {id:"stories",icon:"📸",label:"Stories"},
     {id:"brand_hub",icon:"🏢",label:"Brand Hub"},
     {id:"super_app8",icon:"⚡",label:"Super App"},
+    {id:"spatial9",icon:"🌐",label:"Spatial"},
     {id:"network",icon:"🌐",label:"Network"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
@@ -1809,6 +1810,7 @@ function render(){
     if(p.id==="stories") return "window.location.href='/stories'";
     if(p.id==="brand_hub") return "window.location.href='/brand'";
     if(p.id==="super_app8") return "window.location.href='/app'";
+    if(p.id==="spatial9") return "window.location.href='/spatial'";
     if(p.id==="network") return "window.location.href='/network'";
     return `setState({page:'${p.id}'})`;
   }
