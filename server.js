@@ -7993,6 +7993,381 @@ app.post('/api/admin/risk/alerts/create', adminAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// PHASE 18: SAFEPASS PAY — WALLET SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+// Serve Pay page
+app.get('/pay', (req, res) => {
+  res.sendFile(new URL('./frontend/pay.html', import.meta.url).pathname);
+});
+
+// ── Helper: get or create wallet ──
+async function getOrCreateWallet(userId) {
+  let { data: wallet } = await supabase.from('wallets').select('*').eq('user_id', userId).single();
+  if (!wallet) {
+    const { data: newWallet } = await supabase.from('wallets').insert({ user_id: userId }).select().single();
+    wallet = newWallet;
+  }
+  return wallet;
+}
+
+// ── Helper: record wallet transaction ──
+async function recordTxn(walletId, userId, type, amount, extra = {}) {
+  const { data: wallet } = await supabase.from('wallets').select('balance').eq('id', walletId).single();
+  const before = wallet?.balance || 0;
+  await supabase.from('wallet_transactions').insert({
+    wallet_id: walletId, user_id: userId, type, amount,
+    balance_before: before, balance_after: before,
+    ...extra
+  });
+}
+
+// ── GET /api/pay/wallet ── (get wallet + monthly breakdown)
+app.get('/api/pay/wallet', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const wallet = await getOrCreateWallet(uid);
+  if (!wallet) return res.status(500).json({ error: 'Không thể tạo ví' });
+
+  // Monthly breakdown for chart (last 6 months)
+  const { data: txns } = await supabase.from('wallet_transactions')
+    .select('type,amount,created_at').eq('user_id', uid);
+  const monthly = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const m = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+    const mt = (txns || []).filter(t => t.created_at?.startsWith(m));
+    monthly.push({
+      label,
+      deposited: mt.filter(t => t.type === 'deposit').reduce((s, t) => s + (t.amount || 0), 0),
+      withdrawn: mt.filter(t => t.type === 'withdrawal').reduce((s, t) => s + (t.amount || 0), 0)
+    });
+  }
+  res.json({ wallet, monthly });
+});
+
+// ── GET /api/pay/transactions ──
+app.get('/api/pay/transactions', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const limit = Number(req.query.limit) || 20;
+  const type = req.query.type;
+  let q = supabase.from('wallet_transactions')
+    .select('*').eq('user_id', uid)
+    .order('created_at', { ascending: false }).limit(limit);
+  if (type && type !== 'all') q = q.eq('type', type);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  // Enrich counterpart info
+  const enriched = await Promise.all((data || []).map(async t => {
+    if (t.counterpart_user_id) {
+      const { data: u } = await supabase.from('users').select('name,phone').eq('id', t.counterpart_user_id).single();
+      return { ...t, counterpart_name: u?.name || u?.phone || 'Người dùng' };
+    }
+    return t;
+  }));
+  res.json({ transactions: enriched });
+});
+
+// ── POST /api/pay/deposit ──
+app.post('/api/pay/deposit', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { amount } = req.body;
+  if (!amount || amount < 10000) return res.status(400).json({ error: 'Số tiền tối thiểu 10,000₫' });
+  if (amount > 100000000) return res.status(400).json({ error: 'Vượt hạn mức nạp tối đa' });
+
+  const wallet = await getOrCreateWallet(uid);
+  // Generate a bank reference
+  const bankRef = `SP${Date.now().toString().slice(-8).toUpperCase()}`;
+
+  const { data: deposit } = await supabase.from('deposit_requests').insert({
+    user_id: uid, amount, method: 'bank_transfer', bank_ref: bankRef,
+    expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+  }).select().single();
+
+  res.json({ deposit, bank_ref: bankRef, reference: `SAFEPASS ${bankRef}` });
+});
+
+// ── POST /api/pay/withdraw ──
+app.post('/api/pay/withdraw', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { amount, bank_name, bank_account, bank_holder } = req.body;
+  if (!amount || amount < 50000) return res.status(400).json({ error: 'Số tiền tối thiểu 50,000₫' });
+  if (!bank_name || !bank_account || !bank_holder) return res.status(400).json({ error: 'Thiếu thông tin ngân hàng' });
+
+  const wallet = await getOrCreateWallet(uid);
+  if ((wallet.balance || 0) < amount) return res.status(400).json({ error: 'Số dư không đủ' });
+
+  // Freeze the amount
+  const newBalance = (wallet.balance || 0) - amount;
+  const newFrozen = (wallet.frozen_balance || 0) + amount;
+  await supabase.from('wallets').update({
+    balance: newBalance, frozen_balance: newFrozen,
+    today_spent: (wallet.today_spent || 0) + amount,
+    month_spent: (wallet.month_spent || 0) + amount,
+    total_withdrawn: (wallet.total_withdrawn || 0) + amount,
+    updated_at: new Date().toISOString()
+  }).eq('id', wallet.id);
+
+  // Record transaction
+  await supabase.from('wallet_transactions').insert({
+    wallet_id: wallet.id, user_id: uid, type: 'withdrawal', amount,
+    balance_before: wallet.balance, balance_after: newBalance,
+    note: `${bank_name} · ${bank_account}`, status: 'pending'
+  });
+
+  // Create withdrawal request
+  const { data: wr } = await supabase.from('withdrawal_requests').insert({
+    user_id: uid, wallet_id: wallet.id, amount, fee: 0, net_amount: amount,
+    bank_name, bank_account, bank_holder, status: 'pending'
+  }).select().single();
+
+  res.json({ withdrawal: wr, message: 'Yêu cầu rút tiền đã được ghi nhận' });
+});
+
+// ── POST /api/pay/transfer ──
+app.post('/api/pay/transfer', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { to_phone, amount, note } = req.body;
+  if (!to_phone || !amount) return res.status(400).json({ error: 'Thiếu thông tin chuyển tiền' });
+  if (amount < 1000) return res.status(400).json({ error: 'Số tiền tối thiểu 1,000₫' });
+
+  // Find receiver
+  const { data: receiver } = await supabase.from('users').select('id,name,phone').eq('phone', to_phone).single();
+  if (!receiver) return res.status(404).json({ error: 'Không tìm thấy người nhận với số điện thoại này' });
+  if (receiver.id === uid) return res.status(400).json({ error: 'Không thể chuyển tiền cho chính mình' });
+
+  const senderWallet = await getOrCreateWallet(uid);
+  if ((senderWallet.balance || 0) < amount) return res.status(400).json({ error: 'Số dư không đủ' });
+
+  const receiverWallet = await getOrCreateWallet(receiver.id);
+
+  // Debit sender
+  const senderNewBal = senderWallet.balance - amount;
+  await supabase.from('wallets').update({
+    balance: senderNewBal,
+    today_spent: (senderWallet.today_spent || 0) + amount,
+    month_spent: (senderWallet.month_spent || 0) + amount,
+    total_transferred_out: (senderWallet.total_transferred_out || 0) + amount,
+    updated_at: new Date().toISOString()
+  }).eq('id', senderWallet.id);
+
+  // Credit receiver
+  const receiverNewBal = (receiverWallet.balance || 0) + amount;
+  await supabase.from('wallets').update({
+    balance: receiverNewBal,
+    total_transferred_in: (receiverWallet.total_transferred_in || 0) + amount,
+    updated_at: new Date().toISOString()
+  }).eq('id', receiverWallet.id);
+
+  // Record both transactions
+  await supabase.from('wallet_transactions').insert([
+    { wallet_id: senderWallet.id, user_id: uid, type: 'transfer_out', amount,
+      balance_before: senderWallet.balance, balance_after: senderNewBal,
+      counterpart_user_id: receiver.id, note, reference_type: 'transfer', status: 'completed' },
+    { wallet_id: receiverWallet.id, user_id: receiver.id, type: 'transfer_in', amount,
+      balance_before: receiverWallet.balance, balance_after: receiverNewBal,
+      counterpart_user_id: uid, note, reference_type: 'transfer', status: 'completed' }
+  ]);
+
+  // Award SafeCoin to sender (5 coins per transfer)
+  await supabase.from('wallets').update({ safecoin: (senderWallet.safecoin || 0) + 5 }).eq('id', senderWallet.id);
+
+  res.json({ message: `Chuyển ${amount.toLocaleString('vi-VN')}₫ đến ${receiver.name || receiver.phone} thành công` });
+});
+
+// ── GET /api/pay/requests ──
+app.get('/api/pay/requests', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const [received, sent] = await Promise.all([
+    supabase.from('payment_requests').select('*').eq('payer_id', uid).order('created_at', { ascending: false }).limit(20),
+    supabase.from('payment_requests').select('*').eq('requester_id', uid).order('created_at', { ascending: false }).limit(20)
+  ]);
+
+  // Enrich with user names
+  async function enrich(list) {
+    return Promise.all((list || []).map(async req => {
+      const [rq, py] = await Promise.all([
+        supabase.from('users').select('name,phone').eq('id', req.requester_id).single(),
+        supabase.from('users').select('name,phone').eq('id', req.payer_id).single()
+      ]);
+      return { ...req, requester_name: rq.data?.name || rq.data?.phone, payer_name: py.data?.name || py.data?.phone };
+    }));
+  }
+
+  const [enrichedReceived, enrichedSent] = await Promise.all([
+    enrich(received.data), enrich(sent.data)
+  ]);
+  res.json({ received: enrichedReceived, sent: enrichedSent });
+});
+
+// ── POST /api/pay/requests ──
+app.post('/api/pay/requests', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { payer_phone, amount, note } = req.body;
+  if (!payer_phone || !amount) return res.status(400).json({ error: 'Thiếu thông tin' });
+
+  const { data: payer } = await supabase.from('users').select('id,name,phone').eq('phone', payer_phone).single();
+  if (!payer) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+  if (payer.id === uid) return res.status(400).json({ error: 'Không thể yêu cầu thanh toán từ chính mình' });
+
+  const { data, error } = await supabase.from('payment_requests').insert({
+    requester_id: uid, payer_id: payer.id, amount, note,
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  }).select().single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ request: data });
+});
+
+// ── POST /api/pay/requests/:id/pay ──
+app.post('/api/pay/requests/:id/pay', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: payReq } = await supabase.from('payment_requests').select('*').eq('id', req.params.id).single();
+  if (!payReq) return res.status(404).json({ error: 'Không tìm thấy yêu cầu' });
+  if (payReq.payer_id !== uid) return res.status(403).json({ error: 'Không có quyền' });
+  if (payReq.status !== 'pending') return res.status(400).json({ error: 'Yêu cầu đã được xử lý' });
+  if (new Date(payReq.expires_at) < new Date()) return res.status(400).json({ error: 'Yêu cầu đã hết hạn' });
+
+  // Transfer from payer to requester
+  const payerWallet = await getOrCreateWallet(uid);
+  if ((payerWallet.balance || 0) < payReq.amount) return res.status(400).json({ error: 'Số dư không đủ' });
+
+  const requesterWallet = await getOrCreateWallet(payReq.requester_id);
+  const payerNewBal = payerWallet.balance - payReq.amount;
+  const reqNewBal = (requesterWallet.balance || 0) + payReq.amount;
+
+  await Promise.all([
+    supabase.from('wallets').update({ balance: payerNewBal, today_spent: (payerWallet.today_spent||0)+payReq.amount, month_spent: (payerWallet.month_spent||0)+payReq.amount, updated_at: new Date().toISOString() }).eq('id', payerWallet.id),
+    supabase.from('wallets').update({ balance: reqNewBal, updated_at: new Date().toISOString() }).eq('id', requesterWallet.id),
+    supabase.from('payment_requests').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', payReq.id)
+  ]);
+
+  await supabase.from('wallet_transactions').insert([
+    { wallet_id: payerWallet.id, user_id: uid, type: 'transfer_out', amount: payReq.amount,
+      balance_before: payerWallet.balance, balance_after: payerNewBal,
+      counterpart_user_id: payReq.requester_id, note: payReq.note, reference_type: 'payment_request', status: 'completed' },
+    { wallet_id: requesterWallet.id, user_id: payReq.requester_id, type: 'transfer_in', amount: payReq.amount,
+      balance_before: requesterWallet.balance, balance_after: reqNewBal,
+      counterpart_user_id: uid, note: payReq.note, reference_type: 'payment_request', status: 'completed' }
+  ]);
+
+  res.json({ message: 'Thanh toán thành công' });
+});
+
+// ── POST /api/pay/requests/:id/cancel ──
+app.post('/api/pay/requests/:id/cancel', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { data: payReq } = await supabase.from('payment_requests').select('*').eq('id', req.params.id).single();
+  if (!payReq) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (payReq.requester_id !== uid && payReq.payer_id !== uid) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('payment_requests').update({ status: 'cancelled' }).eq('id', req.params.id);
+  res.json({ message: 'Đã huỷ yêu cầu' });
+});
+
+// ── POST /api/pay/safecoin/redeem ──
+app.post('/api/pay/safecoin/redeem', auth, async (req, res) => {
+  const uid = req.user.userId;
+  const { amount } = req.body; // coins to redeem
+  if (!amount || amount < 100) return res.status(400).json({ error: 'Tối thiểu 100 SafeCoin' });
+
+  const wallet = await getOrCreateWallet(uid);
+  if ((wallet.safecoin || 0) < amount) return res.status(400).json({ error: 'Không đủ SafeCoin' });
+
+  const cashValue = amount * 100; // 1 coin = 100₫
+  const newCoin = (wallet.safecoin || 0) - amount;
+  const newBalance = (wallet.balance || 0) + cashValue;
+
+  await supabase.from('wallets').update({
+    safecoin: newCoin, balance: newBalance, updated_at: new Date().toISOString()
+  }).eq('id', wallet.id);
+
+  await supabase.from('wallet_transactions').insert({
+    wallet_id: wallet.id, user_id: uid, type: 'safecoin_redeem', amount: cashValue,
+    balance_before: wallet.balance, balance_after: newBalance,
+    note: `Đổi ${amount} SafeCoin`, status: 'completed'
+  });
+
+  await supabase.from('safecoin_ledger').insert({
+    user_id: uid, wallet_id: wallet.id, amount: -amount,
+    balance_after: newCoin, reason: 'Đổi lấy tiền mặt', reference_type: 'redeem'
+  });
+
+  res.json({ message: `Đổi thành công ${amount} SafeCoin lấy ${cashValue.toLocaleString('vi-VN')}₫` });
+});
+
+// ── Admin: confirm deposit ──
+app.post('/api/admin/pay/deposits/:id/confirm', adminAuth, async (req, res) => {
+  const { data: dep } = await supabase.from('deposit_requests').select('*').eq('id', req.params.id).single();
+  if (!dep) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (dep.status !== 'pending') return res.status(400).json({ error: 'Đã xử lý' });
+
+  const wallet = await getOrCreateWallet(dep.user_id);
+  const newBalance = (wallet.balance || 0) + dep.amount;
+  const newDeposited = (wallet.total_deposited || 0) + dep.amount;
+
+  await supabase.from('wallets').update({
+    balance: newBalance, total_deposited: newDeposited, updated_at: new Date().toISOString()
+  }).eq('id', wallet.id);
+
+  await supabase.from('deposit_requests').update({
+    status: 'confirmed', confirmed_at: new Date().toISOString()
+  }).eq('id', dep.id);
+
+  await supabase.from('wallet_transactions').insert({
+    wallet_id: wallet.id, user_id: dep.user_id, type: 'deposit', amount: dep.amount,
+    balance_before: wallet.balance, balance_after: newBalance,
+    note: `Bank ref: ${dep.bank_ref}`, status: 'completed'
+  });
+
+  // Award 10 SafeCoin per deposit
+  await supabase.from('wallets').update({ safecoin: (wallet.safecoin || 0) + 10 }).eq('id', wallet.id);
+
+  res.json({ message: 'Đã xác nhận nạp tiền' });
+});
+
+// ── Admin: list deposit requests ──
+app.get('/api/admin/pay/deposits', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('deposit_requests').select('*,users(name,phone)').order('created_at', { ascending: false }).limit(50);
+  res.json({ deposits: data || [] });
+});
+
+// ── Admin: list withdrawal requests ──
+app.get('/api/admin/pay/withdrawals', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('withdrawal_requests').select('*,users(name,phone)').order('created_at', { ascending: false }).limit(50);
+  res.json({ withdrawals: data || [] });
+});
+
+// ── Admin: process withdrawal ──
+app.post('/api/admin/pay/withdrawals/:id/process', adminAuth, async (req, res) => {
+  const { action, admin_note } = req.body; // 'complete' or 'reject'
+  const { data: wr } = await supabase.from('withdrawal_requests').select('*').eq('id', req.params.id).single();
+  if (!wr) return res.status(404).json({ error: 'Không tìm thấy' });
+  if (wr.status !== 'pending') return res.status(400).json({ error: 'Đã xử lý' });
+
+  if (action === 'complete') {
+    await supabase.from('withdrawal_requests').update({ status: 'completed', processed_at: new Date().toISOString(), admin_note }).eq('id', wr.id);
+    // Unfreeze
+    const wallet = await getOrCreateWallet(wr.user_id);
+    await supabase.from('wallets').update({ frozen_balance: Math.max(0, (wallet.frozen_balance||0) - wr.amount), updated_at: new Date().toISOString() }).eq('id', wallet.id);
+  } else {
+    // Refund on reject
+    const wallet = await getOrCreateWallet(wr.user_id);
+    const refundedBal = (wallet.balance || 0) + wr.amount;
+    await supabase.from('wallets').update({
+      balance: refundedBal, frozen_balance: Math.max(0, (wallet.frozen_balance||0) - wr.amount),
+      total_withdrawn: Math.max(0, (wallet.total_withdrawn||0) - wr.amount), updated_at: new Date().toISOString()
+    }).eq('id', wallet.id);
+    await supabase.from('withdrawal_requests').update({ status: 'rejected', admin_note }).eq('id', wr.id);
+    await supabase.from('wallet_transactions').insert({
+      wallet_id: wallet.id, user_id: wr.user_id, type: 'refund', amount: wr.amount,
+      balance_before: wallet.balance, balance_after: refundedBal,
+      note: 'Yêu cầu rút tiền bị từ chối', status: 'completed'
+    });
+  }
+  res.json({ message: `Đã ${action === 'complete' ? 'hoàn tất' : 'từ chối'} yêu cầu rút tiền` });
+});
+
+// ═══════════════════════════════════════════════════════════
 // PHASE 17: SAFEPASS SUPER APP
 // ═══════════════════════════════════════════════════════════
 

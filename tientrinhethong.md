@@ -1000,3 +1000,27 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 | **Không cần migration SQL** — Phase 17 aggregate từ tất cả bảng đã có | 2026-06-20 |
 
 *Cập nhật lần cuối: 2026-06-20*
+
+---
+
+## ✅ PHASE 18: SAFEPASS PAY — HOÀN THÀNH 2026-06-21
+
+| Tính năng | Ngày |
+|-----------|------|
+| **`pay_migration.sql`** — 6 bảng: wallets, wallet_transactions, payment_requests, safecoin_ledger, deposit_requests, withdrawal_requests | 2026-06-21 |
+| **`frontend/pay.html`** — Ví điện tử MoMo/ZaloPay style, dark mode, max-width 480px, 4 tab: Ví / Lịch sử / Yêu cầu / SafeCoin | 2026-06-21 |
+| **Tab Ví** — Gradient hero card, toggle ẩn số dư, 4 quick actions (Nạp/Rút/Chuyển/Yêu cầu), stats row, hạn mức ngày/tháng progress bar, giao dịch gần nhất, Chart.js 6 tháng | 2026-06-21 |
+| **Tab Lịch sử** — Filter theo 6 loại giao dịch, đầy đủ lịch sử, enrich tên counterpart | 2026-06-21 |
+| **Tab Yêu cầu thanh toán** — Nhận/gửi yêu cầu, nút thanh toán 1-click, huỷ yêu cầu, hiển thị trạng thái/hết hạn | 2026-06-21 |
+| **Tab SafeCoin** — Số dư coin, quy đổi lấy tiền, 5 cách kiếm coin, lịch sử coin | 2026-06-21 |
+| **Nạp tiền** — Tạo lệnh nạp, sinh mã bank_ref duy nhất, thông tin chuyển khoản | 2026-06-21 |
+| **Rút tiền** — Form ngân hàng, freeze balance khi chờ, auto unfrozen khi từ chối | 2026-06-21 |
+| **Chuyển tiền P2P** — Tìm người nhận theo SĐT, debit/credit cả 2 ví trong 1 transaction, award 5 SafeCoin | 2026-06-21 |
+| **Payment Request** — Tạo yêu cầu 24h, người trả pay 1-click, auto transfer, expire handling | 2026-06-21 |
+| **SafeCoin redeem** — 1 coin = 100₫, min 100 coin, ghi safecoin_ledger | 2026-06-21 |
+| **Admin routes** — Xác nhận nạp tiền, list deposit/withdrawal requests, xử lý rút tiền (approve/reject) | 2026-06-21 |
+| **`getOrCreateWallet()`** helper — auto tạo ví khi user truy cập lần đầu | 2026-06-21 |
+| **Nav "💳 Pay"** thêm vào index.html → `/pay` | 2026-06-21 |
+| **⚠️ Cần chạy `pay_migration.sql` trong Supabase SQL Editor trước khi dùng** | 2026-06-21 |
+
+*Cập nhật lần cuối: 2026-06-21*

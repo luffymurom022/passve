@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>SafePass Pay</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#07090f;--card:#0e1420;--card2:#131b28;--border:#182030;
+  --brand:#6c63ff;--brand2:#f97316;--brand3:#22c55e;--brand4:#06b6d4;
+  --txt:#f0f4ff;--sub:#4a6080;--muted:#111825;
+  --red:#ef4444;--yellow:#f59e0b;--purple:#a78bfa;--green:#22c55e;
+  --gradient:linear-gradient(135deg,#6c63ff,#f97316);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;font-size:14px;
+  display:flex;flex-direction:column;align-items:center;}
+.app{width:100%;max-width:480px;height:100vh;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;position:relative;}
+
+/* ── Top Bar ── */
+.topbar{background:var(--bg);padding:14px 16px 10px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:50;}
+.back-btn{font-size:20px;cursor:pointer;color:var(--sub);padding:4px;}
+.topbar-title{font-size:17px;font-weight:900;flex:1;}
+.topbar-title span{color:var(--brand);}
+.topbar-action{font-size:22px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  background:var(--card);border-radius:50%;border:1px solid var(--border);}
+
+/* ── Content ── */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;}
+.content::-webkit-scrollbar{display:none;}
+.tab-page{display:none;min-height:100%;padding-bottom:72px;}
+.tab-page.active{display:block;}
+
+/* ── Bottom Nav ── */
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:62px;background:var(--card);
+  border-top:1px solid var(--border);display:flex;align-items:center;z-index:100;}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 2px;}
+.nav-tab .ico{font-size:20px;transition:transform .2s;}
+.nav-tab .lbl{font-size:9px;font-weight:700;color:var(--sub);transition:color .15s;}
+.nav-tab.active .lbl{color:var(--brand);}
+.nav-tab.active .ico{transform:scale(1.15);}
+
+/* ── Wallet Card ── */
+.wallet-hero{margin:12px 16px;border-radius:24px;overflow:hidden;position:relative;}
+.wallet-hero-inner{background:var(--gradient);padding:24px 22px 20px;position:relative;}
+.wallet-hero-inner::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;
+  border-radius:50%;background:rgba(255,255,255,.07);}
+.wallet-hero-inner::after{content:'';position:absolute;bottom:-30px;left:-30px;width:120px;height:120px;
+  border-radius:50%;background:rgba(255,255,255,.05);}
+.wallet-chip{display:flex;align-items:center;gap:8px;margin-bottom:14px;position:relative;z-index:1;}
+.chip-ico{font-size:22px;}
+.chip-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.8px;}
+.chip-tier{margin-left:auto;font-size:9px;font-weight:800;padding:3px 10px;border-radius:10px;
+  background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.25);}
+.wallet-label{font-size:11px;color:rgba(255,255,255,.65);position:relative;z-index:1;margin-bottom:4px;font-weight:600;letter-spacing:.4px;}
+.wallet-amount{font-size:34px;font-weight:900;color:#fff;letter-spacing:-1.5px;position:relative;z-index:1;margin-bottom:2px;}
+.wallet-amount.hidden{color:transparent;text-shadow:0 0 20px rgba(255,255,255,.5);}
+.wallet-safecoin{font-size:12px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:5px;position:relative;z-index:1;}
+.wallet-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:rgba(0,0,0,.25);position:relative;z-index:1;}
+.wallet-action{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px;
+  cursor:pointer;transition:background .15s;border-right:1px solid rgba(255,255,255,.08);}
+.wallet-action:last-child{border-right:none;}
+.wallet-action:active{background:rgba(255,255,255,.1);}
+.wallet-action-ico{font-size:22px;}
+.wallet-action-lbl{font-size:10px;font-weight:700;color:rgba(255,255,255,.8);}
+
+/* ── Quick Stats ── */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px;margin-bottom:14px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;}
+.stat-val{font-size:15px;font-weight:900;}
+.stat-lbl{font-size:9px;color:var(--sub);margin-top:2px;font-weight:600;}
+
+/* ── Section ── */
+.section{padding:14px 16px 0;}
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.section-title{font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;}
+.section-more{font-size:11px;color:var(--brand4);cursor:pointer;font-weight:700;}
+
+/* ── Transaction Items ── */
+.txn-list{background:var(--card);border:1px solid var(--border);border-radius:16px;margin:0 16px 14px;overflow:hidden;}
+.txn-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);}
+.txn-item:last-child{border-bottom:none;}
+.txn-ico{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.txn-info{flex:1;}
+.txn-title{font-size:12px;font-weight:700;line-height:1.3;}
+.txn-sub{font-size:10px;color:var(--sub);margin-top:2px;}
+.txn-amt{text-align:right;}
+.txn-value{font-size:13px;font-weight:800;}
+.txn-value.in{color:var(--green);}
+.txn-value.out{color:var(--red);}
+.txn-value.hold{color:var(--yellow);}
+.txn-date{font-size:9px;color:var(--sub);margin-top:2px;}
+
+/* ── Limit Bar ── */
+.limit-card{background:var(--card);border:1px solid var(--border);border-radius:16px;margin:0 16px 14px;padding:14px 16px;}
+.limit-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.limit-label{font-size:12px;font-weight:700;}
+.limit-val{font-size:11px;color:var(--sub);}
+.progress{height:6px;background:var(--muted);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s;}
+.p-green{background:linear-gradient(90deg,var(--green),var(--brand4));}
+.p-yellow{background:linear-gradient(90deg,var(--yellow),var(--brand2));}
+.p-red{background:linear-gradient(90deg,var(--red),#f97316);}
+
+/* ── SafeCoin ── */
+.coin-hero{background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:20px;
+  margin:12px 16px;padding:20px;position:relative;overflow:hidden;}
+.coin-hero::before{content:'🪙';font-size:80px;position:absolute;right:-10px;top:-10px;opacity:.15;}
+.coin-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.6px;}
+.coin-amount{font-size:40px;font-weight:900;color:#fff;margin:6px 0;}
+.coin-sub{font-size:11px;color:rgba(255,255,255,.7);}
+.coin-actions{display:flex;gap:8px;margin-top:14px;}
+.coin-btn{flex:1;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.25);
+  color:#fff;border-radius:10px;padding:9px;text-align:center;font-size:11px;font-weight:800;cursor:pointer;}
+.coin-btn:active{background:rgba(255,255,255,.3);}
+
+.earn-card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.earn-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.earn-info{flex:1;}
+.earn-title{font-size:12px;font-weight:800;}
+.earn-sub{font-size:10px;color:var(--sub);margin-top:2px;}
+.earn-pts{font-size:14px;font-weight:900;color:var(--yellow);}
+
+/* ── Pay Request ── */
+.req-card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  margin:0 16px 10px;padding:14px;display:flex;align-items:center;gap:12px;}
+.req-avatar{width:42px;height:42px;border-radius:50%;background:var(--gradient);
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex-shrink:0;}
+.req-info{flex:1;}
+.req-name{font-size:12px;font-weight:800;}
+.req-note{font-size:10px;color:var(--sub);margin-top:2px;}
+.req-meta{font-size:10px;color:var(--sub);margin-top:3px;}
+.req-amt{text-align:right;}
+.req-value{font-size:14px;font-weight:900;color:var(--brand);}
+.req-actions{display:flex;gap:6px;margin-top:10px;}
+.req-pay{flex:1;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;}
+.req-decline{flex:1;background:var(--card2);color:var(--sub);border:1px solid var(--border);border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;}
+.req-sent .req-pay{background:var(--card2);color:var(--sub);cursor:default;}
+
+/* ── Forms / Modals ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;
+  display:none;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:0 0 30px;}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
+.modal-head{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;}
+.modal-title{font-size:15px;font-weight:900;flex:1;}
+.modal-close{font-size:20px;color:var(--sub);cursor:pointer;}
+.modal-body{padding:20px;}
+.form-group{margin-bottom:16px;}
+.form-label{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.4px;}
+.form-input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;color:var(--txt);font-size:14px;outline:none;transition:border .2s;}
+.form-input:focus{border-color:var(--brand);}
+.form-input::placeholder{color:var(--sub);}
+.form-hint{font-size:10px;color:var(--sub);margin-top:5px;}
+.btn-primary{width:100%;background:var(--gradient);color:#fff;border:none;border-radius:14px;
+  padding:14px;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s;margin-top:8px;}
+.btn-primary:active{opacity:.85;}
+.btn-primary:disabled{opacity:.4;cursor:default;}
+.quick-amounts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.qa-btn{padding:6px 14px;border:1px solid var(--border);border-radius:20px;background:var(--card2);
+  color:var(--brand);font-size:11px;font-weight:700;cursor:pointer;}
+.qa-btn:active{background:var(--brand);color:#fff;}
+
+/* ── QR Display ── */
+.qr-card{background:var(--card2);border:1px solid var(--border);border-radius:16px;
+  padding:24px;text-align:center;margin:16px 0;}
+.qr-box{width:160px;height:160px;background:#fff;border-radius:12px;margin:0 auto 16px;
+  display:flex;align-items:center;justify-content:center;font-size:60px;}
+.qr-bank{font-size:11px;color:var(--sub);line-height:1.6;}
+.qr-ref{font-size:18px;font-weight:900;color:var(--brand);margin:4px 0;}
+.copy-btn{background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 20px;
+  font-size:12px;font-weight:800;cursor:pointer;margin-top:8px;}
+
+/* ── History filters ── */
+.history-filters{display:flex;gap:6px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;}
+.history-filters::-webkit-scrollbar{display:none;}
+.filter-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;
+  background:var(--card);border:1px solid var(--border);color:var(--sub);cursor:pointer;}
+.filter-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+
+/* ── Chart ── */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:16px;margin:0 16px 14px;padding:16px;}
+.chart-title{font-size:13px;font-weight:800;margin-bottom:12px;}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:800;}
+.b-green{background:rgba(34,197,94,.12);color:var(--green);}
+.b-yellow{background:rgba(245,158,11,.12);color:var(--yellow);}
+.b-blue{background:rgba(108,99,255,.12);color:var(--brand);}
+.b-red{background:rgba(239,68,68,.12);color:var(--red);}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:var(--card2);border:1px solid var(--border);color:var(--txt);
+  padding:10px 20px;border-radius:24px;font-size:12px;font-weight:600;z-index:999;
+  opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90%;}
+.toast.show{opacity:1;}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:40px 16px;color:var(--sub);}
+.empty-ico{font-size:44px;margin-bottom:10px;}
+.spin{display:inline-block;width:28px;height:28px;border:3px solid var(--border);
+  border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── Tier colors ── */
+.tier-basic{color:#94a3b8;}
+.tier-silver{color:#cbd5e1;}
+.tier-gold{color:var(--yellow);}
+.tier-platinum{color:var(--purple);}
+
+/* ── Notice ── */
+.notice{background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);
+  border-radius:12px;padding:12px 14px;margin:0 16px 14px;font-size:11px;line-height:1.5;color:var(--sub);}
+.notice b{color:var(--txt);}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODALS -->
+<!-- Deposit Modal -->
+<div class="modal-overlay" id="modalDeposit">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title">💳 Nạp tiền</div>
+      <div class="modal-close" onclick="closeModal('modalDeposit')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Số tiền nạp</label>
+        <input class="form-input" id="depositAmt" type="number" placeholder="Nhập số tiền..." min="10000" step="1000" oninput="updateDepositPreview()"/>
+        <div class="quick-amounts">
+          <div class="qa-btn" onclick="setDepositAmt(50000)">50k</div>
+          <div class="qa-btn" onclick="setDepositAmt(100000)">100k</div>
+          <div class="qa-btn" onclick="setDepositAmt(200000)">200k</div>
+          <div class="qa-btn" onclick="setDepositAmt(500000)">500k</div>
+          <div class="qa-btn" onclick="setDepositAmt(1000000)">1tr</div>
+          <div class="qa-btn" onclick="setDepositAmt(5000000)">5tr</div>
+        </div>
+      </div>
+      <div class="qr-card" id="depositQRCard" style="display:none;">
+        <div class="qr-box">🏦</div>
+        <div style="font-size:13px;font-weight:800;margin-bottom:8px;">Chuyển khoản ngân hàng</div>
+        <div class="qr-bank">
+          Ngân hàng: <b>Vietcombank</b><br>
+          Số tài khoản: <b>1234567890</b><br>
+          Chủ tài khoản: <b>SAFEPASS JSC</b><br>
+          Số tiền: <b id="qrAmt">—</b><br>
+          Nội dung: <b id="depositRef">—</b>
+        </div>
+        <button class="copy-btn" onclick="copyDepositRef()">📋 Sao chép nội dung CK</button>
+        <div style="font-size:10px;color:var(--sub);margin-top:10px;">Sau khi chuyển khoản, hệ thống sẽ xác nhận trong 5-15 phút</div>
+      </div>
+      <button class="btn-primary" id="depositBtn" onclick="createDeposit()">Tạo lệnh nạp tiền</button>
+    </div>
+  </div>
+</div>
+
+<!-- Withdraw Modal -->
+<div class="modal-overlay" id="modalWithdraw">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title">🏧 Rút tiền</div>
+      <div class="modal-close" onclick="closeModal('modalWithdraw')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Số tiền rút</label>
+        <input class="form-input" id="withdrawAmt" type="number" placeholder="Tối thiểu 50,000₫" min="50000" step="1000"/>
+        <div class="form-hint">Phí rút: 0₫ (miễn phí đến 31/12/2026)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ngân hàng</label>
+        <select class="form-input" id="withdrawBank">
+          <option value="">Chọn ngân hàng...</option>
+          <option>Vietcombank</option><option>Techcombank</option><option>MB Bank</option>
+          <option>VPBank</option><option>BIDV</option><option>Agribank</option>
+          <option>ACB</option><option>TPBank</option><option>SHB</option><option>VIB</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Số tài khoản</label>
+        <input class="form-input" id="withdrawAccount" placeholder="Số tài khoản ngân hàng"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tên chủ tài khoản</label>
+        <input class="form-input" id="withdrawHolder" placeholder="Họ và tên (in hoa)"/>
+      </div>
+      <button class="btn-primary" onclick="createWithdrawal()">Gửi yêu cầu rút tiền</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal-overlay" id="modalTransfer">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title">↔️ Chuyển tiền</div>
+      <div class="modal-close" onclick="closeModal('modalTransfer')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Số điện thoại người nhận</label>
+        <input class="form-input" id="transferPhone" placeholder="VD: 0987654321" type="tel"/>
+        <div class="form-hint" id="transferPhoneHint"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Số tiền</label>
+        <input class="form-input" id="transferAmt" type="number" placeholder="Nhập số tiền..." min="1000" step="1000"/>
+        <div class="quick-amounts">
+          <div class="qa-btn" onclick="document.getElementById('transferAmt').value=50000">50k</div>
+          <div class="qa-btn" onclick="document.getElementById('transferAmt').value=100000">100k</div>
+          <div class="qa-btn" onclick="document.getElementById('transferAmt').value=200000">200k</div>
+          <div class="qa-btn" onclick="document.getElementById('transferAmt').value=500000">500k</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lời nhắn (không bắt buộc)</label>
+        <input class="form-input" id="transferNote" placeholder="Mô tả giao dịch..."/>
+      </div>
+      <button class="btn-primary" onclick="doTransfer()">Chuyển tiền ngay</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Request Modal -->
+<div class="modal-overlay" id="modalRequest">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title">📨 Tạo yêu cầu thanh toán</div>
+      <div class="modal-close" onclick="closeModal('modalRequest')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Số điện thoại người trả</label>
+        <input class="form-input" id="reqPhone" placeholder="VD: 0987654321" type="tel"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Số tiền yêu cầu</label>
+        <input class="form-input" id="reqAmt" type="number" placeholder="Nhập số tiền..." min="1000"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ghi chú</label>
+        <input class="form-input" id="reqNote" placeholder="Lý do yêu cầu thanh toán..."/>
+      </div>
+      <button class="btn-primary" onclick="createPaymentRequest()">Gửi yêu cầu</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="back-btn" onclick="window.location.href='/'">←</div>
+    <div class="topbar-title">Safe<span>Pass</span> Pay</div>
+    <div class="topbar-action" onclick="toggleBalance()">👁</div>
+    <div class="topbar-action" onclick="openModal('modalRequest')" style="margin-left:4px;">📨</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ TAB: VÍ ══ -->
+    <div class="tab-page active" id="tab-wallet">
+
+      <!-- Wallet Hero -->
+      <div class="wallet-hero" id="walletHero">
+        <div class="wallet-hero-inner">
+          <div class="wallet-chip">
+            <div class="chip-ico">💳</div>
+            <div class="chip-name">SafePass Pay</div>
+            <div class="chip-tier" id="walletTier">BASIC</div>
+          </div>
+          <div class="wallet-label">Số dư khả dụng</div>
+          <div class="wallet-amount" id="walletBalance">—</div>
+          <div class="wallet-safecoin">🪙 <span id="walletSafecoin">0</span> SafeCoin</div>
+        </div>
+        <div class="wallet-actions">
+          <div class="wallet-action" onclick="openModal('modalDeposit')">
+            <div class="wallet-action-ico">📥</div><div class="wallet-action-lbl">Nạp tiền</div>
+          </div>
+          <div class="wallet-action" onclick="openModal('modalWithdraw')">
+            <div class="wallet-action-ico">📤</div><div class="wallet-action-lbl">Rút tiền</div>
+          </div>
+          <div class="wallet-action" onclick="openModal('modalTransfer')">
+            <div class="wallet-action-ico">↔️</div><div class="wallet-action-lbl">Chuyển</div>
+          </div>
+          <div class="wallet-action" onclick="openModal('modalRequest')">
+            <div class="wallet-action-ico">📨</div><div class="wallet-action-lbl">Yêu cầu</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-val" id="statDeposited">0</div>
+          <div class="stat-lbl">Đã nạp</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statWithdrawn">0</div>
+          <div class="stat-lbl">Đã rút</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statFrozen">0₫</div>
+          <div class="stat-lbl">Đang giữ</div>
+        </div>
+      </div>
+
+      <!-- Daily Limit -->
+      <div class="limit-card" id="limitCard">
+        <div class="limit-row">
+          <div class="limit-label">Hạn mức ngày</div>
+          <div class="limit-val" id="limitDay">0 / 20,000,000₫</div>
+        </div>
+        <div class="progress"><div class="progress-fill p-green" id="limitDayBar" style="width:0%"></div></div>
+        <div class="limit-row" style="margin-top:10px;">
+          <div class="limit-label">Hạn mức tháng</div>
+          <div class="limit-val" id="limitMonth">0 / 200,000,000₫</div>
+        </div>
+        <div class="progress"><div class="progress-fill p-green" id="limitMonthBar" style="width:0%"></div></div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="section">
+        <div class="section-hd">
+          <div class="section-title">⚡ Giao dịch gần nhất</div>
+          <div class="section-more" onclick="goToTab('history')">Tất cả →</div>
+        </div>
+      </div>
+      <div class="txn-list" id="recentTxns">
+        <div class="empty"><div class="spin"></div></div>
+      </div>
+
+      <!-- Spending Chart -->
+      <div class="chart-card">
+        <div class="chart-title">📊 Chi tiêu 6 tháng</div>
+        <canvas id="walletChart" height="160"></canvas>
+      </div>
+
+      <div class="notice">
+        <b>🔐 Bảo mật tuyệt đối</b><br>
+        Số dư trong ví được bảo vệ bởi mã hóa AES-256. Mọi giao dịch đều được xác thực 2 lớp. SafePass <b>không bao giờ</b> yêu cầu mật khẩu qua điện thoại.
+      </div>
+    </div>
+
+    <!-- ══ TAB: LỊCH SỬ ══ -->
+    <div class="tab-page" id="tab-history">
+      <div class="history-filters">
+        <div class="filter-btn active" onclick="filterHistory('all',this)">Tất cả</div>
+        <div class="filter-btn" onclick="filterHistory('deposit',this)">📥 Nạp</div>
+        <div class="filter-btn" onclick="filterHistory('withdrawal',this)">📤 Rút</div>
+        <div class="filter-btn" onclick="filterHistory('transfer_in',this)">↓ Nhận</div>
+        <div class="filter-btn" onclick="filterHistory('transfer_out',this)">↑ Chuyển</div>
+        <div class="filter-btn" onclick="filterHistory('escrow_hold',this)">🔐 Escrow</div>
+      </div>
+      <div id="historyList">
+        <div class="empty"><div class="spin"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: YÊU CẦU ══ -->
+    <div class="tab-page" id="tab-requests">
+      <div class="section" style="padding-top:14px;">
+        <div class="section-hd">
+          <div class="section-title">📨 Nhận từ bạn bè</div>
+          <div class="section-more" onclick="openModal('modalRequest')">+ Tạo mới</div>
+        </div>
+      </div>
+      <div id="requestsReceived">
+        <div class="empty"><div class="spin"></div></div>
+      </div>
+      <div class="section">
+        <div class="section-hd">
+          <div class="section-title">📤 Bạn đã gửi đi</div>
+        </div>
+      </div>
+      <div id="requestsSent">
+        <div class="empty"><div class="spin"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: SAFECOIN ══ -->
+    <div class="tab-page" id="tab-safecoin">
+      <div class="coin-hero">
+        <div class="coin-label">SafeCoin của bạn</div>
+        <div class="coin-amount" id="coinBalance">0</div>
+        <div class="coin-sub">≈ <span id="coinValue">0₫</span> · Tỷ lệ: 1 coin = 100₫</div>
+        <div class="coin-actions">
+          <div class="coin-btn" onclick="redeemCoin()">💱 Đổi lấy tiền</div>
+          <div class="coin-btn" onclick="toast('Tính năng sắp ra mắt!')">🎁 Đổi quà</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hd"><div class="section-title">🎯 Cách kiếm SafeCoin</div></div>
+      </div>
+      <div style="padding:0 16px;">
+        <div class="earn-card">
+          <div class="earn-ico" style="background:rgba(249,115,22,.12);">🔐</div>
+          <div class="earn-info"><div class="earn-title">Hoàn thành giao dịch escrow</div><div class="earn-sub">Mỗi giao dịch thành công</div></div>
+          <div class="earn-pts">+50 🪙</div>
+        </div>
+        <div class="earn-card">
+          <div class="earn-ico" style="background:rgba(34,197,94,.12);">⭐</div>
+          <div class="earn-info"><div class="earn-title">Nhận đánh giá 5 sao</div><div class="earn-sub">Mỗi review từ người mua</div></div>
+          <div class="earn-pts">+20 🪙</div>
+        </div>
+        <div class="earn-card">
+          <div class="earn-ico" style="background:rgba(108,99,255,.12);">🪪</div>
+          <div class="earn-info"><div class="earn-title">Xác minh KYC</div><div class="earn-sub">Xác minh danh tính thành công</div></div>
+          <div class="earn-pts">+500 🪙</div>
+        </div>
+        <div class="earn-card">
+          <div class="earn-ico" style="background:rgba(6,182,212,.12);">👥</div>
+          <div class="earn-info"><div class="earn-title">Giới thiệu bạn bè</div><div class="earn-sub">Mỗi người đăng ký từ link của bạn</div></div>
+          <div class="earn-pts">+200 🪙</div>
+        </div>
+        <div class="earn-card">
+          <div class="earn-ico" style="background:rgba(245,158,11,.12);">📦</div>
+          <div class="earn-info"><div class="earn-title">Dùng dịch vụ Logistics</div><div class="earn-sub">Mỗi vận đơn thành công</div></div>
+          <div class="earn-pts">+10 🪙</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hd"><div class="section-title">📋 Lịch sử SafeCoin</div></div>
+      </div>
+      <div class="txn-list" style="margin:0 16px 14px;" id="coinHistory">
+        <div class="empty" style="padding:20px;"><div class="empty-ico" style="font-size:32px;">🪙</div><div style="font-size:11px;">Chưa có lịch sử SafeCoin</div></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-tab active" id="ntab-wallet" onclick="goToTab('wallet')">
+      <div class="ico">💳</div><div class="lbl">Ví</div>
+    </div>
+    <div class="nav-tab" id="ntab-history" onclick="goToTab('history')">
+      <div class="ico">📋</div><div class="lbl">Lịch sử</div>
+    </div>
+    <div class="nav-tab" id="ntab-requests" onclick="goToTab('requests')">
+      <div class="ico">📨</div><div class="lbl">Yêu cầu</div>
+    </div>
+    <div class="nav-tab" id="ntab-safecoin" onclick="goToTab('safecoin')">
+      <div class="ico">🪙</div><div class="lbl">SafeCoin</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// SafePass Pay — Core
+// ════════════════════════════════════════════
+const token = localStorage.getItem('sp_token');
+if(!token){ window.location.href='/'; }
+
+let walletData = null, allTxns = [], historyFilter = 'all';
+let balanceHidden = false, walletChartInst = null;
+
+function fmt(n){ if(n==null)return'—'; return Number(n).toLocaleString('vi-VN')+'₫'; }
+function fmtK(n){ if(!n)return'0'; if(n>=1e9)return(n/1e9).toFixed(1)+'tỷ'; if(n>=1e6)return(n/1e6).toFixed(1)+'tr'; if(n>=1e3)return(n/1e3).toFixed(0)+'k'; return n; }
+function H(){ return {'Content-Type':'application/json','Authorization':'Bearer '+token}; }
+function toast(msg, dur=2500){
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), dur);
+}
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function goToTab(tab){
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+tab)?.classList.add('active');
+  document.getElementById('ntab-'+tab)?.classList.add('active');
+  const loaders={history:loadHistory,requests:loadRequests};
+  if(loaders[tab]) loaders[tab]();
+  document.querySelector('.content').scrollTop=0;
+}
+function toggleBalance(){
+  balanceHidden=!balanceHidden;
+  const el=document.getElementById('walletBalance');
+  el.classList.toggle('hidden',balanceHidden);
+  if(!balanceHidden&&walletData) renderWallet(walletData);
+}
+
+const txnTypeMap = {
+  deposit:{label:'Nạp tiền',ico:'📥',bg:'rgba(34,197,94,.12)',col:'in'},
+  withdrawal:{label:'Rút tiền',ico:'📤',bg:'rgba(239,68,68,.12)',col:'out'},
+  transfer_in:{label:'Nhận chuyển khoản',ico:'↓',bg:'rgba(34,197,94,.12)',col:'in'},
+  transfer_out:{label:'Chuyển tiền',ico:'↑',bg:'rgba(239,68,68,.12)',col:'out'},
+  escrow_hold:{label:'Giữ escrow',ico:'🔐',bg:'rgba(245,158,11,.12)',col:'hold'},
+  escrow_release:{label:'Giải phóng escrow',ico:'🔓',bg:'rgba(34,197,94,.12)',col:'in'},
+  escrow_refund:{label:'Hoàn tiền escrow',ico:'↩',bg:'rgba(34,197,94,.12)',col:'in'},
+  safecoin_earn:{label:'Nhận SafeCoin',ico:'🪙',bg:'rgba(245,158,11,.12)',col:'in'},
+  safecoin_redeem:{label:'Đổi SafeCoin',ico:'💱',bg:'rgba(108,99,255,.12)',col:'in'},
+  fee:{label:'Phí dịch vụ',ico:'💰',bg:'rgba(90,112,144,.12)',col:'out'},
+  cashback:{label:'Hoàn tiền',ico:'🎁',bg:'rgba(34,197,94,.12)',col:'in'},
+  refund:{label:'Hoàn tiền',ico:'↩',bg:'rgba(34,197,94,.12)',col:'in'},
+};
+function txnCard(t){
+  const info=txnTypeMap[t.type]||{label:t.type,ico:'💸',bg:'rgba(90,112,144,.1)',col:'out'};
+  const sign=info.col==='in'?'+':info.col==='hold'?'~':'-';
+  const color=info.col==='in'?'var(--green)':info.col==='hold'?'var(--yellow)':'var(--red)';
+  return`<div class="txn-item">
+    <div class="txn-ico" style="background:${info.bg};">${info.ico}</div>
+    <div class="txn-info">
+      <div class="txn-title">${info.label}${t.note?'<span style="color:var(--sub);font-weight:400"> · '+t.note+'</span>':''}</div>
+      <div class="txn-sub">${t.counterpart_name||''} ${t.reference_type?'· '+t.reference_type:''}</div>
+    </div>
+    <div class="txn-amt">
+      <div class="txn-value ${info.col}" style="color:${color};">${sign}${fmt(t.amount)}</div>
+      <div class="txn-date">${new Date(t.created_at).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+  </div>`;
+}
+
+// ── Boot ──
+(async()=>{
+  await loadWallet();
+  loadRecentTxns();
+})();
+
+// ── Load Wallet ──
+async function loadWallet(){
+  try{
+    const r = await fetch('/api/pay/wallet', {headers:H()});
+    if(!r.ok){ showWalletSetup(); return; }
+    walletData = await r.json();
+    renderWallet(walletData);
+  }catch(e){ showWalletSetup(); }
+}
+function showWalletSetup(){
+  document.getElementById('walletBalance').textContent='Chưa có ví';
+  document.getElementById('walletTier').textContent='—';
+  document.getElementById('walletSafecoin').textContent='0';
+  document.getElementById('statDeposited').textContent='0';
+  document.getElementById('statWithdrawn').textContent='0';
+  document.getElementById('statFrozen').textContent='0₫';
+  document.getElementById('recentTxns').innerHTML='<div class="empty"><div class="empty-ico">💳</div><div class="empty-title">Chưa có ví</div><div class="empty-sub">Thực hiện giao dịch đầu tiên để kích hoạt ví</div></div>';
+}
+function renderWallet(d){
+  if(!d) return;
+  const w = d.wallet||d;
+  document.getElementById('walletBalance').textContent = balanceHidden?'●●●●●':fmt(w.balance||0);
+  document.getElementById('walletTier').textContent = (w.tier||'BASIC').toUpperCase();
+  document.getElementById('walletTier').className='chip-tier tier-'+(w.tier||'basic');
+  document.getElementById('walletSafecoin').textContent = (w.safecoin||0).toLocaleString('vi-VN');
+  document.getElementById('statDeposited').textContent = fmtK(w.total_deposited||0);
+  document.getElementById('statWithdrawn').textContent = fmtK(w.total_withdrawn||0);
+  document.getElementById('statFrozen').textContent = fmt(w.frozen_balance||0);
+  // Limits
+  const dayPct = Math.min(100, ((w.today_spent||0)/(w.daily_limit||20000000))*100);
+  const mPct = Math.min(100, ((w.month_spent||0)/(w.monthly_limit||200000000))*100);
+  document.getElementById('limitDay').textContent = `${fmtK(w.today_spent||0)} / ${fmtK(w.daily_limit||20000000)}₫`;
+  document.getElementById('limitMonth').textContent = `${fmtK(w.month_spent||0)} / ${fmtK(w.monthly_limit||200000000)}₫`;
+  const dayBar=document.getElementById('limitDayBar');
+  const monthBar=document.getElementById('limitMonthBar');
+  dayBar.style.width=dayPct+'%';
+  dayBar.className='progress-fill '+(dayPct>80?'p-red':dayPct>60?'p-yellow':'p-green');
+  monthBar.style.width=mPct+'%';
+  monthBar.className='progress-fill '+(mPct>80?'p-red':mPct>60?'p-yellow':'p-green');
+  // SafeCoin tab
+  document.getElementById('coinBalance').textContent=(w.safecoin||0).toLocaleString('vi-VN');
+  document.getElementById('coinValue').textContent=fmt((w.safecoin||0)*100);
+  // Chart
+  renderWalletChart(d.monthly||[]);
+}
+function renderWalletChart(monthly){
+  if(walletChartInst) walletChartInst.destroy();
+  walletChartInst = new Chart(document.getElementById('walletChart'),{
+    type:'bar',
+    data:{
+      labels:monthly.map(m=>m.label),
+      datasets:[
+        {label:'Nạp',data:monthly.map(m=>m.deposited||0),backgroundColor:'rgba(34,197,94,.5)',borderRadius:6,stack:'a'},
+        {label:'Rút',data:monthly.map(m=>m.withdrawn||0),backgroundColor:'rgba(239,68,68,.5)',borderRadius:6,stack:'b'},
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{labels:{color:'#5a7090',boxWidth:10,font:{size:10}}}},
+      scales:{y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a7090'}},x:{grid:{display:false},ticks:{color:'#5a7090'}}}}
+  });
+}
+
+// ── Recent Txns ──
+async function loadRecentTxns(){
+  try{
+    const r = await fetch('/api/pay/transactions?limit=8',{headers:H()});
+    if(!r.ok){document.getElementById('recentTxns').innerHTML='<div class="empty"><div class="empty-sub">Chưa có giao dịch</div></div>';return;}
+    const d = await r.json();
+    const txns = d.transactions||d||[];
+    allTxns = txns;
+    document.getElementById('recentTxns').innerHTML = txns.length
+      ? txns.map(txnCard).join('')
+      : '<div class="empty"><div class="empty-ico">💸</div><div class="empty-title">Chưa có giao dịch</div><div class="empty-sub">Nạp tiền để bắt đầu</div></div>';
+  }catch(e){document.getElementById('recentTxns').innerHTML='<div class="empty"><div class="empty-sub">Không tải được lịch sử</div></div>';}
+}
+
+// ── History ──
+async function loadHistory(){
+  document.getElementById('historyList').innerHTML='<div class="empty"><div class="spin"></div></div>';
+  try{
+    const url='/api/pay/transactions?limit=50'+(historyFilter!=='all'?'&type='+historyFilter:'');
+    const r=await fetch(url,{headers:H()});
+    const d=await r.json();
+    const txns=d.transactions||d||[];
+    document.getElementById('historyList').innerHTML=txns.length
+      ?txns.map(txnCard).join('')
+      :'<div class="empty"><div class="empty-ico">📋</div><div class="empty-title">Không có giao dịch</div><div class="empty-sub">Thử bộ lọc khác</div></div>';
+  }catch(e){document.getElementById('historyList').innerHTML='<div class="empty"><div class="empty-sub">Lỗi tải lịch sử</div></div>';}
+}
+function filterHistory(type,btn){
+  historyFilter=type;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadHistory();
+}
+
+// ── Payment Requests ──
+async function loadRequests(){
+  document.getElementById('requestsReceived').innerHTML='<div class="empty"><div class="spin"></div></div>';
+  document.getElementById('requestsSent').innerHTML='<div class="empty"><div class="spin"></div></div>';
+  try{
+    const r=await fetch('/api/pay/requests',{headers:H()});
+    const d=await r.json();
+    const received=(d.received||[]);
+    const sent=(d.sent||[]);
+    document.getElementById('requestsReceived').innerHTML=received.length
+      ?received.map(req=>reqCard(req,'received')).join('')
+      :'<div class="empty" style="padding:16px;"><div style="font-size:11px;color:var(--sub);">Không có yêu cầu nào</div></div>';
+    document.getElementById('requestsSent').innerHTML=sent.length
+      ?sent.map(req=>reqCard(req,'sent')).join('')
+      :'<div class="empty" style="padding:16px;"><div style="font-size:11px;color:var(--sub);">Chưa gửi yêu cầu nào</div></div>';
+  }catch(e){}
+}
+function reqCard(req,side){
+  const expired=new Date(req.expires_at)<new Date();
+  const isPaid=req.status==='paid';
+  const statusBadge=isPaid?'<span class="badge b-green">Đã thanh toán</span>':expired?'<span class="badge b-red">Hết hạn</span>':'<span class="badge b-yellow">Chờ thanh toán</span>';
+  const name=side==='received'?(req.requester_name||'Người dùng'):(req.payer_name||'Người dùng');
+  const actBtns=side==='received'&&!isPaid&&!expired
+    ?`<div class="req-actions">
+        <button class="req-pay" onclick="payRequest('${req.id}')">Thanh toán ${fmt(req.amount)}</button>
+        <button class="req-decline" onclick="cancelRequest('${req.id}')">Từ chối</button>
+      </div>`:
+    side==='sent'&&!isPaid&&!expired
+    ?`<div class="req-actions">
+        <button class="req-decline" onclick="cancelRequest('${req.id}')">Huỷ yêu cầu</button>
+      </div>`:'';
+  return`<div class="req-card" style="flex-direction:column;align-items:stretch;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="req-avatar">${(name||'?').charAt(0).toUpperCase()}</div>
+      <div class="req-info">
+        <div class="req-name">${name}</div>
+        <div class="req-note">${req.note||'Không có ghi chú'}</div>
+        <div class="req-meta">${new Date(req.created_at).toLocaleDateString('vi-VN')} · ${statusBadge}</div>
+      </div>
+      <div class="req-amt"><div class="req-value">${fmt(req.amount)}</div></div>
+    </div>
+    ${actBtns}
+  </div>`;
+}
+
+// ── Actions ──
+async function createDeposit(){
+  const amt=Number(document.getElementById('depositAmt').value);
+  if(!amt||amt<10000){toast('Nhập số tiền tối thiểu 10,000₫');return;}
+  try{
+    const r=await fetch('/api/pay/deposit',{method:'POST',headers:H(),body:JSON.stringify({amount:amt})});
+    const d=await r.json();
+    if(!r.ok){toast('Lỗi: '+(d.error||'Không xác định'));return;}
+    document.getElementById('depositRef').textContent=d.bank_ref||d.reference;
+    document.getElementById('qrAmt').textContent=fmt(amt);
+    document.getElementById('depositQRCard').style.display='block';
+    document.getElementById('depositBtn').textContent='✅ Đã tạo! Chờ xác nhận...';
+    document.getElementById('depositBtn').disabled=true;
+    toast('Lệnh nạp tiền đã được tạo. Vui lòng chuyển khoản!');
+  }catch(e){toast('Lỗi kết nối server');}
+}
+function copyDepositRef(){
+  const ref=document.getElementById('depositRef').textContent;
+  navigator.clipboard?.writeText(ref).then(()=>toast('Đã sao chép nội dung CK!'));
+}
+function setDepositAmt(v){
+  document.getElementById('depositAmt').value=v;
+  updateDepositPreview();
+}
+function updateDepositPreview(){
+  document.getElementById('depositBtn').textContent='Tạo lệnh nạp tiền';
+  document.getElementById('depositBtn').disabled=false;
+  document.getElementById('depositQRCard').style.display='none';
+}
+
+async function createWithdrawal(){
+  const amt=Number(document.getElementById('withdrawAmt').value);
+  const bank=document.getElementById('withdrawBank').value;
+  const account=document.getElementById('withdrawAccount').value;
+  const holder=document.getElementById('withdrawHolder').value;
+  if(!amt||amt<50000){toast('Nhập số tiền tối thiểu 50,000₫');return;}
+  if(!bank||!account||!holder){toast('Vui lòng điền đầy đủ thông tin ngân hàng');return;}
+  if(!walletData||!walletData.wallet||(walletData.wallet.balance||0)<amt){toast('Số dư không đủ');return;}
+  try{
+    const r=await fetch('/api/pay/withdraw',{method:'POST',headers:H(),body:JSON.stringify({amount:amt,bank_name:bank,bank_account:account,bank_holder:holder})});
+    const d=await r.json();
+    if(!r.ok){toast('Lỗi: '+(d.error||'Không xác định'));return;}
+    closeModal('modalWithdraw');
+    toast('✅ Yêu cầu rút tiền đã gửi! Xử lý trong 1-3 ngày làm việc.');
+    loadWallet();
+  }catch(e){toast('Lỗi kết nối');}
+}
+
+async function doTransfer(){
+  const phone=document.getElementById('transferPhone').value.trim();
+  const amt=Number(document.getElementById('transferAmt').value);
+  const note=document.getElementById('transferNote').value;
+  if(!phone){toast('Nhập số điện thoại người nhận');return;}
+  if(!amt||amt<1000){toast('Nhập số tiền tối thiểu 1,000₫');return;}
+  if(!walletData||!walletData.wallet||(walletData.wallet.balance||0)<amt){toast('Số dư không đủ');return;}
+  if(!confirm(`Chuyển ${fmt(amt)} đến ${phone}?`))return;
+  try{
+    const r=await fetch('/api/pay/transfer',{method:'POST',headers:H(),body:JSON.stringify({to_phone:phone,amount:amt,note})});
+    const d=await r.json();
+    if(!r.ok){toast('Lỗi: '+(d.error||'Không xác định'));return;}
+    closeModal('modalTransfer');
+    toast('✅ Chuyển tiền thành công!');
+    loadWallet();loadRecentTxns();
+  }catch(e){toast('Lỗi kết nối');}
+}
+
+async function createPaymentRequest(){
+  const phone=document.getElementById('reqPhone').value.trim();
+  const amt=Number(document.getElementById('reqAmt').value);
+  const note=document.getElementById('reqNote').value;
+  if(!phone){toast('Nhập số điện thoại người trả');return;}
+  if(!amt||amt<1000){toast('Nhập số tiền');return;}
+  try{
+    const r=await fetch('/api/pay/requests',{method:'POST',headers:H(),body:JSON.stringify({payer_phone:phone,amount:amt,note})});
+    const d=await r.json();
+    if(!r.ok){toast('Lỗi: '+(d.error||'Không xác định'));return;}
+    closeModal('modalRequest');
+    toast('✅ Đã gửi yêu cầu thanh toán!');
+    goToTab('requests');
+  }catch(e){toast('Lỗi kết nối');}
+}
+
+async function payRequest(id){
+  if(!confirm('Xác nhận thanh toán?'))return;
+  try{
+    const r=await fetch(`/api/pay/requests/${id}/pay`,{method:'POST',headers:H()});
+    const d=await r.json();
+    if(!r.ok){toast('Lỗi: '+(d.error||'Không đủ số dư'));return;}
+    toast('✅ Thanh toán thành công!');
+    loadRequests(); loadWallet();
+  }catch(e){toast('Lỗi kết nối');}
+}
+
+async function cancelRequest(id){
+  try{
+    const r=await fetch(`/api/pay/requests/${id}/cancel`,{method:'POST',headers:H()});
+    if(r.ok){toast('Đã huỷ yêu cầu');loadRequests();}
+  }catch(e){}
+}
+
+async function redeemCoin(){
+  const coins=walletData?.wallet?.safecoin||0;
+  if(!coins){toast('Bạn chưa có SafeCoin');return;}
+  if(!confirm(`Đổi ${coins.toLocaleString()} SafeCoin lấy ${fmt(coins*100)}?`))return;
+  try{
+    const r=await fetch('/api/pay/safecoin/redeem',{method:'POST',headers:H(),body:JSON.stringify({amount:coins})});
+    const d=await r.json();
+    if(!r.ok){toast('Lỗi: '+(d.error));return;}
+    toast(`✅ Đổi thành công! +${fmt(coins*100)} vào ví`);
+    loadWallet();
+  }catch(e){toast('Lỗi kết nối');}
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+</script>
+</body>
+</html>
