@@ -96,6 +96,7 @@
 | 36 | `xr_migration.sql` | **Phase Social 11**: XR Network — `xr_spaces`, `xr_avatars`, `xr_events`, `xr_devices` |
 | 37 | `avatar_economy_migration.sql` | **Phase Social 12**: Avatar Economy — `avatar_items` (22 seeded), `avatar_inventory`, `avatar_wardrobe` |
 | 38 | `metaverse_migration.sql` | **Phase Social 13**: Metaverse Commerce — `mv_districts` (8 seeded), `mv_stores`, `mv_products` (8 seeded), `mv_orders`, `mv_subscriptions`, `mv_services` (4 seeded), `mv_reviews` |
+| 39 | `worldos_migration.sql` | **Phase Social 14**: World OS — `worlds` (8 seeded), `world_members`, `world_districts`, `world_portals`, `world_events`, `world_knowledge`, `world_posts`, `world_marketplace`, `world_reports`, `world_analytics`, `world_governance` |
 
 ---
 
