@@ -1779,6 +1779,7 @@ function render(){
     {id:"superapp",icon:"⚡",label:"Super App"},
     {id:"pay",icon:"💳",label:"Pay"},
     {id:"stories",icon:"📸",label:"Stories"},
+    {id:"brand_hub",icon:"🏢",label:"Brand Hub"},
     {id:"network",icon:"🌐",label:"Network"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
@@ -1805,6 +1806,7 @@ function render(){
     if(p.id==="superapp") return "window.location.href='/superapp'";
     if(p.id==="pay") return "window.location.href='/pay'";
     if(p.id==="stories") return "window.location.href='/stories'";
+    if(p.id==="brand_hub") return "window.location.href='/brand'";
     if(p.id==="network") return "window.location.href='/network'";
     return `setState({page:'${p.id}'})`;
   }
@@ -1908,6 +1910,7 @@ function render(){
         <div class="lsb-row" onclick="window.location.href='/delivery'"><div class="lsb-ic">🚴</div>Giao hàng</div>
         <div class="lsb-row" onclick="window.location.href='/warehouse'"><div class="lsb-ic">🏭</div>Kho bãi</div>
         <div class="lsb-row" onclick="window.location.href='/business'"><div class="lsb-ic">🏪</div>Merchant</div>
+        <div class="lsb-row" onclick="window.location.href='/brand'"><div class="lsb-ic">🏢</div>Brand Hub</div>
         <div class="lsb-row" onclick="setState({page:'sell'})" style="color:var(--brand);font-weight:700"><div class="lsb-ic" style="background:var(--brandL);color:var(--brand)">➕</div>Đăng bán ngay</div>
         <div class="lsb-divider"></div>
         <div style="font-size:11px;color:var(--hint);padding:4px 8px;line-height:1.9">

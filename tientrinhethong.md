@@ -1063,3 +1063,39 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 > **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `stories_migration.sql`
 
 *Cập nhật lần cuối: 2026-06-21*
+
+---
+
+## ✅ PHASE SOCIAL 7: BUSINESS & BRAND ECOSYSTEM — HOÀN THÀNH 2026-06-21
+
+| Module | Tính năng | Ngày |
+|--------|-----------|------|
+| **Module 1** | Business Accounts (Business/Merchant/Brand/Agency) — kế thừa từ Phase 14 | 2026-06-21 |
+| **Module 2** | Brand Pages — Facebook-style posts (text, image, CTA, pin), likes, comments | 2026-06-21 |
+| **Module 3** | Merchant Center — dashboard stats kế thừa Phase 14, bổ sung followers/posts | 2026-06-21 |
+| **Module 4** | Multi-Staff System — kế thừa merchant_staff Phase 14 | 2026-06-21 |
+| **Module 5** | Brand Store — /store/:slug kế thừa Phase 14 | 2026-06-21 |
+| **Module 6** | Campaign Manager — flash_sale, promo, coupon, event; mã coupon; tiến độ lượt dùng | 2026-06-21 |
+| **Module 7** | Influencer Collaboration — tạo chương trình, xem & duyệt đơn ứng tuyển | 2026-06-21 |
+| **Module 8** | Affiliate Marketplace — brand_collaborations open feed; creator ứng tuyển | 2026-06-21 |
+| **Module 9** | Business Analytics — Chart.js doanh thu/followers/engagement/post types | 2026-06-21 |
+| **Module 10** | Event Organizer — event type trong Campaign Manager | 2026-06-21 |
+| **Module 11** | Business Messenger — hộp thư khách hàng, phản hồi, AI auto-reply theo keyword | 2026-06-21 |
+| **Module 12** | Verification Center — kế thừa merchant_verification Phase 14 | 2026-06-21 |
+| **Module 13** | Business Trust Score — tính điểm (rating+orders+verify+badge, tối đa 100) | 2026-06-21 |
+| **Module 14** | Brand Discovery — grid khám phá brand, filter theo category, tìm kiếm, follow | 2026-06-21 |
+| **Module 15** | Business API Ready — kế thừa api_keys + webhooks Phase 14 | 2026-06-21 |
+| **Module 16** | Admin Business Center — /api/admin/brand/* (posts, campaigns, overview) | 2026-06-21 |
+
+**File mới:**
+- `brand_social7_migration.sql` — 8 bảng mới + ALTER business_accounts
+- `frontend/brand.html` — Brand Hub UI (dark mode, 11 trang, sidebar)
+- API routes mới trong `server.js`: 35+ routes `/api/brand/*`, `/api/admin/brand/*`
+
+**Bảng mới:** `brand_posts`, `brand_post_likes`, `brand_post_comments`, `brand_campaigns`, `brand_campaign_uses`, `brand_collaborations`, `brand_collab_applications`, `business_inbox`, `business_auto_replies`, `brand_follows`
+
+**Nav:** "🏢 Brand Hub" thêm vào index.html sidebar + quick access
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `brand_social7_migration.sql`
+
+*Cập nhật lần cuối: 2026-06-21*

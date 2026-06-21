@@ -5941,6 +5941,382 @@ app.patch('/api/admin/merchant/:id/status', adminAuth, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
+//  PHASE SOCIAL 7 — BUSINESS & BRAND ECOSYSTEM
+// ══════════════════════════════════════════════════════════
+
+// Serve brand pages
+app.get('/brand', (req, res) => res.sendFile(join(__dirname, 'frontend', 'brand.html')));
+app.get('/brand/:slug', (req, res) => res.sendFile(join(__dirname, 'frontend', 'brand.html')));
+
+// ── Brand Posts ──
+app.post('/api/brand/posts', businessAuth, async (req, res) => {
+  const { type = 'post', content, image_url, cta_text, cta_url, is_pinned = false } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: 'Nội dung không được trống' });
+  const { data, error } = await supabase.from('brand_posts').insert({
+    business_id: req.business.id, type, content: content.trim(), image_url, cta_text, cta_url, is_pinned
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await supabase.from('business_accounts').update({ posts_count: supabase.rpc ? undefined : undefined }).eq('id', req.business.id);
+  supabase.from('business_accounts').select('posts_count').eq('id', req.business.id).single().then(({ data: b }) => {
+    if (b) supabase.from('business_accounts').update({ posts_count: (b.posts_count || 0) + 1 }).eq('id', req.business.id).then(() => {});
+  });
+  res.json({ post: data });
+});
+
+app.get('/api/brand/:slug/posts', async (req, res) => {
+  const { data: biz } = await supabase.from('business_accounts').select('id,company_name,store_slug,badge,is_verified_business,logo_url,cover_image_url,description,followers_count,posts_count,category').eq('store_slug', req.params.slug).single();
+  if (!biz) return res.status(404).json({ error: 'Không tìm thấy thương hiệu' });
+  const { page = 1, limit = 20 } = req.query;
+  const from = (page - 1) * limit;
+  const { data: posts } = await supabase.from('brand_posts').select('*').eq('business_id', biz.id).eq('status', 'active').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).range(from, from + limit - 1);
+  res.json({ brand: biz, posts: posts || [] });
+});
+
+app.get('/api/brand/my-posts', businessAuth, async (req, res) => {
+  const { data: posts } = await supabase.from('brand_posts').select('*').eq('business_id', req.business.id).neq('status', 'deleted').order('created_at', { ascending: false });
+  res.json({ posts: posts || [] });
+});
+
+app.delete('/api/brand/posts/:id', businessAuth, async (req, res) => {
+  const { data: post } = await supabase.from('brand_posts').select('business_id').eq('id', req.params.id).single();
+  if (!post || post.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('brand_posts').update({ status: 'deleted' }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+app.patch('/api/brand/posts/:id/pin', businessAuth, async (req, res) => {
+  const { data: post } = await supabase.from('brand_posts').select('business_id,is_pinned').eq('id', req.params.id).single();
+  if (!post || post.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('brand_posts').update({ is_pinned: !post.is_pinned }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+app.post('/api/brand/posts/:id/like', auth, async (req, res) => {
+  const { data: existing } = await supabase.from('brand_post_likes').select('id').eq('post_id', req.params.id).eq('user_id', req.user.id).single();
+  if (existing) {
+    await supabase.from('brand_post_likes').delete().eq('id', existing.id);
+    await supabase.rpc ? null : supabase.from('brand_posts').select('likes_count').eq('id', req.params.id).single().then(({ data: p }) => {
+      if (p) supabase.from('brand_posts').update({ likes_count: Math.max(0, (p.likes_count || 0) - 1) }).eq('id', req.params.id).then(() => {});
+    });
+    return res.json({ liked: false });
+  }
+  await supabase.from('brand_post_likes').insert({ post_id: req.params.id, user_id: req.user.id });
+  supabase.from('brand_posts').select('likes_count').eq('id', req.params.id).single().then(({ data: p }) => {
+    if (p) supabase.from('brand_posts').update({ likes_count: (p.likes_count || 0) + 1 }).eq('id', req.params.id).then(() => {});
+  });
+  res.json({ liked: true });
+});
+
+app.post('/api/brand/posts/:id/comment', auth, async (req, res) => {
+  const { content } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: 'Nội dung không được trống' });
+  const { data } = await supabase.from('brand_post_comments').insert({ post_id: req.params.id, user_id: req.user.id, content: content.trim() }).select().single();
+  supabase.from('brand_posts').select('comments_count').eq('id', req.params.id).single().then(({ data: p }) => {
+    if (p) supabase.from('brand_posts').update({ comments_count: (p.comments_count || 0) + 1 }).eq('id', req.params.id).then(() => {});
+  });
+  res.json({ comment: data });
+});
+
+app.get('/api/brand/posts/:id/comments', async (req, res) => {
+  const { data: comments } = await supabase.from('brand_post_comments').select('*,users(name,avatar_url)').eq('post_id', req.params.id).order('created_at', { ascending: true }).limit(50);
+  res.json({ comments: comments || [] });
+});
+
+// ── Brand Campaigns ──
+app.get('/api/brand/campaigns', businessAuth, async (req, res) => {
+  const { data } = await supabase.from('brand_campaigns').select('*').eq('business_id', req.business.id).order('created_at', { ascending: false });
+  res.json({ campaigns: data || [] });
+});
+
+app.post('/api/brand/campaigns', businessAuth, async (req, res) => {
+  const { type = 'promo', title, description, discount_type = 'percent', discount_value = 0, min_order_value = 0, max_uses = 100, coupon_code, starts_at, ends_at, event_location, event_date } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: 'Tiêu đề không được trống' });
+  const { data, error } = await supabase.from('brand_campaigns').insert({
+    business_id: req.business.id, type, title: title.trim(), description, discount_type, discount_value, min_order_value, max_uses,
+    coupon_code: coupon_code?.toUpperCase() || null, starts_at, ends_at, event_location, event_date
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ campaign: data });
+});
+
+app.patch('/api/brand/campaigns/:id', businessAuth, async (req, res) => {
+  const { data: camp } = await supabase.from('brand_campaigns').select('business_id').eq('id', req.params.id).single();
+  if (!camp || camp.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  const allowed = ['title','description','status','discount_value','min_order_value','max_uses','ends_at','event_location','event_date'];
+  const updates = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+  const { data } = await supabase.from('brand_campaigns').update(updates).eq('id', req.params.id).select().single();
+  res.json({ campaign: data });
+});
+
+app.delete('/api/brand/campaigns/:id', businessAuth, async (req, res) => {
+  const { data: camp } = await supabase.from('brand_campaigns').select('business_id').eq('id', req.params.id).single();
+  if (!camp || camp.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('brand_campaigns').delete().eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/brand/campaigns/public/:slug', async (req, res) => {
+  const { data: biz } = await supabase.from('business_accounts').select('id').eq('store_slug', req.params.slug).single();
+  if (!biz) return res.status(404).json({ error: 'Không tìm thấy' });
+  const now = new Date().toISOString();
+  const { data } = await supabase.from('brand_campaigns').select('*').eq('business_id', biz.id).eq('status', 'active').or(`ends_at.is.null,ends_at.gt.${now}`).order('created_at', { ascending: false });
+  res.json({ campaigns: data || [] });
+});
+
+app.post('/api/brand/campaigns/:id/use', auth, async (req, res) => {
+  const { data: camp } = await supabase.from('brand_campaigns').select('*').eq('id', req.params.id).single();
+  if (!camp) return res.status(404).json({ error: 'Không tìm thấy chiến dịch' });
+  if (camp.status !== 'active') return res.status(400).json({ error: 'Chiến dịch không còn hoạt động' });
+  if (camp.uses_count >= camp.max_uses) return res.status(400).json({ error: 'Đã hết lượt dùng' });
+  const { error: dupErr } = await supabase.from('brand_campaign_uses').insert({ campaign_id: req.params.id, user_id: req.user.id });
+  if (dupErr) return res.status(400).json({ error: 'Bạn đã sử dụng coupon này rồi' });
+  await supabase.from('brand_campaigns').update({ uses_count: (camp.uses_count || 0) + 1 }).eq('id', req.params.id);
+  res.json({ ok: true, coupon_code: camp.coupon_code, discount_type: camp.discount_type, discount_value: camp.discount_value });
+});
+
+// ── Influencer Collaborations ──
+app.get('/api/brand/collaborations', businessAuth, async (req, res) => {
+  const { data } = await supabase.from('brand_collaborations').select('*').eq('business_id', req.business.id).order('created_at', { ascending: false });
+  res.json({ collaborations: data || [] });
+});
+
+app.post('/api/brand/collaborations', businessAuth, async (req, res) => {
+  const { title, description, requirements, budget_min = 0, budget_max = 0, commission_rate = 10, collaboration_type = 'affiliate', deadline } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: 'Tiêu đề không được trống' });
+  const { data, error } = await supabase.from('brand_collaborations').insert({
+    business_id: req.business.id, title: title.trim(), description, requirements, budget_min, budget_max, commission_rate, collaboration_type, deadline
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ collaboration: data });
+});
+
+app.patch('/api/brand/collaborations/:id', businessAuth, async (req, res) => {
+  const { data: col } = await supabase.from('brand_collaborations').select('business_id').eq('id', req.params.id).single();
+  if (!col || col.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  const allowed = ['title','description','requirements','budget_min','budget_max','commission_rate','status','deadline'];
+  const updates = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+  const { data } = await supabase.from('brand_collaborations').update(updates).eq('id', req.params.id).select().single();
+  res.json({ collaboration: data });
+});
+
+app.get('/api/brand/collaborations/open', async (req, res) => {
+  const { type, limit = 20, page = 1 } = req.query;
+  let q = supabase.from('brand_collaborations').select('*,business_accounts(company_name,store_slug,logo_url,badge,is_verified_business)').eq('status', 'open');
+  if (type) q = q.eq('collaboration_type', type);
+  const from = (page - 1) * limit;
+  const { data } = await q.order('created_at', { ascending: false }).range(from, from + parseInt(limit) - 1);
+  res.json({ collaborations: data || [] });
+});
+
+app.post('/api/brand/collaborations/:id/apply', auth, async (req, res) => {
+  const { message, portfolio_url, follower_count = 0 } = req.body;
+  const { data: col } = await supabase.from('brand_collaborations').select('*').eq('id', req.params.id).single();
+  if (!col || col.status !== 'open') return res.status(400).json({ error: 'Chiến dịch không còn nhận đơn' });
+  const { data, error } = await supabase.from('brand_collab_applications').insert({
+    collaboration_id: req.params.id, creator_id: req.user.id, business_id: col.business_id, message, portfolio_url, follower_count
+  }).select().single();
+  if (error) return res.status(400).json({ error: 'Bạn đã ứng tuyển chiến dịch này rồi' });
+  await supabase.from('brand_collaborations').update({ applications_count: (col.applications_count || 0) + 1 }).eq('id', req.params.id);
+  res.json({ application: data });
+});
+
+app.get('/api/brand/collaborations/:id/applications', businessAuth, async (req, res) => {
+  const { data: col } = await supabase.from('brand_collaborations').select('business_id').eq('id', req.params.id).single();
+  if (!col || col.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { data } = await supabase.from('brand_collab_applications').select('*,users(name,phone,avatar_url,avg_rating,review_count)').eq('collaboration_id', req.params.id).order('created_at', { ascending: false });
+  res.json({ applications: data || [] });
+});
+
+app.patch('/api/brand/collab-applications/:id', businessAuth, async (req, res) => {
+  const { status } = req.body;
+  if (!['approved','rejected'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const { data: app } = await supabase.from('brand_collab_applications').select('business_id').eq('id', req.params.id).single();
+  if (!app || app.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('brand_collab_applications').update({ status }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/brand/my-applications', auth, async (req, res) => {
+  const { data } = await supabase.from('brand_collab_applications').select('*,brand_collaborations(*,business_accounts(company_name,store_slug,logo_url))').eq('creator_id', req.user.id).order('created_at', { ascending: false });
+  res.json({ applications: data || [] });
+});
+
+// ── Business Inbox (Messenger) ──
+app.get('/api/brand/inbox', businessAuth, async (req, res) => {
+  const { status } = req.query;
+  let q = supabase.from('business_inbox').select('*,users(name,phone,avatar_url)').eq('business_id', req.business.id);
+  if (status) q = q.eq('status', status);
+  const { data } = await q.order('created_at', { ascending: false }).limit(100);
+  res.json({ messages: data || [] });
+});
+
+app.post('/api/brand/inbox/:slug', auth, async (req, res) => {
+  const { message, subject } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'Tin nhắn không được trống' });
+  const { data: biz } = await supabase.from('business_accounts').select('id').eq('store_slug', req.params.slug).single();
+  if (!biz) return res.status(404).json({ error: 'Không tìm thấy thương hiệu' });
+  // Check auto-reply
+  const { data: autoReplies } = await supabase.from('business_auto_replies').select('*').eq('business_id', biz.id).eq('is_active', true);
+  let autoReply = null;
+  if (autoReplies?.length) {
+    const lowerMsg = message.toLowerCase();
+    const matched = autoReplies.find(r => lowerMsg.includes(r.trigger_keyword.toLowerCase()));
+    if (matched) {
+      autoReply = matched.reply_text;
+      supabase.from('business_auto_replies').update({ trigger_count: (matched.trigger_count || 0) + 1 }).eq('id', matched.id).then(() => {});
+    }
+  }
+  const { data } = await supabase.from('business_inbox').insert({
+    business_id: biz.id, customer_id: req.user.id, subject, message: message.trim(),
+    reply: autoReply, replied_at: autoReply ? new Date().toISOString() : null,
+    is_auto_replied: !!autoReply, status: autoReply ? 'replied' : 'unread'
+  }).select().single();
+  res.json({ message: data, auto_reply: autoReply });
+});
+
+app.post('/api/brand/inbox/:id/reply', businessAuth, async (req, res) => {
+  const { reply } = req.body;
+  if (!reply?.trim()) return res.status(400).json({ error: 'Nội dung phản hồi không được trống' });
+  const { data: msg } = await supabase.from('business_inbox').select('business_id').eq('id', req.params.id).single();
+  if (!msg || msg.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('business_inbox').update({ reply: reply.trim(), replied_at: new Date().toISOString(), status: 'replied' }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+app.patch('/api/brand/inbox/:id/status', businessAuth, async (req, res) => {
+  const { status } = req.body;
+  if (!['read','closed','unread'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const { data: msg } = await supabase.from('business_inbox').select('business_id').eq('id', req.params.id).single();
+  if (!msg || msg.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('business_inbox').update({ status }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+// ── Auto Replies ──
+app.get('/api/brand/auto-replies', businessAuth, async (req, res) => {
+  const { data } = await supabase.from('business_auto_replies').select('*').eq('business_id', req.business.id).order('created_at', { ascending: false });
+  res.json({ rules: data || [] });
+});
+
+app.post('/api/brand/auto-replies', businessAuth, async (req, res) => {
+  const { trigger_keyword, reply_text } = req.body;
+  if (!trigger_keyword?.trim() || !reply_text?.trim()) return res.status(400).json({ error: 'Từ khóa và phản hồi không được trống' });
+  const { data } = await supabase.from('business_auto_replies').insert({ business_id: req.business.id, trigger_keyword: trigger_keyword.trim(), reply_text: reply_text.trim() }).select().single();
+  res.json({ rule: data });
+});
+
+app.patch('/api/brand/auto-replies/:id', businessAuth, async (req, res) => {
+  const { data: rule } = await supabase.from('business_auto_replies').select('business_id').eq('id', req.params.id).single();
+  if (!rule || rule.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  const { is_active, trigger_keyword, reply_text } = req.body;
+  const updates = {};
+  if (is_active !== undefined) updates.is_active = is_active;
+  if (trigger_keyword) updates.trigger_keyword = trigger_keyword.trim();
+  if (reply_text) updates.reply_text = reply_text.trim();
+  await supabase.from('business_auto_replies').update(updates).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+app.delete('/api/brand/auto-replies/:id', businessAuth, async (req, res) => {
+  const { data: rule } = await supabase.from('business_auto_replies').select('business_id').eq('id', req.params.id).single();
+  if (!rule || rule.business_id !== req.business.id) return res.status(403).json({ error: 'Không có quyền' });
+  await supabase.from('business_auto_replies').delete().eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+// ── Brand Follow & Discovery ──
+app.post('/api/brand/follow/:slug', auth, async (req, res) => {
+  const { data: biz } = await supabase.from('business_accounts').select('id,followers_count').eq('store_slug', req.params.slug).single();
+  if (!biz) return res.status(404).json({ error: 'Không tìm thấy thương hiệu' });
+  const { data: existing } = await supabase.from('brand_follows').select('id').eq('business_id', biz.id).eq('user_id', req.user.id).single();
+  if (existing) {
+    await supabase.from('brand_follows').delete().eq('id', existing.id);
+    await supabase.from('business_accounts').update({ followers_count: Math.max(0, (biz.followers_count || 0) - 1) }).eq('id', biz.id);
+    return res.json({ following: false });
+  }
+  await supabase.from('brand_follows').insert({ business_id: biz.id, user_id: req.user.id });
+  await supabase.from('business_accounts').update({ followers_count: (biz.followers_count || 0) + 1 }).eq('id', biz.id);
+  res.json({ following: true });
+});
+
+app.get('/api/brand/discover', async (req, res) => {
+  const { category, search, limit = 24, page = 1 } = req.query;
+  const from = (page - 1) * limit;
+  let q = supabase.from('business_accounts').select('id,company_name,store_slug,logo_url,cover_image_url,description,badge,is_verified_business,followers_count,posts_count,avg_rating,total_orders,category,tags,status').eq('status', 'active');
+  if (category) q = q.eq('category', category);
+  if (search) q = q.ilike('company_name', `%${search}%`);
+  const { data } = await q.order('followers_count', { ascending: false }).range(from, from + parseInt(limit) - 1);
+  res.json({ brands: data || [] });
+});
+
+app.get('/api/brand/:slug/trust', async (req, res) => {
+  const { data: biz } = await supabase.from('business_accounts').select('id,avg_rating,total_orders,trust_score,badge,is_verified_business').eq('store_slug', req.params.slug).single();
+  if (!biz) return res.status(404).json({ error: 'Không tìm thấy thương hiệu' });
+  // Compute trust score from multiple signals
+  let score = 0;
+  const signals = {};
+  // Rating signal (0-30 pts)
+  const ratingPts = Math.round((biz.avg_rating || 0) / 5 * 30);
+  signals.rating = ratingPts;
+  score += ratingPts;
+  // Orders signal (0-25 pts)
+  const orderPts = Math.min(25, Math.round((biz.total_orders || 0) / 10));
+  signals.orders = orderPts;
+  score += orderPts;
+  // Verification (0-25 pts)
+  const verifyPts = biz.is_verified_business ? 25 : 0;
+  signals.verification = verifyPts;
+  score += verifyPts;
+  // Badge (0-20 pts)
+  const badgePts = { diamond: 20, platinum: 16, gold: 12, silver: 8, bronze: 4, trusted: 6, verified: 10 }[biz.badge] || 0;
+  signals.badge = badgePts;
+  score += badgePts;
+  // Update trust_score
+  await supabase.from('business_accounts').update({ trust_score: Math.min(100, score) }).eq('id', biz.id);
+  res.json({ trust_score: Math.min(100, score), signals, badge: biz.badge, is_verified: biz.is_verified_business });
+});
+
+app.get('/api/brand/:slug/page', async (req, res) => {
+  const { data: biz } = await supabase.from('business_accounts').select('id,company_name,store_slug,logo_url,cover_image_url,description,website_url,badge,is_verified_business,followers_count,posts_count,avg_rating,total_orders,total_revenue,category,tags,trust_score,created_at').eq('store_slug', req.params.slug).eq('status','active').single();
+  if (!biz) return res.status(404).json({ error: 'Không tìm thấy thương hiệu' });
+  const [{ data: posts }, { data: campaigns }, { data: inventory }] = await Promise.all([
+    supabase.from('brand_posts').select('*').eq('business_id', biz.id).eq('status','active').order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(10),
+    supabase.from('brand_campaigns').select('*').eq('business_id', biz.id).eq('status','active').limit(5),
+    supabase.from('merchant_inventory').select('id,name,price,images,stock_count,category').eq('business_id', biz.id).eq('status','active').limit(12)
+  ]);
+  res.json({ brand: biz, posts: posts||[], campaigns: campaigns||[], inventory: inventory||[] });
+});
+
+// ── Admin Brand Center ──
+app.get('/api/admin/brand/posts', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('brand_posts').select('*,business_accounts(company_name,store_slug)').neq('status','deleted').order('created_at',{ascending:false}).limit(100);
+  res.json({ posts: data || [] });
+});
+
+app.delete('/api/admin/brand/posts/:id', adminAuth, async (req, res) => {
+  await supabase.from('brand_posts').update({ status: 'deleted' }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/brand/campaigns', adminAuth, async (req, res) => {
+  const { data } = await supabase.from('brand_campaigns').select('*,business_accounts(company_name,store_slug)').order('created_at',{ascending:false}).limit(100);
+  res.json({ campaigns: data || [] });
+});
+
+app.get('/api/admin/brand/overview', adminAuth, async (req, res) => {
+  const [{ count: brands }, { count: posts }, { count: campaigns }, { count: collabs }, { count: inbox }] = await Promise.all([
+    supabase.from('business_accounts').select('*',{count:'exact',head:true}).eq('status','active'),
+    supabase.from('brand_posts').select('*',{count:'exact',head:true}).eq('status','active'),
+    supabase.from('brand_campaigns').select('*',{count:'exact',head:true}).eq('status','active'),
+    supabase.from('brand_collaborations').select('*',{count:'exact',head:true}).eq('status','open'),
+    supabase.from('business_inbox').select('*',{count:'exact',head:true}).eq('status','unread')
+  ]);
+  res.json({ brands, posts, campaigns, collabs, inbox });
+});
+
+// ══════════════════════════════════════════════════════════
 //  SAFEPASS FREELANCE — Fiverr/Upwork-style Marketplace
 // ══════════════════════════════════════════════════════════
 
