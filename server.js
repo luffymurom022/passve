@@ -71,11 +71,9 @@ app.use('/api', generalLimit);
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
   console.warn('⚠️  [SafePass] SUPABASE_URL / SUPABASE_KEY chưa được cấu hình — Vui lòng thêm vào Replit Secrets');
 }
-// Use service role key (bypasses RLS) for all server-side operations
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || 'placeholder_key_replace_me';
 const supabase = createClient(
   process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
-  supabaseKey,
+  process.env.SUPABASE_KEY || 'placeholder_key_replace_me',
   { realtime: { transport: ws } }
 );
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_replace_me';
