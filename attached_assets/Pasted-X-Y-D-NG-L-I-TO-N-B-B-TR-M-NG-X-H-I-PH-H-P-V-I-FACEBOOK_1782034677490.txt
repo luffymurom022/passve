@@ -1,0 +1,164 @@
+XÂY DỰNG LẠI TOÀN BỘ BỐ TRÍ MẠNG XÃ HỘI ĐỂ PHÙ HỢP VỚI FACEBOOK
+
+Giao diện người dùng hiện tại giống như một bảng điều khiển dành cho quản trị viên.
+
+Chuyển đổi bố cục thành một mạng xã hội kiểu Facebook thực sự.
+
+====================================================
+
+BỐ CỤC MÁY TÍNH ĐỂ BÀN
+
+Sử dụng cấu trúc 3 cột.
+
+---
+
+THANH BÊN TRÁI
+
+Chiều rộng: 280px
+
+Vị trí dính
+
+Chứa:
+
+* Hồ sơ người dùng
+* Bạn bè
+* Nhóm
+* Thị trường
+* Video
+* Tin nhắn
+* Thông báo
+* Bài viết đã lưu
+* Cài đặt
+
+Có thể cuộn độc lập.
+
+---
+
+NỘI DUNG TRUNG TÂM
+
+Chiều rộng: 680px đến 750px
+
+Luôn luôn tập trung.
+
+Đây là khu vực quan trọng nhất.
+
+Chứa:
+
+1. Tạo bưu thiếp
+
+2. Hàng câu chuyện
+
+3. Nguồn cấp tin tức
+
+4. Nguồn cấp dữ liệu video
+
+5. Bài đăng trên thị trường
+
+Bài đăng phải trông giống hệt như thẻ truyền thông xã hội.
+
+Khu vực nội dung lớn.
+
+Các góc tròn.
+
+Khoảng cách sạch sẽ.
+
+---
+
+THANH Bên PHẢI
+
+Chiều rộng: 320px
+
+Vị trí dính.
+
+Chứa:
+
+* Bạn bè trực tuyến
+* Người dùng được đề xuất
+* Chủ đề thịnh hành
+* Đề xuất thị trường
+* Hoạt động gần đây
+
+---
+
+ĐIỀU HƯỚNG HÀNG ĐẦU
+
+Đã sửa lỗi thanh điều hướng trên cùng.
+
+Chứa:
+
+trái:
+
+* Biểu tượng
+* Thanh tìm kiếm
+
+Trung tâm:
+
+* Trang chủ
+* Bạn bè
+* Video
+* Thị trường
+* Nhóm
+
+Đúng:
+
+* Tin nhắn
+* Thông báo
+* Hình đại diện người dùng
+
+====================================================
+
+PHONG CÁCH HÌNH ẢNH
+
+KHÔNG NHƯ BẢNG QUẢN TRỊ.
+
+Làm cho nó trông giống như:
+
+Facebook 2025
+
+Tính năng:
+
+* Thẻ trắng sạch
+* Nguồn cấp dữ liệu lớn
+* Khoảng cách thoải mái
+* Bóng tối hiện đại
+* Các góc tròn
+
+====================================================
+
+ƯU TIÊN THỨC ĂN
+
+Nguồn cấp dữ liệu trung tâm phải tập trung vào thị giác.
+
+Mọi thứ khác chỉ là thứ yếu.
+
+Sự chú ý của người dùng sẽ ngay lập tức chuyển đến nguồn cấp dữ liệu trung tâm.
+
+====================================================
+
+ĐÁP ỨNG
+
+Máy tính để bàn:
+
+3 cột
+
+Máy tính bảng:
+
+2 cột
+
+Điện thoại di động:
+
+Bố cục nguồn cấp dữ liệu đơn
+
+Điều hướng phía dưới giống như Facebook di động.
+
+====================================================
+
+CHẾ ĐỘ TỐI
+
+Hỗ trợ chủ đề tối giống như Facebook.
+
+====================================================
+
+KHÔNG THAY ĐỔI CƠ SỞ DỮ LIỆU HOẶC TÍNH NĂNG.
+
+Chỉ xây dựng lại bố cục giao diện người dùng và phân cấp trực quan.
