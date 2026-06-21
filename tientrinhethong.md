@@ -1224,3 +1224,38 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 > **⚠️ ĐỂ TỐI ĐA HIỆU NĂNG:** Chạy `performance_indexes.sql` trong Supabase SQL Editor
 
 *Cập nhật lần cuối: 2026-06-21 (Performance Pass)*
+
+---
+
+## 🔐 SECURITY HARDENING PASS — 2026-06-21
+
+### Triển khai
+| Tính năng | Chi tiết |
+|-----------|----------|
+| **JWT Blacklist** | In-memory Set + DB-backed (jwt_blacklist table); loaded on startup; purged every 6h; auth middleware checks hash trước khi verify |
+| **Logout endpoint** | POST /api/auth/logout — blacklists token, revokes session record |
+| **Login brute force** | Map in-memory; max 5 failures/phone → lock 15 phút; tracks by phone+IP |
+| **Session tracking** | security_sessions table: device_fp, IP, UA, expires_at; created on every login |
+| **Device fingerprinting** | SHA-256(UA+lang+IP).slice(16); user_devices table tracks per-user known devices |
+| **Registration rate limit** | Max 5 tài khoản/giờ/IP (registrationLimit) |
+| **Message spam limit** | Max 30 tin/phút per-user (messageSpamLimit) — order chat + DM |
+| **Listing rate limit** | Max 10 bài đăng/giờ (listingPostLimit) — tickets + listings + sn/posts |
+| **Pay transfer limit** | Max 20 giao dịch/giờ (payTransferLimit) |
+| **Wallet withdraw limit** | Max 3 lần rút/ngày (walletWithdrawLimit) + server-side daily count check |
+| **New account wallet guard** | Tài khoản < 72h không rút > 5M VND |
+| **Escrow fraud detection** | Tài khoản < 24h không mua > 5M; velocity check (>3 đơn/giờ); flags vào escrow_fraud_flags |
+| **Content spam filter** | URL/link detection, multiple phone spam, repeat chars, forbidden words — orders, DM, posts |
+| **Auto content flagging** | autoFlagContent() ghi vào content_flags với preview |
+| **Security event logger** | securityLog() → security_events table: type, severity, IP, device_fp, details |
+| **Admin Security Dashboard** | /admin/security — 5 tabs: Events, Content Flags, Sessions, Escrow Fraud, Login Attempts |
+| **Admin API** | /api/admin/security/stats|events|content-flags|sessions|escrow-fraud|login-attempts + revoke + force-logout |
+
+### File mới
+- `security_hardening.sql` — 8 bảng: security_sessions, security_events, jwt_blacklist, login_attempts, content_flags, wallet_daily_guards, escrow_fraud_flags, user_devices
+- `frontend/admin-security.html` — Security Center dashboard tại /admin/security
+
+### ⚠️ Cần làm:
+1. Chạy `security_hardening.sql` trong Supabase SQL Editor
+2. Đăng nhập admin tại /admin/security để monitor
+
+*Cập nhật lần cuối: 2026-06-21 (Security Hardening Pass)*

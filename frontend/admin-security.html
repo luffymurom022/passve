@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Center — SafePass Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #06090f; color: #e8edf8; font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .header { background: #0d1117; border-bottom: 1px solid #1e2535; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .header h1 { font-size: 18px; font-weight: 700; color: #e8edf8; }
+  .header .badge { background: #ff4444; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .nav-tabs { display: flex; gap: 4px; padding: 16px 24px 0; border-bottom: 1px solid #1e2535; }
+  .tab { padding: 8px 16px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px; color: #7b8fad; border: 1px solid transparent; border-bottom: none; transition: all .2s; }
+  .tab.active { background: #0d1117; color: #3d8ef8; border-color: #1e2535; }
+  .tab:hover:not(.active) { color: #aab8cc; }
+  .container { padding: 24px; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: #0d1117; border: 1px solid #1e2535; border-radius: 10px; padding: 16px; }
+  .stat-card .label { font-size: 11px; color: #7b8fad; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .stat-card .value { font-size: 24px; font-weight: 700; color: #e8edf8; }
+  .stat-card .value.red { color: #ff4444; }
+  .stat-card .value.amber { color: #f59e0b; }
+  .stat-card .value.green { color: #22d38e; }
+  .stat-card .value.blue { color: #3d8ef8; }
+  .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filters select, .filters input { background: #0d1117; border: 1px solid #1e2535; color: #e8edf8; padding: 8px 12px; border-radius: 8px; font-size: 13px; }
+  .filters button { background: #3d8ef8; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .filters button:hover { background: #2d7ef0; }
+  .table-wrap { background: #0d1117; border: 1px solid #1e2535; border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { padding: 10px 14px; text-align: left; color: #7b8fad; font-weight: 600; border-bottom: 1px solid #1e2535; font-size: 11px; text-transform: uppercase; }
+  td { padding: 10px 14px; border-bottom: 1px solid #0a0e19; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #111827; }
+  .severity { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .severity.critical { background: #ff444433; color: #ff6666; }
+  .severity.high { background: #ff770033; color: #ff9944; }
+  .severity.medium { background: #f59e0b33; color: #f59e0b; }
+  .severity.low { background: #22d38e22; color: #22d38e; }
+  .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  .status.pending { background: #f59e0b22; color: #f59e0b; }
+  .status.reviewed { background: #3d8ef822; color: #3d8ef8; }
+  .status.actioned { background: #22d38e22; color: #22d38e; }
+  .status.dismissed { background: #1e253544; color: #7b8fad; }
+  .btn-sm { padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; }
+  .btn-action { background: #3d8ef8; color: #fff; }
+  .btn-dismiss { background: #1e2535; color: #7b8fad; }
+  .btn-ban { background: #ff444422; color: #ff4444; border: 1px solid #ff444444; }
+  .btn-revoke { background: #ff770022; color: #ff9944; border: 1px solid #ff770044; }
+  .empty { padding: 48px; text-align: center; color: #7b8fad; }
+  .section-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #e8edf8; }
+  .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+  .pagination button { background: #0d1117; border: 1px solid #1e2535; color: #7b8fad; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .pagination button.active { background: #3d8ef8; color: #fff; border-color: #3d8ef8; }
+  .search-highlight { background: #f59e0b33; color: #f59e0b; padding: 1px 3px; border-radius: 3px; }
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1000; align-items: center; justify-content: center; }
+  .modal.open { display: flex; }
+  .modal-box { background: #0d1117; border: 1px solid #1e2535; border-radius: 12px; padding: 24px; max-width: 480px; width: 90%; }
+  .modal-box h3 { margin-bottom: 12px; }
+  .modal-box p { color: #7b8fad; margin-bottom: 20px; font-size: 13px; }
+  .modal-box textarea { width: 100%; background: #06090f; border: 1px solid #1e2535; color: #e8edf8; border-radius: 8px; padding: 10px; font-size: 13px; min-height: 80px; margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #22d38e; color: #06090f; padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; z-index: 9999; transform: translateY(80px); transition: transform .3s; }
+  .toast.show { transform: translateY(0); }
+  .toast.error { background: #ff4444; color: #fff; }
+  #loginWrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: #0d1117; border: 1px solid #1e2535; border-radius: 12px; padding: 32px; width: 340px; }
+  .login-box h2 { margin-bottom: 20px; font-size: 18px; }
+  .login-box input { width: 100%; background: #06090f; border: 1px solid #1e2535; color: #e8edf8; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+  .login-box button { width: 100%; background: #3d8ef8; color: #fff; border: none; padding: 10px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600; }
+  #appWrap { display: none; }
+</style>
+</head>
+<body>
+
+<div id="loginWrap">
+  <div class="login-box">
+    <h2>🔐 Security Center</h2>
+    <p style="color:#7b8fad;font-size:13px;margin-bottom:16px;">Đăng nhập admin để tiếp tục</p>
+    <input type="email" id="loginEmail" placeholder="Email admin">
+    <input type="password" id="loginPass" placeholder="Mật khẩu">
+    <button onclick="doLogin()">Đăng nhập</button>
+    <div id="loginErr" style="color:#ff4444;font-size:12px;margin-top:10px;"></div>
+  </div>
+</div>
+
+<div id="appWrap">
+  <div class="header">
+    <span style="font-size:20px;">🛡️</span>
+    <h1>Security Center</h1>
+    <span class="badge" id="criticalBadge" style="display:none">CRITICAL</span>
+    <div style="margin-left:auto;display:flex;gap:12px;align-items:center;">
+      <span style="font-size:12px;color:#7b8fad" id="adminLabel"></span>
+      <button onclick="doLogout()" style="background:#1e2535;border:none;color:#7b8fad;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;">Đăng xuất</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="tab active" onclick="switchTab('events')">🚨 Security Events</div>
+    <div class="tab" onclick="switchTab('flags')">🚩 Content Flags</div>
+    <div class="tab" onclick="switchTab('sessions')">📱 Sessions</div>
+    <div class="tab" onclick="switchTab('escrow')">🔐 Escrow Fraud</div>
+    <div class="tab" onclick="switchTab('attempts')">🔑 Login Attempts</div>
+  </div>
+
+  <div class="container">
+    <!-- Stats row -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card"><div class="label">Critical Events (24h)</div><div class="value red" id="statCritical">—</div></div>
+      <div class="stat-card"><div class="label">High Events (24h)</div><div class="value amber" id="statHigh">—</div></div>
+      <div class="stat-card"><div class="label">Pending Content Flags</div><div class="value amber" id="statFlags">—</div></div>
+      <div class="stat-card"><div class="label">Active Sessions</div><div class="value blue" id="statSessions">—</div></div>
+      <div class="stat-card"><div class="label">Escrow Fraud Flags</div><div class="value red" id="statEscrow">—</div></div>
+      <div class="stat-card"><div class="label">Failed Logins (1h)</div><div class="value amber" id="statFailed">—</div></div>
+    </div>
+
+    <!-- Security Events Tab -->
+    <div id="tab-events">
+      <div class="section-title">🚨 Security Events</div>
+      <div class="filters">
+        <select id="evtSeverity" onchange="loadEvents()">
+          <option value="">Tất cả mức độ</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="evtType" onchange="loadEvents()">
+          <option value="">Tất cả loại</option>
+          <option value="failed_login">Đăng nhập thất bại</option>
+          <option value="brute_force_lock">Brute force lock</option>
+          <option value="spam_message_blocked">Tin nhắn spam</option>
+          <option value="escrow_fraud_flag">Escrow fraud</option>
+          <option value="wallet_daily_limit_exceeded">Giới hạn rút tiền</option>
+          <option value="new_account_large_withdraw">Rút tiền tài khoản mới</option>
+        </select>
+        <button onclick="loadEvents()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Thời gian</th><th>Loại</th><th>Mức độ</th><th>User ID</th><th>IP</th><th>Chi tiết</th></tr></thead>
+          <tbody id="evtBody"><tr><td colspan="6" class="empty">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Content Flags Tab -->
+    <div id="tab-flags" style="display:none">
+      <div class="section-title">🚩 Content Flags</div>
+      <div class="filters">
+        <select id="flagStatus" onchange="loadFlags()">
+          <option value="pending">Pending</option>
+          <option value="">Tất cả</option>
+          <option value="actioned">Đã xử lý</option>
+          <option value="dismissed">Đã bỏ qua</option>
+        </select>
+        <select id="flagType" onchange="loadFlags()">
+          <option value="">Tất cả loại</option>
+          <option value="spam">Spam</option>
+          <option value="phishing">Phishing</option>
+          <option value="abuse">Abuse</option>
+          <option value="scam">Scam</option>
+        </select>
+        <button onclick="loadFlags()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Thời gian</th><th>Loại nội dung</th><th>Flag Type</th><th>Nội dung</th><th>Auto</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+          <tbody id="flagBody"><tr><td colspan="7" class="empty">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sessions Tab -->
+    <div id="tab-sessions" style="display:none">
+      <div class="section-title">📱 Active Sessions</div>
+      <div class="filters">
+        <input type="text" id="sessionUser" placeholder="User ID..." style="width:260px">
+        <button onclick="loadSessions()">🔍 Tìm kiếm</button>
+        <button onclick="loadSessions()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>User ID</th><th>Device FP</th><th>IP</th><th>Tạo lúc</th><th>Hết hạn</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+          <tbody id="sessBody"><tr><td colspan="7" class="empty">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Escrow Fraud Tab -->
+    <div id="tab-escrow" style="display:none">
+      <div class="section-title">🔐 Escrow Fraud Flags</div>
+      <div class="filters">
+        <select id="escrowRisk" onchange="loadEscrow()">
+          <option value="">Tất cả mức độ</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+        </select>
+        <select id="escrowReviewed" onchange="loadEscrow()">
+          <option value="false">Chưa review</option>
+          <option value="">Tất cả</option>
+          <option value="true">Đã review</option>
+        </select>
+        <button onclick="loadEscrow()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Thời gian</th><th>Order ID</th><th>Buyer ID</th><th>Flag Type</th><th>Risk</th><th>Chi tiết</th><th>Hành động</th></tr></thead>
+          <tbody id="escrowBody"><tr><td colspan="7" class="empty">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Login Attempts Tab -->
+    <div id="tab-attempts" style="display:none">
+      <div class="section-title">🔑 Login Attempts</div>
+      <div class="filters">
+        <select id="attemptSuccess" onchange="loadAttempts()">
+          <option value="false">Thất bại</option>
+          <option value="">Tất cả</option>
+          <option value="true">Thành công</option>
+        </select>
+        <input type="text" id="attemptId" placeholder="Số điện thoại hoặc IP..." style="width:220px">
+        <button onclick="loadAttempts()">🔍 Tìm kiếm</button>
+        <button onclick="loadAttempts()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Thời gian</th><th>SĐT / IP</th><th>Kết quả</th><th>IP Address</th><th>User Agent</th></tr></thead>
+          <tbody id="attBody"><tr><td colspan="5" class="empty">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal" id="confirmModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Xác nhận hành động</h3>
+    <p id="modalDesc"></p>
+    <textarea id="modalNote" placeholder="Ghi chú (tuỳ chọn)..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-sm btn-dismiss" onclick="closeModal()">Huỷ</button>
+      <button class="btn-sm btn-action" id="modalConfirm" onclick="confirmAction()">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let adminToken = localStorage.getItem('sec_admin_token') || '';
+let currentTab = 'events';
+let pendingAction = null;
+
+// ─── Auth ───
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  document.getElementById('loginErr').textContent = '';
+  try {
+    const r = await fetch('/api/admin/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pass }) });
+    const d = await r.json();
+    if (!r.ok) { document.getElementById('loginErr').textContent = d.error || 'Lỗi đăng nhập'; return; }
+    adminToken = d.token;
+    localStorage.setItem('sec_admin_token', adminToken);
+    document.getElementById('adminLabel').textContent = d.admin?.email || email;
+    showApp();
+  } catch(e) { document.getElementById('loginErr').textContent = 'Lỗi kết nối'; }
+}
+
+function doLogout() {
+  localStorage.removeItem('sec_admin_token');
+  adminToken = '';
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('appWrap').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('appWrap').style.display = 'block';
+  loadStats();
+  loadEvents();
+}
+
+if (adminToken) showApp();
+
+// ─── API helper ───
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json', ...opts.headers }, ...opts });
+  if (r.status === 401) { doLogout(); return null; }
+  return r.json();
+}
+
+// ─── Tabs ───
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const tabs = ['events','flags','sessions','escrow','attempts'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  ['events','flags','sessions','escrow','attempts'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'events') loadEvents();
+  else if (tab === 'flags') loadFlags();
+  else if (tab === 'sessions') loadSessions();
+  else if (tab === 'escrow') loadEscrow();
+  else if (tab === 'attempts') loadAttempts();
+}
+
+// ─── Stats ───
+async function loadStats() {
+  const d = await api('/api/admin/security/stats');
+  if (!d) return;
+  document.getElementById('statCritical').textContent = d.critical_24h ?? '—';
+  document.getElementById('statHigh').textContent = d.high_24h ?? '—';
+  document.getElementById('statFlags').textContent = d.pending_flags ?? '—';
+  document.getElementById('statSessions').textContent = d.active_sessions ?? '—';
+  document.getElementById('statEscrow').textContent = d.unreviewed_escrow ?? '—';
+  document.getElementById('statFailed').textContent = d.failed_logins_1h ?? '—';
+  if ((d.critical_24h || 0) > 0) document.getElementById('criticalBadge').style.display = '';
+}
+
+// ─── Security Events ───
+async function loadEvents() {
+  const sev = document.getElementById('evtSeverity').value;
+  const type = document.getElementById('evtType').value;
+  let url = '/api/admin/security/events?limit=50';
+  if (sev) url += `&severity=${sev}`;
+  if (type) url += `&event_type=${type}`;
+  const d = await api(url);
+  if (!d) return;
+  const body = document.getElementById('evtBody');
+  const events = d.events || [];
+  if (!events.length) { body.innerHTML = '<tr><td colspan="6" class="empty">Không có sự kiện</td></tr>'; return; }
+  body.innerHTML = events.map(e => `
+    <tr>
+      <td style="white-space:nowrap">${fmtTime(e.created_at)}</td>
+      <td><code style="font-size:11px;color:#aab8cc">${e.event_type}</code></td>
+      <td><span class="severity ${e.severity}">${e.severity}</span></td>
+      <td style="font-size:11px;color:#7b8fad">${e.user_id ? e.user_id.slice(0,8)+'...' : '—'}</td>
+      <td style="font-size:11px">${e.ip_address || '—'}</td>
+      <td style="font-size:11px;color:#7b8fad;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${JSON.stringify(e.details)}">${JSON.stringify(e.details).slice(0,80)}</td>
+    </tr>`).join('');
+}
+
+// ─── Content Flags ───
+async function loadFlags() {
+  const status = document.getElementById('flagStatus').value;
+  const type = document.getElementById('flagType').value;
+  let url = '/api/admin/security/content-flags?limit=50';
+  if (status) url += `&status=${status}`;
+  if (type) url += `&flag_type=${type}`;
+  const d = await api(url);
+  if (!d) return;
+  const body = document.getElementById('flagBody');
+  const flags = d.flags || [];
+  if (!flags.length) { body.innerHTML = '<tr><td colspan="7" class="empty">Không có nội dung bị gắn cờ</td></tr>'; return; }
+  body.innerHTML = flags.map(f => `
+    <tr>
+      <td style="white-space:nowrap">${fmtTime(f.created_at)}</td>
+      <td><span style="font-size:11px">${f.target_type}</span></td>
+      <td><span class="severity ${f.flag_type === 'phishing' ? 'high' : f.flag_type === 'abuse' ? 'medium' : 'low'}">${f.flag_type}</span></td>
+      <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(f.content_preview)}">${esc(f.content_preview) || '—'}</td>
+      <td style="font-size:11px">${f.auto_flagged ? '🤖 Auto' : '👤 Manual'}</td>
+      <td><span class="status ${f.status}">${f.status}</span></td>
+      <td style="display:flex;gap:6px">
+        ${f.status==='pending' ? `
+          <button class="btn-sm btn-action" onclick="reviewFlag('${f.id}','actioned')">Xử lý</button>
+          <button class="btn-sm btn-dismiss" onclick="reviewFlag('${f.id}','dismissed')">Bỏ qua</button>
+        ` : '—'}
+      </td>
+    </tr>`).join('');
+}
+
+async function reviewFlag(id, status) {
+  const r = await api(`/api/admin/security/content-flags/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  if (r?.ok !== false) { showToast('Cập nhật thành công'); loadFlags(); loadStats(); }
+  else showToast(r?.error || 'Lỗi', true);
+}
+
+// ─── Sessions ───
+async function loadSessions() {
+  const userId = document.getElementById('sessionUser').value.trim();
+  let url = '/api/admin/security/sessions?limit=50';
+  if (userId) url += `&user_id=${userId}`;
+  const d = await api(url);
+  if (!d) return;
+  const body = document.getElementById('sessBody');
+  const sessions = d.sessions || [];
+  if (!sessions.length) { body.innerHTML = '<tr><td colspan="7" class="empty">Không có session</td></tr>'; return; }
+  body.innerHTML = sessions.map(s => `
+    <tr>
+      <td style="font-size:11px">${s.user_id?.slice(0,8)}...</td>
+      <td style="font-size:11px;font-family:monospace">${s.device_fp || '—'}</td>
+      <td style="font-size:11px">${s.ip_address || '—'}</td>
+      <td style="white-space:nowrap">${fmtTime(s.created_at)}</td>
+      <td style="white-space:nowrap">${fmtTime(s.expires_at)}</td>
+      <td><span class="status ${s.is_revoked ? 'dismissed' : 'actioned'}">${s.is_revoked ? 'Revoked' : 'Active'}</span></td>
+      <td>${!s.is_revoked ? `<button class="btn-sm btn-revoke" onclick="revokeSession('${s.id}','${s.user_id}')">Revoke</button>` : '—'}</td>
+    </tr>`).join('');
+}
+
+async function revokeSession(id, userId) {
+  const r = await api(`/api/admin/security/sessions/${id}/revoke`, { method: 'POST', body: JSON.stringify({ user_id: userId }) });
+  if (r?.message) { showToast('Session đã bị thu hồi'); loadSessions(); }
+  else showToast(r?.error || 'Lỗi', true);
+}
+
+// ─── Escrow Fraud ───
+async function loadEscrow() {
+  const risk = document.getElementById('escrowRisk').value;
+  const reviewed = document.getElementById('escrowReviewed').value;
+  let url = '/api/admin/security/escrow-fraud?limit=50';
+  if (risk) url += `&risk_level=${risk}`;
+  if (reviewed !== '') url += `&reviewed=${reviewed}`;
+  const d = await api(url);
+  if (!d) return;
+  const body = document.getElementById('escrowBody');
+  const flags = d.flags || [];
+  if (!flags.length) { body.innerHTML = '<tr><td colspan="7" class="empty">Không có flag escrow</td></tr>'; return; }
+  body.innerHTML = flags.map(f => `
+    <tr>
+      <td style="white-space:nowrap">${fmtTime(f.created_at)}</td>
+      <td style="font-size:11px">${f.order_id?.slice(0,8) || '—'}...</td>
+      <td style="font-size:11px">${f.buyer_id?.slice(0,8) || '—'}...</td>
+      <td style="font-size:11px"><code>${f.flag_type}</code></td>
+      <td><span class="severity ${f.risk_level}">${f.risk_level}</span></td>
+      <td style="font-size:11px;color:#7b8fad" title="${JSON.stringify(f.details)}">${JSON.stringify(f.details||{}).slice(0,80)}</td>
+      <td>${!f.reviewed ? `<button class="btn-sm btn-action" onclick="markEscrowReviewed('${f.id}')">Mark reviewed</button>` : '<span style="color:#22d38e;font-size:11px">✓ Done</span>'}</td>
+    </tr>`).join('');
+}
+
+async function markEscrowReviewed(id) {
+  const r = await api(`/api/admin/security/escrow-fraud/${id}/review`, { method: 'POST' });
+  if (r?.message) { showToast('Đã đánh dấu reviewed'); loadEscrow(); }
+  else showToast(r?.error || 'Lỗi', true);
+}
+
+// ─── Login Attempts ───
+async function loadAttempts() {
+  const success = document.getElementById('attemptSuccess').value;
+  const id = document.getElementById('attemptId').value.trim();
+  let url = '/api/admin/security/login-attempts?limit=100';
+  if (success !== '') url += `&success=${success}`;
+  if (id) url += `&identifier=${encodeURIComponent(id)}`;
+  const d = await api(url);
+  if (!d) return;
+  const body = document.getElementById('attBody');
+  const attempts = d.attempts || [];
+  if (!attempts.length) { body.innerHTML = '<tr><td colspan="5" class="empty">Không có dữ liệu</td></tr>'; return; }
+  body.innerHTML = attempts.map(a => `
+    <tr>
+      <td style="white-space:nowrap">${fmtTime(a.created_at)}</td>
+      <td style="font-size:12px">${esc(a.identifier)}</td>
+      <td><span class="status ${a.success ? 'actioned' : 'pending'}">${a.success ? '✅ OK' : '❌ Fail'}</span></td>
+      <td style="font-size:11px">${a.ip_address || '—'}</td>
+      <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((a.user_agent||'').slice(0,80))}</td>
+    </tr>`).join('');
+}
+
+// ─── Modals ───
+function openModal(title, desc, onConfirm) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalDesc').textContent = desc;
+  document.getElementById('modalNote').value = '';
+  pendingAction = onConfirm;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function closeModal() { document.getElementById('confirmModal').classList.remove('open'); pendingAction = null; }
+async function confirmAction() { if (pendingAction) await pendingAction(document.getElementById('modalNote').value); closeModal(); }
+
+// ─── Helpers ───
+function fmtTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast${isError ? ' error' : ''} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── Enter on login ───
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// Auto-refresh every 30s
+setInterval(() => { if (adminToken) { loadStats(); if (currentTab === 'events') loadEvents(); } }, 30000);
+</script>
+</body>
+</html>

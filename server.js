@@ -63,6 +63,213 @@ setInterval(() => {
   for (const [k, v] of ttlCache._store) if (now > v.exp) ttlCache._store.delete(k);
 }, 120_000);
 
+// ══════════════════════════════════════════════════════════
+// SECURITY HARDENING LAYER
+// ══════════════════════════════════════════════════════════
+
+// ── JWT BLACKLIST (in-memory + DB-backed) ──
+const jwtBlacklistSet = new Set();
+
+function tokenHash(tok) {
+  return crypto.createHash('sha256').update(tok).digest('hex');
+}
+
+async function blacklistToken(token, userId, reason = 'logout') {
+  const hash = tokenHash(token);
+  jwtBlacklistSet.add(hash);
+  try {
+    await supabase.from('jwt_blacklist').upsert({
+      token_hash: hash, user_id: userId || null, reason,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    }, { onConflict: 'token_hash', ignoreDuplicates: true });
+  } catch(e) {}
+}
+
+// Load existing blacklist on startup (called after supabase init)
+async function loadJwtBlacklist() {
+  try {
+    const { data } = await supabase.from('jwt_blacklist')
+      .select('token_hash').gte('expires_at', new Date().toISOString()).limit(5000);
+    (data || []).forEach(r => jwtBlacklistSet.add(r.token_hash));
+  } catch(e) {}
+}
+
+// Purge expired blacklist entries every 6 hours
+setInterval(async () => {
+  try {
+    await supabase.from('jwt_blacklist').delete().lt('expires_at', new Date().toISOString());
+    // Also prune in-memory (reload from DB)
+    jwtBlacklistSet.clear();
+    await loadJwtBlacklist();
+  } catch(e) {}
+}, 6 * 60 * 60 * 1000);
+
+// ── LOGIN BRUTE FORCE PROTECTION ──
+const loginFailures = new Map(); // key: `phone|ip` → { count, lockedUntil }
+const MAX_LOGIN_FAILURES = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+
+function checkLoginAllowed(identifier) {
+  const e = loginFailures.get(identifier);
+  if (!e) return { allowed: true };
+  if (Date.now() < e.lockedUntil) {
+    const mins = Math.ceil((e.lockedUntil - Date.now()) / 60000);
+    return { allowed: false, reason: `Đăng nhập thất bại quá nhiều lần. Thử lại sau ${mins} phút.` };
+  }
+  loginFailures.delete(identifier);
+  return { allowed: true };
+}
+
+function recordLoginFailure(identifier) {
+  const e = loginFailures.get(identifier) || { count: 0, lockedUntil: 0 };
+  e.count++;
+  if (e.count >= MAX_LOGIN_FAILURES) e.lockedUntil = Date.now() + LOGIN_LOCK_MS;
+  loginFailures.set(identifier, e);
+}
+
+function clearLoginFailures(identifier) { loginFailures.delete(identifier); }
+
+// Cleanup stale entries every 30 min
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of loginFailures) {
+    if (now > v.lockedUntil + LOGIN_LOCK_MS) loginFailures.delete(k);
+  }
+}, 30 * 60 * 1000);
+
+// ── DEVICE FINGERPRINT ──
+function getDeviceFp(req) {
+  const ua = (req.headers['user-agent'] || '').slice(0, 150);
+  const lang = req.headers['accept-language'] || '';
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '';
+  return crypto.createHash('sha256').update(`${ua}|${lang}|${ip}`).digest('hex').slice(0, 16);
+}
+
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+}
+
+// ── CONTENT SPAM / PHISHING FILTER ──
+const CF_URL     = /(?:https?:\/\/|bit\.ly|tinyurl|t\.me\/|zalo\.me|telegram\.me|fb\.gg)/gi;
+const CF_PHONES  = /(0[3-9][0-9]{8}[\s,\/;|]{1,3}){2}/g;
+const CF_REPEAT  = /(.)\1{9}/g;
+const CF_BANNED  = ['lừa đảo hack','acc fake','mua acc','sell account','bypass captcha','buy account'];
+
+function contentFilter(text) {
+  if (!text) return { ok: true };
+  const t = String(text);
+  if (t.length > 5000) return { ok: false, reason: 'Nội dung quá dài (tối đa 5000 ký tự)', flagType: 'spam' };
+
+  CF_URL.lastIndex = 0;
+  if (CF_URL.test(t)) return { ok: false, reason: 'Không được chia sẻ đường dẫn hoặc liên kết bên ngoài', flagType: 'phishing' };
+
+  CF_PHONES.lastIndex = 0;
+  if (CF_PHONES.test(t)) return { ok: false, reason: 'Không được liệt kê nhiều số điện thoại trong nội dung', flagType: 'spam' };
+
+  CF_REPEAT.lastIndex = 0;
+  if (CF_REPEAT.test(t)) return { ok: false, reason: 'Nội dung có ký tự lặp lại bất thường', flagType: 'spam' };
+
+  const lower = t.toLowerCase();
+  for (const w of CF_BANNED) if (lower.includes(w)) return { ok: false, reason: 'Nội dung vi phạm quy định cộng đồng', flagType: 'abuse' };
+
+  return { ok: true };
+}
+
+// ── SECURITY EVENT LOGGER ──
+async function securityLog(userId, eventType, severity, details = {}, req = null) {
+  try {
+    await supabase.from('security_events').insert({
+      user_id: userId || null, event_type: eventType, severity,
+      ip_address: req ? getClientIp(req) : null,
+      device_fp: req ? getDeviceFp(req) : null,
+      user_agent: req ? (req.headers['user-agent'] || '').slice(0, 200) : null,
+      details
+    });
+  } catch(e) {}
+}
+
+// ── AUTO-FLAG CONTENT ──
+async function autoFlagContent(targetType, targetId, contentPreview, flagType, reporterId = null) {
+  try {
+    await supabase.from('content_flags').insert({
+      target_type: targetType, target_id: String(targetId),
+      content_preview: (contentPreview || '').slice(0, 200),
+      flag_type: flagType, auto_flagged: true,
+      reporter_id: reporterId || null
+    });
+  } catch(e) {}
+}
+
+// ── ACCOUNT AGE CHECK ──
+function accountAgeMs(createdAt) {
+  return Date.now() - new Date(createdAt || 0).getTime();
+}
+
+// ── ESCROW FRAUD CHECK ──
+async function checkEscrowFraud(buyerId, sellerId, orderId, price, buyerCreatedAt) {
+  const flags = [];
+  const ageDays = accountAgeMs(buyerCreatedAt) / (1000 * 60 * 60 * 24);
+
+  if (ageDays < 1) flags.push({ type: 'new_account', risk: 'high', detail: `Tài khoản chỉ ${Math.floor(ageDays * 24)}h tuổi` });
+  else if (ageDays < 7) flags.push({ type: 'new_account', risk: 'medium', detail: `Tài khoản ${Math.floor(ageDays)} ngày tuổi` });
+
+  if (price > 20000000) flags.push({ type: 'high_value', risk: 'medium', detail: `Giao dịch ${(price/1000000).toFixed(1)}M VND` });
+  if (price > 50000000) flags[flags.length - 1].risk = 'high';
+
+  // Check velocity: buyer placed >3 orders in last 1h
+  const since = new Date(Date.now() - 3600000).toISOString();
+  const { count } = await supabase.from('orders').select('id', { count: 'exact', head: true })
+    .eq('buyer_id', buyerId).gte('created_at', since);
+  if ((count || 0) > 3) flags.push({ type: 'velocity', risk: 'high', detail: `${count} đơn hàng trong 1 giờ` });
+
+  if (flags.length > 0) {
+    const maxRisk = flags.some(f => f.risk === 'high') ? 'high' : flags.some(f => f.risk === 'medium') ? 'medium' : 'low';
+    await supabase.from('escrow_fraud_flags').insert({
+      order_id: orderId, buyer_id: buyerId, seller_id: sellerId,
+      flag_type: flags.map(f => f.type).join(','), risk_level: maxRisk,
+      details: { flags }
+    }).catch(() => {});
+    if (maxRisk === 'high') {
+      await securityLog(buyerId, 'escrow_fraud_flag', 'high', { orderId, flags });
+    }
+  }
+  return flags;
+}
+
+// ── ENHANCED RATE LIMITERS ──
+// Note: use user ID or x-forwarded-for (NOT req.ip) to avoid IPv6 validation errors
+const _rlKey = (req) => req.user?.id || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'anon';
+
+const walletWithdrawLimit = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, max: 3,
+  keyGenerator: _rlKey, skip: (req) => !!req.user?.id, // only IP-gate pre-auth; user ID used post-auth
+  message: { error: 'Tối đa 3 lần rút tiền mỗi ngày. Vui lòng thử lại ngày mai.' },
+  standardHeaders: true, legacyHeaders: false, validate: false
+});
+const messageSpamLimit = rateLimit({
+  windowMs: 60 * 1000, max: 30,
+  keyGenerator: _rlKey,
+  message: { error: 'Gửi tin nhắn quá nhanh. Vui lòng chờ 60 giây.' },
+  standardHeaders: true, legacyHeaders: false, validate: false
+});
+const listingPostLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 10,
+  keyGenerator: _rlKey,
+  message: { error: 'Tối đa 10 bài đăng mỗi giờ. Vui lòng thử lại sau.' },
+  standardHeaders: true, legacyHeaders: false, validate: false
+});
+const payTransferLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 20,
+  keyGenerator: _rlKey,
+  message: { error: 'Quá nhiều giao dịch chuyển tiền trong 1 giờ.' },
+  standardHeaders: true, legacyHeaders: false, validate: false
+});
+const registrationLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 5,
+  message: { error: 'Quá nhiều tài khoản đăng ký từ địa chỉ này. Thử lại sau.' },
+  standardHeaders: true, legacyHeaders: false, validate: false
+});
+
 // ── RATE LIMITING ──
 const generalLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -521,7 +728,12 @@ function auth(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Chưa đăng nhập' });
   try {
+    // ── JWT blacklist check (revoked tokens) ──
+    const hash = tokenHash(token);
+    if (jwtBlacklistSet.has(hash)) return res.status(401).json({ error: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' });
+
     req.user = jwt.verify(token, JWT_SECRET);
+    req._token = token; // store for logout use
     next();
   } catch {
     res.status(401).json({ error: 'Token không hợp lệ' });
@@ -606,7 +818,7 @@ function normalizePhone(raw) {
   return p;
 }
 
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', registrationLimit, async (req, res) => {
   try {
     const { password, name, email } = req.body;
     const phone = normalizePhone(req.body.phone);
@@ -669,15 +881,65 @@ app.post('/api/auth/login', async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   const { password } = req.body;
   if (!phone || !password) return res.status(400).json({ error: 'Thiếu thông tin' });
+
+  const ip = getClientIp(req);
+  const fp = getDeviceFp(req);
+
+  // ── Brute force check ──
+  const byPhone = checkLoginAllowed(phone);
+  const byIp    = checkLoginAllowed(ip);
+  if (!byPhone.allowed) return res.status(429).json({ error: byPhone.reason });
+  if (!byIp.allowed)    return res.status(429).json({ error: byIp.reason });
+
   const { data: user } = await supabase.from('users').select('*').eq('phone', phone).single();
-  if (!user) return res.status(400).json({ error: 'Số điện thoại không tồn tại' });
-  if (user.is_banned) return res.status(403).json({ error: 'Tài khoản đã bị khóa. Liên hệ hỗ trợ.' });
+  if (!user) {
+    recordLoginFailure(phone); recordLoginFailure(ip);
+    await securityLog(null, 'failed_login', 'low', { phone, reason: 'phone_not_found' }, req);
+    return res.status(400).json({ error: 'Số điện thoại không tồn tại' });
+  }
+  if (user.is_banned) {
+    await securityLog(user.id, 'banned_login_attempt', 'medium', { phone }, req);
+    return res.status(403).json({ error: 'Tài khoản đã bị khóa. Liên hệ hỗ trợ.' });
+  }
 
   const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.status(400).json({ error: 'Sai mật khẩu' });
+  if (!ok) {
+    recordLoginFailure(phone); recordLoginFailure(ip);
+    const { count: failCount } = loginFailures.get(phone) || { count: 1 };
+    await securityLog(user.id, 'failed_login', failCount >= 4 ? 'high' : 'medium', { phone, attempt: failCount }, req);
+    // Persist login attempt
+    supabase.from('login_attempts').insert({ identifier: phone, success: false, ip_address: ip, user_agent: (req.headers['user-agent'] || '').slice(0,200), user_id: user.id }).catch(() => {});
+    const remaining = MAX_LOGIN_FAILURES - (loginFailures.get(phone)?.count || 0);
+    return res.status(400).json({ error: `Sai mật khẩu. Còn ${Math.max(0, remaining)} lần thử trước khi bị khóa tạm thời.` });
+  }
 
+  // ── Login success ──
+  clearLoginFailures(phone); clearLoginFailures(ip);
   const token = jwt.sign({ id: user.id, phone: user.phone, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
+  const hash = tokenHash(token);
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Track session + device (non-blocking)
+  supabase.from('security_sessions').insert({
+    user_id: user.id, token_hash: hash, device_fp: fp,
+    ip_address: ip, user_agent: (req.headers['user-agent'] || '').slice(0, 200),
+    expires_at: expiresAt
+  }).catch(() => {});
+  supabase.from('login_attempts').insert({ identifier: phone, success: true, ip_address: ip, user_agent: (req.headers['user-agent'] || '').slice(0,200), user_id: user.id }).catch(() => {});
+  supabase.from('user_devices').upsert({ user_id: user.id, device_fp: fp, ip_address: ip, user_agent: (req.headers['user-agent'] || '').slice(0,150), last_seen: new Date().toISOString() }, { onConflict: 'user_id,device_fp' }).catch(() => {});
+
   res.json({ token, user: { id: user.id, phone: user.phone, name: user.name, balance: user.balance, escrow: user.escrow } });
+});
+
+// ── LOGOUT — blacklist JWT token ──
+app.post('/api/auth/logout', auth, async (req, res) => {
+  const token = req._token || req.headers.authorization?.split(' ')[1];
+  if (token) {
+    await blacklistToken(token, req.user.id, 'logout');
+    // Mark session as revoked
+    supabase.from('security_sessions').update({ is_revoked: true, revoked_at: new Date().toISOString(), revoke_reason: 'logout' }).eq('token_hash', tokenHash(token)).catch(() => {});
+  }
+  res.json({ message: 'Đăng xuất thành công' });
 });
 
 app.get('/api/auth/me', auth, async (req, res) => {
@@ -882,7 +1144,7 @@ app.post('/api/upload/ticket-image', auth, async (req, res) => {
   res.json({ url: publicUrl });
 });
 
-app.post('/api/tickets', auth, async (req, res) => {
+app.post('/api/tickets', auth, listingPostLimit, async (req, res) => {
   const { event_name, event_date, location, section, price, quantity, description, image_url, category } = req.body;
   if (!event_name || !price || !quantity)
     return res.status(400).json({ error: 'Thiếu thông tin vé' });
@@ -1011,7 +1273,7 @@ app.delete('/api/tickets/:id', auth, async (req, res) => {
 const LISTING_TYPES = ['ticket', 'product', 'account', 'course', 'service', 'booking'];
 
 // POST /api/listings — create listing
-app.post('/api/listings', auth, async (req, res) => {
+app.post('/api/listings', auth, listingPostLimit, async (req, res) => {
   const { type, title, description, price, quantity, images, event_date, location, section, category } = req.body;
   if (!type || !LISTING_TYPES.includes(type))
     return res.status(400).json({ error: 'Loại listing không hợp lệ' });
@@ -1163,6 +1425,14 @@ app.post('/api/orders', auth, async (req, res) => {
 
   const { data: buyer } = await supabase.from('users').select('*').eq('id', req.user.id).single();
   if (buyer.is_banned) return res.status(403).json({ error: 'Tài khoản đã bị khóa' });
+
+  // ── Escrow fraud guard: new account + high-value ──
+  if (buyer.created_at && accountAgeMs(buyer.created_at) < 24 * 60 * 60 * 1000 && itemPrice > 5000000) {
+    await securityLog(buyer.id, 'escrow_new_acct_high_value', 'high', { price: itemPrice, acctAgeH: Math.floor(accountAgeMs(buyer.created_at)/3600000) }, req);
+    return res.status(403).json({ error: 'Tài khoản mới không thể thực hiện giao dịch trên 5,000,000đ trong 24 giờ đầu.' });
+  }
+  // Log escrow fraud indicators asynchronously (non-blocking)
+  checkEscrowFraud(buyer.id, itemSellerId, null, itemPrice, buyer.created_at).catch(() => {});
 
   const isVip = buyer.is_vip && (!buyer.vip_expires_at || new Date(buyer.vip_expires_at) > new Date());
   const feeRate = isVip ? 0.015 : 0.03;
@@ -1504,6 +1774,22 @@ app.post('/api/wallet/withdraw', auth, async (req, res) => {
     .select('id').eq('user_id', req.user.id).eq('status', 'pending').limit(1);
   if (pending && pending.length > 0)
     return res.status(400).json({ error: 'Bạn đang có yêu cầu rút tiền chờ xử lý. Vui lòng chờ admin duyệt trước khi tạo yêu cầu mới.' });
+
+  // ── Daily velocity guard (max 3 withdrawals / day) ──
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const { count: todayCount } = await supabase.from('withdrawal_requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', req.user.id).gte('created_at', `${todayStr}T00:00:00.000Z`);
+  if ((todayCount || 0) >= 3) {
+    await securityLog(req.user.id, 'wallet_daily_limit_exceeded', 'medium', { count: todayCount, amt }, req);
+    return res.status(429).json({ error: 'Tối đa 3 lần rút tiền mỗi ngày. Vui lòng thử lại ngày mai.' });
+  }
+
+  // ── New account large-withdrawal guard (72h cooldown for > 5M) ──
+  if (user.created_at && accountAgeMs(user.created_at) < 72 * 60 * 60 * 1000 && amt > 5000000) {
+    await securityLog(req.user.id, 'new_account_large_withdraw', 'high', { amt, acctAgeHours: Math.floor(accountAgeMs(user.created_at) / 3600000) }, req);
+    return res.status(403).json({ error: 'Tài khoản mới không thể rút trên 5,000,000đ trong 72 giờ đầu.' });
+  }
 
   // Deduct balance immediately (hold it)
   const { error: balErr } = await supabase.from('users')
@@ -2081,10 +2367,17 @@ app.get('/api/orders/:id/messages', auth, async (req, res) => {
   res.json(data || []);
 });
 
-app.post('/api/orders/:id/messages', auth, async (req, res) => {
+app.post('/api/orders/:id/messages', auth, messageSpamLimit, async (req, res) => {
   const orderId = req.params.id;
   const { text } = req.body;
   if (!text || !String(text).trim()) return res.status(400).json({ error: 'Tin nhắn không được trống' });
+  // ── Content spam / phishing filter ──
+  const cf = contentFilter(String(text).trim());
+  if (!cf.ok) {
+    autoFlagContent('message', `order:${orderId}`, String(text).trim(), cf.flagType, req.user.id);
+    await securityLog(req.user.id, 'spam_message_blocked', 'medium', { orderId, reason: cf.reason, flagType: cf.flagType }, req);
+    return res.status(400).json({ error: cf.reason });
+  }
 
   const { data: order } = await supabase.from('orders').select('buyer_id,seller_id,event_name').eq('id', orderId).single();
   if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
@@ -8540,7 +8833,7 @@ app.post('/api/pay/withdraw', auth, async (req, res) => {
 });
 
 // ── POST /api/pay/transfer ──
-app.post('/api/pay/transfer', auth, async (req, res) => {
+app.post('/api/pay/transfer', auth, payTransferLimit, async (req, res) => {
   const uid = req.user.userId;
   const { to_phone, amount, note } = req.body;
   if (!to_phone || !amount) return res.status(400).json({ error: 'Thiếu thông tin chuyển tiền' });
@@ -11233,11 +11526,19 @@ app.get('/api/sn/explore', async (req, res) => {
 });
 
 // POST create post
-app.post('/api/sn/posts', auth, async (req, res) => {
+app.post('/api/sn/posts', auth, listingPostLimit, async (req, res) => {
   try {
     const uid = req.user.id;
     const { content, media_urls, media_type, visibility, group_id, page_id, shared_post_id, post_type } = req.body;
     if (!content && (!media_urls || !media_urls.length)) return res.status(400).json({ error: 'Nội dung không được trống' });
+    // ── Content filter ──
+    if (content?.trim()) {
+      const cf = contentFilter(content.trim());
+      if (!cf.ok) {
+        autoFlagContent('post', 'new', content.trim(), cf.flagType, uid);
+        return res.status(400).json({ error: cf.reason });
+      }
+    }
     const { data: post } = await supabase.from('sn_posts').insert({ user_id: uid, content, media_urls: media_urls || [], media_type: media_type || 'none', visibility: visibility || 'public', group_id: group_id || null, page_id: page_id || null, shared_post_id: shared_post_id || null, post_type: post_type || 'post' }).select().single();
     await supabase.from('sn_profiles').update({ posts_count: supabase.raw('posts_count + 1') }).eq('user_id', uid);
     if (group_id) await supabase.from('sn_groups').update({ posts_count: supabase.raw('posts_count + 1') }).eq('id', group_id);
@@ -12061,13 +12362,21 @@ app.get('/api/dm/conversations/:id/messages', auth, async (req, res) => {
 });
 
 // Send message
-app.post('/api/dm/conversations/:id/messages', auth, async (req, res) => {
+app.post('/api/dm/conversations/:id/messages', auth, messageSpamLimit, async (req, res) => {
   try {
     const uid = req.user.id;
     const { data: part } = await supabase.from('dm_participants').select('id').eq('conversation_id',req.params.id).eq('user_id',uid).maybeSingle();
     if (!part) return res.status(403).json({ error: 'Không có quyền' });
     const { content, msg_type='text', media_url, product_id } = req.body;
     if (!content?.trim() && !media_url) return res.status(400).json({ error: 'Nội dung không được trống' });
+    // ── Content filter for DM ──
+    if (content?.trim()) {
+      const cf = contentFilter(content.trim());
+      if (!cf.ok) {
+        autoFlagContent('dm', req.params.id, content.trim(), cf.flagType, uid);
+        return res.status(400).json({ error: cf.reason });
+      }
+    }
     const { data: msg, error } = await supabase.from('dm_messages').insert({ conversation_id: req.params.id, sender_id: uid, content: content||'', msg_type, media_url: media_url||null, product_id: product_id||null }).select().single();
     if (error) throw error;
     await supabase.from('dm_conversations').update({ last_message: content||'📎 Tệp đính kèm', last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id',req.params.id);
@@ -15511,6 +15820,178 @@ app.post('/api/aiciv/npc/chat', async (req, res) => {
   res.json({ reply, npc_id });
 });
 
+// ══════════════════════════════════════════════════════════
+// ADMIN SECURITY CENTER API
+// ══════════════════════════════════════════════════════════
+
+// ── GET /api/admin/security/stats ──
+app.get('/api/admin/security/stats', adminAuth, async (req, res) => {
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since1h  = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  try {
+    const [crit, high, flags, sess, escrow, failedLogin] = await Promise.allSettled([
+      supabase.from('security_events').select('id', { count: 'exact', head: true }).eq('severity', 'critical').gte('created_at', since24h),
+      supabase.from('security_events').select('id', { count: 'exact', head: true }).eq('severity', 'high').gte('created_at', since24h),
+      supabase.from('content_flags').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('security_sessions').select('id', { count: 'exact', head: true }).eq('is_revoked', false),
+      supabase.from('escrow_fraud_flags').select('id', { count: 'exact', head: true }).eq('reviewed', false),
+      supabase.from('login_attempts').select('id', { count: 'exact', head: true }).eq('success', false).gte('created_at', since1h)
+    ]);
+    res.json({
+      critical_24h: crit.value?.count ?? 0,
+      high_24h: high.value?.count ?? 0,
+      pending_flags: flags.value?.count ?? 0,
+      active_sessions: sess.value?.count ?? 0,
+      unreviewed_escrow: escrow.value?.count ?? 0,
+      failed_logins_1h: failedLogin.value?.count ?? 0
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/admin/security/events ──
+app.get('/api/admin/security/events', adminAuth, async (req, res) => {
+  const { severity, event_type, limit = 50, offset = 0 } = req.query;
+  let q = supabase.from('security_events').select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1);
+  if (severity) q = q.eq('severity', severity);
+  if (event_type) q = q.eq('event_type', event_type);
+  const { data, count, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ events: data || [], total: count });
+});
+
+// ── GET /api/admin/security/content-flags ──
+app.get('/api/admin/security/content-flags', adminAuth, async (req, res) => {
+  const { status, flag_type, limit = 50, offset = 0 } = req.query;
+  let q = supabase.from('content_flags').select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1);
+  if (status) q = q.eq('status', status);
+  if (flag_type) q = q.eq('flag_type', flag_type);
+  const { data, count, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ flags: data || [], total: count });
+});
+
+// ── PATCH /api/admin/security/content-flags/:id ──
+app.patch('/api/admin/security/content-flags/:id', adminAuth, async (req, res) => {
+  const { status, admin_notes } = req.body;
+  if (!['reviewed','dismissed','actioned'].includes(status))
+    return res.status(400).json({ error: 'Status không hợp lệ' });
+  const { error } = await supabase.from('content_flags').update({
+    status, admin_notes: admin_notes || null,
+    reviewer_id: req.admin?.id || null,
+    reviewed_at: new Date().toISOString()
+  }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  logAdminAction(req.admin?.id, req.admin?.email, `content_flag_${status}`, 'content_flag', req.params.id);
+  res.json({ message: 'Cập nhật thành công', ok: true });
+});
+
+// ── GET /api/admin/security/sessions ──
+app.get('/api/admin/security/sessions', adminAuth, async (req, res) => {
+  const { user_id, limit = 50, offset = 0 } = req.query;
+  let q = supabase.from('security_sessions').select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1);
+  if (user_id) q = q.eq('user_id', user_id);
+  const { data, count, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ sessions: data || [], total: count });
+});
+
+// ── POST /api/admin/security/sessions/:id/revoke ──
+app.post('/api/admin/security/sessions/:id/revoke', adminAuth, async (req, res) => {
+  const { user_id } = req.body;
+  const { data: sess } = await supabase.from('security_sessions').select('token_hash').eq('id', req.params.id).single();
+  if (!sess) return res.status(404).json({ error: 'Session không tìm thấy' });
+
+  // Add token to blacklist
+  jwtBlacklistSet.add(sess.token_hash);
+  await supabase.from('jwt_blacklist').upsert({
+    token_hash: sess.token_hash, user_id: user_id || null, reason: 'admin_revoke',
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  }, { onConflict: 'token_hash', ignoreDuplicates: true });
+
+  await supabase.from('security_sessions').update({
+    is_revoked: true, revoked_at: new Date().toISOString(), revoke_reason: 'admin_revoke'
+  }).eq('id', req.params.id);
+
+  logAdminAction(req.admin?.id, req.admin?.email, 'revoke_session', 'session', req.params.id, { user_id });
+  await securityLog(user_id, 'session_revoked_by_admin', 'high', { session_id: req.params.id, admin: req.admin?.email });
+  res.json({ message: 'Session đã bị thu hồi thành công' });
+});
+
+// ── GET /api/admin/security/escrow-fraud ──
+app.get('/api/admin/security/escrow-fraud', adminAuth, async (req, res) => {
+  const { risk_level, reviewed, limit = 50, offset = 0 } = req.query;
+  let q = supabase.from('escrow_fraud_flags').select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1);
+  if (risk_level) q = q.eq('risk_level', risk_level);
+  if (reviewed !== undefined && reviewed !== '') q = q.eq('reviewed', reviewed === 'true');
+  const { data, count, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ flags: data || [], total: count });
+});
+
+// ── POST /api/admin/security/escrow-fraud/:id/review ──
+app.post('/api/admin/security/escrow-fraud/:id/review', adminAuth, async (req, res) => {
+  const { error } = await supabase.from('escrow_fraud_flags').update({ reviewed: true }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  logAdminAction(req.admin?.id, req.admin?.email, 'escrow_fraud_reviewed', 'escrow_flag', req.params.id);
+  res.json({ message: 'Đã đánh dấu đã review' });
+});
+
+// ── GET /api/admin/security/login-attempts ──
+app.get('/api/admin/security/login-attempts', adminAuth, async (req, res) => {
+  const { success, identifier, limit = 100, offset = 0 } = req.query;
+  let q = supabase.from('login_attempts').select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1);
+  if (success !== undefined && success !== '') q = q.eq('success', success === 'true');
+  if (identifier) q = q.eq('identifier', identifier);
+  const { data, count, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ attempts: data || [], total: count });
+});
+
+// ── POST /api/admin/security/force-logout-user ──
+app.post('/api/admin/security/force-logout-user', adminAuth, async (req, res) => {
+  const { user_id, reason = 'admin_force_logout' } = req.body;
+  if (!user_id) return res.status(400).json({ error: 'Thiếu user_id' });
+
+  // Revoke all active sessions for user
+  const { data: sessions } = await supabase.from('security_sessions')
+    .select('id,token_hash').eq('user_id', user_id).eq('is_revoked', false);
+
+  if (sessions && sessions.length > 0) {
+    sessions.forEach(s => jwtBlacklistSet.add(s.token_hash));
+    const hashes = sessions.map(s => ({ token_hash: s.token_hash, user_id, reason, expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }));
+    await supabase.from('jwt_blacklist').upsert(hashes, { onConflict: 'token_hash', ignoreDuplicates: true });
+    await supabase.from('security_sessions').update({ is_revoked: true, revoked_at: new Date().toISOString(), revoke_reason: reason }).eq('user_id', user_id).eq('is_revoked', false);
+  }
+
+  logAdminAction(req.admin?.id, req.admin?.email, 'force_logout_user', 'user', user_id, { sessions_revoked: sessions?.length || 0, reason });
+  await securityLog(user_id, 'force_logout_by_admin', 'high', { sessions_revoked: sessions?.length || 0, admin: req.admin?.email });
+  res.json({ message: `Đã đăng xuất khỏi ${sessions?.length || 0} phiên`, sessions_revoked: sessions?.length || 0 });
+});
+
+// ── GET /api/admin/security/user-devices ──
+app.get('/api/admin/security/user-devices', adminAuth, async (req, res) => {
+  const { user_id } = req.query;
+  if (!user_id) return res.status(400).json({ error: 'Thiếu user_id' });
+  const { data, error } = await supabase.from('user_devices').select('*').eq('user_id', user_id).order('last_seen', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ devices: data || [] });
+});
+
+// ── GET security.html ──
+app.get('/admin/security', (req, res) => {
+  res.sendFile(join(__dirname, 'frontend', 'admin-security.html'));
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
@@ -15522,6 +16003,8 @@ const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
   await migratePhoneNumbers();
+  // ── Security: load JWT blacklist from DB on startup ──
+  loadJwtBlacklist().then(() => console.log(`🔐 JWT blacklist loaded (${jwtBlacklistSet.size} entries)`)).catch(() => {});
 });
 
 // ── WEBSOCKET SERVERS ──
