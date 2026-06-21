@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SafePass Reels</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#000;--surface:rgba(255,255,255,.08);--border:rgba(255,255,255,.12);
+  --text:#fff;--text2:rgba(255,255,255,.75);--text3:rgba(255,255,255,.5);
+  --brand:#ff2d55;--brand2:#2d88ff;--green:#42b72a;
+}
+html,body{height:100%;background:#000;font-family:'Inter',sans-serif;color:var(--text);overflow:hidden;}
+a{text-decoration:none;color:inherit;}
+button{cursor:pointer;border:none;font-family:inherit;background:none;color:inherit;}
+
+/* NAV */
+.top-nav{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;width:100%;max-width:480px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent);
+}
+.nav-logo{font-size:20px;font-weight:900;color:#fff;letter-spacing:-1px;}
+.nav-logo span{font-size:10px;background:var(--brand);padding:2px 5px;border-radius:4px;margin-left:4px;vertical-align:middle;}
+.nav-actions{display:flex;gap:10px;}
+.nav-icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.nav-tab-bar{
+  position:fixed;top:0;left:0;right:0;z-index:400;
+  display:flex;justify-content:center;gap:0;
+  padding-top:16px;
+}
+.nav-tab{
+  font-size:15px;font-weight:600;color:var(--text2);padding:8px 16px;cursor:pointer;
+  transition:.15s;border-bottom:2px solid transparent;
+}
+.nav-tab.active{color:#fff;border-bottom-color:#fff;}
+
+/* REELS CONTAINER */
+.reels-container{
+  width:100%;height:100vh;overflow-y:scroll;scroll-snap-type:y mandatory;
+  scrollbar-width:none;
+}
+.reels-container::-webkit-scrollbar{display:none;}
+
+/* REEL ITEM */
+.reel-item{
+  width:100%;height:100vh;position:relative;
+  scroll-snap-align:start;scroll-snap-stop:always;
+  background:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.reel-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+  display:flex;align-items:center;justify-content:center;
+}
+.reel-placeholder{font-size:80px;opacity:.3;}
+.reel-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.reel-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 50%,rgba(0,0,0,.3) 100%);}
+
+/* BOTTOM INFO */
+.reel-info{
+  position:absolute;bottom:100px;left:16px;right:80px;
+  z-index:10;
+}
+.reel-creator{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.creator-avatar{
+  width:42px;height:42px;border-radius:50%;background:var(--brand);
+  display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;
+  border:2px solid #fff;overflow:hidden;flex-shrink:0;
+}
+.creator-avatar img{width:100%;height:100%;object-fit:cover;}
+.creator-name{font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+.creator-followers{font-size:12px;color:var(--text2);}
+.follow-btn{
+  padding:5px 14px;border-radius:14px;border:1.5px solid #fff;
+  font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:.15s;
+}
+.follow-btn.following{background:#fff;color:#000;}
+.reel-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:6px;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+.reel-desc{font-size:13px;color:var(--text2);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.reel-tags{display:flex;gap:6px;flex-wrap:wrap;}
+.reel-tag{font-size:13px;font-weight:600;color:var(--brand2);}
+
+/* PRODUCT TAG */
+.product-tag{
+  background:rgba(0,0,0,.75);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.2);border-radius:12px;
+  padding:10px 12px;display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer;
+}
+.product-tag-img{width:40px;height:40px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.product-tag-name{font-size:13px;font-weight:600;color:#fff;flex:1;}
+.product-tag-price{font-size:13px;font-weight:700;color:var(--green);}
+.buy-now-btn{background:var(--brand);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;flex-shrink:0;}
+
+/* RIGHT ACTIONS */
+.reel-actions{
+  position:absolute;right:12px;bottom:110px;
+  display:flex;flex-direction:column;align-items:center;gap:20px;z-index:10;
+}
+.reel-action{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.action-btn{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;transition:.15s;cursor:pointer;
+}
+.action-btn:active{transform:scale(.9);}
+.action-btn.liked{background:var(--brand);}
+.action-btn.saved{background:var(--brand2);}
+.action-count{font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+
+/* BOTTOM NAV */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;z-index:500;
+  background:linear-gradient(to top,rgba(0,0,0,.9),transparent);
+  padding:16px 0 20px;display:flex;justify-content:space-around;align-items:center;
+}
+.bottom-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;text-decoration:none;}
+.bottom-icon{font-size:22px;}
+.bottom-label{font-size:11px;font-weight:600;color:var(--text3);}
+.bottom-item.active .bottom-label{color:#fff;}
+.bottom-item.active .bottom-icon{filter:drop-shadow(0 0 6px rgba(255,255,255,.5));}
+
+/* COMMENT DRAWER */
+.comment-drawer{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);
+  width:100%;max-width:480px;z-index:800;
+  background:#1c1e21;border-radius:20px 20px 0 0;
+  height:70vh;display:flex;flex-direction:column;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.comment-drawer.open{transform:translateX(-50%) translateY(0);}
+.drawer-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 0;}
+.drawer-title{font-size:16px;font-weight:700;color:#fff;text-align:center;padding:12px 0 8px;}
+.drawer-messages{flex:1;overflow-y:auto;padding:12px 16px;}
+.drawer-messages::-webkit-scrollbar{width:3px;}
+.drawer-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);}
+.drawer-input{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;
+  border-top:1px solid rgba(255,255,255,.1);
+}
+.drawer-input input{
+  flex:1;background:rgba(255,255,255,.1);border:none;border-radius:22px;
+  padding:10px 14px;font-size:14px;color:#fff;outline:none;
+}
+.drawer-input input::placeholder{color:rgba(255,255,255,.4);}
+.drawer-send{width:36px;height:36px;border-radius:50%;background:var(--brand2);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.comment-c{display:flex;gap:8px;margin-bottom:14px;}
+.comment-c-avatar{width:36px;height:36px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.comment-c-bubble{background:rgba(255,255,255,.08);border-radius:12px;padding:8px 12px;flex:1;}
+.comment-c-author{font-size:13px;font-weight:700;color:#fff;}
+.comment-c-text{font-size:13px;color:rgba(255,255,255,.75);}
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;opacity:0;pointer-events:none;transition:.2s;}
+.backdrop.show{opacity:1;pointer-events:all;}
+
+/* TRENDING SIDEBAR */
+.trending-panel{
+  position:fixed;top:50%;right:20px;transform:translateY(-50%);
+  background:rgba(0,0,0,.75);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.15);border-radius:14px;
+  padding:14px;width:160px;z-index:100;
+}
+.trending-title{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;}
+.trending-tag{font-size:13px;font-weight:600;color:var(--brand2);padding:4px 0;display:flex;align-items:center;justify-content:space-between;}
+.trending-cnt{font-size:11px;color:var(--text3);}
+
+/* UPLOAD MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:900;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:.2s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.upload-sheet{
+  background:#1c1e21;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;
+}
+.upload-title{font-size:18px;font-weight:700;margin-bottom:16px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:6px;display:block;}
+.form-input{width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;outline:none;font-family:inherit;}
+.form-input:focus{border-color:var(--brand2);}
+.btn-brand{background:var(--brand2);color:#fff;padding:12px;border-radius:12px;font-size:15px;font-weight:700;width:100%;}
+.btn-cancel{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:10px;border-radius:12px;font-size:14px;font-weight:600;width:100%;margin-top:8px;}
+
+/* TOAST */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);color:#fff;border:1px solid rgba(255,255,255,.2);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:500;z-index:9999;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+@media(min-width:481px){
+  .reels-container,.bottom-nav,.top-nav{max-width:480px;left:50%;transform:translateX(-50%);}
+  .reels-container{position:relative;}
+  body{background:#333;display:flex;justify-content:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV TOP -->
+<nav class="top-nav">
+  <a href="/" class="nav-logo">SafePass<span>REELS</span></a>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="nav-tab active" onclick="switchFeed('for-you',this)">Cho bạn</div>
+    <div class="nav-tab" onclick="switchFeed('following',this)">Đang theo dõi</div>
+    <div class="nav-tab" onclick="switchFeed('trending',this)">🔥 Hot</div>
+  </div>
+  <div class="nav-actions">
+    <div class="nav-icon-btn" onclick="openUpload()">➕</div>
+  </div>
+</nav>
+
+<!-- REELS -->
+<div class="reels-container" id="reelsContainer"></div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a href="/" class="bottom-item"><div class="bottom-icon">🏠</div><div class="bottom-label">Trang chủ</div></a>
+  <a href="/groups" class="bottom-item"><div class="bottom-icon">👥</div><div class="bottom-label">Nhóm</div></a>
+  <a href="/reels" class="bottom-item active"><div class="bottom-icon">🎬</div><div class="bottom-label">Reels</div></a>
+  <a href="/messenger" class="bottom-item"><div class="bottom-icon">💬</div><div class="bottom-label">Chat</div></a>
+  <a href="/social" class="bottom-item"><div class="bottom-icon">🛒</div><div class="bottom-label">Mua</div></a>
+</nav>
+
+<!-- COMMENT DRAWER -->
+<div class="backdrop" id="backdrop" onclick="closeComments()"></div>
+<div class="comment-drawer" id="commentDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-title">Bình luận</div>
+  <div class="drawer-messages" id="drawerMessages"></div>
+  <div class="drawer-input">
+    <div class="comment-c-avatar" id="myAvatar">?</div>
+    <input id="commentInput" placeholder="Viết bình luận..." onkeydown="if(event.key==='Enter')sendComment()">
+    <button class="drawer-send" onclick="sendComment()">↑</button>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="upload-sheet">
+    <div class="upload-title">📹 Đăng Reel mới</div>
+    <div class="form-group">
+      <label class="form-label">Tiêu đề *</label>
+      <input class="form-input" id="reelTitle" placeholder="Tiêu đề hấp dẫn...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mô tả</label>
+      <input class="form-input" id="reelDesc" placeholder="Mô tả thêm...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Link video (URL)</label>
+      <input class="form-input" id="reelVideo" placeholder="https://...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Link ảnh thumbnail</label>
+      <input class="form-input" id="reelThumb" placeholder="https://...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hashtags (cách nhau bởi dấu phẩy)</label>
+      <input class="form-input" id="reelTags" placeholder="vé, concert, safepass">
+    </div>
+    <button class="btn-brand" onclick="submitReel()">🚀 Đăng Reel</button>
+    <button class="btn-cancel" onclick="closeUpload()">Huỷ</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API='';
+let token=localStorage.getItem('token');
+let currentUser=null;
+let reels=[];
+let page=1;
+let loading=false;
+let hasMore=true;
+let feed='for-you';
+let currentReelId=null;
+let followSet=new Set();
+let savedSet=new Set();
+let likedSet=new Set();
+
+const PLACEHOLDER_EMOJIS=['🎫','🎵','🎤','🏆','🎭','🎪','🎉','🎬','🌟','🔥'];
+const GRADIENT_PAIRS=[
+  ['#1a1a2e','#16213e'],['#0f3460','#533483'],['#1b262c','#0f4c75'],
+  ['#2d1b69','#11998e'],['#1a1a2e','#e94560'],['#134e5e','#71b280'],
+];
+
+function toast(msg, ok=true){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.style.borderColor=ok?'rgba(66,183,42,.5)':'rgba(228,30,63,.5)';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+async function api(path, opts={}){
+  const h={'Content-Type':'application/json'};
+  if(token) h['Authorization']='Bearer '+token;
+  const r=await fetch(API+path,{...opts,headers:{...h,...(opts.headers||{})}});
+  return r.json();
+}
+
+function initials(n){ return (n||'?').slice(0,2).toUpperCase(); }
+
+function buildReelEl(reel, idx){
+  const [c1,c2]=GRADIENT_PAIRS[idx%GRADIENT_PAIRS.length];
+  const emoji=PLACEHOLDER_EMOJIS[idx%PLACEHOLDER_EMOJIS.length];
+  const liked=likedSet.has(reel.id);
+  const saved=savedSet.has(reel.id);
+  const tags=(reel.hashtags||[]).map(t=>`<span class="reel-tag">#${t}</span>`).join('');
+  const product=reel.products?.[0];
+  return `
+    <div class="reel-item" id="reel-${reel.id}" data-id="${reel.id}" data-idx="${idx}">
+      <div class="reel-bg" style="background:linear-gradient(135deg,${c1},${c2})">
+        ${reel.thumbnail_url
+          ? `<img src="${reel.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" onerror="this.style.display='none'">`
+          : `<div class="reel-placeholder">${emoji}</div>`}
+      </div>
+      ${reel.video_url ? `<video class="reel-video" src="${reel.video_url}" loop muted playsinline preload="none"></video>` : ''}
+      <div class="reel-gradient"></div>
+      <div class="reel-info">
+        <div class="reel-creator">
+          <div class="creator-avatar" onclick="viewProfile('${reel.user?.id}')">${reel.user?.avatar_url?`<img src="${reel.user.avatar_url}">`:(initials(reel.user?.name))}</div>
+          <div style="flex:1">
+            <div class="creator-name">@${reel.user?.name||'creator'}</div>
+            <div class="creator-followers">${(reel.user?.followers_count||0).toLocaleString()} người theo dõi</div>
+          </div>
+          <button class="follow-btn${followSet.has(reel.user?.id)?'following':''}" id="follow-${reel.user?.id}" onclick="toggleFollow('${reel.user?.id}',this)">
+            ${followSet.has(reel.user?.id)?'✓ Đang follow':'+ Follow'}
+          </button>
+        </div>
+        <div class="reel-title">${reel.title}</div>
+        ${reel.description?`<div class="reel-desc">${reel.description}</div>`:''}
+        ${tags?`<div class="reel-tags">${tags}</div>`:''}
+        ${product?`
+          <div class="product-tag" onclick="buyProduct('${product.listing_id||''}')">
+            <div class="product-tag-img">🎫</div>
+            <div style="flex:1">
+              <div class="product-tag-name">${product.custom_title||'Sản phẩm'}</div>
+              <div class="product-tag-price">${product.custom_price?Number(product.custom_price).toLocaleString('vi-VN')+'₫':'Xem giá'}</div>
+            </div>
+            <div class="buy-now-btn">Mua ngay</div>
+          </div>
+        `:''}
+      </div>
+      <div class="reel-actions">
+        <div class="reel-action">
+          <div class="action-btn${liked?' liked':''}" id="like-${reel.id}" onclick="likeReel('${reel.id}',this)">❤️</div>
+          <div class="action-count" id="likes-${reel.id}">${formatCount(reel.likes_count)}</div>
+        </div>
+        <div class="reel-action">
+          <div class="action-btn" onclick="openComments('${reel.id}')">💬</div>
+          <div class="action-count">${formatCount(reel.comments_count)}</div>
+        </div>
+        <div class="reel-action">
+          <div class="action-btn" onclick="shareReel('${reel.id}')">↗️</div>
+          <div class="action-count" id="shares-${reel.id}">${formatCount(reel.shares_count)}</div>
+        </div>
+        <div class="reel-action">
+          <div class="action-btn${saved?' saved':''}" id="save-${reel.id}" onclick="saveReel('${reel.id}',this)">🔖</div>
+          <div class="action-count" id="saves-${reel.id}">${formatCount(reel.saves_count)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function formatCount(n){ if(!n) return '0'; if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); }
+
+async function loadReels(reset=false){
+  if(loading||(!hasMore&&!reset)) return;
+  loading=true;
+  if(reset){ page=1;hasMore=true;reels=[]; document.getElementById('reelsContainer').innerHTML=''; }
+  const endpoint=feed==='trending'?`/api/social/trending`:feed==='following'?`/api/social/reels?page=${page}&limit=8`:`/api/social/reels?page=${page}&limit=8`;
+  const d=await api(endpoint);
+  const newReels=feed==='trending'?d.videos||[]:d.reels||[];
+  loading=false;
+  hasMore=d.has_more||newReels.length===8;
+  reels.push(...newReels);
+  page++;
+  const container=document.getElementById('reelsContainer');
+  const startIdx=reels.length-newReels.length;
+  newReels.forEach((r,i)=>{
+    const div=document.createElement('div');
+    div.innerHTML=buildReelEl(r,startIdx+i);
+    container.appendChild(div.firstElementChild);
+  });
+  if(!newReels.length && reels.length===0){
+    container.innerHTML=`<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.5)"><div style="font-size:60px">🎬</div><div style="font-size:16px;font-weight:700;margin-top:16px">Chưa có Reels nào</div><div style="font-size:13px;margin-top:8px">Hãy đăng video đầu tiên!</div><button onclick="openUpload()" style="margin-top:20px;background:#2d88ff;color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer">📹 Đăng Reel</button></div>`;
+  }
+}
+
+// Intersection Observer for autoplay + infinite scroll
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    const el=entry.target;
+    const vid=el.querySelector('video');
+    if(entry.isIntersecting){
+      if(vid){vid.play().catch(()=>{});}
+      const id=el.dataset.id;
+      if(id){ api(`/api/social/videos/${id}/view`,{method:'POST'}).catch(()=>{}); }
+      // Load more when nearing end
+      const idx=parseInt(el.dataset.idx||0);
+      if(idx>=reels.length-3) loadReels();
+    } else {
+      if(vid){vid.pause();}
+    }
+  });
+},{threshold:0.6});
+
+const reelsMutObs=new MutationObserver(()=>{
+  document.querySelectorAll('.reel-item:not([data-observed])').forEach(el=>{
+    el.dataset.observed='1';observer.observe(el);
+  });
+});
+reelsMutObs.observe(document.getElementById('reelsContainer'),{childList:true});
+
+function switchFeed(f, el){
+  feed=f;
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  loadReels(true);
+}
+
+async function likeReel(id, btn){
+  if(!token){toast('Đăng nhập để thích',false);return;}
+  const d=await api(`/api/social/videos/${id}/like`,{method:'POST'});
+  if(d.liked!=null){
+    if(d.liked){likedSet.add(id);btn.classList.add('liked');}
+    else{likedSet.delete(id);btn.classList.remove('liked');}
+    const el=document.getElementById('likes-'+id);
+    if(el) el.textContent=formatCount(d.likes_count);
+  }
+}
+
+async function saveReel(id, btn){
+  if(!token){toast('Đăng nhập để lưu',false);return;}
+  const d=await api(`/api/social/videos/${id}/save`,{method:'POST'});
+  if(d.saved!=null){
+    if(d.saved){savedSet.add(id);btn.classList.add('saved');toast('Đã lưu Reel!');}
+    else{savedSet.delete(id);btn.classList.remove('saved');toast('Đã bỏ lưu');}
+  }
+}
+
+async function shareReel(id){
+  const url=location.origin+'/reels?id='+id;
+  if(navigator.share){navigator.share({url}).catch(()=>{});}
+  else{navigator.clipboard&&navigator.clipboard.writeText(url);toast('Đã sao chép link!');}
+  api(`/api/social/videos/${id}/share`,{method:'POST'}).catch(()=>{});
+  const el=document.getElementById('shares-'+id);
+  if(el) el.textContent=formatCount((parseInt(el.textContent)||0)+1);
+}
+
+async function toggleFollow(userId, btn){
+  if(!token){toast('Đăng nhập để follow',false);return;}
+  if(followSet.has(userId)){
+    await api(`/api/social/follow/${userId}`,{method:'DELETE'});
+    followSet.delete(userId);
+    document.querySelectorAll(`#follow-${userId}`).forEach(b=>{b.textContent='+ Follow';b.classList.remove('following');});
+    toast('Đã bỏ follow');
+  } else {
+    await api(`/api/social/follow/${userId}`,{method:'POST'});
+    followSet.add(userId);
+    document.querySelectorAll(`#follow-${userId}`).forEach(b=>{b.textContent='✓ Đang follow';b.classList.add('following');});
+    toast('Đang theo dõi!');
+  }
+}
+
+function viewProfile(uid){ if(uid) window.open('/social?creator='+uid,'_blank'); }
+function buyProduct(id){ if(id) window.open('/'+id); else toast('Sản phẩm không tồn tại',false); }
+
+// COMMENTS
+async function openComments(id){
+  currentReelId=id;
+  document.getElementById('commentDrawer').classList.add('open');
+  document.getElementById('backdrop').classList.add('show');
+  const el=document.getElementById('drawerMessages');
+  el.innerHTML=`<div style="text-align:center;padding:20px;color:rgba(255,255,255,.4)">Đang tải...</div>`;
+  const d=await api(`/api/social/videos/${id}/comments`);
+  const comments=d.comments||[];
+  el.innerHTML=comments.length?comments.map(c=>`
+    <div class="comment-c">
+      <div class="comment-c-avatar">${initials(c.user_name)}</div>
+      <div class="comment-c-bubble">
+        <div class="comment-c-author">${c.user_name||'Ẩn danh'}</div>
+        <div class="comment-c-text">${c.content}</div>
+      </div>
+    </div>
+  `).join(''):`<div style="text-align:center;padding:20px;color:rgba(255,255,255,.4)">Chưa có bình luận nào</div>`;
+}
+function closeComments(){
+  document.getElementById('commentDrawer').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+}
+async function sendComment(){
+  if(!token){toast('Đăng nhập để bình luận',false);return;}
+  const inp=document.getElementById('commentInput');
+  const content=inp.value.trim();
+  if(!content||!currentReelId) return;
+  inp.value='';
+  const d=await api(`/api/social/videos/${currentReelId}/comments`,{method:'POST',body:JSON.stringify({content})});
+  if(d.comment){ openComments(currentReelId); }
+}
+
+// UPLOAD
+function openUpload(){
+  if(!token){toast('Đăng nhập để đăng Reel',false);return;}
+  document.getElementById('uploadModal').classList.add('open');
+}
+function closeUpload(){ document.getElementById('uploadModal').classList.remove('open'); }
+document.getElementById('uploadModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeUpload(); });
+
+async function submitReel(){
+  const title=document.getElementById('reelTitle').value.trim();
+  const description=document.getElementById('reelDesc').value.trim();
+  const video_url=document.getElementById('reelVideo').value.trim();
+  const thumbnail_url=document.getElementById('reelThumb').value.trim();
+  const tagsRaw=document.getElementById('reelTags').value.trim();
+  const hashtags=tagsRaw?tagsRaw.split(',').map(t=>t.trim().replace(/^#/,'')).filter(Boolean):[];
+  if(!title){toast('Tiêu đề bắt buộc',false);return;}
+  const d=await api('/api/social/videos',{method:'POST',body:JSON.stringify({title,description,video_url,thumbnail_url,hashtags})});
+  if(d.video){toast('Đã đăng Reel!');closeUpload();loadReels(true);}
+  else toast(d.error||'Lỗi',false);
+}
+
+async function init(){
+  if(token){
+    try{
+      const d=await api('/api/users/me');
+      if(d.id){currentUser=d;document.getElementById('myAvatar').textContent=initials(d.name);}
+    }catch(e){}
+  }
+  loadReels();
+}
+init();
+</script>
+</body>
+</html>

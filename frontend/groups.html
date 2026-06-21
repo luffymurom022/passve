@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafePass — Nhóm</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#18191a;--surface:#242526;--surface2:#3a3b3c;--surface3:#4e4f50;
+  --border:#3a3b3c;--text:#e4e6eb;--text2:#b0b3b8;--text3:#8a8d91;
+  --brand:#2d88ff;--brand-h:#1877f2;--brand-light:rgba(45,136,255,.15);
+  --red:#e41e3f;--green:#42b72a;--orange:#f5a623;
+  --shadow:0 1px 2px rgba(0,0,0,.4);--shadow-md:0 2px 16px rgba(0,0,0,.4);
+  --radius:10px;--nav-h:56px;
+}
+html,body{min-height:100%;background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);}
+a{text-decoration:none;color:inherit;}
+button{cursor:pointer;border:none;font-family:inherit;}
+
+/* NAV */
+.top-nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;height:var(--nav-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;
+}
+.nav-logo{font-size:24px;font-weight:900;color:var(--brand);letter-spacing:-1px;}
+.nav-logo span{background:var(--brand);color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;margin-left:3px;vertical-align:middle;}
+.nav-title{font-size:17px;font-weight:700;color:var(--text);}
+.nav-spacer{flex:1;}
+.nav-btn{
+  display:flex;align-items:center;gap:6px;padding:8px 14px;
+  border-radius:8px;font-size:14px;font-weight:600;
+  background:var(--brand-light);color:var(--brand);transition:.15s;
+}
+.nav-btn:hover{background:var(--brand);color:#fff;}
+.nav-links{display:flex;gap:6px;}
+.nav-link{padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text2);transition:.15s;}
+.nav-link:hover,.nav-link.active{background:var(--brand-light);color:var(--brand);}
+
+/* LAYOUT */
+.layout{display:flex;padding-top:var(--nav-h);min-height:100vh;}
+.sidebar{
+  width:360px;min-width:280px;flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  height:calc(100vh - var(--nav-h));position:sticky;top:var(--nav-h);overflow-y:auto;
+  padding:16px 8px;
+}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px;}
+.main{flex:1;max-width:680px;margin:0 auto;padding:20px 16px;}
+.panel{background:var(--surface);border-radius:var(--radius);padding:16px;margin-bottom:16px;border:1px solid var(--border);}
+
+/* SIDEBAR SECTIONS */
+.sidebar-title{font-size:20px;font-weight:700;color:var(--text);padding:8px 8px 4px;}
+.sidebar-sub{font-size:13px;color:var(--text2);padding:4px 8px 12px;}
+.sidebar-btn{
+  width:100%;display:flex;align-items:center;gap:10px;padding:10px;
+  border-radius:8px;font-size:14px;font-weight:600;color:var(--text);
+  background:none;transition:.15s;text-align:left;
+}
+.sidebar-btn:hover{background:var(--surface2);}
+.sidebar-btn.active{background:var(--brand-light);color:var(--brand);}
+.sidebar-btn-icon{width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 0;}
+.sidebar-section-label{font-size:13px;font-weight:700;color:var(--text2);padding:8px 8px 4px;text-transform:uppercase;letter-spacing:.04em;}
+
+/* MY GROUPS LIST */
+.group-item{
+  display:flex;align-items:center;gap:10px;padding:8px;
+  border-radius:8px;cursor:pointer;transition:.15s;
+}
+.group-item:hover{background:var(--surface2);}
+.group-avatar{width:44px;height:44px;border-radius:10px;object-fit:cover;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.group-item-info{flex:1;min-width:0;}
+.group-item-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.group-item-meta{font-size:12px;color:var(--text3);}
+
+/* CREATE GROUP MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;pointer-events:none;transition:.2s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{
+  background:var(--surface);border-radius:14px;width:100%;max-width:500px;
+  max-height:90vh;overflow-y:auto;
+}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+}
+.modal-title{font-size:20px;font-weight:700;}
+.modal-close{width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text2);font-size:20px;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.modal-close:hover{background:var(--surface3);}
+.modal-body{padding:20px;}
+.form-group{margin-bottom:16px;}
+.form-label{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;display:block;}
+.form-input{
+  width:100%;padding:10px 14px;background:var(--surface2);
+  border:1.5px solid var(--border);border-radius:8px;color:var(--text);
+  font-size:14px;font-family:inherit;transition:.15s;outline:none;
+}
+.form-input:focus{border-color:var(--brand);}
+.form-textarea{min-height:80px;resize:vertical;}
+.form-select{appearance:none;}
+.privacy-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.privacy-opt{
+  flex:1;min-width:120px;padding:10px 12px;border-radius:8px;
+  border:2px solid var(--border);cursor:pointer;transition:.15s;text-align:center;
+}
+.privacy-opt.selected{border-color:var(--brand);background:var(--brand-light);}
+.privacy-opt-icon{font-size:20px;margin-bottom:4px;}
+.privacy-opt-label{font-size:13px;font-weight:600;color:var(--text);}
+.privacy-opt-desc{font-size:11px;color:var(--text3);}
+.btn{
+  padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;
+  transition:.15s;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{background:var(--brand-h);}
+.btn-ghost{background:var(--surface2);color:var(--text);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-full{width:100%;justify-content:center;}
+.btn-danger{background:#e41e3f22;color:var(--red);}
+.btn-danger:hover{background:var(--red);color:#fff;}
+
+/* GROUP CARD */
+.group-card{
+  background:var(--surface);border-radius:var(--radius);overflow:hidden;
+  border:1px solid var(--border);transition:.2s;cursor:pointer;
+}
+.group-card:hover{border-color:var(--brand-light);box-shadow:0 4px 20px rgba(45,136,255,.15);}
+.group-cover{
+  height:120px;background:linear-gradient(135deg,var(--brand),#9b59b6);
+  position:relative;overflow:hidden;
+}
+.group-cover img{width:100%;height:100%;object-fit:cover;}
+.group-card-body{padding:14px;}
+.group-card-avatar{
+  width:48px;height:48px;border-radius:10px;background:var(--surface2);
+  border:3px solid var(--surface);margin-top:-28px;margin-bottom:8px;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.group-card-avatar img{width:100%;height:100%;object-fit:cover;}
+.group-card-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.group-card-meta{font-size:12px;color:var(--text3);margin-bottom:10px;}
+.group-card-desc{font-size:13px;color:var(--text2);margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* GROUP DETAIL */
+.group-detail-cover{
+  height:200px;border-radius:var(--radius);overflow:hidden;
+  background:linear-gradient(135deg,var(--brand),#9b59b6);margin-bottom:16px;
+  position:relative;
+}
+.group-detail-cover img{width:100%;height:100%;object-fit:cover;}
+.group-detail-header{display:flex;align-items:flex-end;gap:16px;margin-bottom:16px;}
+.group-detail-avatar{
+  width:80px;height:80px;border-radius:14px;background:var(--surface2);
+  border:4px solid var(--surface);display:flex;align-items:center;justify-content:center;
+  font-size:36px;overflow:hidden;flex-shrink:0;
+}
+.group-detail-avatar img{width:100%;height:100%;object-fit:cover;}
+.group-detail-info{flex:1;}
+.group-detail-name{font-size:22px;font-weight:800;color:var(--text);}
+.group-detail-meta{font-size:13px;color:var(--text2);margin-top:2px;}
+.group-detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;gap:4px;}
+.tab{
+  padding:10px 16px;font-size:14px;font-weight:600;color:var(--text2);
+  cursor:pointer;border-bottom:3px solid transparent;transition:.15s;border-radius:6px 6px 0 0;
+}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand);}
+
+/* POST CARD */
+.post-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px;overflow:hidden;}
+.post-header{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;}
+.post-avatar{width:40px;height:40px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--brand);flex-shrink:0;overflow:hidden;}
+.post-avatar img{width:100%;height:100%;object-fit:cover;}
+.post-author{font-size:14px;font-weight:600;color:var(--text);}
+.post-time{font-size:12px;color:var(--text3);}
+.post-role{font-size:11px;background:var(--brand-light);color:var(--brand);padding:2px 6px;border-radius:4px;font-weight:600;}
+.post-content{padding:0 14px 12px;font-size:14px;color:var(--text);line-height:1.5;}
+.post-media{display:grid;gap:2px;margin-bottom:12px;}
+.post-media img{width:100%;aspect-ratio:16/9;object-fit:cover;}
+.post-actions{display:flex;border-top:1px solid var(--border);padding:4px 8px;}
+.post-action{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text2);
+  transition:.15s;
+}
+.post-action:hover{background:var(--surface2);}
+.post-action.liked{color:var(--brand);}
+.post-stats{padding:0 14px 8px;font-size:13px;color:var(--text3);}
+
+/* CREATE POST */
+.create-post{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:16px;}
+.create-post-top{display:flex;align-items:center;gap:10px;}
+.create-post-input{
+  flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:22px;
+  padding:10px 16px;font-size:14px;color:var(--text);cursor:pointer;transition:.15s;
+}
+.create-post-input:hover{background:var(--surface3);}
+
+/* MEMBER CARD */
+.member-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;transition:.15s;}
+.member-item:hover{background:var(--surface2);}
+.member-avatar{width:42px;height:42px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--brand);overflow:hidden;flex-shrink:0;}
+.member-avatar img{width:100%;height:100%;object-fit:cover;}
+.member-name{font-size:14px;font-weight:600;color:var(--text);}
+.member-role{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600;}
+.role-owner,.role-admin{background:#e41e3f22;color:var(--red);}
+.role-moderator{background:#f5a62322;color:var(--orange);}
+.role-member{background:var(--surface2);color:var(--text3);}
+
+/* RULE CARD */
+.rule-item{padding:12px;border-radius:8px;background:var(--surface2);margin-bottom:8px;}
+.rule-num{font-size:22px;font-weight:800;color:var(--brand);margin-bottom:2px;}
+.rule-title{font-size:14px;font-weight:700;color:var(--text);}
+.rule-desc{font-size:13px;color:var(--text2);margin-top:4px;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border-radius:4px;font-weight:600;}
+.badge-public{background:#42b72a22;color:var(--green);}
+.badge-private{background:#f5a62322;color:var(--orange);}
+.badge-secret{background:#e41e3f22;color:var(--red);}
+
+/* SEARCH */
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:22px;padding:8px 14px;margin-bottom:16px;}
+.search-bar input{flex:1;background:none;border:none;outline:none;font-size:14px;color:var(--text);}
+.search-bar input::placeholder{color:var(--text3);}
+
+/* DISCOVER CATS */
+.cat-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.cat-pill{
+  padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;
+  background:var(--surface2);color:var(--text2);cursor:pointer;transition:.15s;border:2px solid transparent;
+}
+.cat-pill:hover,.cat-pill.active{background:var(--brand-light);color:var(--brand);border-color:var(--brand);}
+
+/* COMMENTS SECTION */
+.comments-list{padding:0 14px 14px;border-top:1px solid var(--border);display:none;}
+.comments-list.open{display:block;}
+.comment-item{display:flex;gap:8px;margin-top:10px;}
+.comment-bubble{background:var(--surface2);border-radius:14px;padding:8px 12px;flex:1;}
+.comment-author{font-size:13px;font-weight:700;color:var(--text);}
+.comment-text{font-size:13px;color:var(--text2);margin-top:2px;}
+.comment-input-row{display:flex;gap:8px;margin-top:10px;}
+.comment-input{
+  flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:22px;
+  padding:8px 14px;font-size:13px;color:var(--text);outline:none;
+}
+.comment-input:focus{border-color:var(--brand);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#1c1e21;border:1px solid var(--border);color:var(--text);
+  padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;
+  z-index:9999;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--text3);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.empty-text{font-size:15px;font-weight:600;color:var(--text2);}
+.empty-sub{font-size:13px;margin-top:4px;}
+
+/* SPINNER */
+.spinner{
+  width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--brand);
+  border-radius:50%;animation:spin .8s linear infinite;margin:32px auto;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{padding:12px 8px;}
+  .grid-2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="top-nav">
+  <a href="/" class="nav-logo">SafePass<span>GROUPS</span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">🏠 Trang chủ</a>
+    <a href="/social" class="nav-link">📱 Social</a>
+    <a href="/reels" class="nav-link">🎬 Reels</a>
+    <a href="/messenger" class="nav-link">💬 Tin nhắn</a>
+  </div>
+  <div class="nav-spacer"></div>
+  <button class="nav-btn" onclick="openCreateModal()">➕ Tạo nhóm</button>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Nhóm</div>
+    <div class="sidebar-sub">Kết nối với cộng đồng của bạn</div>
+    <button class="sidebar-btn active" id="btnDiscover" onclick="showSection('discover')">
+      <div class="sidebar-btn-icon">🔍</div> Khám phá nhóm
+    </button>
+    <button class="sidebar-btn" id="btnMyGroups" onclick="showSection('my')">
+      <div class="sidebar-btn-icon">👥</div> Nhóm của tôi
+    </button>
+    <button class="sidebar-btn" id="btnInvites" onclick="showSection('invites')">
+      <div class="sidebar-btn-icon">✉️</div> Lời mời <span id="inviteBadge"></span>
+    </button>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Nhóm của tôi</div>
+    <div id="sidebarMyGroups"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="mainArea">
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<!-- CREATE GROUP MODAL -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Tạo nhóm mới</div>
+      <button class="modal-close" onclick="closeCreateModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Tên nhóm *</label>
+        <input class="form-input" id="gName" placeholder="Vd: Hội Pass Vé Hòa Nhạc" maxlength="80">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mô tả</label>
+        <textarea class="form-input form-textarea" id="gDesc" placeholder="Mô tả về nhóm của bạn..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Danh mục</label>
+        <select class="form-input form-select" id="gCat">
+          <option value="general">Chung</option>
+          <option value="tickets">Vé sự kiện</option>
+          <option value="music">Âm nhạc</option>
+          <option value="sports">Thể thao</option>
+          <option value="gaming">Gaming</option>
+          <option value="fashion">Thời trang</option>
+          <option value="food">Ẩm thực</option>
+          <option value="travel">Du lịch</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quyền riêng tư</label>
+        <div class="privacy-opts">
+          <div class="privacy-opt selected" onclick="selectPrivacy('public',this)">
+            <div class="privacy-opt-icon">🌐</div>
+            <div class="privacy-opt-label">Công khai</div>
+            <div class="privacy-opt-desc">Ai cũng thấy</div>
+          </div>
+          <div class="privacy-opt" onclick="selectPrivacy('private',this)">
+            <div class="privacy-opt-icon">🔒</div>
+            <div class="privacy-opt-label">Riêng tư</div>
+            <div class="privacy-opt-desc">Cần được duyệt</div>
+          </div>
+          <div class="privacy-opt" onclick="selectPrivacy('secret',this)">
+            <div class="privacy-opt-icon">🕵️</div>
+            <div class="privacy-opt-label">Bí mật</div>
+            <div class="privacy-opt-desc">Chỉ thành viên</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="createGroup()">Tạo nhóm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('token');
+let currentUser = null;
+let selectedPrivacy = 'public';
+let currentSection = 'discover';
+let currentGroupId = null;
+let currentTab = 'discussion';
+let myGroupIds = new Set();
+
+function toast(msg, ok=true){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.borderColor=ok?'var(--green)':'var(--red)';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+async function api(path, opts={}){
+  const h={'Content-Type':'application/json'};
+  if(token) h['Authorization']='Bearer '+token;
+  const r = await fetch(API+path,{...opts,headers:{...h,...(opts.headers||{})}});
+  return r.json();
+}
+
+function selectPrivacy(val, el){
+  selectedPrivacy = val;
+  document.querySelectorAll('.privacy-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function openCreateModal(){
+  if(!token){toast('Vui lòng đăng nhập',false);return;}
+  document.getElementById('createModal').classList.add('open');
+}
+function closeCreateModal(){ document.getElementById('createModal').classList.remove('open'); }
+document.getElementById('createModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeCreateModal(); });
+
+async function createGroup(){
+  const name=document.getElementById('gName').value.trim();
+  const desc=document.getElementById('gDesc').value.trim();
+  const cat=document.getElementById('gCat').value;
+  if(!name){toast('Tên nhóm không được trống',false);return;}
+  const d = await api('/api/sn/groups',{method:'POST',body:JSON.stringify({name,description:desc,category:cat,privacy:selectedPrivacy})});
+  if(d.ok){toast('Đã tạo nhóm!');closeCreateModal();loadSidebar();openGroup(d.group.id);}
+  else toast(d.error||'Lỗi',false);
+}
+
+function showSection(s){
+  currentSection = s;
+  currentGroupId = null;
+  ['btnDiscover','btnMyGroups','btnInvites'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  const map={discover:'btnDiscover',my:'btnMyGroups',invites:'btnInvites'};
+  document.getElementById(map[s]).classList.add('active');
+  if(s==='discover') renderDiscover();
+  else if(s==='my') renderMyGroups();
+  else if(s==='invites') renderInvites();
+}
+
+function privacyBadge(p){
+  const m={public:'🌐 Công khai',private:'🔒 Riêng tư',secret:'🕵️ Bí mật'};
+  const c={public:'badge-public',private:'badge-private',secret:'badge-secret'};
+  return `<span class="badge ${c[p]||'badge-public'}">${m[p]||p}</span>`;
+}
+function catEmoji(cat){
+  const m={tickets:'🎫',music:'🎵',sports:'⚽',gaming:'🎮',fashion:'👗',food:'🍜',travel:'✈️',general:'👥'};
+  return m[cat]||'👥';
+}
+function timeAgo(ts){
+  if(!ts) return '';
+  const d=Math.floor((Date.now()-new Date(ts))/1000);
+  if(d<60) return 'vừa xong';
+  if(d<3600) return Math.floor(d/60)+'p';
+  if(d<86400) return Math.floor(d/3600)+'h';
+  return Math.floor(d/86400)+'d';
+}
+function initials(name){ return (name||'?').slice(0,2).toUpperCase(); }
+
+// ── DISCOVER ──
+let discoverSearch='', discoverCat='all', discoverPage=1;
+async function renderDiscover(){
+  const main=document.getElementById('mainArea');
+  main.innerHTML=`
+    <div class="search-bar"><span>🔍</span><input id="discoverSearch" placeholder="Tìm kiếm nhóm..." oninput="onDiscoverSearch(this.value)"></div>
+    <div class="cat-pills">
+      ${['all','tickets','music','sports','gaming','fashion','food','travel'].map(c=>`
+        <div class="cat-pill${discoverCat===c?' active':''}" onclick="setDiscoverCat('${c}')">${catEmoji(c)} ${c==='all'?'Tất cả':c}</div>
+      `).join('')}
+    </div>
+    <div id="groupGrid"><div class="spinner"></div></div>
+  `;
+  if(discoverSearch) document.getElementById('discoverSearch').value=discoverSearch;
+  loadDiscoverGroups();
+}
+
+function onDiscoverSearch(v){ discoverSearch=v; discoverPage=1; clearTimeout(window._dst); window._dst=setTimeout(loadDiscoverGroups,400); }
+function setDiscoverCat(c){ discoverCat=c; discoverPage=1; renderDiscover(); }
+
+async function loadDiscoverGroups(){
+  const params=new URLSearchParams({search:discoverSearch,category:discoverCat,page:discoverPage,limit:20});
+  const d = await api(`/api/sn/groups/discover?${params}`);
+  const g=d.groups||[];
+  const el=document.getElementById('groupGrid');
+  if(!el) return;
+  if(!g.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Không tìm thấy nhóm nào</div><div class="empty-sub">Hãy tạo nhóm đầu tiên!</div></div>`;return; }
+  el.innerHTML=`<div class="grid-2">${g.map(group=>`
+    <div class="group-card" onclick="openGroup('${group.id}')">
+      <div class="group-cover">${group.cover_url?`<img src="${group.cover_url}" onerror="this.style.display='none'">`:''}
+        <div style="position:absolute;bottom:8px;left:8px">${privacyBadge(group.privacy)}</div>
+      </div>
+      <div class="group-card-body">
+        <div class="group-card-avatar">${group.avatar_url?`<img src="${group.avatar_url}">`:(catEmoji(group.category)||'👥')}</div>
+        <div class="group-card-name">${group.name}</div>
+        <div class="group-card-meta">👥 ${(group.members_count||0).toLocaleString()} thành viên · ${catEmoji(group.category)} ${group.category||'general'}</div>
+        <div class="group-card-desc">${group.description||'Nhóm cộng đồng SafePass'}</div>
+        <button class="btn btn-primary btn-full" onclick="event.stopPropagation();joinGroup('${group.id}',this)">
+          ${myGroupIds.has(group.id)?'✓ Đã tham gia':'➕ Tham gia'}
+        </button>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+// ── MY GROUPS ──
+async function renderMyGroups(){
+  const main=document.getElementById('mainArea');
+  main.innerHTML=`<div class="spinner"></div>`;
+  const d = await api('/api/sn/my-groups');
+  const groups = Array.isArray(d)?d:[];
+  if(!groups.length){
+    main.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Bạn chưa tham gia nhóm nào</div><div class="empty-sub">Khám phá và tham gia ngay!</div><br><button class="btn btn-primary" onclick="showSection('discover')">Khám phá nhóm</button></div>`;
+    return;
+  }
+  main.innerHTML=`<div class="grid-2">${groups.map(group=>`
+    <div class="group-card" onclick="openGroup('${group.id}')">
+      <div class="group-cover">${group.cover_url?`<img src="${group.cover_url}">`:''}
+        <div style="position:absolute;bottom:8px;left:8px">${privacyBadge(group.privacy)}</div>
+      </div>
+      <div class="group-card-body">
+        <div class="group-card-avatar">${group.avatar_url?`<img src="${group.avatar_url}">`:(catEmoji(group.category)||'👥')}</div>
+        <div class="group-card-name">${group.name}</div>
+        <div class="group-card-meta">👥 ${(group.members_count||0).toLocaleString()} thành viên · Vai trò: ${group.my_role||'member'}</div>
+        <div class="group-card-desc">${group.description||''}</div>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+// ── INVITES ──
+async function renderInvites(){
+  const main=document.getElementById('mainArea');
+  main.innerHTML=`<div class="spinner"></div>`;
+  const d = await api('/api/sn/my-invites');
+  const invites = d.invites||[];
+  const badge=document.getElementById('inviteBadge');
+  if(badge) badge.textContent=invites.length?`(${invites.length})`:'';
+  if(!invites.length){
+    main.innerHTML=`<div class="empty"><div class="empty-icon">✉️</div><div class="empty-text">Không có lời mời nào</div></div>`;
+    return;
+  }
+  main.innerHTML=`<div>${invites.map(inv=>`
+    <div class="panel" style="display:flex;align-items:center;gap:14px">
+      <div class="group-avatar" style="width:56px;height:56px;border-radius:10px">${catEmoji(inv.group?.category)||'👥'}</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700">${inv.group?.name||'Nhóm'}</div>
+        <div style="font-size:13px;color:var(--text2)">Được mời bởi ${inv.inviter_name||'Thành viên'}</div>
+      </div>
+      <button class="btn btn-primary" onclick="acceptInvite('${inv.id}',this)">✓ Đồng ý</button>
+      <button class="btn btn-ghost" onclick="declineInvite('${inv.id}',this)">✕ Từ chối</button>
+    </div>
+  `).join('')}</div>`;
+}
+
+async function acceptInvite(id, btn){
+  btn.disabled=true;btn.textContent='...';
+  const d=await api(`/api/sn/invites/${id}/accept`,{method:'POST'});
+  if(d.ok){toast('Đã tham gia nhóm!');renderInvites();loadSidebar();}
+  else toast(d.error||'Lỗi',false);
+}
+async function declineInvite(id, btn){
+  btn.disabled=true;
+  await api(`/api/sn/invites/${id}/decline`,{method:'POST'});
+  toast('Đã từ chối');renderInvites();
+}
+
+// ── GROUP DETAIL ──
+async function openGroup(id){
+  currentGroupId=id;currentTab='discussion';
+  const main=document.getElementById('mainArea');
+  main.innerHTML=`<div class="spinner"></div>`;
+  const d=await api(`/api/sn/groups/${id}`);
+  if(d.error){main.innerHTML=`<div class="empty"><div class="empty-text">${d.error}</div></div>`;return;}
+  const mem=await api(`/api/sn/groups/${id}/membership`);
+  const isMember=mem.member;
+  const myRole=mem.role;
+  const isAdmin=['admin','owner'].includes(myRole);
+  main.innerHTML=`
+    <div class="group-detail-cover">${d.cover_url?`<img src="${d.cover_url}">`:''}
+      <button style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.5);color:#fff;border:none;padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="showSection('discover')">← Quay lại</button>
+    </div>
+    <div class="group-detail-header">
+      <div class="group-detail-avatar">${d.avatar_url?`<img src="${d.avatar_url}">`:(catEmoji(d.category)||'👥')}</div>
+      <div class="group-detail-info">
+        <div class="group-detail-name">${d.name}</div>
+        <div class="group-detail-meta">${privacyBadge(d.privacy)} · 👥 ${(d.members_count||0).toLocaleString()} thành viên</div>
+        <div class="group-detail-actions">
+          ${isMember
+            ? `<button class="btn btn-ghost" onclick="leaveGroup('${id}',this)">Rời nhóm</button>
+               <button class="btn btn-primary" onclick="openInviteModal('${id}')">✉️ Mời bạn bè</button>`
+            : `<button class="btn btn-primary" id="joinBtn" onclick="joinGroup('${id}',this)">➕ Tham gia nhóm</button>`
+          }
+        </div>
+      </div>
+    </div>
+    ${d.description?`<div class="panel" style="font-size:14px;color:var(--text2)">${d.description}</div>`:''}
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('discussion',this)">💬 Thảo luận</div>
+      <div class="tab" onclick="switchTab('marketplace',this)">🛒 Thị trường</div>
+      <div class="tab" onclick="switchTab('members',this)">👥 Thành viên</div>
+      <div class="tab" onclick="switchTab('rules',this)">📋 Quy tắc</div>
+    </div>
+    <div id="groupTabContent"></div>
+  `;
+  renderGroupTab('discussion', id, isMember, myRole);
+}
+
+function switchTab(tab, el){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const isMember=true; // re-check if needed
+  renderGroupTab(tab, currentGroupId, true, null);
+}
+
+async function renderGroupTab(tab, id, isMember, myRole){
+  const tc=document.getElementById('groupTabContent');
+  if(!tc) return;
+  if(tab==='discussion'){
+    tc.innerHTML=`
+      ${isMember&&token?`
+        <div class="create-post">
+          <div class="create-post-top">
+            <div class="post-avatar" style="background:var(--brand-light);color:var(--brand)">${currentUser?initials(currentUser.name):'?'}</div>
+            <div class="create-post-input" onclick="openPostModal('${id}')">Bạn đang nghĩ gì?</div>
+          </div>
+        </div>
+      `:''}
+      <div id="postsList"><div class="spinner"></div></div>
+    `;
+    loadGroupPosts(id);
+  } else if(tab==='marketplace'){
+    tc.innerHTML=`
+      <div class="panel">
+        <div style="font-size:16px;font-weight:700;margin-bottom:12px">🛒 Thị trường nhóm</div>
+        <div id="groupMarket"><div class="spinner"></div></div>
+      </div>
+    `;
+    loadGroupMarket(id);
+  } else if(tab==='members'){
+    tc.innerHTML=`<div class="panel"><div style="font-size:16px;font-weight:700;margin-bottom:12px">👥 Thành viên</div><div id="membersList"><div class="spinner"></div></div></div>`;
+    loadGroupMembers(id);
+  } else if(tab==='rules'){
+    tc.innerHTML=`
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:16px;font-weight:700">📋 Quy tắc nhóm</div>
+          ${['admin','owner'].includes(myRole)&&myRole?`<button class="btn btn-ghost" onclick="openRuleModal('${id}')">+ Thêm quy tắc</button>`:''}
+        </div>
+        <div id="rulesList"><div class="spinner"></div></div>
+      </div>
+    `;
+    loadGroupRules(id);
+  }
+}
+
+async function loadGroupPosts(id){
+  const el=document.getElementById('postsList');
+  const d=await api(`/api/sn/groups/${id}/posts?limit=20`);
+  const posts=d.posts||[];
+  if(!posts.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📝</div><div class="empty-text">Chưa có bài đăng nào</div></div>`;return;}
+  el.innerHTML=posts.map(p=>`
+    <div class="post-card" id="post-${p.id}">
+      <div class="post-header">
+        <div class="post-avatar">${p.user?.avatar_url?`<img src="${p.user.avatar_url}">`:(initials(p.user?.name)||'?')}</div>
+        <div style="flex:1">
+          <div class="post-author">${p.user?.name||'Ẩn danh'}</div>
+          <div class="post-time">${timeAgo(p.created_at)}</div>
+        </div>
+      </div>
+      <div class="post-content">${p.content}</div>
+      ${(p.media_urls||[]).length?`<div class="post-media">${p.media_urls.map(u=>`<img src="${u}" loading="lazy">`).join('')}</div>`:''}
+      <div class="post-stats" id="pstat-${p.id}">❤️ ${p.likes_count||0} · 💬 ${p.comments_count||0} bình luận</div>
+      <div class="post-actions">
+        <div class="post-action" onclick="likePost('${id}','${p.id}',this)">❤️ Thích</div>
+        <div class="post-action" onclick="toggleComments('${p.id}')">💬 Bình luận</div>
+        <div class="post-action" onclick="sharePost('${p.id}')">↗️ Chia sẻ</div>
+      </div>
+      <div class="comments-list" id="comments-${p.id}">
+        <div class="comment-input-row">
+          <div class="post-avatar" style="width:32px;height:32px;font-size:13px">${currentUser?initials(currentUser.name):'?'}</div>
+          <input class="comment-input" id="cinput-${p.id}" placeholder="Viết bình luận..." onkeydown="if(event.key==='Enter')postComment('${id}','${p.id}')">
+        </div>
+        <div id="clist-${p.id}"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function likePost(gid, pid, el){
+  if(!token){toast('Đăng nhập để thích bài',false);return;}
+  const d=await api(`/api/sn/groups/${gid}/posts/${pid}/like`,{method:'POST'});
+  const stat=document.getElementById('pstat-'+pid);
+  if(stat&&d.likes_count!==undefined) stat.innerHTML=`❤️ ${d.likes_count} · 💬 ${stat.innerHTML.split('·')[1]||'0 bình luận'}`;
+  el.classList.toggle('liked',d.liked);
+}
+
+async function toggleComments(pid){
+  const el=document.getElementById('comments-'+pid);
+  if(!el) return;
+  const isOpen=el.classList.toggle('open');
+  if(isOpen && !document.getElementById('clist-'+pid).innerHTML){
+    loadComments(currentGroupId, pid);
+  }
+}
+
+async function loadComments(gid, pid){
+  const el=document.getElementById('clist-'+pid);
+  const d=await api(`/api/sn/groups/${gid}/posts/${pid}/comments`);
+  const comments=d.comments||[];
+  el.innerHTML=comments.map(c=>`
+    <div class="comment-item">
+      <div class="post-avatar" style="width:32px;height:32px;font-size:13px">${initials(c.user_name)}</div>
+      <div class="comment-bubble">
+        <div class="comment-author">${c.user_name||'Ẩn danh'}</div>
+        <div class="comment-text">${c.content}</div>
+      </div>
+    </div>
+  `).join('')||'<div style="padding:8px;font-size:13px;color:var(--text3)">Chưa có bình luận</div>';
+}
+
+async function postComment(gid, pid){
+  if(!token){toast('Đăng nhập để bình luận',false);return;}
+  const inp=document.getElementById('cinput-'+pid);
+  const content=inp.value.trim();
+  if(!content) return;
+  const d=await api(`/api/sn/groups/${gid}/posts/${pid}/comments`,{method:'POST',body:JSON.stringify({content})});
+  if(d.comment){ inp.value=''; loadComments(gid, pid); }
+}
+
+function sharePost(pid){ navigator.clipboard&&navigator.clipboard.writeText(location.origin+'/groups?post='+pid); toast('Đã sao chép link!'); }
+
+// Post modal (inline simple)
+function openPostModal(gid){
+  if(!token){toast('Đăng nhập để đăng bài',false);return;}
+  const content=prompt('Nội dung bài đăng:');
+  if(!content?.trim()) return;
+  api(`/api/sn/groups/${gid}/posts`,{method:'POST',body:JSON.stringify({content})}).then(d=>{
+    if(d.post){toast('Đã đăng bài!');loadGroupPosts(gid);}
+    else toast(d.error||'Lỗi',false);
+  });
+}
+
+async function loadGroupMarket(id){
+  const el=document.getElementById('groupMarket');
+  if(!el) return;
+  // Show tickets in this group via sn_group_posts with listing_id
+  const d=await api(`/api/sn/groups/${id}/posts?limit=20`);
+  const products=(d.posts||[]).filter(p=>p.listing_id||p.post_type==='product');
+  if(!products.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🛒</div><div class="empty-text">Chưa có sản phẩm nào</div></div>`;return;}
+  el.innerHTML=products.map(p=>`
+    <div style="display:flex;gap:10px;padding:10px;border-radius:8px;background:var(--surface2);margin-bottom:8px">
+      <div style="font-size:32px">🎫</div>
+      <div style="flex:1"><div style="font-weight:600">${p.content}</div><div style="font-size:13px;color:var(--text3)">${timeAgo(p.created_at)}</div></div>
+    </div>
+  `).join('');
+}
+
+async function loadGroupMembers(id){
+  const el=document.getElementById('membersList');
+  if(!el) return;
+  const d=await api(`/api/sn/groups/${id}/members`);
+  const members=d.members||[];
+  if(!members.length){el.innerHTML='<div class="empty"><div class="empty-text">Chưa có thành viên</div></div>';return;}
+  el.innerHTML=members.map(m=>`
+    <div class="member-item">
+      <div class="member-avatar">${m.user?.avatar_url?`<img src="${m.user.avatar_url}">`:(initials(m.user?.name)||'?')}</div>
+      <div style="flex:1">
+        <div class="member-name">${m.user?.name||'Ẩn danh'}</div>
+        <div style="font-size:12px;color:var(--text3)">Tham gia ${timeAgo(m.joined_at)}</div>
+      </div>
+      <span class="member-role role-${m.role}">${m.role==='admin'?'👑 Admin':m.role==='owner'?'⭐ Chủ nhóm':m.role==='moderator'?'🛡️ Mod':'Thành viên'}</span>
+    </div>
+  `).join('');
+}
+
+async function loadGroupRules(id){
+  const el=document.getElementById('rulesList');
+  if(!el) return;
+  const d=await api(`/api/sn/groups/${id}/rules`);
+  const rules=d.rules||[];
+  if(!rules.length){el.innerHTML=`<div class="empty"><div class="empty-text">Chưa có quy tắc nào</div></div>`;return;}
+  el.innerHTML=rules.map((r,i)=>`
+    <div class="rule-item">
+      <div class="rule-num">${i+1}</div>
+      <div class="rule-title">${r.title}</div>
+      ${r.description?`<div class="rule-desc">${r.description}</div>`:''}
+    </div>
+  `).join('');
+}
+
+function openRuleModal(id){
+  const title=prompt('Tiêu đề quy tắc:');
+  if(!title?.trim()) return;
+  const desc=prompt('Mô tả (tuỳ chọn):');
+  api(`/api/sn/groups/${id}/rules`,{method:'POST',body:JSON.stringify({title,description:desc||''})}).then(d=>{
+    if(d.rule){toast('Đã thêm quy tắc!');loadGroupRules(id);}
+    else toast(d.error||'Lỗi',false);
+  });
+}
+
+function openInviteModal(id){
+  const userId=prompt('Nhập ID người dùng cần mời:');
+  if(!userId?.trim()) return;
+  api(`/api/sn/groups/${id}/invite`,{method:'POST',body:JSON.stringify({user_id:userId})}).then(d=>{
+    if(d.ok) toast('Đã gửi lời mời!');
+    else toast(d.error||'Lỗi',false);
+  });
+}
+
+async function joinGroup(id, btn){
+  if(!token){toast('Vui lòng đăng nhập',false);return;}
+  btn.disabled=true;btn.textContent='...';
+  const d=await api(`/api/sn/groups/${id}/join`,{method:'POST'});
+  if(d.ok){
+    myGroupIds.add(id);toast('Đã tham gia nhóm!');
+    btn.textContent='✓ Đã tham gia';btn.disabled=false;
+    loadSidebar();
+  } else { toast(d.error||'Lỗi',false);btn.textContent='➕ Tham gia';btn.disabled=false; }
+}
+
+async function leaveGroup(id, btn){
+  if(!confirm('Bạn có chắc muốn rời nhóm?')) return;
+  btn.disabled=true;
+  const d=await api(`/api/sn/groups/${id}/leave`,{method:'DELETE'});
+  if(d.ok){myGroupIds.delete(id);toast('Đã rời nhóm');showSection('discover');}
+  else{toast(d.error||'Lỗi',false);btn.disabled=false;}
+}
+
+async function loadSidebar(){
+  if(!token) return;
+  const d=await api('/api/sn/my-groups');
+  const groups=Array.isArray(d)?d:[];
+  myGroupIds=new Set(groups.map(g=>g.id));
+  const el=document.getElementById('sidebarMyGroups');
+  if(!el) return;
+  el.innerHTML=groups.slice(0,8).map(g=>`
+    <div class="group-item" onclick="openGroup('${g.id}')">
+      <div class="group-avatar">${g.avatar_url?`<img src="${g.avatar_url}" style="width:44px;height:44px;border-radius:10px;object-fit:cover">`:(catEmoji(g.category)||'👥')}</div>
+      <div class="group-item-info">
+        <div class="group-item-name">${g.name}</div>
+        <div class="group-item-meta">👥 ${(g.members_count||0).toLocaleString()}</div>
+      </div>
+    </div>
+  `).join('')||'<div style="padding:8px;font-size:13px;color:var(--text3)">Chưa có nhóm nào</div>';
+  // Invite badge
+  const inv=await api('/api/sn/my-invites');
+  const cnt=(inv.invites||[]).length;
+  const b=document.getElementById('inviteBadge');
+  if(b) b.textContent=cnt?`(${cnt})`:'';
+}
+
+async function init(){
+  if(token){
+    try{
+      const d=await api('/api/users/me');
+      if(d.id) currentUser=d;
+    }catch(e){}
+  }
+  await loadSidebar();
+  renderDiscover();
+}
+
+init();
+</script>
+</body>
+</html>

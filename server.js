@@ -4239,11 +4239,7 @@ async function autoReleaseServiceOrders() {
 
 // ── SERVE FRONTEND STATIC FILES ──
 app.use(express.static(join(__dirname, 'frontend')));
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(join(__dirname, 'frontend', 'index.html'));
-  }
-});
+// Note: catch-all moved to end of file so named routes take priority
 
 // ── Chuẩn hóa số điện thoại cũ khi khởi động ──
 async function migratePhoneNumbers() {
@@ -10583,14 +10579,473 @@ app.get('/api/sn/trending', async (req, res) => {
 
 /* ── END PHASE 21 ── */
 
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3 — SOCIAL: GROUPS, REELS & DIRECT MESSAGING
+// ═══════════════════════════════════════════════════════════════
+
+// Static pages — Phase 3
+app.get('/groups', (req, res) => res.sendFile(join(__dirname, 'frontend/groups.html')));
+app.get('/groups.html', (req, res) => res.sendFile(join(__dirname, 'frontend/groups.html')));
+app.get('/reels', (req, res) => res.sendFile(join(__dirname, 'frontend/reels.html')));
+app.get('/reels.html', (req, res) => res.sendFile(join(__dirname, 'frontend/reels.html')));
+app.get('/messenger', (req, res) => res.sendFile(join(__dirname, 'frontend/messenger.html')));
+app.get('/messenger.html', (req, res) => res.sendFile(join(__dirname, 'frontend/messenger.html')));
+
+// ════════════════════════════════════════
+// GROUP POSTS
+// ════════════════════════════════════════
+
+app.get('/api/sn/groups/:id/posts', async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page)-1)*parseInt(limit);
+    const { data: posts } = await supabase.from('sn_group_posts').select('*').eq('group_id', req.params.id).eq('status','active').order('created_at',{ascending:false}).range(offset, offset+parseInt(limit)-1);
+    const enriched = await Promise.all((posts||[]).map(async p => {
+      const { data: u } = await supabase.from('users').select('id,name').eq('id',p.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id',p.user_id).maybeSingle();
+      return { ...p, user: { ...u, avatar_url: prof?.avatar_url } };
+    }));
+    res.json({ posts: enriched });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/groups/:id/posts', auth, async (req, res) => {
+  try {
+    const { data: m } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).maybeSingle();
+    if (!m) return res.status(403).json({ error: 'Bạn chưa tham gia nhóm này' });
+    const { content, media_urls, post_type, listing_id } = req.body;
+    if (!content?.trim() && !media_urls?.length) return res.status(400).json({ error: 'Nội dung không được trống' });
+    const { data, error } = await supabase.from('sn_group_posts').insert({ group_id: req.params.id, user_id: req.user.id, content: content||'', media_urls: media_urls||[], post_type: post_type||'text', listing_id: listing_id||null }).select().single();
+    if (error) throw error;
+    await supabase.from('sn_groups').update({ posts_count: supabase.rpc ? undefined : 0 }).eq('id', req.params.id);
+    res.json({ post: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/groups/:id/posts/:postId/like', auth, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const uid = req.user.id;
+    const { data: existing } = await supabase.from('sn_group_post_likes').select('id').eq('post_id',postId).eq('user_id',uid).maybeSingle();
+    if (existing) {
+      await supabase.from('sn_group_post_likes').delete().eq('id',existing.id);
+      const { data: p } = await supabase.from('sn_group_posts').select('likes_count').eq('id',postId).single();
+      const n = Math.max(0,(p?.likes_count||1)-1);
+      await supabase.from('sn_group_posts').update({ likes_count: n }).eq('id',postId);
+      return res.json({ liked: false, likes_count: n });
+    }
+    await supabase.from('sn_group_post_likes').insert({ post_id: postId, user_id: uid });
+    const { data: p } = await supabase.from('sn_group_posts').select('likes_count').eq('id',postId).single();
+    const n = (p?.likes_count||0)+1;
+    await supabase.from('sn_group_posts').update({ likes_count: n }).eq('id',postId);
+    res.json({ liked: true, likes_count: n });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/groups/:id/posts/:postId/comments', async (req, res) => {
+  try {
+    const { data: comments } = await supabase.from('sn_group_post_comments').select('*').eq('post_id',req.params.postId).order('created_at',{ascending:true}).limit(50);
+    const enriched = await Promise.all((comments||[]).map(async c => {
+      const { data: u } = await supabase.from('users').select('name').eq('id',c.user_id).single();
+      return { ...c, user_name: u?.name };
+    }));
+    res.json({ comments: enriched });
+  } catch(e) { res.json({ comments: [] }); }
+});
+
+app.post('/api/sn/groups/:id/posts/:postId/comments', auth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Nội dung bắt buộc' });
+    const { data, error } = await supabase.from('sn_group_post_comments').insert({ post_id: req.params.postId, user_id: req.user.id, content: content.trim() }).select().single();
+    if (error) throw error;
+    const { data: p } = await supabase.from('sn_group_posts').select('comments_count').eq('id',req.params.postId).single();
+    await supabase.from('sn_group_posts').update({ comments_count: (p?.comments_count||0)+1 }).eq('id',req.params.postId);
+    res.json({ comment: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sn/groups/:id/posts/:postId', auth, async (req, res) => {
+  try {
+    const { data: post } = await supabase.from('sn_group_posts').select('user_id').eq('id',req.params.postId).single();
+    const { data: m } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).maybeSingle();
+    if (post?.user_id !== req.user.id && !['admin','owner','moderator'].includes(m?.role)) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('sn_group_posts').update({ status:'deleted' }).eq('id',req.params.postId);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// GROUP MEMBERS & ROLES
+// ════════════════════════════════════════
+
+app.get('/api/sn/groups/:id/members', async (req, res) => {
+  try {
+    const { page=1, limit=50 } = req.query;
+    const offset = (parseInt(page)-1)*parseInt(limit);
+    const { data: members } = await supabase.from('sn_group_members').select('*').eq('group_id',req.params.id).order('joined_at',{ascending:true}).range(offset, offset+parseInt(limit)-1);
+    const enriched = await Promise.all((members||[]).map(async m => {
+      const { data: u } = await supabase.from('users').select('id,name').eq('id',m.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id',m.user_id).maybeSingle();
+      return { ...m, user: { ...u, avatar_url: prof?.avatar_url } };
+    }));
+    res.json({ members: enriched });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/sn/groups/:id/members/:userId/role', auth, async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['member','moderator','admin'].includes(role)) return res.status(400).json({ error: 'Role không hợp lệ' });
+    const { data: myMem } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).single();
+    if (!['admin','owner'].includes(myMem?.role)) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('sn_group_members').update({ role }).eq('group_id',req.params.id).eq('user_id',req.params.userId);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sn/groups/:id/members/:userId', auth, async (req, res) => {
+  try {
+    const { data: myMem } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).single();
+    if (!['admin','owner','moderator'].includes(myMem?.role)) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('sn_group_members').delete().eq('group_id',req.params.id).eq('user_id',req.params.userId);
+    const { data: g } = await supabase.from('sn_groups').select('members_count').eq('id',req.params.id).single();
+    await supabase.from('sn_groups').update({ members_count: Math.max(0,(g?.members_count||1)-1) }).eq('id',req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// GROUP RULES
+// ════════════════════════════════════════
+
+app.get('/api/sn/groups/:id/rules', async (req, res) => {
+  try {
+    const { data } = await supabase.from('sn_group_rules').select('*').eq('group_id',req.params.id).order('position',{ascending:true});
+    res.json({ rules: data||[] });
+  } catch(e) { res.json({ rules: [] }); }
+});
+
+app.post('/api/sn/groups/:id/rules', auth, async (req, res) => {
+  try {
+    const { data: myMem } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).single();
+    if (!['admin','owner'].includes(myMem?.role)) return res.status(403).json({ error: 'Không có quyền' });
+    const { title, description, position } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Tiêu đề bắt buộc' });
+    const { data } = await supabase.from('sn_group_rules').insert({ group_id: req.params.id, title, description: description||'', position: position||0 }).select().single();
+    res.json({ rule: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sn/groups/:id/rules/:ruleId', auth, async (req, res) => {
+  try {
+    const { data: myMem } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).single();
+    if (!['admin','owner'].includes(myMem?.role)) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('sn_group_rules').delete().eq('id',req.params.ruleId).eq('group_id',req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// GROUP INVITES
+// ════════════════════════════════════════
+
+app.post('/api/sn/groups/:id/invite', auth, async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const { data: myMem } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).maybeSingle();
+    if (!myMem) return res.status(403).json({ error: 'Bạn không phải thành viên nhóm' });
+    const { data: existing } = await supabase.from('sn_group_members').select('id').eq('group_id',req.params.id).eq('user_id',user_id).maybeSingle();
+    if (existing) return res.status(400).json({ error: 'Người dùng đã là thành viên' });
+    await supabase.from('sn_group_invites').upsert({ group_id: req.params.id, inviter_id: req.user.id, invitee_id: user_id, status:'pending' }, { onConflict: 'group_id,invitee_id' });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/my-invites', auth, async (req, res) => {
+  try {
+    const { data: invites } = await supabase.from('sn_group_invites').select('*').eq('invitee_id',req.user.id).eq('status','pending');
+    const enriched = await Promise.all((invites||[]).map(async i => {
+      const { data: g } = await supabase.from('sn_groups').select('id,name,avatar_url').eq('id',i.group_id).single();
+      const { data: inviter } = await supabase.from('users').select('name').eq('id',i.inviter_id).single();
+      return { ...i, group: g, inviter_name: inviter?.name };
+    }));
+    res.json({ invites: enriched });
+  } catch(e) { res.json({ invites: [] }); }
+});
+
+app.post('/api/sn/invites/:id/accept', auth, async (req, res) => {
+  try {
+    const { data: inv } = await supabase.from('sn_group_invites').select('*').eq('id',req.params.id).eq('invitee_id',req.user.id).single();
+    if (!inv) return res.status(404).json({ error: 'Không tìm thấy lời mời' });
+    await supabase.from('sn_group_members').insert({ group_id: inv.group_id, user_id: req.user.id, role:'member' });
+    const { data: g } = await supabase.from('sn_groups').select('members_count').eq('id',inv.group_id).single();
+    await supabase.from('sn_groups').update({ members_count: (g?.members_count||0)+1 }).eq('id',inv.group_id);
+    await supabase.from('sn_group_invites').update({ status:'accepted' }).eq('id',req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/invites/:id/decline', auth, async (req, res) => {
+  try {
+    await supabase.from('sn_group_invites').update({ status:'declined' }).eq('id',req.params.id).eq('invitee_id',req.user.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// GROUP UPDATE & DELETE
+// ════════════════════════════════════════
+
+app.put('/api/sn/groups/:id', auth, async (req, res) => {
+  try {
+    const { data: myMem } = await supabase.from('sn_group_members').select('role').eq('group_id',req.params.id).eq('user_id',req.user.id).single();
+    if (!['admin','owner'].includes(myMem?.role)) return res.status(403).json({ error: 'Không có quyền' });
+    const { name, description, category, privacy, avatar_url, cover_url } = req.body;
+    const { data } = await supabase.from('sn_groups').update({ name, description, category, privacy, avatar_url, cover_url, updated_at: new Date().toISOString() }).eq('id',req.params.id).select().single();
+    res.json({ group: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/groups/discover', async (req, res) => {
+  try {
+    const { category, search, page=1, limit=20 } = req.query;
+    const offset = (parseInt(page)-1)*parseInt(limit);
+    let q = supabase.from('sn_groups').select('*',{count:'exact'}).eq('status','active').in('privacy',['public','private']);
+    if (search) q = q.ilike('name',`%${search}%`);
+    if (category && category!=='all') q = q.eq('category',category);
+    const { data, count } = await q.order('members_count',{ascending:false}).range(offset, offset+parseInt(limit)-1);
+    res.json({ groups: data||[], total: count });
+  } catch(e) { res.json({ groups:[], total:0 }); }
+});
+
+// ════════════════════════════════════════
+// REELS — SMART RECOMMENDATION FEED
+// ════════════════════════════════════════
+
+app.get('/api/social/reels', async (req, res) => {
+  try {
+    const { page=1, limit=10, hashtag } = req.query;
+    const offset = (parseInt(page)-1)*parseInt(limit);
+    let q = supabase.from('social_videos').select('*').eq('status','active');
+    if (hashtag) q = q.contains('hashtags', [hashtag]);
+    // Smart sort: weighted score (views*0.3 + likes*1 + comments*2 + recency boost)
+    const { data: videos } = await q.order('likes_count',{ascending:false}).order('created_at',{ascending:false}).range(offset, offset+parseInt(limit)-1);
+    const enriched = await Promise.all((videos||[]).map(async v => {
+      const { data: u } = await supabase.from('users').select('id,name').eq('id',v.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id',v.user_id).maybeSingle();
+      const { data: products } = await supabase.from('social_video_products').select('*').eq('video_id',v.id).limit(3);
+      const { count: followers } = await supabase.from('social_follows').select('id',{count:'exact',head:true}).eq('following_id',v.user_id);
+      return { ...v, user: { ...u, avatar_url: prof?.avatar_url, followers_count: followers||0 }, products: products||[] };
+    }));
+    res.json({ reels: enriched, has_more: (videos||[]).length === parseInt(limit) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/social/trending', async (req, res) => {
+  try {
+    const { period='today', category } = req.query;
+    const since = period==='today' ? new Date(Date.now()-86400000).toISOString() : new Date(Date.now()-7*86400000).toISOString();
+    let q = supabase.from('social_videos').select('*').eq('status','active').gte('created_at',since);
+    const { data: videos } = await q.order('views_count',{ascending:false}).limit(20);
+    // Extract trending hashtags
+    const hashtagMap = {};
+    (videos||[]).forEach(v => (v.hashtags||[]).forEach(h => { hashtagMap[h] = (hashtagMap[h]||0)+1; }));
+    const trending_tags = Object.entries(hashtagMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([tag,count])=>({tag,count}));
+    res.json({ videos: videos||[], trending_tags });
+  } catch(e) { res.json({ videos:[], trending_tags:[] }); }
+});
+
+app.post('/api/social/videos/:id/save', auth, async (req, res) => {
+  try {
+    const { data: existing } = await supabase.from('social_saved').select('id').eq('user_id',req.user.id).eq('video_id',req.params.id).maybeSingle();
+    if (existing) {
+      await supabase.from('social_saved').delete().eq('id',existing.id);
+      const { data: v } = await supabase.from('social_videos').select('saves_count').eq('id',req.params.id).single();
+      await supabase.from('social_videos').update({ saves_count: Math.max(0,(v?.saves_count||1)-1) }).eq('id',req.params.id);
+      return res.json({ saved: false });
+    }
+    await supabase.from('social_saved').insert({ user_id: req.user.id, video_id: req.params.id });
+    const { data: v } = await supabase.from('social_videos').select('saves_count').eq('id',req.params.id).single();
+    await supabase.from('social_videos').update({ saves_count: (v?.saves_count||0)+1 }).eq('id',req.params.id);
+    res.json({ saved: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/social/saved', auth, async (req, res) => {
+  try {
+    const { data: saved } = await supabase.from('social_saved').select('video_id').eq('user_id',req.user.id).order('created_at',{ascending:false}).limit(50);
+    if (!saved?.length) return res.json({ videos: [] });
+    const ids = saved.map(s=>s.video_id);
+    const { data: videos } = await supabase.from('social_videos').select('*').in('id',ids).eq('status','active');
+    res.json({ videos: videos||[] });
+  } catch(e) { res.json({ videos:[] }); }
+});
+
+app.post('/api/social/videos/:id/share', auth, async (req, res) => {
+  try {
+    const { data: v } = await supabase.from('social_videos').select('shares_count').eq('id',req.params.id).single();
+    await supabase.from('social_videos').update({ shares_count: (v?.shares_count||0)+1 }).eq('id',req.params.id);
+    res.json({ ok: true, shares_count: (v?.shares_count||0)+1 });
+  } catch(e) { res.json({ ok: true }); }
+});
+
+// ════════════════════════════════════════
+// DIRECT MESSAGES
+// ════════════════════════════════════════
+
+// List conversations
+app.get('/api/dm/conversations', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { data: parts } = await supabase.from('dm_participants').select('conversation_id,last_read_at').eq('user_id',uid).order('joined_at',{ascending:false});
+    if (!parts?.length) return res.json({ conversations: [] });
+    const ids = parts.map(p=>p.conversation_id);
+    const { data: convs } = await supabase.from('dm_conversations').select('*').in('id',ids).order('last_message_at',{ascending:false});
+    const enriched = await Promise.all((convs||[]).map(async c => {
+      const { data: allParts } = await supabase.from('dm_participants').select('user_id').eq('conversation_id',c.id);
+      const otherIds = (allParts||[]).map(p=>p.user_id).filter(id=>id!==uid);
+      let displayName = c.name;
+      let displayAvatar = c.avatar_url;
+      if (c.type==='direct' && otherIds.length>0) {
+        const { data: ou } = await supabase.from('users').select('name').eq('id',otherIds[0]).single();
+        const { data: op } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id',otherIds[0]).maybeSingle();
+        displayName = ou?.name || 'Người dùng';
+        displayAvatar = op?.avatar_url;
+      }
+      const myPart = parts.find(p=>p.conversation_id===c.id);
+      const { count: unread } = await supabase.from('dm_messages').select('id',{count:'exact',head:true}).eq('conversation_id',c.id).neq('sender_id',uid).is('is_deleted',false).gte('created_at',myPart?.last_read_at||'2000-01-01');
+      return { ...c, display_name: displayName, display_avatar: displayAvatar, other_user_id: c.type==='direct'?otherIds[0]:null, unread_count: unread||0 };
+    }));
+    res.json({ conversations: enriched });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Create or get DM conversation with a user
+app.post('/api/dm/conversations', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { user_id, type='direct', name, avatar_url } = req.body;
+    if (type==='direct') {
+      if (!user_id || user_id===uid) return res.status(400).json({ error: 'user_id không hợp lệ' });
+      // Check if direct convo already exists
+      const { data: myParts } = await supabase.from('dm_participants').select('conversation_id').eq('user_id',uid);
+      const myIds = (myParts||[]).map(p=>p.conversation_id);
+      if (myIds.length>0) {
+        const { data: theirParts } = await supabase.from('dm_participants').select('conversation_id').eq('user_id',user_id).in('conversation_id',myIds);
+        for (const p of (theirParts||[])) {
+          const { data: c } = await supabase.from('dm_conversations').select('*').eq('id',p.conversation_id).eq('type','direct').maybeSingle();
+          if (c) return res.json({ conversation: c, existed: true });
+        }
+      }
+      const { data: conv } = await supabase.from('dm_conversations').insert({ type:'direct', created_by: uid }).select().single();
+      await supabase.from('dm_participants').insert([{ conversation_id: conv.id, user_id: uid }, { conversation_id: conv.id, user_id }]);
+      return res.json({ conversation: conv, existed: false });
+    }
+    // Group chat
+    const { data: conv } = await supabase.from('dm_conversations').insert({ type:'group', name: name||'Nhóm chat', avatar_url: avatar_url||null, created_by: uid }).select().single();
+    const members = (req.body.members||[]).filter(id=>id!==uid);
+    await supabase.from('dm_participants').insert([{ conversation_id: conv.id, user_id: uid, role:'admin' }, ...members.map(id=>({ conversation_id: conv.id, user_id: id, role:'member' }))]);
+    res.json({ conversation: conv, existed: false });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get messages
+app.get('/api/dm/conversations/:id/messages', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { data: part } = await supabase.from('dm_participants').select('id').eq('conversation_id',req.params.id).eq('user_id',uid).maybeSingle();
+    if (!part) return res.status(403).json({ error: 'Không có quyền truy cập' });
+    const { page=1, limit=50 } = req.query;
+    const offset = (parseInt(page)-1)*parseInt(limit);
+    const { data: msgs } = await supabase.from('dm_messages').select('*').eq('conversation_id',req.params.id).eq('is_deleted',false).order('created_at',{ascending:false}).range(offset, offset+parseInt(limit)-1);
+    const enriched = await Promise.all((msgs||[]).map(async m => {
+      const { data: u } = await supabase.from('users').select('name').eq('id',m.sender_id).single();
+      const { data: rxns } = await supabase.from('dm_message_reactions').select('user_id,emoji').eq('message_id',m.id);
+      return { ...m, sender_name: u?.name, reactions: rxns||[] };
+    }));
+    // Update last_read_at
+    await supabase.from('dm_participants').update({ last_read_at: new Date().toISOString() }).eq('conversation_id',req.params.id).eq('user_id',uid);
+    res.json({ messages: enriched.reverse() });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Send message
+app.post('/api/dm/conversations/:id/messages', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { data: part } = await supabase.from('dm_participants').select('id').eq('conversation_id',req.params.id).eq('user_id',uid).maybeSingle();
+    if (!part) return res.status(403).json({ error: 'Không có quyền' });
+    const { content, msg_type='text', media_url, product_id } = req.body;
+    if (!content?.trim() && !media_url) return res.status(400).json({ error: 'Nội dung không được trống' });
+    const { data: msg, error } = await supabase.from('dm_messages').insert({ conversation_id: req.params.id, sender_id: uid, content: content||'', msg_type, media_url: media_url||null, product_id: product_id||null }).select().single();
+    if (error) throw error;
+    await supabase.from('dm_conversations').update({ last_message: content||'📎 Tệp đính kèm', last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id',req.params.id);
+    // WS broadcast
+    const { data: u } = await supabase.from('users').select('name').eq('id',uid).single();
+    const payload = { type:'dm_message', message: { ...msg, sender_name: u?.name, reactions:[] } };
+    const { data: participants } = await supabase.from('dm_participants').select('user_id').eq('conversation_id',req.params.id);
+    (participants||[]).forEach(p => {
+      if (p.user_id!==uid) {
+        const sock = dmSockets.get(p.user_id);
+        if (sock) try { sock.send(JSON.stringify(payload)); } catch(e) {}
+      }
+    });
+    res.json({ message: { ...msg, sender_name: u?.name, reactions:[] } });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/dm/messages/:msgId', auth, async (req, res) => {
+  try {
+    const { data: msg } = await supabase.from('dm_messages').select('sender_id').eq('id',req.params.msgId).single();
+    if (msg?.sender_id!==req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('dm_messages').update({ is_deleted: true, content:'Tin nhắn đã bị thu hồi' }).eq('id',req.params.msgId);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/dm/messages/:msgId/react', auth, async (req, res) => {
+  try {
+    const { emoji } = req.body;
+    if (!emoji) return res.status(400).json({ error: 'emoji bắt buộc' });
+    const { data: existing } = await supabase.from('dm_message_reactions').select('id,emoji').eq('message_id',req.params.msgId).eq('user_id',req.user.id).maybeSingle();
+    if (existing) {
+      if (existing.emoji===emoji) {
+        await supabase.from('dm_message_reactions').delete().eq('id',existing.id);
+        return res.json({ removed: true });
+      }
+      await supabase.from('dm_message_reactions').update({ emoji }).eq('id',existing.id);
+      return res.json({ updated: true });
+    }
+    await supabase.from('dm_message_reactions').insert({ message_id: req.params.msgId, user_id: req.user.id, emoji });
+    res.json({ added: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Online status (in-memory)
+const dmSockets = new Map();
+const onlineUsers = new Set();
+
+app.get('/api/dm/online', auth, async (req, res) => {
+  res.json({ online: [...onlineUsers] });
+});
+
+// ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(join(__dirname, 'frontend', 'index.html'));
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
   await migratePhoneNumbers();
 });
 
-// ── WEBSOCKET SERVER (noServer — attaches to existing HTTP server) ──
+// ── WEBSOCKET SERVERS ──
 const wss = new WebSocketServer({ noServer: true });
+const wss3 = new WebSocketServer({ noServer: true }); // DM chat
 
 httpServer.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url, 'http://localhost');
@@ -10600,13 +11055,11 @@ httpServer.on('upgrade', (request, socket, head) => {
     const user = jwt.verify(token, JWT_SECRET);
     request._wsUser = user;
     if (url.pathname.startsWith('/ws/escrow')) {
-      wss2.handleUpgrade(request, socket, head, (wsClient) => {
-        wss2.emit('connection', wsClient, request);
-      });
+      wss2.handleUpgrade(request, socket, head, (wsClient) => { wss2.emit('connection', wsClient, request); });
+    } else if (url.pathname.startsWith('/ws/dm')) {
+      wss3.handleUpgrade(request, socket, head, (wsClient) => { wss3.emit('connection', wsClient, request); });
     } else if (url.pathname.startsWith('/ws/chat')) {
-      wss.handleUpgrade(request, socket, head, (wsClient) => {
-        wss.emit('connection', wsClient, request);
-      });
+      wss.handleUpgrade(request, socket, head, (wsClient) => { wss.emit('connection', wsClient, request); });
     } else {
       socket.destroy();
     }
@@ -10673,4 +11126,41 @@ wss.on('connection', async (socket, req) => {
 
   socket.on('error', () => {});
   try { socket.send(JSON.stringify({ type: 'connected', userId: user.id })); } catch(e) {}
+});
+
+// ── DM WEBSOCKET HANDLER ──
+wss3.on('connection', async (socket, req) => {
+  const user = req._wsUser;
+  dmSockets.set(user.id, socket);
+  onlineUsers.add(user.id);
+  // Notify friends of online status
+  try { socket.send(JSON.stringify({ type: 'connected', userId: user.id })); } catch(e) {}
+
+  socket.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw.toString()); } catch { return; }
+
+    if (msg.type === 'typing' && msg.conversation_id) {
+      // Broadcast typing to other participants (fire & forget, no DB)
+      supabase.from('dm_participants').select('user_id').eq('conversation_id', msg.conversation_id).then(({ data }) => {
+        (data||[]).forEach(p => {
+          if (p.user_id !== user.id) {
+            const sock = dmSockets.get(p.user_id);
+            if (sock) try { sock.send(JSON.stringify({ type: 'typing', conversation_id: msg.conversation_id, userId: user.id, isTyping: !!msg.isTyping })); } catch(e) {}
+          }
+        });
+      }).catch(() => {});
+    }
+
+    if (msg.type === 'ping') {
+      try { socket.send(JSON.stringify({ type: 'pong' })); } catch(e) {}
+    }
+  });
+
+  socket.on('close', () => {
+    dmSockets.delete(user.id);
+    onlineUsers.delete(user.id);
+  });
+
+  socket.on('error', () => {});
 });
