@@ -147,6 +147,15 @@ BEGIN
   END IF;
 END $$;
 
+-- Ensure business_id column exists on all tables (handles tables created by a previous partial run)
+ALTER TABLE brand_posts ADD COLUMN IF NOT EXISTS business_id uuid;
+ALTER TABLE brand_campaigns ADD COLUMN IF NOT EXISTS business_id uuid;
+ALTER TABLE brand_collaborations ADD COLUMN IF NOT EXISTS business_id uuid;
+ALTER TABLE brand_collab_applications ADD COLUMN IF NOT EXISTS business_id uuid;
+ALTER TABLE business_inbox ADD COLUMN IF NOT EXISTS business_id uuid;
+ALTER TABLE business_auto_replies ADD COLUMN IF NOT EXISTS business_id uuid;
+ALTER TABLE brand_follows ADD COLUMN IF NOT EXISTS business_id uuid;
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_brand_posts_business ON brand_posts(business_id);
 CREATE INDEX IF NOT EXISTS idx_brand_posts_status ON brand_posts(status);
