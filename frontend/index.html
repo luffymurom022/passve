@@ -1262,6 +1262,7 @@ function render(){
 
   const pages=[
     {id:"home",icon:"🏠",label:"Khám phá"},
+    {id:"video",icon:"🎬",label:"Video"},
     {id:"search",icon:"🔍",label:"Tìm kiếm"},
     {id:"sell",icon:"➕",label:"Bán vé"},
     {id:"orders",icon:"📋",label:"Đơn hàng"},
@@ -1302,6 +1303,8 @@ function render(){
         const badge=(p.id==="orders"&&state.orderBadge>0)?`<span class="tab-badge">${state.orderBadge}</span>`:"";
         const click=p.id==="orders"
           ?"setState({page:'orders',orderBadge:0,activeOrder:null})"
+          :p.id==="video"
+          ?"window.location.href='/social'"
           :p.id==="open_escrow"
           ?"window.location.href='/escrow.html'"
           :p.id==="dam"

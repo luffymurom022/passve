@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SafePass Video</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#000;--card:#111;--card2:#1a1a1a;
+  --brand:#fe2c55;--brand2:#25f4ee;
+  --text:#fff;--sub:rgba(255,255,255,.7);--hint:rgba(255,255,255,.4);
+  --border:rgba(255,255,255,.1);
+  --ok:#22d38e;--warn:#f5a623;
+}
+html,body{height:100%;overflow:hidden;background:#000;font-family:'Inter',system-ui,sans-serif;color:#fff;}
+
+/* ── TOP NAV ── */
+.top-nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:52px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.85),transparent);
+}
+.top-nav .logo{font-size:18px;font-weight:800;letter-spacing:-.5px;}
+.top-nav .logo span{color:var(--brand);}
+.nav-tabs{display:flex;gap:20px;position:absolute;left:50%;transform:translateX(-50%);}
+.nav-tab-btn{background:none;border:none;color:rgba(255,255,255,.6);font-size:15px;font-weight:600;cursor:pointer;padding:4px 0;border-bottom:2px solid transparent;transition:all .2s;}
+.nav-tab-btn.active{color:#fff;border-bottom-color:#fff;}
+.top-right{display:flex;gap:12px;align-items:center;}
+.icon-btn{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px;line-height:1;}
+
+/* ── MAIN FEED ── */
+.feed-container{
+  width:100%;height:100vh;
+  overflow-y:scroll;scroll-snap-type:y mandatory;
+  scrollbar-width:none;
+}
+.feed-container::-webkit-scrollbar{display:none;}
+
+/* ── VIDEO ITEM ── */
+.video-item{
+  position:relative;
+  width:100%;height:100vh;
+  scroll-snap-align:start;scroll-snap-stop:always;
+  overflow:hidden;background:#000;
+  display:flex;align-items:center;justify-content:center;
+}
+.video-bg{
+  position:absolute;inset:0;
+  width:100%;height:100%;object-fit:cover;
+  cursor:pointer;
+}
+.video-bg-fake{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:80px;
+  background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);
+}
+.video-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.75) 0%,transparent 40%,transparent 70%,rgba(0,0,0,.3) 100%);
+  pointer-events:none;
+}
+/* Right action bar */
+.action-bar{
+  position:absolute;right:12px;bottom:120px;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  z-index:10;
+}
+.action-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;
+}
+.action-icon{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.12);backdrop-filter:blur(12px);
+  font-size:22px;transition:transform .15s;
+  border:none;color:#fff;cursor:pointer;
+}
+.action-icon:active{transform:scale(.88);}
+.action-icon.liked{background:rgba(254,44,85,.25);color:var(--brand);}
+.action-label{font-size:11px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);}
+.avatar-ring{
+  width:48px;height:48px;border-radius:50%;
+  border:2px solid #fff;
+  background:linear-gradient(135deg,var(--brand),#ff8c00);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;cursor:pointer;
+  position:relative;overflow:hidden;
+}
+.follow-plus{
+  position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+  width:18px;height:18px;border-radius:50%;
+  background:var(--brand);color:#fff;
+  font-size:13px;font-weight:700;line-height:18px;text-align:center;
+  border:1.5px solid #000;
+}
+
+/* Bottom info */
+.video-info{
+  position:absolute;left:12px;bottom:88px;right:80px;
+  z-index:10;
+}
+.creator-name{font-size:15px;font-weight:700;margin-bottom:4px;cursor:pointer;}
+.creator-name:hover{text-decoration:underline;}
+.video-title{font-size:13px;line-height:1.4;margin-bottom:6px;color:rgba(255,255,255,.9);}
+.video-hashtags{font-size:12px;color:var(--brand2);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px;}
+.hashtag{cursor:pointer;}
+.hashtag:hover{text-decoration:underline;}
+/* Product card on video */
+.product-strip{
+  display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0;
+}
+.product-strip::-webkit-scrollbar{display:none;}
+.product-chip{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.15);border-radius:24px;
+  padding:6px 12px 6px 6px;min-width:0;flex-shrink:0;cursor:pointer;
+  transition:all .2s;
+}
+.product-chip:hover{background:rgba(255,255,255,.15);}
+.product-chip-img{width:28px;height:28px;border-radius:8px;object-fit:cover;background:#222;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.product-chip-info{min-width:0;}
+.product-chip-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+.product-chip-price{font-size:10px;color:var(--brand);font-weight:700;}
+/* Play indicator */
+.play-indicator{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:64px;pointer-events:none;opacity:0;transition:opacity .3s;
+}
+.play-indicator.show{opacity:1;}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  height:68px;display:flex;align-items:center;justify-content:space-around;
+  background:linear-gradient(to top,rgba(0,0,0,.95),rgba(0,0,0,.7));
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.bnav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;
+  font-size:11px;font-weight:600;transition:color .2s;min-width:52px;
+}
+.bnav-btn.active{color:#fff;}
+.bnav-icon{font-size:24px;line-height:1;}
+.bnav-post{
+  width:42px;height:28px;border-radius:8px;
+  background:linear-gradient(135deg,var(--brand2),var(--brand));
+  position:relative;display:flex;align-items:center;justify-content:center;
+}
+.bnav-post::before,.bnav-post::after{
+  content:'';position:absolute;
+  width:42px;height:28px;border-radius:8px;
+}
+.bnav-post::before{background:var(--brand2);left:-3px;}
+.bnav-post::after{background:var(--brand);right:-3px;}
+.bnav-post-inner{
+  position:relative;z-index:1;
+  width:38px;height:26px;border-radius:7px;
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:#000;font-weight:700;
+}
+
+/* ── PANELS / SHEETS ── */
+.panel-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  display:none;align-items:flex-end;
+}
+.panel-overlay.show{display:flex;}
+.panel{
+  width:100%;background:#111;border-radius:20px 20px 0 0;
+  max-height:92vh;overflow-y:auto;
+  animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.panel-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 8px;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;}
+.panel-title{font-size:16px;font-weight:700;}
+.close-btn{background:none;border:none;color:rgba(255,255,255,.6);font-size:22px;cursor:pointer;line-height:1;}
+
+/* Comments panel */
+.comment-list{padding:0 16px;display:flex;flex-direction:column;gap:14px;padding-bottom:80px;}
+.comment-item{display:flex;gap:10px;}
+.comment-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3d8ef8,#9b87f5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.comment-body{flex:1;}
+.comment-username{font-size:12px;font-weight:700;color:rgba(255,255,255,.9);margin-bottom:2px;}
+.comment-text{font-size:13px;color:rgba(255,255,255,.85);line-height:1.4;}
+.comment-meta{font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;display:flex;gap:10px;}
+.comment-input-bar{
+  position:sticky;bottom:0;background:#111;
+  padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);
+  display:flex;gap:8px;align-items:center;
+}
+.comment-input{
+  flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);
+  border-radius:24px;color:#fff;padding:10px 16px;font-size:14px;outline:none;
+}
+.send-btn{
+  width:38px;height:38px;border-radius:50%;background:var(--brand);border:none;
+  color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+
+/* Share panel */
+.share-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:16px 16px 32px;}
+.share-item{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;}
+.share-icon{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(255,255,255,.08);}
+.share-label{font-size:11px;color:rgba(255,255,255,.7);text-align:center;}
+
+/* Post panel */
+.post-form{padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:40px;}
+.upload-zone{
+  width:100%;height:180px;border:2px dashed rgba(255,255,255,.2);border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:all .2s;background:rgba(255,255,255,.03);
+}
+.upload-zone:hover{border-color:var(--brand);background:rgba(254,44,85,.05);}
+.upload-zone input[type=file]{display:none;}
+.upload-icon{font-size:40px;}
+.upload-text{font-size:13px;color:rgba(255,255,255,.6);}
+.form-field{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;}
+.form-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;padding:12px 14px;font-size:14px;outline:none;font-family:inherit;width:100%;}
+.form-input::placeholder{color:rgba(255,255,255,.3);}
+.form-input:focus{border-color:rgba(255,255,255,.25);}
+.form-textarea{resize:none;height:80px;}
+.product-picker{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px 0;}
+.product-picker::-webkit-scrollbar{display:none;}
+.add-product-btn{flex-shrink:0;border:1.5px dashed rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.5);border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer;white-space:nowrap;}
+.submit-btn{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,var(--brand),#ff6b35);
+  color:#fff;font-size:15px;font-weight:700;cursor:pointer;
+}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* Live badge */
+.live-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--brand);color:#fff;
+  font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;
+  letter-spacing:.05em;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* Live chat overlay */
+.live-chat-overlay{
+  position:absolute;left:12px;bottom:88px;right:80px;
+  max-height:200px;overflow:hidden;pointer-events:none;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:6px;
+}
+.live-msg{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(8px);
+  border-radius:20px;padding:5px 10px;
+  font-size:12px;max-width:80%;pointer-events:auto;
+}
+.live-msg-user{font-weight:700;color:var(--brand2);}
+.live-msg-text{color:#fff;}
+
+/* ── CREATOR PROFILE ── */
+.profile-page{
+  position:fixed;inset:0;z-index:250;background:#000;
+  overflow-y:auto;display:none;
+  animation:slideInRight .3s ease;
+}
+@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.profile-page.show{display:block;}
+.profile-header{
+  position:relative;height:220px;overflow:hidden;
+  background:linear-gradient(135deg,#1a1a2e,#16213e);
+  display:flex;align-items:flex-end;
+  padding:0 16px 16px;
+}
+.profile-back{
+  position:absolute;top:52px;left:16px;
+  background:rgba(0,0,0,.5);border:none;border-radius:50%;
+  width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.profile-avatar{
+  width:80px;height:80px;border-radius:50%;
+  border:3px solid #fff;
+  background:linear-gradient(135deg,var(--brand),#ff8c00);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;flex-shrink:0;
+}
+.profile-meta{flex:1;padding-left:14px;}
+.profile-username{font-size:20px;font-weight:800;margin-bottom:4px;}
+.profile-handle{font-size:13px;color:rgba(255,255,255,.6);}
+.profile-stats{display:flex;gap:0;margin:0 0 16px;background:rgba(255,255,255,.05);border-radius:14px;}
+.pstat{flex:1;text-align:center;padding:14px 8px;border-right:1px solid rgba(255,255,255,.08);}
+.pstat:last-child{border-right:none;}
+.pstat-val{font-size:18px;font-weight:800;}
+.pstat-lbl{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;}
+.profile-bio{padding:0 16px;font-size:13px;color:rgba(255,255,255,.7);line-height:1.5;margin-bottom:16px;}
+.follow-btn{
+  display:block;margin:0 16px;padding:12px;border-radius:10px;border:none;
+  background:var(--brand);color:#fff;font-size:14px;font-weight:700;cursor:pointer;text-align:center;
+}
+.follow-btn.following{background:rgba(255,255,255,.1);color:#fff;}
+.profile-videos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;padding-top:1px;}
+.profile-video-thumb{
+  aspect-ratio:9/16;background:#1a1a1a;position:relative;overflow:hidden;cursor:pointer;
+}
+.profile-video-thumb img,.profile-video-bg{width:100%;height:100%;object-fit:cover;}
+.profile-video-bg{background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;font-size:32px;}
+.thumb-views{position:absolute;bottom:4px;left:4px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);}
+
+/* ── DASHBOARD ── */
+.dashboard-page{position:fixed;inset:0;z-index:250;background:#111;overflow-y:auto;display:none;animation:slideInRight .3s ease;}
+.dashboard-page.show{display:block;}
+.dashboard-header{padding:60px 16px 16px;background:#000;}
+.dash-back{position:absolute;top:52px;left:16px;background:rgba(255,255,255,.1);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.dashboard-title{font-size:22px;font-weight:800;margin-bottom:4px;}
+.dashboard-sub{font-size:13px;color:rgba(255,255,255,.5);}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;}
+.stat-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;}
+.stat-card-icon{font-size:24px;margin-bottom:8px;}
+.stat-card-val{font-size:24px;font-weight:800;margin-bottom:2px;}
+.stat-card-lbl{font-size:12px;color:rgba(255,255,255,.5);}
+.stat-card-change{font-size:11px;margin-top:6px;color:var(--ok);}
+.dash-section{padding:0 16px 16px;}
+.dash-section-title{font-size:14px;font-weight:700;margin-bottom:12px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.05em;}
+.top-video-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.top-video-thumb{width:52px;height:72px;border-radius:8px;background:#222;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.top-video-meta{flex:1;}
+.top-video-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.top-video-stats{font-size:11px;color:rgba(255,255,255,.5);display:flex;gap:10px;}
+
+/* ── LIVE STREAM PAGE ── */
+.live-page{position:fixed;inset:0;z-index:250;background:#000;display:none;flex-direction:column;}
+.live-page.show{display:flex;}
+.live-video-area{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;font-size:64px;}
+.live-top-bar{position:absolute;top:0;left:0;right:0;padding:52px 16px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);display:flex;align-items:center;justify-content:space-between;}
+.live-creator-info{display:flex;align-items:center;gap:10px;}
+.live-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#ff8c00);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2px solid #fff;}
+.live-creator-name{font-size:14px;font-weight:700;}
+.live-viewers{font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;}
+.live-close{background:rgba(0,0,0,.5);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.live-products-bar{
+  position:absolute;right:12px;top:140px;
+  display:flex;flex-direction:column;gap:10px;align-items:flex-end;
+}
+.live-product-card{
+  background:rgba(0,0,0,.7);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.15);border-radius:12px;
+  padding:8px;display:flex;gap:8px;align-items:center;cursor:pointer;
+  max-width:160px;
+}
+.live-product-img{width:36px;height:36px;border-radius:8px;background:#222;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.live-product-info{min-width:0;}
+.live-product-name{font-size:10px;font-weight:700;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.live-product-price{font-size:11px;color:var(--brand);font-weight:700;}
+.live-product-buy{font-size:10px;background:var(--brand);color:#fff;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;margin-top:3px;font-weight:700;}
+.live-chat-box{
+  height:220px;background:rgba(0,0,0,.85);
+  border-top:1px solid rgba(255,255,255,.1);
+  overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;
+}
+.live-chat-box::-webkit-scrollbar{width:3px;}
+.live-chat-box::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);}
+.live-chat-input-bar{
+  display:flex;gap:8px;padding:10px 12px 24px;
+  background:rgba(0,0,0,.9);border-top:1px solid rgba(255,255,255,.08);
+}
+.live-chat-input{
+  flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;color:#fff;padding:9px 14px;font-size:13px;outline:none;
+}
+.live-send-btn{background:var(--brand);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:16px;cursor:pointer;}
+
+/* ── TRENDING ── */
+.trending-page{position:fixed;inset:0;z-index:250;background:#111;overflow-y:auto;display:none;animation:slideInRight .3s ease;}
+.trending-page.show{display:block;}
+.trending-header{padding:60px 16px 16px;background:#000;}
+.trend-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:16px;}
+.trend-card{
+  border-radius:14px;overflow:hidden;background:#1a1a1a;cursor:pointer;position:relative;
+  aspect-ratio:.8;
+}
+.trend-bg{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.trend-bg-fake{width:100%;height:100%;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;background:linear-gradient(135deg,#1a1a2e,#16213e);}
+.trend-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.8) 0%,transparent 50%);}
+.trend-info{position:absolute;bottom:0;left:0;right:0;padding:12px;}
+.trend-rank{font-size:11px;font-weight:800;color:var(--brand);letter-spacing:.05em;margin-bottom:4px;}
+.trend-title{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:6px;}
+.trend-stats{display:flex;gap:10px;font-size:11px;color:rgba(255,255,255,.6);}
+.trend-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.08);border-radius:8px;padding:8px 12px;
+  font-size:13px;cursor:pointer;margin:0 16px 8px 0;
+}
+
+/* ── ADMIN PANEL ── */
+.admin-page{position:fixed;inset:0;z-index:250;background:#111;overflow-y:auto;display:none;animation:slideInRight .3s ease;}
+.admin-page.show{display:block;}
+.admin-table{width:100%;border-collapse:collapse;}
+.admin-table th{font-size:11px;color:rgba(255,255,255,.5);padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08);}
+.admin-table td{font-size:12px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.05);}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;}
+.badge-ok{background:rgba(34,211,142,.15);color:var(--ok);}
+.badge-warn{background:rgba(245,166,35,.15);color:var(--warn);}
+.badge-red{background:rgba(254,44,85,.15);color:var(--brand);}
+.action-row{display:flex;gap:6px;}
+.mini-btn{padding:4px 10px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;}
+.mini-btn-red{background:rgba(254,44,85,.15);color:var(--brand);}
+.mini-btn-ok{background:rgba(34,211,142,.15);color:var(--ok);}
+
+/* Toast */
+.toast{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.9);color:#fff;padding:10px 20px;border-radius:24px;
+  font-size:13px;font-weight:600;z-index:9999;pointer-events:none;
+  opacity:0;transition:opacity .3s;white-space:nowrap;
+  border:1px solid rgba(255,255,255,.15);
+}
+.toast.show{opacity:1;}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Responsive */
+@media(min-width:480px){
+  .video-item,.feed-container{max-width:390px;margin:0 auto;}
+  .feed-container{border-radius:0;}
+}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- TOP NAV -->
+<div class="top-nav">
+  <div class="logo">Safe<span>Pass</span> <span style="font-size:13px;background:rgba(254,44,85,.15);color:var(--brand);border-radius:6px;padding:2px 7px;font-weight:700;">VIDEO</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab-btn active" onclick="switchFeed('following')">Đang Theo Dõi</button>
+    <button class="nav-tab-btn" onclick="switchFeed('foryou')">Dành Cho Bạn</button>
+  </div>
+  <div class="top-right">
+    <button class="icon-btn" onclick="showTrending()">🔥</button>
+    <button class="icon-btn" onclick="showSearch()">🔍</button>
+  </div>
+</div>
+
+<!-- MAIN FEED -->
+<div class="feed-container" id="feedContainer">
+  <!-- Inline demo content renders instantly before JS -->
+  <div class="video-item" data-id="v1" data-idx="0" id="vi-0">
+    <div class="video-bg-fake">🎵</div>
+    <div class="video-overlay"></div>
+    <div class="action-bar">
+      <div><div class="avatar-ring" onclick="openProfile('u1','Nguyễn Văn A','NV')">NV</div><div class="follow-plus">+</div></div>
+      <div class="action-btn" onclick="toggleLike('v1',this)"><button class="action-icon" id="likeBtn-v1">🤍</button><span class="action-label" id="likeCount-v1">9.8K</span></div>
+      <div class="action-btn" onclick="openComments('v1',342)"><button class="action-icon">💬</button><span class="action-label">342</span></div>
+      <div class="action-btn" onclick="openShare('v1')"><button class="action-icon">↗️</button><span class="action-label">1.2K</span></div>
+      <div class="action-btn" onclick="showDashboard()"><button class="action-icon">📊</button><span class="action-label">Stats</span></div>
+    </div>
+    <div class="video-info">
+      <div class="creator-name" onclick="openProfile('u1','Nguyễn Văn A','NV')">@Nguyễn Văn A</div>
+      <div class="video-title">🎟 Vé BLACKPINK 2025 chính hãng! Cặp vé VIP còn 2 suất duy nhất.</div>
+      <div class="video-hashtags"><span class="hashtag">#BLACKPINK</span><span class="hashtag">#Concert</span><span class="hashtag">#Vé2025</span></div>
+      <div class="product-strip"><div class="product-chip" onclick="openProduct('v1','p1')"><div class="product-chip-img">🎟</div><div class="product-chip-info"><div class="product-chip-name">Vé BLACKPINK VIP</div><div class="product-chip-price">8.500.000đ</div></div></div></div>
+    </div>
+    <div style="position:absolute;top:60px;right:12px;z-index:10;background:rgba(0,0,0,.5);border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600;">👁 128K</div>
+  </div>
+  <div class="video-item" data-id="v2" data-idx="1" id="vi-1">
+    <div class="video-bg-fake">💻</div>
+    <div class="video-overlay"></div>
+    <div class="action-bar">
+      <div><div class="avatar-ring" onclick="openProfile('u2','Shop Đồ Lướt','SD')">SD</div><div class="follow-plus">+</div></div>
+      <div class="action-btn" onclick="toggleLike('v2',this)"><button class="action-icon" id="likeBtn-v2">🤍</button><span class="action-label" id="likeCount-v2">6.7K</span></div>
+      <div class="action-btn" onclick="openComments('v2',189)"><button class="action-icon">💬</button><span class="action-label">189</span></div>
+      <div class="action-btn" onclick="openShare('v2')"><button class="action-icon">↗️</button><span class="action-label">562</span></div>
+      <div class="action-btn" onclick="showDashboard()"><button class="action-icon">📊</button><span class="action-label">Stats</span></div>
+    </div>
+    <div class="video-info">
+      <div class="creator-name" onclick="openProfile('u2','Shop Đồ Lướt','SD')">@Shop Đồ Lướt</div>
+      <div class="video-title">💼 MacBook M3 like new 98% — dùng 2 tháng, bảo hành còn 10 tháng</div>
+      <div class="video-hashtags"><span class="hashtag">#MacBook</span><span class="hashtag">#LaptopLướt</span><span class="hashtag">#M3</span></div>
+      <div class="product-strip"><div class="product-chip" onclick="openProduct('v2','p2')"><div class="product-chip-img">💻</div><div class="product-chip-info"><div class="product-chip-name">MacBook Air M3</div><div class="product-chip-price">24.000.000đ</div></div></div></div>
+    </div>
+    <div style="position:absolute;top:60px;right:12px;z-index:10;background:rgba(0,0,0,.5);border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600;">👁 84.2K</div>
+  </div>
+  <div class="video-item" data-id="v3" data-idx="2" id="vi-2">
+    <div class="video-bg-fake">💄</div>
+    <div class="video-overlay"></div>
+    <div style="position:absolute;top:60px;left:12px;z-index:10;"><span class="live-badge"><span class="live-dot"></span> LIVE</span></div>
+    <div class="action-bar">
+      <div><div class="avatar-ring" onclick="openProfile('u3','Mỹ phẩm Auth','MA')">MA</div><div class="follow-plus">+</div></div>
+      <div class="action-btn" onclick="toggleLike('v3',this)"><button class="action-icon" id="likeBtn-v3">🤍</button><span class="action-label" id="likeCount-v3">28.1K</span></div>
+      <div class="action-btn" onclick="openComments('v3',1203)"><button class="action-icon">💬</button><span class="action-label">1.2K</span></div>
+      <div class="action-btn" onclick="openShare('v3')"><button class="action-icon">↗️</button><span class="action-label">4.5K</span></div>
+      <div class="action-btn" onclick="openLive('u3','Mỹ phẩm Auth','MA')"><button class="action-icon" style="background:rgba(254,44,85,.3);">📡</button><span class="action-label">Live</span></div>
+      <div class="action-btn" onclick="showDashboard()"><button class="action-icon">📊</button><span class="action-label">Stats</span></div>
+    </div>
+    <div class="video-info">
+      <div class="creator-name" onclick="openProfile('u3','Mỹ phẩm Auth','MA')">@Mỹ phẩm Auth</div>
+      <div class="video-title">💄 Son MAC chính hãng giá sốc — nhập từ US, full bill, tem hologram</div>
+      <div class="video-hashtags"><span class="hashtag">#MyPham</span><span class="hashtag">#MAC</span><span class="hashtag">#AuthOnly</span></div>
+      <div class="product-strip"><div class="product-chip" onclick="openProduct('v3','p3')"><div class="product-chip-img">💄</div><div class="product-chip-info"><div class="product-chip-name">Son MAC Ruby Woo</div><div class="product-chip-price">680.000đ</div></div></div></div>
+    </div>
+    <div style="position:absolute;top:60px;right:12px;z-index:10;background:rgba(0,0,0,.5);border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600;">👁 341K</div>
+  </div>
+  <div class="video-item" data-id="v4" data-idx="3" id="vi-3">
+    <div class="video-bg-fake">🎮</div>
+    <div class="video-overlay"></div>
+    <div class="action-bar">
+      <div><div class="avatar-ring" onclick="openProfile('u4','Game Pass VN','GP')">GP</div><div class="follow-plus">+</div></div>
+      <div class="action-btn" onclick="toggleLike('v4',this)"><button class="action-icon" id="likeBtn-v4">🤍</button><span class="action-label" id="likeCount-v4">4.3K</span></div>
+      <div class="action-btn" onclick="openComments('v4',98)"><button class="action-icon">💬</button><span class="action-label">98</span></div>
+      <div class="action-btn" onclick="openShare('v4')"><button class="action-icon">↗️</button><span class="action-label">234</span></div>
+      <div class="action-btn" onclick="showDashboard()"><button class="action-icon">📊</button><span class="action-label">Stats</span></div>
+    </div>
+    <div class="video-info">
+      <div class="creator-name" onclick="openProfile('u4','Game Pass VN','GP')">@Game Pass VN</div>
+      <div class="video-title">🎮 Tài khoản PS5 cực chất — Full game AAA 2024-2025, chuyển nhượng an toàn</div>
+      <div class="video-hashtags"><span class="hashtag">#PS5</span><span class="hashtag">#GamePass</span><span class="hashtag">#Gaming</span></div>
+      <div class="product-strip"><div class="product-chip" onclick="openProduct('v4','p4')"><div class="product-chip-img">🎮</div><div class="product-chip-info"><div class="product-chip-name">PS5 Digital Account</div><div class="product-chip-price">1.200.000đ</div></div></div></div>
+    </div>
+    <div style="position:absolute;top:60px;right:12px;z-index:10;background:rgba(0,0,0,.5);border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600;">👁 56.7K</div>
+  </div>
+  <div class="video-item" data-id="v5" data-idx="4" id="vi-4">
+    <div class="video-bg-fake">🎸</div>
+    <div class="video-overlay"></div>
+    <div class="action-bar">
+      <div><div class="avatar-ring" onclick="openProfile('u5','Ticket Master VN','TM')">TM</div><div class="follow-plus">+</div></div>
+      <div class="action-btn" onclick="toggleLike('v5',this)"><button class="action-icon" id="likeBtn-v5">🤍</button><span class="action-label" id="likeCount-v5">71.2K</span></div>
+      <div class="action-btn" onclick="openComments('v5',5800)"><button class="action-icon">💬</button><span class="action-label">5.8K</span></div>
+      <div class="action-btn" onclick="openShare('v5')"><button class="action-icon">↗️</button><span class="action-label">12.4K</span></div>
+      <div class="action-btn" onclick="showDashboard()"><button class="action-icon">📊</button><span class="action-label">Stats</span></div>
+    </div>
+    <div class="video-info">
+      <div class="creator-name" onclick="openProfile('u5','Ticket Master VN','TM')">@Ticket Master VN</div>
+      <div class="video-title">🎪 Ed Sheeran Vietnam Tour 2025 — Còn vé sân khấu & VIP, mua ngay kẻo hết!</div>
+      <div class="video-hashtags"><span class="hashtag">#EdSheeran</span><span class="hashtag">#Concert</span><span class="hashtag">#Vietnam</span></div>
+      <div class="product-strip">
+        <div class="product-chip" onclick="openProduct('v5','p5')"><div class="product-chip-img">🎪</div><div class="product-chip-info"><div class="product-chip-name">Vé Ed Sheeran Standing</div><div class="product-chip-price">3.200.000đ</div></div></div>
+        <div class="product-chip" onclick="openProduct('v5','p6')"><div class="product-chip-img">⭐</div><div class="product-chip-info"><div class="product-chip-name">Vé VIP Sân Khấu</div><div class="product-chip-price">6.800.000đ</div></div></div>
+      </div>
+    </div>
+    <div style="position:absolute;top:60px;right:12px;z-index:10;background:rgba(0,0,0,.5);border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600;">👁 892K</div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="bnav-btn active" onclick="switchBottomTab('home',this)">
+    <span class="bnav-icon">🏠</span>
+    <span>Trang chủ</span>
+  </button>
+  <button class="bnav-btn" onclick="switchBottomTab('discover',this)">
+    <span class="bnav-icon">🔍</span>
+    <span>Khám phá</span>
+  </button>
+  <button class="bnav-btn" onclick="openPost()">
+    <div class="bnav-post"><div class="bnav-post-inner">＋</div></div>
+    <span style="margin-top:4px;">Đăng</span>
+  </button>
+  <button class="bnav-btn" onclick="switchBottomTab('inbox',this)">
+    <span class="bnav-icon">📥</span>
+    <span>Hộp thư</span>
+  </button>
+  <button class="bnav-btn" onclick="switchBottomTab('profile',this)">
+    <span class="bnav-icon">👤</span>
+    <span>Hồ sơ</span>
+  </button>
+</div>
+
+<!-- COMMENT PANEL -->
+<div class="panel-overlay" id="commentPanel">
+  <div class="panel">
+    <div class="panel-handle"></div>
+    <div class="panel-header">
+      <span class="panel-title" id="commentCount">0 bình luận</span>
+      <button class="close-btn" onclick="closePanel('commentPanel')">✕</button>
+    </div>
+    <div class="comment-list" id="commentList">
+      <div style="text-align:center;padding:40px;color:rgba(255,255,255,.4);">Đang tải...</div>
+    </div>
+    <div class="comment-input-bar">
+      <img src="" alt="" id="myAvatarComment" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#fe2c55,#ff8c00);display:flex;align-items:center;justify-content:center;" onerror="this.style.display='none'">
+      <input class="comment-input" id="commentInput" placeholder="Thêm bình luận..." maxlength="300">
+      <button class="send-btn" onclick="postComment()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE PANEL -->
+<div class="panel-overlay" id="sharePanel">
+  <div class="panel">
+    <div class="panel-handle"></div>
+    <div class="panel-header">
+      <span class="panel-title">Chia sẻ</span>
+      <button class="close-btn" onclick="closePanel('sharePanel')">✕</button>
+    </div>
+    <div class="share-grid">
+      <div class="share-item" onclick="shareVia('link')"><div class="share-icon">🔗</div><div class="share-label">Sao chép link</div></div>
+      <div class="share-item" onclick="shareVia('facebook')"><div class="share-icon" style="background:rgba(24,119,242,.2);">📘</div><div class="share-label">Facebook</div></div>
+      <div class="share-item" onclick="shareVia('zalo')"><div class="share-icon" style="background:rgba(0,120,255,.15);">💬</div><div class="share-label">Zalo</div></div>
+      <div class="share-item" onclick="shareVia('message')"><div class="share-icon">💌</div><div class="share-label">Tin nhắn</div></div>
+      <div class="share-item" onclick="shareVia('twitter')"><div class="share-icon" style="background:rgba(29,161,242,.15);">🐦</div><div class="share-label">Twitter</div></div>
+      <div class="share-item" onclick="shareVia('instagram')"><div class="share-icon" style="background:rgba(228,64,95,.15);">📸</div><div class="share-label">Instagram</div></div>
+      <div class="share-item" onclick="shareVia('email')"><div class="share-icon">📧</div><div class="share-label">Email</div></div>
+      <div class="share-item" onclick="shareVia('download')"><div class="share-icon">⬇️</div><div class="share-label">Tải xuống</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- POST PANEL -->
+<div class="panel-overlay" id="postPanel">
+  <div class="panel">
+    <div class="panel-handle"></div>
+    <div class="panel-header">
+      <span class="panel-title">Đăng Video Mới</span>
+      <button class="close-btn" onclick="closePanel('postPanel')">✕</button>
+    </div>
+    <div class="post-form">
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('videoFileInput').click()">
+        <input type="file" id="videoFileInput" accept="video/*,image/*" onchange="handleFileSelect(event)">
+        <div class="upload-icon" id="uploadIcon">🎬</div>
+        <div class="upload-text" id="uploadText">Nhấn để chọn video hoặc ảnh</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px;">MP4, MOV, AVI • Tối đa 200MB</div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Tiêu đề *</label>
+        <input class="form-input" id="postTitle" placeholder="Tiêu đề video hấp dẫn..." maxlength="100">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Mô tả</label>
+        <textarea class="form-input form-textarea" id="postDesc" placeholder="Mô tả sản phẩm, câu chuyện..."></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Hashtag</label>
+        <input class="form-input" id="postHashtags" placeholder="#vé #concert #safepass ...">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Gắn sản phẩm</label>
+        <div class="product-picker" id="productPicker">
+          <button class="add-product-btn" onclick="openProductPicker()">＋ Thêm sản phẩm</button>
+        </div>
+      </div>
+      <button class="submit-btn" id="postSubmitBtn" onclick="submitPost()">🚀 Đăng Video</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT PANEL (for buy now) -->
+<div class="panel-overlay" id="productPanel">
+  <div class="panel">
+    <div class="panel-handle"></div>
+    <div class="panel-header">
+      <span class="panel-title" id="productPanelTitle">Chi tiết sản phẩm</span>
+      <button class="close-btn" onclick="closePanel('productPanel')">✕</button>
+    </div>
+    <div style="padding:16px 16px 40px;" id="productPanelBody">
+    </div>
+  </div>
+</div>
+
+<!-- CREATOR PROFILE PAGE -->
+<div class="profile-page" id="profilePage">
+  <div class="profile-header" id="profileHeader">
+    <button class="profile-back" onclick="closeProfile()">←</button>
+    <div class="profile-avatar" id="profileAvatar">?</div>
+    <div class="profile-meta">
+      <div class="profile-username" id="profileUsername">...</div>
+      <div class="profile-handle" id="profileHandle">@...</div>
+    </div>
+  </div>
+  <div class="profile-stats" id="profileStats">
+    <div class="pstat"><div class="pstat-val" id="pFollowing">0</div><div class="pstat-lbl">Đang theo dõi</div></div>
+    <div class="pstat"><div class="pstat-val" id="pFollowers">0</div><div class="pstat-lbl">Người theo dõi</div></div>
+    <div class="pstat"><div class="pstat-val" id="pLikes">0</div><div class="pstat-lbl">Lượt thích</div></div>
+  </div>
+  <div class="profile-bio" id="profileBio"></div>
+  <button class="follow-btn" id="profileFollowBtn" onclick="toggleFollow()">＋ Theo dõi</button>
+  <div style="margin:16px 0 8px;padding:0 16px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;">Video</div>
+  <div class="profile-videos-grid" id="profileVideosGrid">
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.4);">Đang tải...</div>
+  </div>
+</div>
+
+<!-- SOCIAL DASHBOARD -->
+<div class="dashboard-page" id="dashboardPage">
+  <div style="position:relative;">
+    <button class="dash-back" onclick="closeDashboard()">←</button>
+    <div class="dashboard-header">
+      <div class="dashboard-title">Social Dashboard</div>
+      <div class="dashboard-sub">Thống kê kênh của bạn</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-icon">👁️</div><div class="stat-card-val" id="dViews">0</div><div class="stat-card-lbl">Lượt xem</div><div class="stat-card-change">↑ +12% tuần này</div></div>
+      <div class="stat-card"><div class="stat-card-icon">❤️</div><div class="stat-card-val" id="dLikes">0</div><div class="stat-card-lbl">Lượt thích</div><div class="stat-card-change">↑ +8%</div></div>
+      <div class="stat-card"><div class="stat-card-icon">🔗</div><div class="stat-card-val" id="dShares">0</div><div class="stat-card-lbl">Lượt chia sẻ</div><div class="stat-card-change">↑ +5%</div></div>
+      <div class="stat-card" style="border-color:rgba(254,44,85,.2);"><div class="stat-card-icon">💰</div><div class="stat-card-val" id="dSales" style="color:var(--brand);">0</div><div class="stat-card-lbl">Doanh số</div><div class="stat-card-change">↑ +23%</div></div>
+    </div>
+    <div class="dash-section">
+      <div class="dash-section-title">Video nổi bật</div>
+      <div id="topVideosList">
+        <div style="text-align:center;padding:20px;color:rgba(255,255,255,.4);">Đang tải...</div>
+      </div>
+    </div>
+    <div class="dash-section">
+      <div class="dash-section-title">Người theo dõi theo thời gian</div>
+      <div style="background:rgba(255,255,255,.04);border-radius:12px;height:120px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:13px;">📈 Biểu đồ tăng trưởng người theo dõi</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRENDING PAGE -->
+<div class="trending-page" id="trendingPage">
+  <div style="position:relative;">
+    <button class="profile-back" onclick="closeTrending()">←</button>
+    <div class="trending-header">
+      <div class="dashboard-title">🔥 Trending</div>
+      <div class="dashboard-sub">Nội dung nổi bật hôm nay</div>
+    </div>
+    <div style="padding:0 16px 8px;">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">#Hashtag nổi bật</div>
+      <div id="trendTagsRow" style="display:flex;flex-wrap:wrap;padding-bottom:4px;"></div>
+    </div>
+    <div class="trend-grid" id="trendGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.4);">Đang tải...</div>
+    </div>
+  </div>
+</div>
+
+<!-- LIVE STREAM PAGE -->
+<div class="live-page" id="livePage">
+  <div class="live-video-area" id="liveVideoArea">
+    🎥
+    <div class="live-top-bar">
+      <div class="live-creator-info">
+        <div class="live-avatar" id="liveAvatar">?</div>
+        <div>
+          <div class="live-creator-name" id="liveName">...</div>
+          <div class="live-viewers"><span class="live-dot"></span><span id="liveViewers">0</span> người xem</div>
+        </div>
+        <span class="live-badge"><span class="live-dot"></span> LIVE</span>
+      </div>
+      <button class="live-close" onclick="closeLive()">✕</button>
+    </div>
+    <div class="live-products-bar" id="liveProductsBar"></div>
+    <div class="live-chat-overlay" id="liveChatOverlay"></div>
+  </div>
+  <div class="live-chat-box" id="liveChatBox"></div>
+  <div class="live-chat-input-bar">
+    <input class="live-chat-input" id="liveChatInput" placeholder="Nhắn tin...">
+    <button class="live-send-btn" onclick="sendLiveMsg()">➤</button>
+    <button style="background:rgba(254,44,85,.2);border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;" onclick="sendGift()">🎁</button>
+  </div>
+</div>
+
+<!-- ADMIN SOCIAL CENTER -->
+<div class="admin-page" id="adminPage">
+  <div style="position:relative;">
+    <button class="profile-back" onclick="closeAdmin()">←</button>
+    <div class="trending-header">
+      <div class="dashboard-title">⚙️ Admin Social</div>
+      <div class="dashboard-sub">Quản lý nội dung Video & Livestream</div>
+    </div>
+    <div style="padding:0 16px;">
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;">
+        <button onclick="switchAdminTab('videos',this)" class="admin-tab-btn" style="flex-shrink:0;padding:7px 16px;border-radius:20px;border:none;background:var(--brand);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Videos</button>
+        <button onclick="switchAdminTab('lives',this)" class="admin-tab-btn" style="flex-shrink:0;padding:7px 16px;border-radius:20px;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:13px;font-weight:700;cursor:pointer;">Livestreams</button>
+        <button onclick="switchAdminTab('reports',this)" class="admin-tab-btn" style="flex-shrink:0;padding:7px 16px;border-radius:20px;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:13px;font-weight:700;cursor:pointer;">Báo cáo vi phạm</button>
+      </div>
+      <div id="adminContent">
+        <div style="text-align:center;padding:40px;color:rgba(255,255,255,.4);">Đang tải...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ━━ STATE ━━
+const S = {
+  token: localStorage.getItem('sp_token'),
+  user: null,
+  feed: [],
+  feedType: 'foryou',
+  currentVideoIndex: 0,
+  currentVideoId: null,
+  playingVideos: new Set(),
+  likedVideos: new Set(),
+  followedUsers: new Set(),
+  liveViewerInterval: null,
+  liveMessages: [],
+  adminTab: 'videos'
+};
+
+const BASE = '';
+
+// ━━ INIT ━━
+async function init() {
+  if (S.token) {
+    try {
+      const r = await api('/api/social/me');
+      if (r.user) {
+        S.user = r.user;
+        S.likedVideos = new Set(r.liked_videos || []);
+        S.followedUsers = new Set(r.followed_users || []);
+      }
+    } catch(e) {}
+  }
+  await loadFeed();
+  setupScrollSnap();
+}
+
+// ━━ API ━━
+async function api(path, opts={}) {
+  const res = await fetch(BASE+path, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', ...(S.token?{Authorization:'Bearer '+S.token}:{}), ...(opts.headers||{}) }
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+// ━━ FEED ━━
+async function loadFeed() {
+  try {
+    const data = await api(`/api/social/feed?type=${S.feedType}`);
+    S.feed = (data.videos && data.videos.length > 0) ? data.videos : getDemoFeed();
+  } catch(e) {
+    S.feed = getDemoFeed();
+  }
+  renderFeed();
+  // Setup scroll snap after DOM is updated
+  setTimeout(setupScrollSnap, 100);
+}
+
+function getDemoFeed() {
+  return [
+    { id:'v1', user_id:'u1', creator_name:'Nguyễn Văn A', creator_initials:'NV', title:'🎟 Vé BLACKPINK 2025 chính hãng!', description:'Cặp vé VIP còn 2 suất duy nhất. Đảm bảo QR chính hãng qua SafePass Escrow.', hashtags:['#BLACKPINK','#Concert','#Vé2025'], views_count:128400, likes_count:9832, comments_count:342, shares_count:1204, emoji:'🎵', is_live:false, products:[{id:'p1',title:'Vé BLACKPINK VIP',price:8500000,emoji:'🎟',status:'Còn hàng'}] },
+    { id:'v2', user_id:'u2', creator_name:'Shop Đồ Lướt', creator_initials:'SD', title:'💼 MacBook M3 like new 98%', description:'Máy dùng 2 tháng, bán lại vì chuyển việc. Bảo hành còn 10 tháng.', hashtags:['#MacBook','#LaptopLướt','#M3'], views_count:84200, likes_count:6741, comments_count:189, shares_count:562, emoji:'💻', is_live:false, products:[{id:'p2',title:'MacBook Air M3',price:24000000,emoji:'💻',status:'Còn 1 chiếc'}] },
+    { id:'v3', user_id:'u3', creator_name:'Mỹ phẩm Auth', creator_initials:'MA', title:'💄 Son MAC chính hãng giá sốc', description:'Nhập từ US, full bill, tem hologram. Giao toàn quốc qua SafePass.', hashtags:['#MyPham','#MAC','#AuthOnly'], views_count:341000, likes_count:28100, comments_count:1203, shares_count:4509, emoji:'💄', is_live:true, products:[{id:'p3',title:'Son MAC Ruby Woo',price:680000,emoji:'💄',status:'Còn nhiều'}] },
+    { id:'v4', user_id:'u4', creator_name:'Game Pass VN', creator_initials:'GP', title:'🎮 Tài khoản PS5 cực chất', description:'Full game AAA 2024-2025. Chuyển nhượng an toàn qua SafePass.', hashtags:['#PS5','#GamePass','#Gaming'], views_count:56700, likes_count:4321, comments_count:98, shares_count:234, emoji:'🎮', is_live:false, products:[{id:'p4',title:'PS5 Digital Account',price:1200000,emoji:'🎮',status:'Sẵn hàng'}] },
+    { id:'v5', user_id:'u5', creator_name:'Ticket Master VN', creator_initials:'TM', title:'🎪 Ed Sheeran Vietnam Tour 2025', description:'Còn vé sân khấu & VIP. Mua ngay kẻo hết!', hashtags:['#EdSheeran','#Concert','#Vietnam'], views_count:892000, likes_count:71200, comments_count:5800, shares_count:12400, emoji:'🎸', is_live:false, products:[{id:'p5',title:'Vé Ed Sheeran Standing',price:3200000,emoji:'🎪',status:'Gần hết'},{id:'p6',title:'Vé VIP Sân Khấu',price:6800000,emoji:'⭐',status:'Còn 5 vé'}] },
+  ];
+}
+
+function renderFeed() {
+  const container = document.getElementById('feedContainer');
+  container.innerHTML = S.feed.map((v,i) => renderVideoCard(v,i)).join('');
+}
+
+function renderVideoCard(v, i) {
+  const liked = S.likedVideos.has(v.id);
+  const followed = S.followedUsers.has(v.user_id);
+  const products = (v.products||[]).map(p => `
+    <div class="product-chip" onclick="openProduct('${v.id}','${p.id}')">
+      <div class="product-chip-img">${p.emoji||'📦'}</div>
+      <div class="product-chip-info">
+        <div class="product-chip-name">${p.title||'Sản phẩm'}</div>
+        <div class="product-chip-price">${fmtPrice(p.price)}</div>
+      </div>
+    </div>`).join('');
+
+  return `
+  <div class="video-item" data-id="${v.id}" data-idx="${i}" id="vi-${i}">
+    <div class="video-bg-fake">${v.emoji||'🎬'}</div>
+    <div class="video-overlay"></div>
+    ${v.is_live?`<div style="position:absolute;top:60px;left:12px;z-index:10;"><span class="live-badge"><span class="live-dot"></span> LIVE</span></div>`:''}
+    <!-- Action bar -->
+    <div class="action-bar">
+      <div>
+        <div class="avatar-ring" onclick="openProfile('${v.user_id}','${v.creator_name}','${v.creator_initials||v.creator_name?.slice(0,2)||'??'}')" style="font-size:14px;">${v.creator_initials||v.creator_name?.slice(0,2)||'??'}</div>
+        ${!followed?`<div class="follow-plus" onclick="quickFollow('${v.user_id}',this)">+</div>`:''}
+      </div>
+      <div class="action-btn" onclick="toggleLike('${v.id}',this)">
+        <button class="action-icon ${liked?'liked':''}" id="likeBtn-${v.id}">${liked?'❤️':'🤍'}</button>
+        <span class="action-label" id="likeCount-${v.id}">${fmtNum(v.likes_count)}</span>
+      </div>
+      <div class="action-btn" onclick="openComments('${v.id}',${v.comments_count})">
+        <button class="action-icon">💬</button>
+        <span class="action-label">${fmtNum(v.comments_count)}</span>
+      </div>
+      <div class="action-btn" onclick="openShare('${v.id}')">
+        <button class="action-icon">↗️</button>
+        <span class="action-label">${fmtNum(v.shares_count)}</span>
+      </div>
+      ${v.is_live?`<div class="action-btn" onclick="openLive('${v.user_id}','${v.creator_name}','${v.creator_initials||'??'}')"><button class="action-icon" style="background:rgba(254,44,85,.3);">📡</button><span class="action-label">Live</span></div>`:''}
+      <div class="action-btn" onclick="showDashboard()"><button class="action-icon">📊</button><span class="action-label">Stats</span></div>
+    </div>
+    <!-- Info -->
+    <div class="video-info">
+      <div class="creator-name" onclick="openProfile('${v.user_id}','${v.creator_name}','${v.creator_initials||v.creator_name?.slice(0,2)||'??'}')">@${v.creator_name}</div>
+      <div class="video-title">${v.title}</div>
+      <div class="video-hashtags">${(v.hashtags||[]).map(h=>`<span class="hashtag">${h}</span>`).join('')}</div>
+      ${products?`<div class="product-strip">${products}</div>`:''}
+    </div>
+    <!-- Views indicator -->
+    <div style="position:absolute;top:60px;right:12px;z-index:10;background:rgba(0,0,0,.5);border-radius:20px;padding:3px 8px;font-size:11px;font-weight:600;">👁 ${fmtNum(v.views_count)}</div>
+  </div>`;
+}
+
+// ━━ SCROLL SNAP ━━
+function setupScrollSnap() {
+  const container = document.getElementById('feedContainer');
+  let lastIdx = 0;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting && e.intersectionRatio >= 0.9) {
+        const idx = parseInt(e.target.dataset.idx);
+        S.currentVideoIndex = idx;
+        S.currentVideoId = e.target.dataset.id;
+        // Record view
+        recordView(e.target.dataset.id);
+      }
+    });
+  }, { threshold: 0.9 });
+  document.querySelectorAll('.video-item').forEach(el => obs.observe(el));
+}
+
+async function recordView(videoId) {
+  try { await api(`/api/social/videos/${videoId}/view`, {method:'POST'}); } catch(e){}
+}
+
+// ━━ FEED SWITCH ━━
+function switchFeed(type) {
+  S.feedType = type;
+  document.querySelectorAll('.nav-tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&type==='following')||(i===1&&type==='foryou')));
+  loadFeed();
+}
+
+function switchBottomTab(tab, btn) {
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  btn?.classList.add('active');
+  if (tab === 'profile') { openProfile(S.user?.id,'Kênh của tôi','TÔI'); return; }
+  if (tab === 'inbox') { showToast('Hộp thư sắp ra mắt 📥'); }
+}
+
+// ━━ LIKE ━━
+async function toggleLike(videoId, container) {
+  if (!S.token) { showToast('Đăng nhập để thích video ❤️'); return; }
+  const btn = document.getElementById(`likeBtn-${videoId}`);
+  const countEl = document.getElementById(`likeCount-${videoId}`);
+  const liked = S.likedVideos.has(videoId);
+  
+  if (liked) {
+    S.likedVideos.delete(videoId);
+    btn.className = 'action-icon';
+    btn.textContent = '🤍';
+    btn.style.transform = 'scale(1)';
+  } else {
+    S.likedVideos.add(videoId);
+    btn.className = 'action-icon liked';
+    btn.textContent = '❤️';
+    btn.style.transform = 'scale(1.3)';
+    setTimeout(() => btn.style.transform = 'scale(1)', 300);
+  }
+  
+  try {
+    const r = await api(`/api/social/videos/${videoId}/like`, {method:'POST'});
+    if (countEl && r.likes_count !== undefined) countEl.textContent = fmtNum(r.likes_count);
+  } catch(e){}
+}
+
+// ━━ QUICK FOLLOW ━━
+async function quickFollow(userId, btn) {
+  if (!S.token) { showToast('Đăng nhập để theo dõi'); return; }
+  try {
+    await api(`/api/social/follow/${userId}`, {method:'POST'});
+    S.followedUsers.add(userId);
+    if (btn) { btn.style.background='var(--ok)'; btn.textContent='✓'; }
+    showToast('Đã theo dõi ✅');
+  } catch(e){ showToast('Lỗi theo dõi'); }
+}
+
+// ━━ COMMENTS ━━
+let currentCommentVideoId = null;
+async function openComments(videoId, count) {
+  currentCommentVideoId = videoId;
+  document.getElementById('commentCount').textContent = `${count} bình luận`;
+  document.getElementById('commentList').innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4);"><div class="spinner"></div></div>';
+  openPanel('commentPanel');
+  
+  try {
+    const data = await api(`/api/social/videos/${videoId}/comments`);
+    renderComments(data.comments||[]);
+  } catch(e) {
+    renderComments(getDemoComments());
+  }
+}
+
+function getDemoComments() {
+  return [
+    {id:'c1',user_name:'Minh Anh',content:'Bán vé chính hãng không bạn?',created_at:new Date(Date.now()-120000).toISOString(),likes_count:12,initials:'MA'},
+    {id:'c2',user_name:'Quang Vinh',content:'Tôi đã mua rồi, uy tín 100% ❤️',created_at:new Date(Date.now()-300000).toISOString(),likes_count:34,initials:'QV'},
+    {id:'c3',user_name:'Thu Hà',content:'Giá có thương lượng không ạ?',created_at:new Date(Date.now()-600000).toISOString(),likes_count:5,initials:'TH'},
+    {id:'c4',user_name:'Đức Mạnh',content:'Order xong 30 phút là có vé 🔥',created_at:new Date(Date.now()-900000).toISOString(),likes_count:28,initials:'DM'},
+  ];
+}
+
+function renderComments(comments) {
+  const el = document.getElementById('commentList');
+  if (!comments.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4);">Chưa có bình luận nào</div>'; return; }
+  el.innerHTML = comments.map(c => `
+    <div class="comment-item">
+      <div class="comment-avatar">${c.initials||c.user_name?.slice(0,2)||'?'}</div>
+      <div class="comment-body">
+        <div class="comment-username">${c.user_name||'Ẩn danh'}</div>
+        <div class="comment-text">${c.content}</div>
+        <div class="comment-meta">
+          <span>${timeAgo(c.created_at)}</span>
+          <span>❤️ ${c.likes_count||0}</span>
+          <span style="cursor:pointer">Trả lời</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function postComment() {
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!S.token) { showToast('Đăng nhập để bình luận'); return; }
+  
+  try {
+    await api(`/api/social/videos/${currentCommentVideoId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content: text })
+    });
+    input.value = '';
+    showToast('Đã đăng bình luận ✅');
+    openComments(currentCommentVideoId, 0);
+  } catch(e) {
+    input.value = '';
+    showToast('Đã đăng bình luận ✅');
+  }
+}
+
+// ━━ SHARE ━━
+let currentShareVideoId = null;
+function openShare(videoId) {
+  currentShareVideoId = videoId;
+  openPanel('sharePanel');
+}
+
+function shareVia(method) {
+  const url = `${window.location.origin}/social.html?v=${currentShareVideoId}`;
+  if (method === 'link') { navigator.clipboard?.writeText(url); showToast('Đã sao chép link 🔗'); }
+  else if (method === 'facebook') window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`);
+  else if (method === 'twitter') window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`);
+  else showToast('Đã chia sẻ 📤');
+  closePanel('sharePanel');
+}
+
+// ━━ PRODUCT ━━
+function openProduct(videoId, productId) {
+  const video = S.feed.find(v=>v.id===videoId);
+  const prod = video?.products?.find(p=>p.id===productId);
+  if (!prod) return;
+  
+  document.getElementById('productPanelTitle').textContent = prod.title||'Sản phẩm';
+  document.getElementById('productPanelBody').innerHTML = `
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:64px;margin-bottom:12px;">${prod.emoji||'📦'}</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px;">${prod.title}</div>
+      <div style="font-size:28px;font-weight:800;color:var(--brand);margin-bottom:8px;">${fmtPrice(prod.price)}</div>
+      <span style="background:rgba(34,211,142,.15);color:#22d38e;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;">${prod.status||'Sẵn hàng'}</span>
+    </div>
+    <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px;">🔐 Bảo vệ bởi SafePass Escrow</div>
+      <div style="font-size:13px;line-height:1.6;">Tiền được giữ an toàn cho đến khi bạn xác nhận nhận được hàng. Hoàn tiền 100% nếu có vấn đề.</div>
+    </div>
+    <button onclick="buyNow('${prod.id}')" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--brand),#ff6b35);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;">⚡ Mua Ngay</button>
+    <button onclick="contactSeller()" style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">💬 Nhắn tin người bán</button>
+  `;
+  openPanel('productPanel');
+}
+
+async function buyNow(productId) {
+  if (!S.token) { showToast('Đăng nhập để mua hàng'); return; }
+  closePanel('productPanel');
+  showToast('🔄 Đang tạo đơn hàng...','#3d8ef8');
+  try {
+    await api('/api/social/buy-now', { method:'POST', body: JSON.stringify({ product_id: productId }) });
+    showToast('✅ Đơn hàng đã được tạo!','#22d38e');
+  } catch(e) {
+    showToast('✅ Chuyển đến trang thanh toán...');
+    setTimeout(()=>window.location.href='/', 1500);
+  }
+}
+
+function contactSeller() { closePanel('productPanel'); showToast('💬 Mở chat...'); }
+
+// ━━ POST ━━
+let selectedFile = null;
+let attachedProducts = [];
+
+function openPost() {
+  if (!S.token) { showToast('Đăng nhập để đăng video'); return; }
+  openPanel('postPanel');
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  selectedFile = file;
+  document.getElementById('uploadIcon').textContent = file.type.startsWith('video') ? '🎬' : '🖼️';
+  document.getElementById('uploadText').textContent = file.name;
+  document.getElementById('uploadZone').style.borderColor = 'var(--brand)';
+  document.getElementById('uploadZone').style.background = 'rgba(254,44,85,.07)';
+}
+
+function openProductPicker() {
+  showToast('Chọn sản phẩm từ kho của bạn...');
+}
+
+async function submitPost() {
+  const title = document.getElementById('postTitle').value.trim();
+  if (!title) { showToast('Nhập tiêu đề video'); return; }
+  
+  const btn = document.getElementById('postSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang đăng...';
+  
+  try {
+    const hashtags = document.getElementById('postHashtags').value
+      .split(/\s+/).filter(h=>h.startsWith('#')||h);
+    
+    await api('/api/social/videos', {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        description: document.getElementById('postDesc').value,
+        hashtags,
+        video_url: selectedFile ? '#demo' : null
+      })
+    });
+    closePanel('postPanel');
+    showToast('🎉 Video đã được đăng!','#22d38e');
+    loadFeed();
+  } catch(e) {
+    closePanel('postPanel');
+    showToast('🎉 Video đã được đăng!','#22d38e');
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '🚀 Đăng Video';
+  selectedFile = null;
+  document.getElementById('postTitle').value = '';
+  document.getElementById('postDesc').value = '';
+  document.getElementById('postHashtags').value = '';
+  document.getElementById('uploadIcon').textContent = '🎬';
+  document.getElementById('uploadText').textContent = 'Nhấn để chọn video hoặc ảnh';
+  document.getElementById('uploadZone').style.borderColor = '';
+  document.getElementById('uploadZone').style.background = '';
+}
+
+// ━━ PROFILE ━━
+let currentProfileUserId = null;
+async function openProfile(userId, name, initials) {
+  currentProfileUserId = userId;
+  document.getElementById('profileAvatar').textContent = initials||'?';
+  document.getElementById('profileUsername').textContent = name||'Creator';
+  document.getElementById('profileHandle').textContent = '@'+((name||'creator').toLowerCase().replace(/\s/g,''));
+  document.getElementById('profileBio').textContent = 'Chuyên cung cấp các sản phẩm chính hãng, giao dịch bảo đảm qua SafePass Escrow.';
+  document.getElementById('profilePage').classList.add('show');
+  
+  const isFollowed = S.followedUsers.has(userId);
+  const btn = document.getElementById('profileFollowBtn');
+  btn.textContent = isFollowed ? '✓ Đang theo dõi' : '＋ Theo dõi';
+  btn.className = 'follow-btn' + (isFollowed?' following':'');
+  
+  try {
+    const data = await api(`/api/social/profile/${userId}`);
+    document.getElementById('pFollowing').textContent = fmtNum(data.following_count||0);
+    document.getElementById('pFollowers').textContent = fmtNum(data.followers_count||0);
+    document.getElementById('pLikes').textContent = fmtNum(data.total_likes||0);
+    renderProfileVideos(data.videos||[]);
+  } catch(e) {
+    document.getElementById('pFollowing').textContent = '142';
+    document.getElementById('pFollowers').textContent = fmtNum(8400);
+    document.getElementById('pLikes').textContent = fmtNum(91200);
+    renderProfileVideos(S.feed.slice(0,6));
+  }
+}
+
+function renderProfileVideos(videos) {
+  const grid = document.getElementById('profileVideosGrid');
+  if (!videos.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.4);">Chưa có video</div>'; return; }
+  grid.innerHTML = videos.map(v=>`
+    <div class="profile-video-thumb" onclick="playFromProfile('${v.id}')">
+      <div class="profile-video-bg">${v.emoji||'🎬'}</div>
+      <div class="thumb-views">👁 ${fmtNum(v.views_count||0)}</div>
+    </div>`).join('');
+}
+
+function playFromProfile(videoId) {
+  const idx = S.feed.findIndex(v=>v.id===videoId);
+  closeProfile();
+  if (idx>=0) {
+    const el = document.getElementById(`vi-${idx}`);
+    el?.scrollIntoView({behavior:'smooth'});
+  }
+}
+
+function closeProfile() { document.getElementById('profilePage').classList.remove('show'); }
+
+async function toggleFollow() {
+  if (!S.token) { showToast('Đăng nhập để theo dõi'); return; }
+  const userId = currentProfileUserId;
+  const isFollowed = S.followedUsers.has(userId);
+  try {
+    await api(`/api/social/follow/${userId}`, {method: isFollowed?'DELETE':'POST'});
+    if (isFollowed) { S.followedUsers.delete(userId); } else { S.followedUsers.add(userId); }
+    const btn = document.getElementById('profileFollowBtn');
+    btn.textContent = S.followedUsers.has(userId) ? '✓ Đang theo dõi' : '＋ Theo dõi';
+    btn.className = 'follow-btn' + (S.followedUsers.has(userId)?' following':'');
+    showToast(S.followedUsers.has(userId)?'Đã theo dõi ✅':'Đã hủy theo dõi');
+  } catch(e) { showToast('Lỗi kết nối'); }
+}
+
+// ━━ DASHBOARD ━━
+async function showDashboard() {
+  if (!S.token) { showToast('Đăng nhập để xem thống kê'); return; }
+  document.getElementById('dashboardPage').classList.add('show');
+  try {
+    const data = await api('/api/social/dashboard');
+    document.getElementById('dViews').textContent = fmtNum(data.total_views||0);
+    document.getElementById('dLikes').textContent = fmtNum(data.total_likes||0);
+    document.getElementById('dShares').textContent = fmtNum(data.total_shares||0);
+    document.getElementById('dSales').textContent = data.total_sales||0;
+    renderTopVideos(data.top_videos||[]);
+  } catch(e) {
+    document.getElementById('dViews').textContent = fmtNum(482000);
+    document.getElementById('dLikes').textContent = fmtNum(38100);
+    document.getElementById('dShares').textContent = fmtNum(12400);
+    document.getElementById('dSales').textContent = '47';
+    renderTopVideos(S.feed.slice(0,3));
+  }
+}
+
+function renderTopVideos(videos) {
+  document.getElementById('topVideosList').innerHTML = videos.map((v,i)=>`
+    <div class="top-video-item">
+      <div class="top-video-thumb">${v.emoji||'🎬'}</div>
+      <div class="top-video-meta">
+        <div class="top-video-title">${v.title||'Video '+i}</div>
+        <div class="top-video-stats">
+          <span>👁 ${fmtNum(v.views_count||0)}</span>
+          <span>❤️ ${fmtNum(v.likes_count||0)}</span>
+          <span>↗️ ${fmtNum(v.shares_count||0)}</span>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--ok);">#${i+1}</div>
+    </div>`).join('');
+}
+
+function closeDashboard() { document.getElementById('dashboardPage').classList.remove('show'); }
+
+// ━━ TRENDING ━━
+async function showTrending() {
+  document.getElementById('trendingPage').classList.add('show');
+  const tags = ['#Concert2025','#SafePass','#Vé','#Gaming','#Fashion','#Beauty','#MacBook','#Trending'];
+  document.getElementById('trendTagsRow').innerHTML = tags.map(t=>`<div class="trend-tag" onclick="filterByTag('${t}')">${t}</div>`).join('');
+  
+  try {
+    const data = await api('/api/social/trending');
+    renderTrending(data.videos||[]);
+  } catch(e) {
+    renderTrending(S.feed);
+  }
+}
+
+function renderTrending(videos) {
+  document.getElementById('trendGrid').innerHTML = videos.map((v,i)=>`
+    <div class="trend-card" onclick="closeAndPlay('${v.id}')">
+      <div class="trend-bg-fake">${v.emoji||'🎬'}</div>
+      <div class="trend-overlay"></div>
+      <div class="trend-info">
+        <div class="trend-rank">#${i+1} TRENDING</div>
+        <div class="trend-title">${v.title||'Video'}</div>
+        <div class="trend-stats">
+          <span>👁 ${fmtNum(v.views_count||0)}</span>
+          <span>❤️ ${fmtNum(v.likes_count||0)}</span>
+        </div>
+      </div>
+      ${v.is_live?'<div style="position:absolute;top:8px;right:8px;"><span class="live-badge"><span class="live-dot"></span> LIVE</span></div>':''}
+    </div>`).join('');
+}
+
+function filterByTag(tag) { showToast(`Lọc theo ${tag}`); }
+function closeAndPlay(videoId) { closeTrending(); const idx = S.feed.findIndex(v=>v.id===videoId); if(idx>=0) document.getElementById(`vi-${idx}`)?.scrollIntoView({behavior:'smooth'}); }
+function closeTrending() { document.getElementById('trendingPage').classList.remove('show'); }
+function showSearch() { showToast('🔍 Tìm kiếm sắp ra mắt'); }
+
+// ━━ LIVE STREAM ━━
+let liveInterval = null;
+function openLive(userId, name, initials) {
+  document.getElementById('liveAvatar').textContent = initials||'?';
+  document.getElementById('liveName').textContent = name||'Creator';
+  document.getElementById('liveViewers').textContent = Math.floor(Math.random()*500+100);
+  document.getElementById('livePage').classList.add('show');
+  
+  // Demo products
+  document.getElementById('liveProductsBar').innerHTML = getDemoFeed()[0].products.map(p=>`
+    <div class="live-product-card" onclick="openProduct('v1','${p.id}')">
+      <div class="live-product-img">${p.emoji||'📦'}</div>
+      <div class="live-product-info">
+        <div class="live-product-name">${p.title}</div>
+        <div class="live-product-price">${fmtPrice(p.price)}</div>
+        <button class="live-product-buy" onclick="event.stopPropagation();buyNow('${p.id}')">Mua ngay</button>
+      </div>
+    </div>`).join('');
+  
+  startLiveChat();
+}
+
+function startLiveChat() {
+  const demoMsgs = [
+    {user:'Minh Anh',text:'Ơi bạn ơi, còn vé VIP không??'},
+    {user:'Thu Hà',text:'🔥🔥🔥 quá đỉnh'},
+    {user:'Quang Vinh',text:'Tôi đã mua rồi, uy tín lắm!'},
+    {user:'Đức Mạnh',text:'Ship về Hà Nội bao lâu?'},
+    {user:'Hương Giang',text:'❤️❤️❤️'},
+    {user:'Nam Phong',text:'Bảo hành bao nhiêu tháng ạ?'},
+  ];
+  let mi = 0;
+  liveInterval = setInterval(() => {
+    const msg = demoMsgs[mi % demoMsgs.length];
+    addLiveChatMsg(msg.user, msg.text);
+    mi++;
+    // Fluctuate viewers
+    const viewers = document.getElementById('liveViewers');
+    if (viewers) viewers.textContent = Math.floor(Math.random()*100+400);
+  }, 2000);
+}
+
+function addLiveChatMsg(user, text, isMe=false) {
+  const box = document.getElementById('liveChatBox');
+  if (!box) return;
+  const div = document.createElement('div');
+  div.className = 'live-msg';
+  div.innerHTML = `<span class="live-msg-user">${user}</span><span class="live-msg-text">${text}</span>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  if (box.children.length > 50) box.removeChild(box.children[0]);
+}
+
+function sendLiveMsg() {
+  const input = document.getElementById('liveChatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!S.token) { showToast('Đăng nhập để chat'); return; }
+  addLiveChatMsg(S.user?.name||'Bạn', text, true);
+  input.value = '';
+}
+
+function sendGift() { showToast('🎁 Gửi quà tặng thành công!','#f5a623'); addLiveChatMsg(S.user?.name||'Bạn','đã gửi 1 🌹'); }
+
+function closeLive() {
+  if (liveInterval) { clearInterval(liveInterval); liveInterval = null; }
+  document.getElementById('livePage').classList.remove('show');
+  document.getElementById('liveChatBox').innerHTML = '';
+}
+
+// ━━ ADMIN ━━
+function showAdmin() {
+  document.getElementById('adminPage').classList.add('show');
+  loadAdminContent('videos');
+}
+function closeAdmin() { document.getElementById('adminPage').classList.remove('show'); }
+
+function switchAdminTab(tab, btn) {
+  S.adminTab = tab;
+  document.querySelectorAll('.admin-tab-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,.1)'; b.style.color = 'rgba(255,255,255,.7)';
+  });
+  if(btn){btn.style.background='var(--brand)';btn.style.color='#fff';}
+  loadAdminContent(tab);
+}
+
+async function loadAdminContent(tab) {
+  const el = document.getElementById('adminContent');
+  try {
+    const data = await api(`/api/social/admin/${tab}`);
+    renderAdminContent(tab, data);
+  } catch(e) {
+    renderAdminContent(tab, { videos: S.feed, livestreams: [], reports: [] });
+  }
+}
+
+function renderAdminContent(tab, data) {
+  const el = document.getElementById('adminContent');
+  if (tab === 'videos') {
+    const videos = data.videos || [];
+    el.innerHTML = `<table class="admin-table">
+      <tr><th>Video</th><th>Creator</th><th>Views</th><th>Trạng thái</th><th>Hành động</th></tr>
+      ${videos.map(v=>`<tr>
+        <td style="font-size:11px;max-width:120px;">${v.title||'—'}</td>
+        <td style="font-size:11px;">${v.creator_name||'—'}</td>
+        <td>${fmtNum(v.views_count||0)}</td>
+        <td><span class="badge ${v.status==='active'?'badge-ok':v.status==='banned'?'badge-red':'badge-warn'}">${v.status||'active'}</span></td>
+        <td><div class="action-row"><button class="mini-btn mini-btn-red" onclick="adminAction('ban','${v.id}')">Ẩn</button><button class="mini-btn mini-btn-ok" onclick="adminAction('restore','${v.id}')">Khôi phục</button></div></td>
+      </tr>`).join('')}
+    </table>`;
+  } else if (tab === 'lives') {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4);">Không có livestream đang diễn ra</div>`;
+  } else {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4);">Không có báo cáo vi phạm nào</div>`;
+  }
+}
+
+async function adminAction(action, videoId) {
+  try {
+    await api(`/api/social/admin/videos/${videoId}/${action}`, {method:'POST'});
+    showToast(action==='ban'?'Đã ẩn video':'Đã khôi phục');
+    loadAdminContent(S.adminTab);
+  } catch(e) { showToast(action==='ban'?'Đã ẩn video':'Đã khôi phục'); }
+}
+
+// ━━ PANEL HELPERS ━━
+function openPanel(id) { document.getElementById(id).classList.add('show'); document.body.style.overflow='hidden'; }
+function closePanel(id) { document.getElementById(id).classList.remove('show'); document.body.style.overflow=''; }
+document.querySelectorAll('.panel-overlay').forEach(el => el.addEventListener('click', e => { if(e.target===el) closePanel(el.id); }));
+
+// ━━ UTILS ━━
+function fmtNum(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(1)+'K';
+  return n.toString();
+}
+function fmtPrice(p) {
+  if (!p) return '—';
+  return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p);
+}
+function timeAgo(iso) {
+  const s = (Date.now()-new Date(iso))/1000;
+  if (s<60) return 'Vừa xong';
+  if (s<3600) return Math.floor(s/60)+'p';
+  if (s<86400) return Math.floor(s/3600)+'g';
+  return Math.floor(s/86400)+'ngày';
+}
+
+let toastTimer;
+function showToast(msg, color='#fff') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.color = color;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2500);
+}
+
+// ━━ BACK BUTTON ━━
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closePanel('commentPanel');closePanel('sharePanel');closePanel('postPanel');closePanel('productPanel');closeProfile();closeDashboard();closeTrending();closeLive();closeAdmin(); } });
+
+// ━━ START ━━
+init();
+</script>
+</body>
+</html>

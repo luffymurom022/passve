@@ -9053,6 +9053,284 @@ app.get('/api/admin/franchise/stats', adminAuth, async (req, res) => {
   res.json({ total_partners, active_partners, pending_partners, total_revenue, by_province, by_service });
 });
 
+// ══════════════════════════════════════════════════════════
+// PHASE 18: SAFEPASS SOCIAL COMMERCE
+// ══════════════════════════════════════════════════════════
+
+// Serve social page
+app.get('/social', (req, res) => res.sendFile(join(__dirname, 'frontend/social.html')));
+app.get('/social.html', (req, res) => res.sendFile(join(__dirname, 'frontend/social.html')));
+
+// Get current user social info
+app.get('/api/social/me', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { data: likedRows } = await supabase.from('social_likes').select('video_id').eq('user_id', userId);
+    const { data: followedRows } = await supabase.from('social_follows').select('following_id').eq('follower_id', userId);
+    const likedVideos = (likedRows||[]).map(r => r.video_id);
+    const followedUsers = (followedRows||[]).map(r => r.following_id);
+    res.json({ user: req.user, liked_videos: likedVideos, followed_users: followedUsers });
+  } catch(e) { res.json({ user: req.user, liked_videos: [], followed_users: [] }); }
+});
+
+// Video feed
+app.get('/api/social/feed', async (req, res) => {
+  try {
+    const { type = 'foryou', limit = 20, offset = 0 } = req.query;
+    let query = supabase.from('social_videos').select(`*, users!inner(name, id)`).eq('status','active').order('created_at', { ascending: false }).range(Number(offset), Number(offset)+Number(limit)-1);
+    const { data: videos, error } = await query;
+    if (error) return res.json({ videos: [] });
+    // Attach products
+    const videoIds = (videos||[]).map(v => v.id);
+    const { data: products } = videoIds.length ? await supabase.from('social_video_products').select('*').in('video_id', videoIds) : { data: [] };
+    const prodMap = {};
+    (products||[]).forEach(p => { if (!prodMap[p.video_id]) prodMap[p.video_id] = []; prodMap[p.video_id].push(p); });
+    const enriched = (videos||[]).map(v => ({ ...v, creator_name: v.users?.name || 'Creator', products: prodMap[v.id] || [] }));
+    res.json({ videos: enriched });
+  } catch(e) { res.json({ videos: [] }); }
+});
+
+// Get trending videos
+app.get('/api/social/trending', async (req, res) => {
+  try {
+    const { data: videos } = await supabase.from('social_videos').select('*, users!inner(name)').eq('status','active').order('views_count', { ascending: false }).limit(20);
+    res.json({ videos: (videos||[]).map(v => ({ ...v, creator_name: v.users?.name })) });
+  } catch(e) { res.json({ videos: [] }); }
+});
+
+// Post a video
+app.post('/api/social/videos', auth, async (req, res) => {
+  try {
+    const { title, description, hashtags, video_url, thumbnail_url } = req.body;
+    if (!title) return res.status(400).json({ error: 'Tiêu đề bắt buộc' });
+    const { data, error } = await supabase.from('social_videos').insert({
+      user_id: req.user.id, title, description: description||'', hashtags: hashtags||[],
+      video_url: video_url||null, thumbnail_url: thumbnail_url||null, status: 'active'
+    }).select().single();
+    if (error) throw error;
+    // Update creator stats
+    await supabase.from('social_creator_stats').upsert({ user_id: req.user.id, total_videos: 1 }, { onConflict: 'user_id', ignoreDuplicates: false });
+    res.json({ video: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Record view
+app.post('/api/social/videos/:id/view', async (req, res) => {
+  try {
+    await supabase.from('social_videos').update({ views_count: supabase.raw ? undefined : 0 }).eq('id', req.params.id);
+    await supabase.rpc ? supabase.rpc('increment_views', { vid: req.params.id }) : supabase.from('social_videos').select('views_count').eq('id',req.params.id).single().then(({data})=> data && supabase.from('social_videos').update({views_count:(data.views_count||0)+1}).eq('id',req.params.id));
+    res.json({ ok: true });
+  } catch(e) { res.json({ ok: true }); }
+});
+
+// Like / unlike video
+app.post('/api/social/videos/:id/like', auth, async (req, res) => {
+  try {
+    const { id: videoId } = req.params;
+    const userId = req.user.id;
+    const { data: existing } = await supabase.from('social_likes').select('id').eq('user_id', userId).eq('video_id', videoId).maybeSingle();
+    if (existing) {
+      await supabase.from('social_likes').delete().eq('user_id', userId).eq('video_id', videoId);
+      const { data: v } = await supabase.from('social_videos').select('likes_count').eq('id', videoId).single();
+      const newCount = Math.max(0,(v?.likes_count||1)-1);
+      await supabase.from('social_videos').update({ likes_count: newCount }).eq('id', videoId);
+      return res.json({ liked: false, likes_count: newCount });
+    } else {
+      await supabase.from('social_likes').insert({ user_id: userId, video_id: videoId });
+      const { data: v } = await supabase.from('social_videos').select('likes_count').eq('id', videoId).single();
+      const newCount = (v?.likes_count||0)+1;
+      await supabase.from('social_videos').update({ likes_count: newCount }).eq('id', videoId);
+      return res.json({ liked: true, likes_count: newCount });
+    }
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get video comments
+app.get('/api/social/videos/:id/comments', async (req, res) => {
+  try {
+    const { data: comments } = await supabase.from('social_comments').select('*, users!inner(name)').eq('video_id', req.params.id).is('parent_id', null).order('created_at', { ascending: false }).limit(50);
+    res.json({ comments: (comments||[]).map(c => ({ ...c, user_name: c.users?.name, initials: c.users?.name?.slice(0,2)?.toUpperCase() })) });
+  } catch(e) { res.json({ comments: [] }); }
+});
+
+// Post comment
+app.post('/api/social/videos/:id/comments', auth, async (req, res) => {
+  try {
+    const { content, parent_id } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Nội dung bắt buộc' });
+    const { data, error } = await supabase.from('social_comments').insert({ video_id: req.params.id, user_id: req.user.id, content: content.trim(), parent_id: parent_id||null }).select().single();
+    if (error) throw error;
+    const { data: v } = await supabase.from('social_videos').select('comments_count').eq('id', req.params.id).single();
+    await supabase.from('social_videos').update({ comments_count: (v?.comments_count||0)+1 }).eq('id', req.params.id);
+    res.json({ comment: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Follow user
+app.post('/api/social/follow/:userId', auth, async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const followingId = req.params.userId;
+    if (followerId === followingId) return res.status(400).json({ error: 'Không thể tự follow' });
+    await supabase.from('social_follows').insert({ follower_id: followerId, following_id: followingId });
+    // Update stats
+    await supabase.from('social_creator_stats').upsert({ user_id: followingId }, { onConflict: 'user_id', ignoreDuplicates: true });
+    res.json({ following: true });
+  } catch(e) { res.json({ following: true }); }
+});
+
+// Unfollow user
+app.delete('/api/social/follow/:userId', auth, async (req, res) => {
+  try {
+    await supabase.from('social_follows').delete().eq('follower_id', req.user.id).eq('following_id', req.params.userId);
+    res.json({ following: false });
+  } catch(e) { res.json({ following: false }); }
+});
+
+// Get creator profile
+app.get('/api/social/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { data: user } = await supabase.from('users').select('id,name,bio').eq('id', userId).single();
+    const { data: stats } = await supabase.from('social_creator_stats').select('*').eq('user_id', userId).maybeSingle();
+    const { count: followersCount } = await supabase.from('social_follows').select('id', { count: 'exact', head: true }).eq('following_id', userId);
+    const { count: followingCount } = await supabase.from('social_follows').select('id', { count: 'exact', head: true }).eq('follower_id', userId);
+    const { data: videos } = await supabase.from('social_videos').select('*').eq('user_id', userId).eq('status','active').order('created_at', { ascending: false }).limit(12);
+    const totalLikes = (videos||[]).reduce((s,v) => s+(v.likes_count||0), 0);
+    res.json({ user, followers_count: followersCount||0, following_count: followingCount||0, total_likes: stats?.total_likes||totalLikes, videos: videos||[] });
+  } catch(e) { res.json({ followers_count: 0, following_count: 0, total_likes: 0, videos: [] }); }
+});
+
+// Social dashboard for creator
+app.get('/api/social/dashboard', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { data: videos } = await supabase.from('social_videos').select('*').eq('user_id', userId).eq('status','active').order('views_count', { ascending: false });
+    const totalViews = (videos||[]).reduce((s,v) => s+(v.views_count||0), 0);
+    const totalLikes = (videos||[]).reduce((s,v) => s+(v.likes_count||0), 0);
+    const totalShares = (videos||[]).reduce((s,v) => s+(v.shares_count||0), 0);
+    const { count: totalSales } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('seller_id', userId);
+    res.json({ total_views: totalViews, total_likes: totalLikes, total_shares: totalShares, total_sales: totalSales||0, top_videos: (videos||[]).slice(0,5) });
+  } catch(e) { res.json({ total_views: 0, total_likes: 0, total_shares: 0, total_sales: 0, top_videos: [] }); }
+});
+
+// Attach product to video
+app.post('/api/social/videos/:id/products', auth, async (req, res) => {
+  try {
+    const { listing_id, custom_title, custom_price, custom_image, emoji } = req.body;
+    const { data: video } = await supabase.from('social_videos').select('user_id').eq('id', req.params.id).single();
+    if (!video || video.user_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    const { data, error } = await supabase.from('social_video_products').insert({ video_id: req.params.id, listing_id: listing_id||null, custom_title, custom_price, custom_image }).select().single();
+    if (error) throw error;
+    res.json({ product: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Buy now from video
+app.post('/api/social/buy-now', auth, async (req, res) => {
+  try {
+    const { product_id, listing_id } = req.body;
+    // Redirect to main order flow
+    res.json({ ok: true, redirect: '/' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Live streams
+app.get('/api/social/livestreams', async (req, res) => {
+  try {
+    const { data } = await supabase.from('social_livestreams').select('*, users!inner(name)').eq('status','live').order('viewers_count', { ascending: false });
+    res.json({ livestreams: (data||[]).map(l => ({ ...l, creator_name: l.users?.name })) });
+  } catch(e) { res.json({ livestreams: [] }); }
+});
+
+app.post('/api/social/livestreams', auth, async (req, res) => {
+  try {
+    const { title, description } = req.body;
+    if (!title) return res.status(400).json({ error: 'Tiêu đề bắt buộc' });
+    const { data, error } = await supabase.from('social_livestreams').insert({ user_id: req.user.id, title, description: description||'', status: 'live', started_at: new Date().toISOString() }).select().single();
+    if (error) throw error;
+    // Also create a video record for the stream
+    await supabase.from('social_videos').insert({ user_id: req.user.id, title, description: description||'', is_live: true, status: 'active' });
+    res.json({ livestream: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/social/livestreams/:id/end', auth, async (req, res) => {
+  try {
+    await supabase.from('social_livestreams').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', req.params.id).eq('user_id', req.user.id);
+    await supabase.from('social_videos').update({ is_live: false, live_ended_at: new Date().toISOString() }).eq('user_id', req.user.id).eq('is_live', true);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Live products
+app.get('/api/social/livestreams/:id/products', async (req, res) => {
+  try {
+    const { data } = await supabase.from('social_live_products').select('*').eq('livestream_id', req.params.id).order('display_order');
+    res.json({ products: data||[] });
+  } catch(e) { res.json({ products: [] }); }
+});
+
+app.post('/api/social/livestreams/:id/products', auth, async (req, res) => {
+  try {
+    const { listing_id, custom_title, custom_price, custom_image } = req.body;
+    const { data, error } = await supabase.from('social_live_products').insert({ livestream_id: req.params.id, listing_id: listing_id||null, custom_title, custom_price, custom_image }).select().single();
+    if (error) throw error;
+    res.json({ product: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Live chat messages
+app.get('/api/social/livestreams/:id/messages', async (req, res) => {
+  try {
+    const { data } = await supabase.from('social_live_messages').select('*, users!inner(name)').eq('livestream_id', req.params.id).order('created_at', { ascending: false }).limit(50);
+    res.json({ messages: (data||[]).reverse().map(m => ({ ...m, user_name: m.users?.name })) });
+  } catch(e) { res.json({ messages: [] }); }
+});
+
+app.post('/api/social/livestreams/:id/messages', auth, async (req, res) => {
+  try {
+    const { content, type } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Nội dung bắt buộc' });
+    const { data, error } = await supabase.from('social_live_messages').insert({ livestream_id: req.params.id, user_id: req.user.id, content: content.trim(), type: type||'message' }).select().single();
+    if (error) throw error;
+    res.json({ message: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN SOCIAL ──
+app.get('/api/social/admin/videos', adminAuth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('social_videos').select('*, users!inner(name)').order('created_at', { ascending: false }).limit(100);
+    res.json({ videos: (data||[]).map(v => ({ ...v, creator_name: v.users?.name })) });
+  } catch(e) { res.json({ videos: [] }); }
+});
+
+app.get('/api/social/admin/lives', adminAuth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('social_livestreams').select('*, users!inner(name)').order('created_at', { ascending: false }).limit(50);
+    res.json({ livestreams: (data||[]).map(l => ({ ...l, creator_name: l.users?.name })) });
+  } catch(e) { res.json({ livestreams: [] }); }
+});
+
+app.get('/api/social/admin/reports', adminAuth, async (req, res) => {
+  res.json({ reports: [] });
+});
+
+app.post('/api/social/admin/videos/:id/ban', adminAuth, async (req, res) => {
+  try {
+    await supabase.from('social_videos').update({ status: 'banned' }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/social/admin/videos/:id/restore', adminAuth, async (req, res) => {
+  try {
+    await supabase.from('social_videos').update({ status: 'active' }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
