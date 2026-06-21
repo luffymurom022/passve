@@ -1290,6 +1290,7 @@ function render(){
     {id:"superapp",icon:"⚡",label:"Super App"},
     {id:"pay",icon:"💳",label:"Pay"},
     {id:"stories",icon:"📸",label:"Stories"},
+    {id:"network",icon:"🌐",label:"Network"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1342,6 +1343,8 @@ function render(){
           ?"window.location.href='/pay'"
           :p.id==="stories"
           ?"window.location.href='/stories'"
+          :p.id==="network"
+          ?"window.location.href='/network'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafePass Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#18191a;--sidebar-bg:#242526;--card-bg:#242526;--input-bg:#3a3b3c;
+  --border:#3a3b3c;--text:#e4e6eb;--sub:#b0b3b8;--hint:#65676b;
+  --brand:#1877f2;--brand-h:#166fe5;--brand-light:rgba(24,119,242,.12);
+  --like:#1877f2;--love:#f33e58;--haha:#f7b125;--wow:#f7b125;--sad:#f7b125;--angry:#e9710f;
+  --green:#42b72a;--red:#f02849;--shadow:0 2px 12px rgba(0,0,0,.4);
+  --radius:12px;--radius-sm:8px;
+}
+[data-theme="light"]{
+  --bg:#f0f2f5;--sidebar-bg:#fff;--card-bg:#fff;--input-bg:#f0f2f5;
+  --border:#ddd;--text:#050505;--sub:#65676b;--hint:#8a8d91;
+  --shadow:0 2px 8px rgba(0,0,0,.12);
+}
+html,body{height:100%;background:var(--bg);font-family:'Inter',system-ui,sans-serif;color:var(--text);}
+button{cursor:pointer;font-family:inherit;}
+a{color:inherit;text-decoration:none;}
+input,textarea{font-family:inherit;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* ════════════════════ TOPBAR ════════════════════ */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:300;height:56px;
+  background:var(--sidebar-bg);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:8px;
+  box-shadow:var(--shadow);
+}
+.topbar-logo{font-size:22px;font-weight:800;color:var(--brand);white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.topbar-logo span{font-size:13px;font-weight:600;color:var(--sub);}
+.topbar-search{flex:1;max-width:240px;margin:0 8px;position:relative;}
+.topbar-search input{width:100%;background:var(--input-bg);border:none;border-radius:20px;padding:8px 16px 8px 36px;color:var(--text);font-size:14px;outline:none;}
+.topbar-search input::placeholder{color:var(--hint);}
+.topbar-search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--hint);}
+.topbar-nav{display:flex;gap:2px;flex:1;justify-content:center;}
+.topbar-nav-btn{background:none;border:none;color:var(--sub);font-size:20px;padding:8px 24px;border-radius:var(--radius-sm);position:relative;transition:all .2s;}
+.topbar-nav-btn:hover{background:var(--input-bg);color:var(--brand);}
+.topbar-nav-btn.active{color:var(--brand);border-bottom:3px solid var(--brand);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.topbar-icon-btn{width:40px;height:40px;border-radius:50%;background:var(--input-bg);border:none;color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;position:relative;transition:background .2s;}
+.topbar-icon-btn:hover{background:var(--border);}
+.badge{position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:18px;text-align:center;}
+.topbar-avatar{width:36px;height:36px;border-radius:50%;background:var(--brand);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;overflow:hidden;object-fit:cover;}
+.topbar-name{font-size:13px;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ════════════════════ LAYOUT ════════════════════ */
+.main-layout{display:grid;grid-template-columns:280px 1fr 280px;gap:0;padding-top:56px;min-height:100vh;max-width:1400px;margin:0 auto;}
+@media(max-width:1200px){.main-layout{grid-template-columns:240px 1fr 240px;}}
+@media(max-width:900px){.main-layout{grid-template-columns:0 1fr 0;} .left-sidebar,.right-sidebar{display:none;}}
+@media(max-width:600px){.topbar-nav{display:none;} .mobile-nav{display:flex!important;}}
+
+/* ── SIDEBARS ── */
+.left-sidebar,.right-sidebar{
+  height:calc(100vh - 56px);position:sticky;top:56px;overflow-y:auto;padding:16px 8px;
+}
+.left-sidebar{padding-right:4px;}
+.right-sidebar{padding-left:4px;}
+
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius);cursor:pointer;transition:background .2s;margin-bottom:4px;}
+.sidebar-user:hover{background:var(--input-bg);}
+.sidebar-user-avatar{width:40px;height:40px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;}
+.sidebar-user-avatar img{width:100%;height:100%;object-fit:cover;}
+.sidebar-user-name{font-size:14px;font-weight:600;}
+.sidebar-user-sub{font-size:12px;color:var(--sub);}
+
+.sidebar-section{margin-top:8px;}
+.sidebar-label{font-size:17px;font-weight:700;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;}
+.sidebar-label .see-all{font-size:13px;font-weight:600;color:var(--brand);cursor:pointer;}
+.sidebar-item{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .2s;font-size:14px;font-weight:500;}
+.sidebar-item:hover{background:var(--input-bg);}
+.sidebar-item-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.si-blue{background:var(--brand-light);color:var(--brand);}
+.si-green{background:rgba(66,183,42,.15);color:var(--green);}
+.si-orange{background:rgba(233,113,15,.15);color:var(--e9710f);}
+.sidebar-item-count{margin-left:auto;font-size:12px;color:var(--hint);background:var(--input-bg);padding:2px 8px;border-radius:12px;}
+
+/* ── FEED COLUMN ── */
+.feed-col{padding:16px 8px;max-width:680px;margin:0 auto;width:100%;}
+
+/* ── STORIES BAR ── */
+.stories-bar{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-bottom:16px;}
+.stories-bar::-webkit-scrollbar{display:none;}
+.story-card{flex-shrink:0;width:100px;height:170px;border-radius:var(--radius);overflow:hidden;cursor:pointer;position:relative;background:var(--sidebar-bg);}
+.story-card-add{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:12px;gap:4px;background:var(--sidebar-bg);border:2px dashed var(--border);}
+.story-add-circle{width:40px;height:40px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;position:absolute;top:50%;transform:translateY(-60%);left:50%;margin-left:-20px;}
+.story-add-label{font-size:12px;font-weight:600;color:var(--text);text-align:center;}
+.story-card-item{background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.8));overflow:hidden;}
+.story-card-item img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;}
+.story-card-item .story-avatar{width:36px;height:36px;border-radius:50%;border:3px solid var(--brand);position:absolute;top:8px;left:8px;overflow:hidden;background:var(--brand);}
+.story-card-item .story-avatar img{width:100%;height:100%;object-fit:cover;}
+.story-card-item .story-name{position:absolute;bottom:8px;left:8px;right:8px;font-size:11px;font-weight:700;color:#fff;line-height:1.3;}
+
+/* ── CREATE POST BOX ── */
+.create-post-box{background:var(--card-bg);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow);}
+.create-post-top{display:flex;gap:10px;align-items:center;}
+.create-avatar{width:40px;height:40px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;overflow:hidden;}
+.create-avatar img{width:100%;height:100%;object-fit:cover;}
+.create-input-btn{flex:1;background:var(--input-bg);border:none;border-radius:20px;padding:10px 16px;color:var(--hint);font-size:15px;text-align:left;cursor:pointer;transition:background .2s;}
+.create-input-btn:hover{background:var(--border);}
+.create-post-divider{height:1px;background:var(--border);margin:12px 0;}
+.create-post-actions{display:flex;gap:4px;}
+.create-action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;border-radius:var(--radius-sm);border:none;background:none;color:var(--sub);font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;}
+.create-action-btn:hover{background:var(--input-bg);}
+
+/* ── POST CARD ── */
+.post-card{background:var(--card-bg);border-radius:var(--radius);margin-bottom:16px;box-shadow:var(--shadow);overflow:hidden;}
+.post-header{display:flex;align-items:flex-start;gap:10px;padding:12px 16px 8px;}
+.post-avatar{width:40px;height:40px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;cursor:pointer;}
+.post-avatar img{width:100%;height:100%;object-fit:cover;}
+.post-meta{flex:1;}
+.post-author{font-size:14px;font-weight:700;cursor:pointer;}
+.post-author:hover{text-decoration:underline;}
+.post-time{font-size:12px;color:var(--hint);}
+.post-menu{background:none;border:none;color:var(--hint);font-size:18px;padding:4px 8px;border-radius:50%;cursor:pointer;transition:background .2s;}
+.post-menu:hover{background:var(--input-bg);}
+.post-content{padding:0 16px 12px;font-size:15px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.post-content a{color:var(--brand);}
+.post-media{width:100%;max-height:500px;object-fit:cover;cursor:pointer;}
+.post-media-grid{display:grid;gap:2px;}
+.post-media-grid.g2{grid-template-columns:1fr 1fr;}
+.post-media-grid.g3{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;}
+.post-media-grid.g3 .media-item:first-child{grid-column:1/-1;}
+.post-media-grid img,.post-media-grid video{width:100%;height:200px;object-fit:cover;cursor:pointer;}
+.post-media-grid.g1 img,.post-media-grid.g1 video{height:auto;max-height:500px;}
+.post-stats{display:flex;justify-content:space-between;align-items:center;padding:6px 16px;border-top:1px solid var(--border);}
+.post-stats-left{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--hint);cursor:pointer;}
+.post-stats-left:hover{text-decoration:underline;}
+.reaction-icons{display:flex;}
+.reaction-icon{width:18px;height:18px;border-radius:50%;border:2px solid var(--card-bg);margin-left:-4px;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.post-stats-right{font-size:13px;color:var(--hint);cursor:pointer;}
+.post-stats-right:hover{text-decoration:underline;}
+.post-actions{display:flex;border-top:1px solid var(--border);}
+.post-action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:none;background:none;color:var(--sub);font-size:14px;font-weight:600;cursor:pointer;border-radius:0;transition:background .2s;position:relative;}
+.post-action-btn:hover{background:var(--input-bg);}
+.post-action-btn.reacted{color:var(--brand);}
+.post-action-btn.reacted.love{color:var(--love);}
+.reaction-picker{position:absolute;bottom:110%;left:0;background:var(--card-bg);border-radius:30px;padding:6px 10px;display:flex;gap:4px;box-shadow:0 4px 20px rgba(0,0,0,.5);opacity:0;pointer-events:none;transform:scale(.8);transition:all .2s;z-index:50;}
+.post-action-btn:hover .reaction-picker,.reaction-picker:hover{opacity:1;pointer-events:all;transform:scale(1);}
+.reaction-emoji{font-size:26px;cursor:pointer;transition:transform .15s;padding:2px;}
+.reaction-emoji:hover{transform:scale(1.3) translateY(-4px);}
+
+/* ── COMMENTS ── */
+.comments-section{padding:0 16px 12px;}
+.comments-section .comment-input-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;}
+.comment-input-row .ca{width:32px;height:32px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;overflow:hidden;}
+.comment-input-row .ca img{width:100%;height:100%;object-fit:cover;}
+.comment-input-wrap{flex:1;position:relative;}
+.comment-input{width:100%;background:var(--input-bg);border:none;border-radius:20px;padding:8px 40px 8px 14px;color:var(--text);font-size:13px;resize:none;outline:none;min-height:36px;max-height:120px;}
+.comment-send-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--brand);font-size:16px;cursor:pointer;}
+.comment-item{display:flex;gap:8px;margin-bottom:8px;}
+.comment-bubble{flex:1;}
+.comment-bubble-inner{background:var(--input-bg);border-radius:16px;padding:8px 12px;display:inline-block;max-width:100%;}
+.comment-bubble-author{font-size:13px;font-weight:700;margin-bottom:2px;}
+.comment-bubble-text{font-size:13px;line-height:1.4;}
+.comment-actions{display:flex;gap:12px;margin-top:3px;padding-left:8px;font-size:12px;color:var(--hint);}
+.comment-actions span{cursor:pointer;font-weight:600;}
+.comment-actions span:hover{text-decoration:underline;}
+.replies-container{padding-left:40px;}
+.show-replies-btn{background:none;border:none;color:var(--brand);font-size:13px;font-weight:600;cursor:pointer;padding-left:40px;margin-bottom:6px;}
+
+/* ── SHARED POST ── */
+.shared-post-inner{border:1px solid var(--border);border-radius:var(--radius-sm);margin:0 16px 12px;overflow:hidden;}
+.shared-post-header{padding:10px 12px 4px;display:flex;align-items:center;gap:8px;}
+.shared-post-header .spa{width:32px;height:32px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;overflow:hidden;}
+.shared-post-header .spa img{width:100%;height:100%;object-fit:cover;}
+.shared-post-content{padding:4px 12px 10px;font-size:14px;color:var(--sub);}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--card-bg);border-radius:var(--radius);width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);}
+.modal-title{font-size:18px;font-weight:700;}
+.modal-close{width:36px;height:36px;border-radius:50%;background:var(--input-bg);border:none;color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-body{padding:16px;}
+
+/* ── POST COMPOSER ── */
+.composer-user{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+.composer-avatar{width:44px;height:44px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;overflow:hidden;}
+.composer-avatar img{width:100%;height:100%;object-fit:cover;}
+.composer-name{font-size:15px;font-weight:700;}
+.composer-visibility{font-size:12px;color:var(--hint);}
+.composer-textarea{width:100%;background:transparent;border:none;color:var(--text);font-size:17px;resize:none;outline:none;min-height:120px;line-height:1.5;}
+.composer-media-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.composer-media-thumb{width:80px;height:80px;border-radius:8px;object-fit:cover;position:relative;}
+.composer-media-thumb-wrap{position:relative;}
+.composer-remove-media{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.composer-actions-bar{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-top:8px;}
+.composer-media-btns{display:flex;gap:4px;}
+.composer-media-btn{background:none;border:none;font-size:20px;cursor:pointer;padding:6px;border-radius:8px;transition:background .2s;}
+.composer-media-btn:hover{background:var(--input-bg);}
+.composer-submit{background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 24px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;}
+.composer-submit:hover{background:var(--brand-h);}
+.composer-submit:disabled{opacity:.5;cursor:default;}
+
+/* ── BTN STYLES ── */
+.btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;border:none;cursor:pointer;transition:all .2s;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-primary:hover{background:var(--brand-h);}
+.btn-secondary{background:var(--input-bg);color:var(--text);}
+.btn-secondary:hover{background:var(--border);}
+.btn-danger{background:rgba(240,40,73,.15);color:var(--red);}
+.btn-danger:hover{background:rgba(240,40,73,.25);}
+.btn-sm{padding:6px 12px;font-size:13px;}
+.btn-icon{width:36px;height:36px;border-radius:50%;background:var(--input-bg);border:none;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.btn-icon:hover{background:var(--border);}
+
+/* ── NOTIFICATIONS PANEL ── */
+.notif-panel{position:fixed;top:56px;right:16px;z-index:350;background:var(--card-bg);border-radius:var(--radius);width:360px;max-height:500px;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.6);border:1px solid var(--border);}
+.notif-panel.hidden{display:none;}
+.notif-panel-header{padding:16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card-bg);}
+.notif-panel-title{font-size:20px;font-weight:800;}
+.notif-item{display:flex;gap:10px;padding:10px 16px;cursor:pointer;transition:background .2s;}
+.notif-item:hover{background:var(--input-bg);}
+.notif-item.unread{background:var(--brand-light);}
+.notif-avatar{width:48px;height:48px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;position:relative;}
+.notif-avatar img{width:100%;height:100%;object-fit:cover;}
+.notif-type-icon{position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid var(--card-bg);}
+.notif-msg{flex:1;font-size:13px;line-height:1.4;}
+.notif-msg strong{font-weight:700;}
+.notif-time{font-size:11px;color:var(--hint);margin-top:3px;}
+
+/* ── SEARCH DROPDOWN ── */
+.search-dropdown{position:absolute;top:110%;left:0;right:0;background:var(--card-bg);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:400;overflow:hidden;border:1px solid var(--border);}
+.search-dropdown.hidden{display:none;}
+.search-section-title{font-size:12px;font-weight:700;color:var(--hint);padding:10px 14px 4px;}
+.search-result-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;transition:background .2s;}
+.search-result-item:hover{background:var(--input-bg);}
+.search-ri-avatar{width:36px;height:36px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;overflow:hidden;}
+.search-ri-avatar img{width:100%;height:100%;object-fit:cover;}
+.search-ri-group{border-radius:8px;}
+.search-ri-name{font-size:14px;font-weight:600;}
+.search-ri-sub{font-size:12px;color:var(--hint);}
+
+/* ── PROFILE PAGE ── */
+.profile-page{display:none;}
+.profile-page.active{display:block;}
+.profile-cover{width:100%;height:280px;background:linear-gradient(135deg,#1877f2,#42b72a);position:relative;overflow:hidden;border-radius:0 0 var(--radius) var(--radius);}
+.profile-cover img{width:100%;height:100%;object-fit:cover;}
+.profile-cover-edit{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;}
+.profile-info-section{padding:0 16px 16px;background:var(--card-bg);border-radius:var(--radius);margin:-40px 0 16px;position:relative;padding-top:50px;box-shadow:var(--shadow);}
+.profile-avatar-wrap{position:absolute;top:-60px;left:16px;}
+.profile-avatar-large{width:120px;height:120px;border-radius:50%;border:4px solid var(--card-bg);background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;overflow:hidden;}
+.profile-avatar-large img{width:100%;height:100%;object-fit:cover;}
+.profile-name-row{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px;}
+.profile-name{font-size:24px;font-weight:800;}
+.profile-bio{font-size:14px;color:var(--sub);margin-top:4px;}
+.profile-stats{display:flex;gap:24px;margin-top:12px;}
+.profile-stat{text-align:center;cursor:pointer;}
+.profile-stat-num{font-size:18px;font-weight:800;}
+.profile-stat-label{font-size:12px;color:var(--hint);}
+.profile-actions{display:flex;gap:8px;margin-top:12px;}
+
+/* ── GROUPS PAGE ── */
+.groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.group-card{background:var(--card-bg);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .2s;box-shadow:var(--shadow);}
+.group-card:hover{transform:translateY(-2px);}
+.group-card-cover{height:100px;background:linear-gradient(135deg,#1877f2,#42b72a);position:relative;}
+.group-card-cover img{width:100%;height:100%;object-fit:cover;}
+.group-card-body{padding:12px;}
+.group-card-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+.group-card-meta{font-size:12px;color:var(--hint);}
+.group-card-actions{display:flex;gap:6px;margin-top:8px;}
+
+/* ── PAGES ── */
+.page-card{background:var(--card-bg);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .2s;box-shadow:var(--shadow);}
+.page-card:hover{transform:translateY(-2px);}
+.page-card-cover{height:80px;background:linear-gradient(135deg,#f5a623,#f02849);position:relative;}
+.page-card-cover img{width:100%;height:100%;object-fit:cover;}
+.page-card-avatar{width:56px;height:56px;border-radius:50%;border:3px solid var(--card-bg);background:var(--brand);position:absolute;bottom:-28px;left:12px;display:flex;align-items:center;justify-content:center;font-weight:700;overflow:hidden;}
+.page-card-avatar img{width:100%;height:100%;object-fit:cover;}
+.page-card-body{padding:36px 12px 12px;}
+.page-card-name{font-size:14px;font-weight:700;}
+.page-card-meta{font-size:12px;color:var(--hint);}
+
+/* ── TRENDING ── */
+.trending-card{background:var(--card-bg);border-radius:var(--radius);padding:12px;margin-bottom:8px;box-shadow:var(--shadow);}
+.trending-tag{font-size:12px;font-weight:700;color:var(--hint);margin-bottom:2px;}
+.trending-title{font-size:14px;font-weight:700;}
+.trending-meta{font-size:12px;color:var(--hint);}
+
+/* ── TAB VIEWS ── */
+.view-section{display:none;}
+.view-section.active{display:block;}
+
+/* ── TOAST ── */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--card-bg);border-radius:var(--radius-sm);padding:12px 16px;font-size:14px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.5);border-left:4px solid var(--brand);animation:slideIn .3s ease;max-width:300px;}
+.toast.error{border-color:var(--red);}
+.toast.success{border-color:var(--green);}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* ── LOADING ── */
+.loading-spinner{display:flex;justify-content:center;padding:24px;}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.skeleton{background:linear-gradient(90deg,var(--border) 25%,var(--input-bg) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:4px;}
+@keyframes shimmer{to{background-position:-200% 0;}}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:48px 24px;color:var(--hint);}
+.empty-state-icon{font-size:48px;margin-bottom:12px;}
+.empty-state-text{font-size:15px;font-weight:500;}
+.empty-state-sub{font-size:13px;margin-top:6px;}
+
+/* ── MOBILE NAV ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:var(--sidebar-bg);border-top:1px solid var(--border);padding:4px 0;}
+.mobile-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0;border:none;background:none;color:var(--sub);font-size:22px;cursor:pointer;position:relative;}
+.mobile-nav-btn.active{color:var(--brand);}
+.mobile-nav-label{font-size:10px;font-weight:600;margin-top:2px;}
+
+/* ── DARK/LIGHT TOGGLE ── */
+.theme-toggle{background:none;border:none;color:var(--text);font-size:18px;cursor:pointer;padding:8px;border-radius:50%;transition:background .2s;}
+.theme-toggle:hover{background:var(--input-bg);}
+
+/* ── FRIEND REQUEST CARD ── */
+.friend-req-card{background:var(--card-bg);border-radius:var(--radius);padding:12px;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--shadow);margin-bottom:8px;}
+.friend-req-avatar{width:56px;height:56px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;overflow:hidden;flex-shrink:0;}
+.friend-req-avatar img{width:100%;height:100%;object-fit:cover;}
+.friend-req-info{flex:1;}
+.friend-req-name{font-size:15px;font-weight:700;cursor:pointer;}
+.friend-req-name:hover{text-decoration:underline;}
+.friend-req-meta{font-size:12px;color:var(--hint);margin-bottom:8px;}
+.friend-req-actions{display:flex;gap:8px;}
+
+/* ── LOGIN WALL ── */
+.login-wall{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.login-wall.hidden{display:none;}
+.login-box{background:var(--card-bg);border-radius:var(--radius);padding:28px;width:100%;max-width:400px;box-shadow:var(--shadow);}
+.login-logo{font-size:28px;font-weight:800;color:var(--brand);text-align:center;margin-bottom:6px;}
+.login-sub{font-size:14px;color:var(--sub);text-align:center;margin-bottom:20px;}
+.form-group{margin-bottom:14px;}
+.form-group label{font-size:13px;font-weight:600;color:var(--sub);display:block;margin-bottom:6px;}
+.form-group input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text);font-size:15px;outline:none;transition:border .2s;}
+.form-group input:focus{border-color:var(--brand);}
+.login-submit{width:100%;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:12px;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;transition:background .2s;}
+.login-submit:hover{background:var(--brand-h);}
+.login-divider{text-align:center;font-size:13px;color:var(--hint);margin:12px 0;}
+.login-back{text-align:center;margin-top:12px;font-size:13px;color:var(--brand);cursor:pointer;font-weight:600;}
+.login-back:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN WALL -->
+<div class="login-wall" id="loginWall">
+  <div class="login-box">
+    <div class="login-logo">🛡️ SafePass Network</div>
+    <div class="login-sub">Mạng xã hội dành cho cộng đồng pass đồ</div>
+    <div id="loginForm">
+      <div class="form-group"><label>Số điện thoại</label><input type="tel" id="loginPhone" placeholder="0xxxxxxxxx"></div>
+      <div class="form-group"><label>Mật khẩu</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+      <button class="login-submit" onclick="doLogin()">Đăng nhập</button>
+      <div class="login-divider">hoặc</div>
+      <button class="login-submit" style="background:var(--green)" onclick="showTab('register')">Tạo tài khoản mới</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="form-group"><label>Họ tên</label><input type="text" id="regName" placeholder="Nguyễn Văn A"></div>
+      <div class="form-group"><label>Số điện thoại</label><input type="tel" id="regPhone" placeholder="0xxxxxxxxx"></div>
+      <div class="form-group"><label>Mật khẩu</label><input type="password" id="regPassword" placeholder="Tối thiểu 6 ký tự"></div>
+      <button class="login-submit" onclick="doRegister()">Tạo tài khoản</button>
+      <div class="login-back" onclick="showTab('login')">← Đã có tài khoản? Đăng nhập</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">🛡️ <span>Network</span></div>
+  <div class="topbar-search">
+    <span class="si">🔍</span>
+    <input type="text" placeholder="Tìm kiếm..." id="searchInput" oninput="handleSearch(this.value)">
+    <div class="search-dropdown hidden" id="searchDropdown"></div>
+  </div>
+  <div class="topbar-nav">
+    <button class="topbar-nav-btn active" onclick="switchView('feed')" id="nav-feed" title="Trang chủ">🏠</button>
+    <button class="topbar-nav-btn" onclick="switchView('friends')" id="nav-friends" title="Bạn bè">👥</button>
+    <button class="topbar-nav-btn" onclick="switchView('groups')" id="nav-groups" title="Nhóm">📣</button>
+    <button class="topbar-nav-btn" onclick="switchView('pages')" id="nav-pages" title="Trang">🏢</button>
+    <button class="topbar-nav-btn" onclick="switchView('trending')" id="nav-trending" title="Trending">📈</button>
+  </div>
+  <div class="topbar-right">
+    <button class="topbar-icon-btn" onclick="toggleNotifPanel()" id="notifBtn" title="Thông báo">
+      🔔<span class="badge" id="notifBadge" style="display:none">0</span>
+    </button>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Đổi giao diện">🌙</button>
+    <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="switchView('profile-me')">
+      <div class="topbar-avatar" id="topbarAvatar">?</div>
+      <span class="topbar-name" id="topbarName">Loading...</span>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS PANEL -->
+<div class="notif-panel hidden" id="notifPanel">
+  <div class="notif-panel-header">
+    <span class="notif-panel-title">Thông báo</span>
+    <button class="btn btn-secondary btn-sm" onclick="markAllRead()">Đọc tất cả</button>
+  </div>
+  <div id="notifList"></div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="left-sidebar">
+    <div class="sidebar-user" onclick="switchView('profile-me')">
+      <div class="sidebar-user-avatar" id="sidebarAvatar"><span id="sidebarAvatarText">?</span></div>
+      <div>
+        <div class="sidebar-user-name" id="sidebarName">Đang tải...</div>
+        <div class="sidebar-user-sub">Xem trang cá nhân</div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Menu</div>
+      <div class="sidebar-item" onclick="switchView('feed')"><div class="sidebar-item-icon si-blue">🏠</div>Trang chủ</div>
+      <div class="sidebar-item" onclick="switchView('friends')"><div class="sidebar-item-icon si-blue">👥</div>Bạn bè</div>
+      <div class="sidebar-item" onclick="switchView('groups')"><div class="sidebar-item-icon si-green">📣</div>Nhóm<span class="sidebar-item-count" id="myGroupCount">0</span></div>
+      <div class="sidebar-item" onclick="switchView('pages')"><div class="sidebar-item-icon si-blue">🏢</div>Trang</div>
+      <div class="sidebar-item" onclick="switchView('trending')"><div class="sidebar-item-icon" style="background:rgba(245,166,35,.15);color:#f5a623">📈</div>Trending</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Nhóm của tôi <span class="see-all" onclick="switchView('groups')">Xem tất cả</span></div>
+      <div id="myGroupsList"></div>
+    </div>
+  </div>
+
+  <!-- FEED COLUMN -->
+  <div class="feed-col">
+
+    <!-- FEED VIEW -->
+    <div class="view-section active" id="view-feed">
+      <!-- Create Post -->
+      <div class="create-post-box">
+        <div class="create-post-top">
+          <div class="create-avatar" id="createAvatar">?</div>
+          <button class="create-input-btn" onclick="openComposer()">Bạn đang nghĩ gì?</button>
+        </div>
+        <div class="create-post-divider"></div>
+        <div class="create-post-actions">
+          <button class="create-action-btn" onclick="openComposer('video')">📹 Video</button>
+          <button class="create-action-btn" onclick="openComposer('image')">🖼️ Ảnh</button>
+          <button class="create-action-btn" onclick="openComposer()">😊 Cảm xúc</button>
+        </div>
+      </div>
+      <!-- Feed Posts -->
+      <div id="feedPosts"><div class="loading-spinner"><div class="spinner"></div></div></div>
+      <div id="feedLoadMore" style="text-align:center;padding:16px;display:none">
+        <button class="btn btn-secondary" onclick="loadMoreFeed()">Tải thêm</button>
+      </div>
+    </div>
+
+    <!-- FRIENDS VIEW -->
+    <div class="view-section" id="view-friends">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:22px;font-weight:800">Bạn bè</h2>
+        <button class="btn btn-secondary" onclick="switchView('search-people')">Tìm người mới</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;white-space:nowrap">
+        <button class="btn btn-primary" id="fTab-requests" onclick="setFriendTab('requests')">Lời mời <span id="reqCount"></span></button>
+        <button class="btn btn-secondary" id="fTab-friends" onclick="setFriendTab('friends')">Bạn bè</button>
+        <button class="btn btn-secondary" id="fTab-sent" onclick="setFriendTab('sent')">Đã gửi</button>
+      </div>
+      <div id="friendsList"><div class="loading-spinner"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- GROUPS VIEW -->
+    <div class="view-section" id="view-groups">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:22px;font-weight:800">Nhóm</h2>
+        <button class="btn btn-primary" onclick="openCreateGroupModal()">+ Tạo nhóm</button>
+      </div>
+      <input type="text" placeholder="🔍 Tìm nhóm..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;margin-bottom:16px" oninput="searchGroups(this.value)">
+      <div class="groups-grid" id="groupsList"><div class="loading-spinner"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- PAGES VIEW -->
+    <div class="view-section" id="view-pages">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:22px;font-weight:800">Trang</h2>
+        <button class="btn btn-primary" onclick="openCreatePageModal()">+ Tạo trang</button>
+      </div>
+      <div class="groups-grid" id="pagesList"><div class="loading-spinner"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- TRENDING VIEW -->
+    <div class="view-section" id="view-trending">
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:16px">📈 Trending</h2>
+      <div id="trendingContent"><div class="loading-spinner"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- PROFILE VIEW -->
+    <div class="view-section" id="view-profile">
+      <div id="profileContent"></div>
+    </div>
+
+    <!-- GROUP DETAIL VIEW -->
+    <div class="view-section" id="view-group-detail">
+      <div id="groupDetailContent"></div>
+    </div>
+
+    <!-- SEARCH RESULTS VIEW -->
+    <div class="view-section" id="view-search-people">
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:16px">Tìm người</h2>
+      <input type="text" placeholder="🔍 Nhập tên..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text);font-size:14px;outline:none;margin-bottom:16px" oninput="searchPeople(this.value)" id="peopleSearchInput">
+      <div id="peopleResults"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="right-sidebar">
+    <div style="font-size:17px;font-weight:700;padding:8px 10px;margin-bottom:8px">Gợi ý kết bạn</div>
+    <div id="suggestedFriends"></div>
+    <div style="font-size:17px;font-weight:700;padding:8px 10px;margin:16px 0 8px">Trending</div>
+    <div id="rightTrending"></div>
+    <div style="padding:12px;font-size:11px;color:var(--hint);line-height:1.8">
+      SafePass Network · Điều khoản · Bảo mật<br>© 2025 SafePass
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav">
+  <button class="mobile-nav-btn active" onclick="switchView('feed')">🏠<span class="mobile-nav-label">Trang chủ</span></button>
+  <button class="mobile-nav-btn" onclick="switchView('friends')">👥<span class="mobile-nav-label">Bạn bè</span></button>
+  <button class="mobile-nav-btn" onclick="openComposer()">➕<span class="mobile-nav-label">Đăng</span></button>
+  <button class="mobile-nav-btn" onclick="switchView('groups')">📣<span class="mobile-nav-label">Nhóm</span></button>
+  <button class="mobile-nav-btn" onclick="toggleNotifPanel()">🔔<span class="mobile-nav-label">Thông báo</span></button>
+</div>
+
+<!-- POST COMPOSER MODAL -->
+<div class="modal-overlay hidden" id="composerModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title">Tạo bài viết</span>
+      <button class="modal-close" onclick="closeComposer()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="composer-user">
+        <div class="composer-avatar" id="composerAvatar">?</div>
+        <div>
+          <div class="composer-name" id="composerName">Bạn</div>
+          <div class="composer-visibility">🌏 Công khai</div>
+        </div>
+      </div>
+      <textarea class="composer-textarea" id="composerText" placeholder="Bạn đang nghĩ gì?" rows="4"></textarea>
+      <div class="composer-media-preview" id="composerMediaPreview"></div>
+      <div class="composer-actions-bar">
+        <div>
+          <span style="font-size:13px;font-weight:600;color:var(--sub);margin-right:8px">Thêm vào bài:</span>
+          <div class="composer-media-btns" style="display:inline-flex">
+            <label class="composer-media-btn" title="Thêm ảnh">🖼️<input type="file" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaUpload(this)"></label>
+          </div>
+        </div>
+        <button class="composer-submit" onclick="submitPost()" id="composerSubmit">Đăng</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE GROUP MODAL -->
+<div class="modal-overlay hidden" id="createGroupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Tạo nhóm mới</span>
+      <button class="modal-close" onclick="closeModal('createGroupModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Tên nhóm *</label><input type="text" id="groupName" placeholder="VD: Hội Pass iPhone"></div>
+      <div class="form-group"><label>Mô tả</label><textarea id="groupDesc" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text);font-size:14px;resize:none;outline:none;min-height:80px" placeholder="Mô tả về nhóm..."></textarea></div>
+      <div class="form-group"><label>Danh mục</label>
+        <select id="groupCategory" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text);font-size:14px;outline:none">
+          <option value="general">Chung</option>
+          <option value="phone">Điện thoại</option>
+          <option value="laptop">Laptop</option>
+          <option value="motorbike">Xe máy</option>
+          <option value="fashion">Thời trang</option>
+          <option value="furniture">Nội thất</option>
+          <option value="other">Khác</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Quyền riêng tư</label>
+        <select id="groupPrivacy" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text);font-size:14px;outline:none">
+          <option value="public">🌏 Công khai</option>
+          <option value="private">🔒 Riêng tư</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px" onclick="createGroup()">Tạo nhóm</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE PAGE MODAL -->
+<div class="modal-overlay hidden" id="createPageModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Tạo trang mới</span>
+      <button class="modal-close" onclick="closeModal('createPageModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Tên trang *</label><input type="text" id="pageName" placeholder="VD: Cửa hàng điện thoại ABC"></div>
+      <div class="form-group"><label>Mô tả</label><textarea id="pageDesc" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text);font-size:14px;resize:none;outline:none;min-height:80px" placeholder="Giới thiệu về trang..."></textarea></div>
+      <div class="form-group"><label>Danh mục</label>
+        <select id="pageCategory" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text);font-size:14px;outline:none">
+          <option value="business">Doanh nghiệp</option>
+          <option value="brand">Thương hiệu</option>
+          <option value="local">Cửa hàng địa phương</option>
+          <option value="entertainment">Giải trí</option>
+          <option value="community">Cộng đồng</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px" onclick="createPage()">Tạo trang</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE EDIT MODAL -->
+<div class="modal-overlay hidden" id="editProfileModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Chỉnh sửa trang cá nhân</span>
+      <button class="modal-close" onclick="closeModal('editProfileModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Họ tên</label><input type="text" id="editName"></div>
+      <div class="form-group"><label>Bio</label><textarea id="editBio" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text);font-size:14px;resize:none;outline:none;min-height:80px" placeholder="Giới thiệu về bản thân..."></textarea></div>
+      <div class="form-group"><label>Địa điểm</label><input type="text" id="editLocation" placeholder="TP. Hồ Chí Minh"></div>
+      <div class="form-group"><label>Website</label><input type="url" id="editWebsite" placeholder="https://..."></div>
+      <div class="form-group"><label>URL Avatar</label><input type="url" id="editAvatar" placeholder="https://..."></div>
+      <div class="form-group"><label>URL Ảnh bìa</label><input type="url" id="editCover" placeholder="https://..."></div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px" onclick="saveProfile()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const API = '';
+let token = localStorage.getItem('sn_token') || localStorage.getItem('token') || '';
+let me = null;
+let feedPage = 1;
+let feedLoading = false;
+let currentView = 'feed';
+let friendTab = 'requests';
+let composerMediaFiles = [];
+let composerMediaUrls = [];
+let searchTimer = null;
+let notifPolling = null;
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function toast(msg, type='info') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+function timeAgo(d) {
+  const s = (Date.now() - new Date(d)) / 1000;
+  if (s < 60) return 'vừa xong';
+  if (s < 3600) return `${Math.floor(s/60)} phút`;
+  if (s < 86400) return `${Math.floor(s/3600)} giờ`;
+  if (s < 2592000) return `${Math.floor(s/86400)} ngày`;
+  return new Date(d).toLocaleDateString('vi');
+}
+function avatarEl(user, size=40) {
+  const name = user?.name || '?';
+  const url = user?.avatar_url;
+  if (url) return `<img src="${url}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover">`;
+  return `<span style="font-size:${Math.floor(size*0.4)}px;font-weight:700;color:#fff">${name.charAt(0).toUpperCase()}</span>`;
+}
+function numFmt(n) {
+  if (!n) return 0;
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(1)+'K';
+  return n;
+}
+async function api(path, opts={}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const r = await fetch(API + path, { headers, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Lỗi server');
+  return data;
+}
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+function showTab(tab) {
+  document.getElementById('loginForm').style.display = tab==='login' ? '' : 'none';
+  document.getElementById('registerForm').style.display = tab==='register' ? '' : 'none';
+}
+async function doLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!phone || !password) return toast('Vui lòng nhập đủ thông tin', 'error');
+  try {
+    const data = await api('/api/auth/login', { method: 'POST', body: { phone, password } });
+    token = data.token;
+    localStorage.setItem('sn_token', token);
+    localStorage.setItem('token', token);
+    document.getElementById('loginWall').classList.add('hidden');
+    init();
+    toast('Đăng nhập thành công! 🎉', 'success');
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const password = document.getElementById('regPassword').value;
+  if (!name || !phone || !password) return toast('Vui lòng nhập đủ thông tin', 'error');
+  try {
+    const data = await api('/api/auth/register', { method: 'POST', body: { name, phone, password } });
+    token = data.token;
+    localStorage.setItem('sn_token', token);
+    localStorage.setItem('token', token);
+    document.getElementById('loginWall').classList.add('hidden');
+    init();
+    toast('Chào mừng bạn đến với SafePass Network! 🎉', 'success');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  if (!token) { document.getElementById('loginWall').classList.remove('hidden'); return; }
+  try {
+    me = await api('/api/sn/me');
+    renderTopbar();
+    loadFeed();
+    loadMyGroups();
+    loadSuggestedFriends();
+    loadRightTrending();
+    startNotifPolling();
+  } catch (e) {
+    token = '';
+    localStorage.removeItem('sn_token');
+    document.getElementById('loginWall').classList.remove('hidden');
+  }
+}
+function renderTopbar() {
+  const av = document.getElementById('topbarAvatar');
+  if (me.avatar_url) { av.innerHTML = `<img src="${me.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
+  else { av.textContent = me.name?.charAt(0)?.toUpperCase() || '?'; }
+  document.getElementById('topbarName').textContent = me.name?.split(' ').pop() || '';
+  document.getElementById('sidebarName').textContent = me.name || '';
+  const saText = document.getElementById('sidebarAvatarText');
+  const sa = document.getElementById('sidebarAvatar');
+  if (me.avatar_url) sa.innerHTML = `<img src="${me.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+  else saText.textContent = me.name?.charAt(0)?.toUpperCase() || '?';
+  const ca = document.getElementById('createAvatar');
+  if (me.avatar_url) ca.innerHTML = `<img src="${me.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+  else ca.textContent = me.name?.charAt(0)?.toUpperCase() || '?';
+  updateNotifBadge(me.unread_notifications || 0);
+}
+
+// ═══════════════════════════════════════════
+// VIEW SWITCHING
+// ═══════════════════════════════════════════
+function switchView(view) {
+  document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.topbar-nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  currentView = view;
+  const mainView = view.startsWith('profile') ? 'profile' : view.startsWith('group-detail') ? 'group-detail' : view.startsWith('search') ? 'search-people' : view;
+  const section = document.getElementById(`view-${mainView}`);
+  if (section) section.classList.add('active');
+  const navBtn = document.getElementById(`nav-${view}`);
+  if (navBtn) navBtn.classList.add('active');
+  // lazy load
+  if (view === 'friends') loadFriends();
+  if (view === 'groups') loadGroups();
+  if (view === 'pages') loadPages();
+  if (view === 'trending') loadTrending();
+  if (view === 'profile-me') loadProfile(me?.id);
+}
+function switchViewProfile(userId) {
+  document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('view-profile').classList.add('active');
+  loadProfile(userId);
+}
+function switchViewGroup(groupId) {
+  document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('view-group-detail').classList.add('active');
+  loadGroupDetail(groupId);
+}
+
+// ═══════════════════════════════════════════
+// FEED
+// ═══════════════════════════════════════════
+async function loadFeed(reset=true) {
+  if (feedLoading) return;
+  feedLoading = true;
+  if (reset) { feedPage = 1; document.getElementById('feedPosts').innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>'; }
+  try {
+    const data = await api(`/api/sn/feed?page=${feedPage}&limit=10`);
+    const container = document.getElementById('feedPosts');
+    if (reset) container.innerHTML = '';
+    if (!data.posts?.length && reset) { container.innerHTML = renderEmptyFeed(); feedLoading = false; return; }
+    data.posts.forEach(p => container.insertAdjacentHTML('beforeend', renderPost(p)));
+    document.getElementById('feedLoadMore').style.display = feedPage * 10 < data.total ? '' : 'none';
+  } catch (e) { toast(e.message, 'error'); }
+  feedLoading = false;
+}
+function loadMoreFeed() { feedPage++; loadFeed(false); }
+function renderEmptyFeed() {
+  return `<div class="empty-state"><div class="empty-state-icon">🌱</div><div class="empty-state-text">Chưa có bài viết nào</div><div class="empty-state-sub">Kết bạn hoặc theo dõi mọi người để thấy bài viết của họ</div><br><button class="btn btn-primary" onclick="switchView('friends')">Tìm bạn bè</button></div>`;
+}
+
+const REACTIONS = { like:'👍', love:'❤️', haha:'😄', wow:'😮', sad:'😢', angry:'😠' };
+const REACTION_COLORS = { like:'var(--like)', love:'var(--love)', haha:'var(--haha)', wow:'var(--wow)', sad:'var(--sad)', angry:'var(--angry)' };
+
+function renderPost(p) {
+  const user = p.user || {};
+  const isMe = p.user_id === me?.id;
+  const myReact = p.my_reaction;
+  const reactColor = myReact ? REACTION_COLORS[myReact] : 'var(--sub)';
+  const reactLabel = myReact ? `${REACTIONS[myReact]} ${myReact.charAt(0).toUpperCase()+myReact.slice(1)}` : '👍 Thích';
+
+  let mediaHtml = '';
+  if (p.media_urls?.length) {
+    const cls = p.media_urls.length===1?'g1':p.media_urls.length===2?'g2':'g3';
+    const items = p.media_urls.slice(0,4).map((u,i) => {
+      const isVideo = u.match(/\.(mp4|webm|mov)/i);
+      if (p.media_urls.length>4 && i===3) return `<div style="position:relative"><img src="${u}" style="width:100%;height:200px;object-fit:cover"><div style="position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff">+${p.media_urls.length-4}</div></div>`;
+      if (isVideo) return `<video src="${u}" style="width:100%;height:${cls==='g1'?'auto':'200px'};max-height:500px;object-fit:cover" controls></video>`;
+      return `<img src="${u}" style="width:100%;height:${cls==='g1'?'auto':'200px'};max-height:${cls==='g1'?'500px':'200px'};object-fit:cover" onclick="openImageViewer('${u}')">`;
+    }).join('');
+    mediaHtml = `<div class="post-media-grid ${cls}">${items}</div>`;
+  }
+
+  let sharedHtml = '';
+  if (p.shared_post && p.post_type==='share') {
+    const sp = p.shared_post;
+    sharedHtml = `<div class="shared-post-inner"><div class="shared-post-header"><div class="spa">${avatarEl(sp.user,32)}</div><div><div style="font-size:13px;font-weight:700">${sp.user?.name||'Ẩn danh'}</div><div style="font-size:11px;color:var(--hint)">${timeAgo(sp.created_at)}</div></div></div><div class="shared-post-content">${sp.content||''}</div></div>`;
+  }
+
+  return `<div class="post-card" data-post-id="${p.id}">
+    <div class="post-header">
+      <div class="post-avatar" onclick="switchViewProfile('${p.user_id}')">${avatarEl(user,40)}</div>
+      <div class="post-meta">
+        <div class="post-author" onclick="switchViewProfile('${p.user_id}')">${user.name||'Ẩn danh'} ${user.is_verified?'✅':''}</div>
+        <div class="post-time">${timeAgo(p.created_at)} · ${p.visibility==='public'?'🌏':'👥'}</div>
+      </div>
+      ${isMe?`<button class="post-menu" onclick="deletePost('${p.id}',this)">⋯</button>`:''}
+    </div>
+    ${p.content?`<div class="post-content">${escHtml(p.content)}</div>`:''}
+    ${sharedHtml}
+    ${mediaHtml}
+    <div class="post-stats">
+      <span class="post-stats-left">${p.reactions_count?`<div class="reaction-icons"><div class="reaction-icon">👍</div></div> ${numFmt(p.reactions_count)}`:''}</span>
+      <span class="post-stats-right">${p.comments_count?`${numFmt(p.comments_count)} bình luận · `:''}${p.shares_count?`${numFmt(p.shares_count)} chia sẻ`:''}</span>
+    </div>
+    <div class="post-actions">
+      <button class="post-action-btn ${myReact?'reacted':''} ${myReact==='love'?'love':''}" style="color:${reactColor}" onclick="reactPost('${p.id}','like',this)">
+        <div class="reaction-picker">
+          ${Object.entries(REACTIONS).map(([k,v])=>`<span class="reaction-emoji" onclick="reactPost('${p.id}','${k}',this.closest('.post-action-btn'));event.stopPropagation()" title="${k}">${v}</span>`).join('')}
+        </div>
+        ${reactLabel}
+      </button>
+      <button class="post-action-btn" onclick="toggleComments('${p.id}',this)">💬 Bình luận</button>
+      <button class="post-action-btn" onclick="sharePost('${p.id}')">↗️ Chia sẻ</button>
+    </div>
+    <div class="comments-section" id="comments-${p.id}" style="display:none">
+      <div class="comment-input-row">
+        <div class="ca">${avatarEl(me,32)}</div>
+        <div class="comment-input-wrap">
+          <textarea class="comment-input" placeholder="Viết bình luận..." rows="1" onkeydown="handleCommentKey(event,'${p.id}')"></textarea>
+          <button class="comment-send-btn" onclick="submitComment('${p.id}',this)">➤</button>
+        </div>
+      </div>
+      <div id="comment-list-${p.id}"></div>
+    </div>
+  </div>`;
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+async function reactPost(postId, reaction, btn) {
+  try {
+    const data = await api(`/api/sn/posts/${postId}/react`, { method:'POST', body:{reaction} });
+    const card = document.querySelector(`[data-post-id="${postId}"] .post-action-btn`);
+    if (data.action==='removed') {
+      card.classList.remove('reacted','love');
+      card.style.color='var(--sub)';
+      card.childNodes[card.childNodes.length-1].textContent='👍 Thích';
+    } else {
+      const r = data.action==='added'||data.action==='updated' ? reaction : 'like';
+      card.classList.add('reacted');
+      card.style.color=REACTION_COLORS[r]||'var(--brand)';
+      card.childNodes[card.childNodes.length-1].textContent=`${REACTIONS[r]} ${r.charAt(0).toUpperCase()+r.slice(1)}`;
+    }
+  } catch(e){ toast(e.message,'error'); }
+}
+
+async function toggleComments(postId, btn) {
+  const section = document.getElementById(`comments-${postId}`);
+  const isHidden = section.style.display==='none';
+  section.style.display = isHidden ? '' : 'none';
+  if (isHidden) {
+    const list = document.getElementById(`comment-list-${postId}`);
+    list.innerHTML = '<div class="loading-spinner"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div></div>';
+    await loadComments(postId);
+  }
+}
+
+async function loadComments(postId) {
+  try {
+    const comments = await api(`/api/sn/posts/${postId}/comments`);
+    const list = document.getElementById(`comment-list-${postId}`);
+    list.innerHTML = comments.map(c => renderComment(c, postId)).join('');
+  } catch(e){ console.error(e); }
+}
+
+function renderComment(c, postId) {
+  const replies = (c.replies||[]).map(r => `
+    <div class="comment-item" style="padding-left:40px">
+      <div class="ca">${avatarEl(r.user,28)}</div>
+      <div class="comment-bubble">
+        <div class="comment-bubble-inner">
+          <div class="comment-bubble-author">${r.user?.name||'?'}</div>
+          <div class="comment-bubble-text">${escHtml(r.content)}</div>
+        </div>
+        <div class="comment-actions"><span>${timeAgo(r.created_at)}</span></div>
+      </div>
+    </div>`).join('');
+  return `<div class="comment-item" id="comment-${c.id}">
+    <div class="ca">${avatarEl(c.user,32)}</div>
+    <div class="comment-bubble">
+      <div class="comment-bubble-inner">
+        <div class="comment-bubble-author">${c.user?.name||'?'}</div>
+        <div class="comment-bubble-text">${escHtml(c.content)}</div>
+      </div>
+      <div class="comment-actions">
+        <span>${timeAgo(c.created_at)}</span>
+        <span onclick="focusReply('${postId}','${c.id}')">Trả lời</span>
+        ${c.user_id===me?.id?`<span style="color:var(--red)" onclick="deleteComment('${c.id}','${postId}')">Xóa</span>`:''}
+      </div>
+      ${replies}
+      ${c.replies_count>c.replies?.length?`<button class="show-replies-btn" onclick="loadReplies('${c.id}','${postId}')">Xem ${c.replies_count-c.replies?.length} trả lời khác</button>`:''}
+    </div>
+  </div>`;
+}
+
+function handleCommentKey(e, postId) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); submitComment(postId, e.target.nextElementSibling); }
+}
+
+async function submitComment(postId, btn) {
+  const section = document.getElementById(`comments-${postId}`);
+  const textarea = section.querySelector('textarea');
+  const content = textarea.value.trim();
+  if (!content) return;
+  try {
+    const data = await api(`/api/sn/posts/${postId}/comments`, { method:'POST', body:{content} });
+    textarea.value = '';
+    const list = document.getElementById(`comment-list-${postId}`);
+    list.insertAdjacentHTML('beforeend', renderComment({...data.comment, replies:[]}, postId));
+    const countEl = document.querySelector(`[data-post-id="${postId}"] .post-stats-right`);
+    if (countEl) countEl.textContent = `${data.comment ? 1 : 0} bình luận`;
+  } catch(e){ toast(e.message,'error'); }
+}
+
+let replyParentId = null;
+function focusReply(postId, commentId) {
+  replyParentId = commentId;
+  const section = document.getElementById(`comments-${postId}`);
+  const textarea = section.querySelector('textarea');
+  textarea.focus();
+  textarea.placeholder = 'Trả lời bình luận...';
+}
+
+async function deleteComment(commentId, postId) {
+  if (!confirm('Xóa bình luận này?')) return;
+  try {
+    await api(`/api/sn/comments/${commentId}`, { method:'DELETE' });
+    document.getElementById(`comment-${commentId}`)?.remove();
+    toast('Đã xóa', 'success');
+  } catch(e){ toast(e.message,'error'); }
+}
+
+async function deletePost(postId, btn) {
+  if (!confirm('Xóa bài viết này?')) return;
+  try {
+    await api(`/api/sn/posts/${postId}`, { method:'DELETE' });
+    document.querySelector(`[data-post-id="${postId}"]`)?.remove();
+    toast('Đã xóa bài viết', 'success');
+  } catch(e){ toast(e.message,'error'); }
+}
+
+async function sharePost(postId) {
+  const content = prompt('Thêm ghi chú (để trống nếu không):') || '';
+  try {
+    await api(`/api/sn/posts/${postId}/share`, { method:'POST', body:{content, visibility:'public'} });
+    toast('Đã chia sẻ! ↗️', 'success');
+    setTimeout(() => loadFeed(), 1000);
+  } catch(e){ toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════
+// POST COMPOSER
+// ═══════════════════════════════════════════
+function openComposer(type) {
+  if (!me) return toast('Vui lòng đăng nhập', 'error');
+  composerMediaUrls = [];
+  document.getElementById('composerText').value = '';
+  document.getElementById('composerMediaPreview').innerHTML = '';
+  const ca = document.getElementById('composerAvatar');
+  if (me.avatar_url) ca.innerHTML=`<img src="${me.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+  else ca.textContent=me.name?.charAt(0)?.toUpperCase()||'?';
+  document.getElementById('composerName').textContent = me.name||'';
+  openModal('composerModal');
+  setTimeout(() => document.getElementById('composerText').focus(), 100);
+}
+function closeComposer() { closeModal('composerModal'); }
+
+function handleMediaUpload(input) {
+  const files = Array.from(input.files);
+  files.forEach(f => {
+    const url = URL.createObjectURL(f);
+    composerMediaUrls.push(url);
+    const preview = document.getElementById('composerMediaPreview');
+    const wrap = document.createElement('div');
+    wrap.className = 'composer-media-thumb-wrap';
+    const idx = composerMediaUrls.length - 1;
+    wrap.innerHTML = `<img src="${url}" class="composer-media-thumb"><button class="composer-remove-media" onclick="removeMedia(${idx})">✕</button>`;
+    preview.appendChild(wrap);
+  });
+}
+function removeMedia(idx) {
+  composerMediaUrls.splice(idx, 1);
+  document.getElementById('composerMediaPreview').children[idx]?.remove();
+}
+
+async function submitPost() {
+  const content = document.getElementById('composerText').value.trim();
+  const btn = document.getElementById('composerSubmit');
+  if (!content && !composerMediaUrls.length) return toast('Nội dung không được trống', 'error');
+  btn.disabled = true;
+  btn.textContent = 'Đang đăng...';
+  try {
+    const mediaType = composerMediaUrls.length === 0 ? 'none' : composerMediaUrls.some(u=>u.match(/\.(mp4|webm|mov)/i)) ? 'video' : 'image';
+    const data = await api('/api/sn/posts', { method:'POST', body:{ content, media_urls: composerMediaUrls, media_type: mediaType, visibility:'public' } });
+    closeComposer();
+    const container = document.getElementById('feedPosts');
+    container.insertAdjacentHTML('afterbegin', renderPost(data.post));
+    toast('Đã đăng bài! 🎉', 'success');
+  } catch(e){ toast(e.message,'error'); }
+  btn.disabled = false;
+  btn.textContent = 'Đăng';
+}
+
+// ═══════════════════════════════════════════
+// FRIENDS
+// ═══════════════════════════════════════════
+function setFriendTab(tab) {
+  friendTab = tab;
+  ['requests','friends','sent'].forEach(t => {
+    const b = document.getElementById(`fTab-${t}`);
+    b.className = `btn ${t===tab?'btn-primary':'btn-secondary'}`;
+  });
+  loadFriends();
+}
+
+async function loadFriends() {
+  const list = document.getElementById('friendsList');
+  list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  try {
+    const data = await api(`/api/sn/friends?type=${friendTab}`);
+    if (friendTab === 'requests') {
+      document.getElementById('reqCount').textContent = data.length || '';
+      list.innerHTML = !data.length ? renderEmpty('Không có lời mời kết bạn nào') : data.map(f => renderFriendRequest(f)).join('');
+    } else if (friendTab === 'friends') {
+      list.innerHTML = !data.length ? renderEmpty('Chưa có bạn bè nào') + `<br><button class="btn btn-primary" onclick="switchView('search-people')">Tìm bạn bè</button>` : `<div class="groups-grid">${data.map(f => renderFriendCard(f)).join('')}</div>`;
+    } else {
+      list.innerHTML = !data.length ? renderEmpty('Chưa gửi lời mời nào') : data.map(f => renderSentRequest(f)).join('');
+    }
+  } catch(e){ list.innerHTML = `<div class="empty-state">${e.message}</div>`; }
+}
+
+function renderEmpty(msg) { return `<div class="empty-state"><div class="empty-state-icon">🫙</div><div class="empty-state-text">${msg}</div></div>`; }
+
+function renderFriendRequest(f) {
+  const u = f.user || {};
+  return `<div class="friend-req-card">
+    <div class="friend-req-avatar" onclick="switchViewProfile('${f.requester_id}')">${avatarEl(u,56)}</div>
+    <div class="friend-req-info">
+      <div class="friend-req-name" onclick="switchViewProfile('${f.requester_id}')">${u.name||'?'}</div>
+      <div class="friend-req-meta">${numFmt(u.friends_count||0)} bạn · ${timeAgo(f.created_at)}</div>
+      <div class="friend-req-actions">
+        <button class="btn btn-primary btn-sm" onclick="respondFriend('${f.id}','accept',this)">Chấp nhận</button>
+        <button class="btn btn-secondary btn-sm" onclick="respondFriend('${f.id}','decline',this)">Từ chối</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderFriendCard(f) {
+  const u = f.user || {};
+  return `<div class="group-card" onclick="switchViewProfile('${u.id}')">
+    <div class="group-card-cover" style="display:flex;align-items:center;justify-content:center;font-size:48px">${u.avatar_url?`<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover">`:u.name?.charAt(0)?.toUpperCase()||'?'}</div>
+    <div class="group-card-body"><div class="group-card-name">${u.name||'?'} ${u.is_verified?'✅':''}</div><div class="group-card-meta">Xem trang cá nhân</div></div>
+  </div>`;
+}
+function renderSentRequest(f) {
+  const u = f.user || {};
+  return `<div class="friend-req-card">
+    <div class="friend-req-avatar">${avatarEl(u,56)}</div>
+    <div class="friend-req-info">
+      <div class="friend-req-name">${u.name||'?'}</div>
+      <div class="friend-req-meta">Đã gửi · ${timeAgo(f.created_at)}</div>
+      <div class="friend-req-actions">
+        <button class="btn btn-danger btn-sm" onclick="cancelFriendReq('${f.addressee_id}',this)">Hủy yêu cầu</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function respondFriend(reqId, action, btn) {
+  btn.disabled = true;
+  try {
+    await api(`/api/sn/friends/${reqId}`, { method:'PUT', body:{action} });
+    btn.closest('.friend-req-card').remove();
+    toast(action==='accept'?'Đã chấp nhận kết bạn! 🎉':'Đã từ chối', action==='accept'?'success':'info');
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+
+async function sendFriendRequest(userId, btn) {
+  btn.disabled = true;
+  try {
+    await api(`/api/sn/friends/request/${userId}`, { method:'POST' });
+    btn.textContent = '✓ Đã gửi';
+    btn.className = 'btn btn-secondary btn-sm';
+    toast('Đã gửi lời mời kết bạn', 'success');
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+
+async function cancelFriendReq(userId, btn) {
+  btn.disabled = true;
+  try {
+    await api(`/api/sn/friends/${userId}`, { method:'DELETE' });
+    btn.closest('.friend-req-card').remove();
+    toast('Đã hủy yêu cầu', 'info');
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+
+// ═══════════════════════════════════════════
+// SUGGESTED FRIENDS
+// ═══════════════════════════════════════════
+async function loadSuggestedFriends() {
+  try {
+    const data = await api('/api/sn/explore?limit=6');
+    const userIds = [...new Set((data.posts||[]).map(p=>p.user_id))].filter(id=>id!==me?.id).slice(0,5);
+    if (!userIds.length) return;
+    const container = document.getElementById('suggestedFriends');
+    const users = await Promise.all(userIds.map(id => api(`/api/sn/profile/${id}`).catch(()=>null)));
+    container.innerHTML = users.filter(Boolean).map(u => `
+      <div class="sidebar-item" style="flex-direction:column;align-items:flex-start;gap:8px;padding:10px">
+        <div style="display:flex;gap:10px;align-items:center;width:100%" onclick="switchViewProfile('${u.id}')">
+          <div class="sidebar-item-icon" style="width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0">${avatarEl(u,44)}</div>
+          <div><div style="font-size:13px;font-weight:700">${u.name} ${u.is_verified?'✅':''}</div><div style="font-size:11px;color:var(--hint)">${numFmt(u.friends_count||0)} bạn</div></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="width:100%" onclick="sendFriendRequest('${u.id}',this)">Kết bạn</button>
+      </div>`).join('');
+  } catch(e){}
+}
+
+// ═══════════════════════════════════════════
+// GROUPS
+// ═══════════════════════════════════════════
+let groupSearchTimer = null;
+async function loadGroups(search='') {
+  const list = document.getElementById('groupsList');
+  list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  try {
+    const data = await api(`/api/sn/groups?limit=24${search?'&search='+encodeURIComponent(search):''}`);
+    list.innerHTML = !data.groups?.length ? renderEmpty('Chưa có nhóm nào') : data.groups.map(g => renderGroupCard(g)).join('');
+  } catch(e){ list.innerHTML = renderEmpty(e.message); }
+}
+function searchGroups(val) {
+  clearTimeout(groupSearchTimer);
+  groupSearchTimer = setTimeout(() => loadGroups(val), 400);
+}
+function renderGroupCard(g) {
+  const catIcons = {phone:'📱',laptop:'💻',motorbike:'🛵',fashion:'👗',furniture:'🛋️',general:'📦',other:'🏷️'};
+  return `<div class="group-card" onclick="switchViewGroup('${g.id}')">
+    <div class="group-card-cover">${g.avatar_url?`<img src="${g.avatar_url}">`:`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px">${catIcons[g.category]||'📦'}</div>`}</div>
+    <div class="group-card-body">
+      <div class="group-card-name">${g.name}</div>
+      <div class="group-card-meta">${g.privacy==='private'?'🔒 Riêng tư · ':'🌏 Công khai · '}${numFmt(g.members_count)} thành viên</div>
+      ${g.my_role?`<div class="group-card-meta" style="color:var(--green)">✓ ${g.my_role==='admin'?'Quản trị viên':'Thành viên'}</div>`:''}
+    </div>
+  </div>`;
+}
+
+async function loadMyGroups() {
+  try {
+    const data = await api('/api/sn/my-groups');
+    document.getElementById('myGroupCount').textContent = data.length||'';
+    const list = document.getElementById('myGroupsList');
+    list.innerHTML = data.slice(0,5).map(g => `<div class="sidebar-item" onclick="switchViewGroup('${g.id}')"><div class="sidebar-item-icon" style="background:var(--input-bg)">${g.avatar_url?`<img src="${g.avatar_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`:g.name?.charAt(0)?.toUpperCase()}</div>${g.name}</div>`).join('');
+  } catch(e){}
+}
+
+async function loadGroupDetail(groupId) {
+  const container = document.getElementById('groupDetailContent');
+  container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  try {
+    const [group, membership] = await Promise.all([
+      api(`/api/sn/groups/${groupId}`),
+      me ? api(`/api/sn/groups/${groupId}/membership`).catch(()=>({member:false})) : {member:false}
+    ]);
+    const posts = (group.posts||[]).map(p => renderPost({...p,my_reaction:null})).join('');
+    container.innerHTML = `
+      <div class="post-card" style="margin-bottom:16px">
+        <div style="height:160px;background:linear-gradient(135deg,#1877f2,#42b72a);position:relative;border-radius:var(--radius) var(--radius) 0 0;overflow:hidden">${group.avatar_url?`<img src="${group.avatar_url}" style="width:100%;height:100%;object-fit:cover">`:'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:60px">📣</div>'}</div>
+        <div style="padding:16px">
+          <div style="font-size:22px;font-weight:800;margin-bottom:4px">${group.name}</div>
+          <div style="font-size:13px;color:var(--hint);margin-bottom:8px">${group.privacy==='private'?'🔒 Riêng tư':'🌏 Công khai'} · ${numFmt(group.members_count)} thành viên · ${numFmt(group.posts_count)} bài</div>
+          ${group.description?`<div style="font-size:14px;color:var(--sub);margin-bottom:12px">${escHtml(group.description)}</div>`:''}
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="switchView('groups')">← Quay lại</button>
+            ${!membership.member?`<button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}',this)">Tham gia nhóm</button>`:membership.role!=='admin'?`<button class="btn btn-danger btn-sm" onclick="leaveGroup('${groupId}',this)">Rời nhóm</button>`:`<span class="btn btn-secondary btn-sm">Quản trị viên</span>`}
+          </div>
+        </div>
+      </div>
+      ${membership.member?`<div class="create-post-box"><div class="create-post-top"><div class="create-avatar">${me?avatarEl(me,40):'?'}</div><button class="create-input-btn" onclick="openGroupPost('${groupId}')">Đăng bài vào nhóm...</button></div></div>`:''}
+      ${posts || renderEmpty('Chưa có bài viết nào trong nhóm này')}`;
+  } catch(e){ container.innerHTML = renderEmpty(e.message); }
+}
+
+function openGroupPost(groupId) {
+  openComposer();
+  document.getElementById('composerText').dataset.groupId = groupId;
+}
+
+async function joinGroup(groupId, btn) {
+  btn.disabled = true;
+  try {
+    await api(`/api/sn/groups/${groupId}/join`, { method:'POST' });
+    btn.textContent = '✓ Đã tham gia';
+    btn.className = 'btn btn-secondary btn-sm';
+    toast('Đã tham gia nhóm! 🎉', 'success');
+    loadMyGroups();
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+async function leaveGroup(groupId, btn) {
+  if (!confirm('Rời nhóm?')) return;
+  btn.disabled = true;
+  try {
+    await api(`/api/sn/groups/${groupId}/leave`, { method:'DELETE' });
+    loadGroupDetail(groupId);
+    loadMyGroups();
+    toast('Đã rời nhóm', 'info');
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+
+function openCreateGroupModal() { openModal('createGroupModal'); }
+async function createGroup() {
+  const name = document.getElementById('groupName').value.trim();
+  if (!name) return toast('Nhập tên nhóm', 'error');
+  try {
+    const data = await api('/api/sn/groups', { method:'POST', body:{ name, description: document.getElementById('groupDesc').value, category: document.getElementById('groupCategory').value, privacy: document.getElementById('groupPrivacy').value } });
+    closeModal('createGroupModal');
+    toast('Đã tạo nhóm! 🎉', 'success');
+    loadMyGroups();
+    switchViewGroup(data.group.id);
+  } catch(e){ toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════
+// PAGES
+// ═══════════════════════════════════════════
+async function loadPages() {
+  const list = document.getElementById('pagesList');
+  list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  try {
+    const data = await api('/api/sn/pages?limit=24');
+    list.innerHTML = !data.pages?.length ? renderEmpty('Chưa có trang nào') : data.pages.map(p => renderPageCard(p)).join('');
+  } catch(e){ list.innerHTML = renderEmpty(e.message); }
+}
+function renderPageCard(p) {
+  return `<div class="page-card">
+    <div class="page-card-cover" style="position:relative">${p.cover_url?`<img src="${p.cover_url}" style="width:100%;height:100%;object-fit:cover">`:''}<div class="page-card-avatar">${avatarEl({name:p.name,avatar_url:p.avatar_url},56)}</div></div>
+    <div class="page-card-body">
+      <div class="page-card-name">${p.name} ${p.is_verified?'✅':''}</div>
+      <div class="page-card-meta">${numFmt(p.followers_count)} người theo dõi</div>
+      <div style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="followPage('${p.id}',this)">Theo dõi</button></div>
+    </div>
+  </div>`;
+}
+async function followPage(pageId, btn) {
+  btn.disabled = true;
+  try {
+    const data = await api(`/api/sn/pages/${pageId}/follow`, { method:'POST' });
+    btn.textContent = data.following ? '✓ Đang theo dõi' : 'Theo dõi';
+    btn.className = data.following ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm';
+    btn.disabled = false;
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+function openCreatePageModal() { openModal('createPageModal'); }
+async function createPage() {
+  const name = document.getElementById('pageName').value.trim();
+  if (!name) return toast('Nhập tên trang', 'error');
+  try {
+    await api('/api/sn/pages', { method:'POST', body:{ name, description: document.getElementById('pageDesc').value, category: document.getElementById('pageCategory').value } });
+    closeModal('createPageModal');
+    toast('Đã tạo trang! 🎉', 'success');
+    loadPages();
+  } catch(e){ toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════
+// TRENDING
+// ═══════════════════════════════════════════
+async function loadTrending() {
+  const container = document.getElementById('trendingContent');
+  container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  try {
+    const data = await api('/api/sn/trending');
+    let html = '';
+    if (data.groups?.length) {
+      html += `<h3 style="font-size:16px;font-weight:700;margin-bottom:12px">🔥 Nhóm nổi bật</h3>`;
+      html += `<div class="groups-grid" style="margin-bottom:24px">${data.groups.map(g => renderGroupCard(g)).join('')}</div>`;
+    }
+    html += `<h3 style="font-size:16px;font-weight:700;margin-bottom:12px">📈 Bài viết nổi bật</h3>`;
+    html += data.posts?.length ? data.posts.map(p => renderPost({...p,my_reaction:null})).join('') : renderEmpty('Chưa có bài viết trending');
+    container.innerHTML = html;
+  } catch(e){ container.innerHTML = renderEmpty(e.message); }
+}
+
+async function loadRightTrending() {
+  try {
+    const data = await api('/api/sn/trending');
+    const container = document.getElementById('rightTrending');
+    container.innerHTML = (data.posts||[]).slice(0,5).map((p,i) => `
+      <div class="trending-card" onclick="switchView('trending')">
+        <div class="trending-tag">#${i+1} · ${timeAgo(p.created_at)}</div>
+        <div class="trending-title">${(p.content||'').slice(0,60)}${(p.content||'').length>60?'...':''}</div>
+        <div class="trending-meta">❤️ ${numFmt(p.reactions_count)} · 💬 ${numFmt(p.comments_count)}</div>
+      </div>`).join('');
+  } catch(e){}
+}
+
+// ═══════════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════════
+async function loadProfile(userId) {
+  const container = document.getElementById('profileContent');
+  container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  try {
+    const [profile, friendStatus, followStatus] = await Promise.all([
+      api(`/api/sn/profile/${userId}`),
+      me && userId !== me.id ? api(`/api/sn/friends/status/${userId}`).catch(()=>({status:'none'})) : null,
+      me && userId !== me.id ? api(`/api/sn/follow/status/${userId}`).catch(()=>({following:false})) : null
+    ]);
+    const isMe = userId === me?.id;
+    const coverStyle = profile.cover_url ? `background-image:url('${profile.cover_url}');background-size:cover;background-position:center` : 'background:linear-gradient(135deg,#1877f2,#42b72a)';
+    const friendBtn = !isMe ? renderFriendButton(userId, friendStatus) : '';
+    const followBtn = !isMe ? `<button class="btn ${followStatus?.following?'btn-secondary':'btn-primary'}" onclick="toggleFollow('${userId}',this)">${followStatus?.following?'✓ Đang theo dõi':'Theo dõi'}</button>` : '';
+    container.innerHTML = `
+      <div class="profile-cover" style="${coverStyle}">
+        ${isMe?`<button class="profile-cover-edit" onclick="openModal('editProfileModal')">✎ Chỉnh sửa bìa</button>`:''}
+      </div>
+      <div class="profile-info-section">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar-large">${avatarEl({name:profile.name,avatar_url:profile.avatar_url},120)}</div>
+        </div>
+        <div class="profile-name-row">
+          <div>
+            <div class="profile-name">${profile.name||'?'} ${profile.is_verified?'✅':''}</div>
+            ${profile.bio?`<div class="profile-bio">${escHtml(profile.bio)}</div>`:''}
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            ${isMe?`<button class="btn btn-secondary" onclick="openEditProfile()">✎ Chỉnh sửa</button>`:`${friendBtn}${followBtn}`}
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="profile-stat"><div class="profile-stat-num">${numFmt(profile.posts_count||0)}</div><div class="profile-stat-label">Bài viết</div></div>
+          <div class="profile-stat"><div class="profile-stat-num">${numFmt(profile.friends_count||0)}</div><div class="profile-stat-label">Bạn bè</div></div>
+          <div class="profile-stat"><div class="profile-stat-num">${numFmt(profile.followers_count||0)}</div><div class="profile-stat-label">Người theo dõi</div></div>
+          <div class="profile-stat"><div class="profile-stat-num">${numFmt(profile.following_count||0)}</div><div class="profile-stat-label">Đang theo dõi</div></div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--hint)">
+          ${profile.location?`<span>📍 ${profile.location}</span>`:''}
+          ${profile.website?`<span>🌐 <a href="${profile.website}" target="_blank" style="color:var(--brand)">${profile.website}</a></span>`:''}
+          ${profile.avg_rating?`<span>⭐ ${parseFloat(profile.avg_rating).toFixed(1)}</span>`:''}
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:12px">Bài viết gần đây</h3>
+        ${(profile.recent_posts||[]).map(p=>renderPost({...p,user:{id:userId,name:profile.name,is_verified:profile.is_verified,avatar_url:profile.avatar_url},my_reaction:null})).join('') || renderEmpty('Chưa có bài viết nào')}
+      </div>`;
+    if (isMe) {
+      const editName = document.getElementById('editName');
+      if (editName) { editName.value=profile.name||''; document.getElementById('editBio').value=profile.bio||''; document.getElementById('editLocation').value=profile.location||''; document.getElementById('editWebsite').value=profile.website||''; document.getElementById('editAvatar').value=profile.avatar_url||''; document.getElementById('editCover').value=profile.cover_url||''; }
+    }
+  } catch(e){ container.innerHTML = renderEmpty(e.message); }
+}
+
+function renderFriendButton(userId, status) {
+  if (!status) return '';
+  if (status.status === 'accepted') return `<button class="btn btn-secondary" onclick="unfriend('${userId}',this)">✓ Bạn bè</button>`;
+  if (status.status === 'pending' && status.direction === 'sent') return `<button class="btn btn-secondary" onclick="cancelFriendReq('${userId}',this)">Đã gửi lời mời</button>`;
+  if (status.status === 'pending' && status.direction === 'received') return `<button class="btn btn-primary" onclick="respondFriendInline('${status.id}','accept',this)">Chấp nhận</button>`;
+  return `<button class="btn btn-primary" onclick="sendFriendRequest('${userId}',this)">+ Kết bạn</button>`;
+}
+
+async function unfriend(userId, btn) {
+  if (!confirm('Hủy kết bạn?')) return;
+  btn.disabled = true;
+  try {
+    await api(`/api/sn/friends/${userId}`, { method:'DELETE' });
+    btn.textContent = '+ Kết bạn';
+    btn.className = 'btn btn-primary';
+    btn.onclick = () => sendFriendRequest(userId, btn);
+    btn.disabled = false;
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+
+async function toggleFollow(userId, btn) {
+  btn.disabled = true;
+  try {
+    const isFollowing = btn.textContent.includes('Đang');
+    if (isFollowing) {
+      await api(`/api/sn/follow/${userId}`, { method:'DELETE' });
+      btn.textContent = 'Theo dõi';
+      btn.className = 'btn btn-primary';
+    } else {
+      await api(`/api/sn/follow/${userId}`, { method:'POST' });
+      btn.textContent = '✓ Đang theo dõi';
+      btn.className = 'btn btn-secondary';
+    }
+    btn.disabled = false;
+  } catch(e){ toast(e.message,'error'); btn.disabled=false; }
+}
+
+function openEditProfile() {
+  openModal('editProfileModal');
+}
+async function saveProfile() {
+  const body = { name: document.getElementById('editName').value, bio: document.getElementById('editBio').value, location: document.getElementById('editLocation').value, website: document.getElementById('editWebsite').value, avatar_url: document.getElementById('editAvatar').value, cover_url: document.getElementById('editCover').value };
+  try {
+    await api('/api/sn/profile', { method:'PUT', body });
+    closeModal('editProfileModal');
+    toast('Đã cập nhật hồ sơ! 🎉', 'success');
+    me = await api('/api/sn/me');
+    renderTopbar();
+    loadProfile(me.id);
+  } catch(e){ toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) loadNotifications();
+}
+function updateNotifBadge(count) {
+  const badge = document.getElementById('notifBadge');
+  if (count > 0) { badge.style.display=''; badge.textContent=count>99?'99+':count; }
+  else badge.style.display='none';
+}
+async function loadNotifications() {
+  const list = document.getElementById('notifList');
+  list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  try {
+    const data = await api('/api/sn/notifications?limit=20');
+    if (!data.notifications?.length) { list.innerHTML='<div class="empty-state" style="padding:24px"><div class="empty-state-icon">🔕</div><div class="empty-state-text">Chưa có thông báo</div></div>'; return; }
+    list.innerHTML = data.notifications.map(n => renderNotif(n)).join('');
+  } catch(e){ list.innerHTML=`<div class="empty-state">${e.message}</div>`; }
+}
+function renderNotif(n) {
+  const icons = { friend_request:'👥', friend_accept:'🤝', post_reaction:'❤️', post_comment:'💬', comment_reply:'↩️', post_share:'↗️', new_follower:'➕', mention:'@', tag:'🏷️', group_invite:'📣', group_post:'📝', page_follow:'🏢' };
+  const iconColors = { friend_request:'#1877f2', friend_accept:'#42b72a', post_reaction:'#f33e58', post_comment:'#1877f2', new_follower:'#1877f2' };
+  return `<div class="notif-item ${n.is_read?'':'unread'}" onclick="markNotifRead('${n.id}')">
+    <div class="notif-avatar">
+      ${avatarEl(n.actor||{name:'?'},48)}
+      <div class="notif-type-icon" style="background:${iconColors[n.type]||'#1877f2'};color:#fff">${icons[n.type]||'🔔'}</div>
+    </div>
+    <div class="notif-msg">
+      <div>${n.message||n.type}</div>
+      <div class="notif-time">${timeAgo(n.created_at)}</div>
+    </div>
+    ${!n.is_read?'<div style="width:10px;height:10px;border-radius:50%;background:var(--brand);flex-shrink:0"></div>':''}
+  </div>`;
+}
+async function markNotifRead(id) {
+  await api(`/api/sn/notifications/${id}/read`, { method:'PUT' }).catch(()=>{});
+}
+async function markAllRead() {
+  await api('/api/sn/notifications/read-all', { method:'PUT' }).catch(()=>{});
+  updateNotifBadge(0);
+  loadNotifications();
+}
+function startNotifPolling() {
+  clearInterval(notifPolling);
+  notifPolling = setInterval(async () => {
+    try {
+      const data = await api('/api/sn/me');
+      updateNotifBadge(data.unread_notifications || 0);
+    } catch(e){}
+  }, 30000);
+}
+
+// ═══════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════
+function handleSearch(val) {
+  clearTimeout(searchTimer);
+  const dd = document.getElementById('searchDropdown');
+  if (!val.trim()) { dd.classList.add('hidden'); return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const data = await api(`/api/sn/search?q=${encodeURIComponent(val)}&type=all`);
+      let html = '';
+      if (data.users?.length) {
+        html += `<div class="search-section-title">Người dùng</div>`;
+        html += data.users.slice(0,3).map(u=>`<div class="search-result-item" onclick="switchViewProfile('${u.id}');searchDropdown.classList.add('hidden')"><div class="search-ri-avatar">${avatarEl(u,36)}</div><div><div class="search-ri-name">${u.name} ${u.is_verified?'✅':''}</div><div class="search-ri-sub">${numFmt(u.friends_count||0)} bạn</div></div></div>`).join('');
+      }
+      if (data.groups?.length) {
+        html += `<div class="search-section-title">Nhóm</div>`;
+        html += data.groups.slice(0,2).map(g=>`<div class="search-result-item" onclick="switchViewGroup('${g.id}');searchDropdown.classList.add('hidden')"><div class="search-ri-avatar search-ri-group">📣</div><div><div class="search-ri-name">${g.name}</div><div class="search-ri-sub">${numFmt(g.members_count)} thành viên</div></div></div>`).join('');
+      }
+      if (!html) html = '<div style="padding:16px;font-size:13px;color:var(--hint);text-align:center">Không tìm thấy kết quả</div>';
+      dd.innerHTML = html;
+      dd.classList.remove('hidden');
+    } catch(e){}
+  }, 350);
+}
+
+async function searchPeople(val) {
+  if (!val.trim()) { document.getElementById('peopleResults').innerHTML=''; return; }
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    try {
+      const data = await api(`/api/sn/search?q=${encodeURIComponent(val)}&type=users`);
+      const container = document.getElementById('peopleResults');
+      container.innerHTML = !data.users?.length ? renderEmpty('Không tìm thấy ai') : `<div class="groups-grid">${data.users.map(u=>`<div class="group-card">
+        <div class="group-card-cover" style="display:flex;align-items:center;justify-content:center;font-size:48px;cursor:pointer" onclick="switchViewProfile('${u.id}')">${u.avatar_url?`<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover">`:u.name?.charAt(0)?.toUpperCase()}</div>
+        <div class="group-card-body">
+          <div class="group-card-name" onclick="switchViewProfile('${u.id}')" style="cursor:pointer">${u.name} ${u.is_verified?'✅':''}</div>
+          <div class="group-card-meta">${numFmt(u.friends_count||0)} bạn · ${numFmt(u.followers_count||0)} theo dõi</div>
+          <div class="group-card-actions"><button class="btn btn-primary btn-sm" style="width:100%" onclick="sendFriendRequest('${u.id}',this)">Kết bạn</button></div>
+        </div>
+      </div>`).join('')}</div>`;
+    } catch(e){}
+  }, 350);
+}
+
+// ═══════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur==='dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sn_theme', next);
+  document.querySelector('.theme-toggle').textContent = next==='dark'?'🌙':'☀️';
+}
+
+// ═══════════════════════════════════════════
+// IMAGE VIEWER
+// ═══════════════════════════════════════════
+function openImageViewer(url) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  overlay.innerHTML=`<img src="${url}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px">`;
+  overlay.onclick=()=>overlay.remove();
+  document.body.appendChild(overlay);
+}
+
+// ═══════════════════════════════════════════
+// CLOSE DROPDOWNS ON OUTSIDE CLICK
+// ═══════════════════════════════════════════
+document.addEventListener('click', e => {
+  if (!e.target.closest('#notifBtn') && !e.target.closest('#notifPanel')) document.getElementById('notifPanel').classList.add('hidden');
+  if (!e.target.closest('.topbar-search')) document.getElementById('searchDropdown').classList.add('hidden');
+  if (!e.target.closest('.modal-overlay')) return;
+  if (e.target.classList.contains('modal-overlay')) e.target.classList.add('hidden');
+});
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+const savedTheme = localStorage.getItem('sn_theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+document.querySelector('.theme-toggle').textContent = savedTheme==='dark'?'🌙':'☀️';
+init();
+</script>
+</body>
+</html>

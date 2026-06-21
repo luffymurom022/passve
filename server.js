@@ -9963,6 +9963,624 @@ app.delete('/api/admin/stories/:id', adminAuth, async (req, res) => {
 // Serve stories page
 app.get('/stories', (req, res) => res.sendFile(join(__dirname, 'frontend', 'stories.html')));
 
+/* ── SOCIAL NETWORK CORE ── */
+
+// ── Helper: ensure sn_profile exists ──
+async function ensureSnProfile(userId) {
+  const { data } = await supabase.from('sn_profiles').select('user_id').eq('user_id', userId).single();
+  if (!data) await supabase.from('sn_profiles').insert({ user_id: userId });
+}
+
+// ── Helper: create sn notification ──
+async function snNotify(userId, actorId, type, entityType, entityId, message) {
+  if (userId === actorId) return;
+  await supabase.from('sn_notifications').insert({ user_id: userId, actor_id: actorId, type, entity_type: entityType, entity_id: entityId, message });
+}
+
+// ── Serve network page ──
+app.get('/network', (req, res) => res.sendFile(join(__dirname, 'frontend', 'network.html')));
+app.get('/network.html', (req, res) => res.sendFile(join(__dirname, 'frontend', 'network.html')));
+
+// ════════════════════════════════════════
+// PROFILE
+// ════════════════════════════════════════
+
+// GET own profile
+app.get('/api/sn/me', auth, async (req, res) => {
+  try {
+    await ensureSnProfile(req.user.id);
+    const { data: user } = await supabase.from('users').select('id,name,phone,email,is_verified,avg_rating').eq('id', req.user.id).single();
+    const { data: profile } = await supabase.from('sn_profiles').select('*').eq('user_id', req.user.id).single();
+    const { count: unread } = await supabase.from('sn_notifications').select('*', { count: 'exact', head: true }).eq('user_id', req.user.id).eq('is_read', false);
+    res.json({ ...user, ...profile, unread_notifications: unread || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET any user profile
+app.get('/api/sn/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await ensureSnProfile(userId);
+    const { data: user } = await supabase.from('users').select('id,name,is_verified,avg_rating,created_at').eq('id', userId).single();
+    if (!user) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    const { data: profile } = await supabase.from('sn_profiles').select('*').eq('user_id', userId).single();
+    const { data: posts } = await supabase.from('sn_posts').select('id,content,media_urls,media_type,reactions_count,comments_count,created_at').eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }).limit(12);
+    res.json({ ...user, ...profile, recent_posts: posts || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT update own profile
+app.put('/api/sn/profile', auth, async (req, res) => {
+  try {
+    const { bio, location, website, birthday, gender, avatar_url, cover_url } = req.body;
+    await ensureSnProfile(req.user.id);
+    const { data } = await supabase.from('sn_profiles').update({ bio, location, website, birthday, gender, avatar_url, cover_url, updated_at: new Date().toISOString() }).eq('user_id', req.user.id).select().single();
+    if (req.body.name) await supabase.from('users').update({ name: req.body.name }).eq('id', req.user.id);
+    res.json({ ok: true, profile: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// FRIEND SYSTEM
+// ════════════════════════════════════════
+
+// GET friend list / requests
+app.get('/api/sn/friends', auth, async (req, res) => {
+  try {
+    const { type = 'friends' } = req.query;
+    const uid = req.user.id;
+    if (type === 'requests') {
+      const { data } = await supabase.from('sn_friendships').select('id,requester_id,created_at').eq('addressee_id', uid).eq('status', 'pending').order('created_at', { ascending: false });
+      const ids = (data || []).map(f => f.requester_id);
+      if (!ids.length) return res.json([]);
+      const { data: users } = await supabase.from('users').select('id,name,is_verified').in('id', ids);
+      const profs = await Promise.all(ids.map(id => supabase.from('sn_profiles').select('avatar_url,friends_count').eq('user_id', id).single().then(r => r.data)));
+      return res.json((data || []).map((f, i) => ({ ...f, user: { ...(users||[]).find(u=>u.id===f.requester_id), ...(profs[i]||{}) } })));
+    }
+    if (type === 'sent') {
+      const { data } = await supabase.from('sn_friendships').select('id,addressee_id,status,created_at').eq('requester_id', uid).eq('status', 'pending');
+      const ids = (data || []).map(f => f.addressee_id);
+      if (!ids.length) return res.json([]);
+      const { data: users } = await supabase.from('users').select('id,name,is_verified').in('id', ids);
+      return res.json((data || []).map(f => ({ ...f, user: (users||[]).find(u=>u.id===f.addressee_id) })));
+    }
+    // accepted friends
+    const { data: f1 } = await supabase.from('sn_friendships').select('addressee_id').eq('requester_id', uid).eq('status', 'accepted');
+    const { data: f2 } = await supabase.from('sn_friendships').select('requester_id').eq('addressee_id', uid).eq('status', 'accepted');
+    const ids = [...(f1||[]).map(f=>f.addressee_id), ...(f2||[]).map(f=>f.requester_id)];
+    if (!ids.length) return res.json([]);
+    const { data: users } = await supabase.from('users').select('id,name,is_verified').in('id', ids);
+    const profs = await Promise.all(ids.map(id => supabase.from('sn_profiles').select('avatar_url').eq('user_id', id).single().then(r => r.data)));
+    return res.json(ids.map((id, i) => ({ id, user: { ...(users||[]).find(u=>u.id===id), ...(profs[i]||{}) } })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST send friend request
+app.post('/api/sn/friends/request/:userId', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const target = req.params.userId;
+    if (uid === target) return res.status(400).json({ error: 'Không thể kết bạn với chính mình' });
+    // check existing
+    const { data: existing } = await supabase.from('sn_friendships').select('id,status').or(`and(requester_id.eq.${uid},addressee_id.eq.${target}),and(requester_id.eq.${target},addressee_id.eq.${uid})`).single();
+    if (existing) return res.status(400).json({ error: 'Đã gửi yêu cầu hoặc đã là bạn', status: existing.status });
+    await supabase.from('sn_friendships').insert({ requester_id: uid, addressee_id: target, status: 'pending' });
+    const { data: me } = await supabase.from('users').select('name').eq('id', uid).single();
+    await snNotify(target, uid, 'friend_request', 'user', uid, `${me.name} đã gửi lời mời kết bạn`);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT accept / decline friend request
+app.put('/api/sn/friends/:requestId', auth, async (req, res) => {
+  try {
+    const { action } = req.body; // accept | decline
+    const uid = req.user.id;
+    const { data: req_ } = await supabase.from('sn_friendships').select('*').eq('id', req.params.requestId).eq('addressee_id', uid).single();
+    if (!req_) return res.status(404).json({ error: 'Không tìm thấy' });
+    const newStatus = action === 'accept' ? 'accepted' : 'declined';
+    await supabase.from('sn_friendships').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', req.params.requestId);
+    if (action === 'accept') {
+      await supabase.from('sn_profiles').update({ friends_count: supabase.raw('friends_count + 1') }).eq('user_id', uid);
+      await supabase.from('sn_profiles').update({ friends_count: supabase.raw('friends_count + 1') }).eq('user_id', req_.requester_id);
+      const { data: me } = await supabase.from('users').select('name').eq('id', uid).single();
+      await snNotify(req_.requester_id, uid, 'friend_accept', 'user', uid, `${me.name} đã chấp nhận lời mời kết bạn`);
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE unfriend / unblock
+app.delete('/api/sn/friends/:userId', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const target = req.params.userId;
+    const { data: friendship } = await supabase.from('sn_friendships').select('id,requester_id,addressee_id,status').or(`and(requester_id.eq.${uid},addressee_id.eq.${target}),and(requester_id.eq.${target},addressee_id.eq.${uid})`).single();
+    if (!friendship) return res.status(404).json({ error: 'Không tìm thấy' });
+    const wasAccepted = friendship.status === 'accepted';
+    await supabase.from('sn_friendships').delete().eq('id', friendship.id);
+    if (wasAccepted) {
+      await supabase.from('sn_profiles').update({ friends_count: supabase.raw('GREATEST(0, friends_count - 1)') }).eq('user_id', uid);
+      await supabase.from('sn_profiles').update({ friends_count: supabase.raw('GREATEST(0, friends_count - 1)') }).eq('user_id', target);
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST block user
+app.post('/api/sn/friends/block/:userId', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const target = req.params.userId;
+    await supabase.from('sn_friendships').delete().or(`and(requester_id.eq.${uid},addressee_id.eq.${target}),and(requester_id.eq.${target},addressee_id.eq.${uid})`);
+    await supabase.from('sn_friendships').insert({ requester_id: uid, addressee_id: target, status: 'blocked' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET friendship status between me and another user
+app.get('/api/sn/friends/status/:userId', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const target = req.params.userId;
+    const { data } = await supabase.from('sn_friendships').select('id,status,requester_id,addressee_id').or(`and(requester_id.eq.${uid},addressee_id.eq.${target}),and(requester_id.eq.${target},addressee_id.eq.${uid})`).maybeSingle();
+    if (!data) return res.json({ status: 'none' });
+    return res.json({ status: data.status, direction: data.requester_id === uid ? 'sent' : 'received', id: data.id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// FOLLOW SYSTEM (reuse social_follows)
+// ════════════════════════════════════════
+
+app.post('/api/sn/follow/:userId', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const target = req.params.userId;
+    if (uid === target) return res.status(400).json({ error: 'Không thể follow chính mình' });
+    await supabase.from('social_follows').insert({ follower_id: uid, following_id: target });
+    await supabase.from('sn_profiles').update({ following_count: supabase.raw('following_count + 1') }).eq('user_id', uid);
+    await supabase.from('sn_profiles').update({ followers_count: supabase.raw('followers_count + 1') }).eq('user_id', target);
+    const { data: me } = await supabase.from('users').select('name').eq('id', uid).single();
+    await snNotify(target, uid, 'new_follower', 'user', uid, `${me.name} đã theo dõi bạn`);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sn/follow/:userId', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const target = req.params.userId;
+    await supabase.from('social_follows').delete().eq('follower_id', uid).eq('following_id', target);
+    await supabase.from('sn_profiles').update({ following_count: supabase.raw('GREATEST(0, following_count - 1)') }).eq('user_id', uid);
+    await supabase.from('sn_profiles').update({ followers_count: supabase.raw('GREATEST(0, followers_count - 1)') }).eq('user_id', target);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/follow/status/:userId', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('social_follows').select('id').eq('follower_id', req.user.id).eq('following_id', req.params.userId).maybeSingle();
+    res.json({ following: !!data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// POSTS
+// ════════════════════════════════════════
+
+// GET news feed
+app.get('/api/sn/feed', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    // get friend ids + following ids
+    const { data: f1 } = await supabase.from('sn_friendships').select('addressee_id').eq('requester_id', uid).eq('status', 'accepted');
+    const { data: f2 } = await supabase.from('sn_friendships').select('requester_id').eq('addressee_id', uid).eq('status', 'accepted');
+    const { data: follows } = await supabase.from('social_follows').select('following_id').eq('follower_id', uid);
+    const friendIds = [...(f1||[]).map(f=>f.addressee_id), ...(f2||[]).map(f=>f.requester_id)];
+    const followIds = (follows||[]).map(f=>f.following_id);
+    const feedIds = [...new Set([uid, ...friendIds, ...followIds])];
+    const { data: posts, count } = await supabase.from('sn_posts').select('*', { count: 'exact' }).in('user_id', feedIds).eq('status', 'active').in('visibility', ['public','friends']).is('group_id', null).order('created_at', { ascending: false }).range(offset, offset + parseInt(limit) - 1);
+    // enrich with user info
+    const enriched = await Promise.all((posts||[]).map(async p => {
+      const { data: u } = await supabase.from('users').select('id,name,is_verified').eq('id', p.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', p.user_id).single();
+      const { data: myReaction } = await supabase.from('sn_reactions').select('reaction').eq('post_id', p.id).eq('user_id', uid).maybeSingle();
+      let shared_post = null;
+      if (p.shared_post_id) {
+        const { data: sp } = await supabase.from('sn_posts').select('*').eq('id', p.shared_post_id).single();
+        if (sp) {
+          const { data: su } = await supabase.from('users').select('id,name').eq('id', sp.user_id).single();
+          shared_post = { ...sp, user: su };
+        }
+      }
+      return { ...p, user: { ...u, avatar_url: prof?.avatar_url }, my_reaction: myReaction?.reaction || null, shared_post };
+    }));
+    res.json({ posts: enriched, total: count, page: parseInt(page), limit: parseInt(limit) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET public/explore feed
+app.get('/api/sn/explore', async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const { data: posts, count } = await supabase.from('sn_posts').select('*', { count: 'exact' }).eq('status', 'active').eq('visibility', 'public').is('group_id', null).order('created_at', { ascending: false }).range(offset, offset + parseInt(limit) - 1);
+    const enriched = await Promise.all((posts||[]).map(async p => {
+      const { data: u } = await supabase.from('users').select('id,name,is_verified').eq('id', p.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', p.user_id).single();
+      return { ...p, user: { ...u, avatar_url: prof?.avatar_url } };
+    }));
+    res.json({ posts: enriched, total: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST create post
+app.post('/api/sn/posts', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { content, media_urls, media_type, visibility, group_id, page_id, shared_post_id, post_type } = req.body;
+    if (!content && (!media_urls || !media_urls.length)) return res.status(400).json({ error: 'Nội dung không được trống' });
+    const { data: post } = await supabase.from('sn_posts').insert({ user_id: uid, content, media_urls: media_urls || [], media_type: media_type || 'none', visibility: visibility || 'public', group_id: group_id || null, page_id: page_id || null, shared_post_id: shared_post_id || null, post_type: post_type || 'post' }).select().single();
+    await supabase.from('sn_profiles').update({ posts_count: supabase.raw('posts_count + 1') }).eq('user_id', uid);
+    if (group_id) await supabase.from('sn_groups').update({ posts_count: supabase.raw('posts_count + 1') }).eq('id', group_id);
+    if (page_id) await supabase.from('sn_pages').update({ posts_count: supabase.raw('posts_count + 1') }).eq('id', page_id);
+    const { data: u } = await supabase.from('users').select('id,name,is_verified').eq('id', uid).single();
+    const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', uid).single();
+    res.json({ ok: true, post: { ...post, user: { ...u, avatar_url: prof?.avatar_url }, my_reaction: null } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE post
+app.delete('/api/sn/posts/:id', auth, async (req, res) => {
+  try {
+    const { data: post } = await supabase.from('sn_posts').select('user_id').eq('id', req.params.id).single();
+    if (!post || post.user_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('sn_posts').update({ status: 'deleted' }).eq('id', req.params.id);
+    await supabase.from('sn_profiles').update({ posts_count: supabase.raw('GREATEST(0, posts_count - 1)') }).eq('user_id', req.user.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// REACTIONS
+// ════════════════════════════════════════
+
+app.post('/api/sn/posts/:id/react', auth, async (req, res) => {
+  try {
+    const { reaction } = req.body; // like | love | haha | wow | sad | angry
+    const uid = req.user.id;
+    const postId = req.params.id;
+    const { data: existing } = await supabase.from('sn_reactions').select('id,reaction').eq('post_id', postId).eq('user_id', uid).maybeSingle();
+    if (existing) {
+      if (existing.reaction === reaction) {
+        // toggle off
+        await supabase.from('sn_reactions').delete().eq('id', existing.id);
+        await supabase.from('sn_posts').update({ reactions_count: supabase.raw('GREATEST(0, reactions_count - 1)') }).eq('id', postId);
+        return res.json({ ok: true, action: 'removed' });
+      }
+      await supabase.from('sn_reactions').update({ reaction }).eq('id', existing.id);
+      return res.json({ ok: true, action: 'updated', reaction });
+    }
+    await supabase.from('sn_reactions').insert({ post_id: postId, user_id: uid, reaction });
+    await supabase.from('sn_posts').update({ reactions_count: supabase.raw('reactions_count + 1') }).eq('id', postId);
+    const { data: post } = await supabase.from('sn_posts').select('user_id').eq('id', postId).single();
+    if (post) {
+      const { data: me } = await supabase.from('users').select('name').eq('id', uid).single();
+      const emojis = { like:'👍', love:'❤️', haha:'😄', wow:'😮', sad:'😢', angry:'😠' };
+      await snNotify(post.user_id, uid, 'post_reaction', 'post', postId, `${me.name} đã ${emojis[reaction]||''} bài viết của bạn`);
+    }
+    res.json({ ok: true, action: 'added', reaction });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/posts/:id/reactions', async (req, res) => {
+  try {
+    const { data } = await supabase.from('sn_reactions').select('reaction,user_id').eq('post_id', req.params.id);
+    const counts = { like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0 };
+    (data || []).forEach(r => { if (counts[r.reaction] !== undefined) counts[r.reaction]++; });
+    res.json({ counts, total: (data||[]).length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// COMMENTS
+// ════════════════════════════════════════
+
+app.get('/api/sn/posts/:id/comments', async (req, res) => {
+  try {
+    const { data: comments } = await supabase.from('sn_comments').select('*').eq('post_id', req.params.id).is('parent_id', null).eq('status', 'active').order('created_at', { ascending: true }).limit(50);
+    const enriched = await Promise.all((comments||[]).map(async c => {
+      const { data: u } = await supabase.from('users').select('id,name,is_verified').eq('id', c.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', c.user_id).single();
+      const { data: replies } = await supabase.from('sn_comments').select('*').eq('parent_id', c.id).eq('status', 'active').order('created_at', { ascending: true }).limit(5);
+      const enrichedReplies = await Promise.all((replies||[]).map(async r => {
+        const { data: ru } = await supabase.from('users').select('id,name').eq('id', r.user_id).single();
+        const { data: rp } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', r.user_id).single();
+        return { ...r, user: { ...ru, avatar_url: rp?.avatar_url } };
+      }));
+      return { ...c, user: { ...u, avatar_url: prof?.avatar_url }, replies: enrichedReplies };
+    }));
+    res.json(enriched);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/posts/:id/comments', auth, async (req, res) => {
+  try {
+    const { content, parent_id } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Nội dung trống' });
+    const uid = req.user.id;
+    const postId = req.params.id;
+    const { data: comment } = await supabase.from('sn_comments').insert({ post_id: postId, user_id: uid, content, parent_id: parent_id || null }).select().single();
+    await supabase.from('sn_posts').update({ comments_count: supabase.raw('comments_count + 1') }).eq('id', postId);
+    if (parent_id) await supabase.from('sn_comments').update({ replies_count: supabase.raw('replies_count + 1') }).eq('id', parent_id);
+    const { data: post } = await supabase.from('sn_posts').select('user_id').eq('id', postId).single();
+    const { data: me } = await supabase.from('users').select('name').eq('id', uid).single();
+    if (parent_id) {
+      const { data: parentC } = await supabase.from('sn_comments').select('user_id').eq('id', parent_id).single();
+      if (parentC) await snNotify(parentC.user_id, uid, 'comment_reply', 'comment', comment.id, `${me.name} đã trả lời bình luận của bạn`);
+    } else if (post) {
+      await snNotify(post.user_id, uid, 'post_comment', 'post', postId, `${me.name} đã bình luận bài viết của bạn`);
+    }
+    const { data: u } = await supabase.from('users').select('id,name,is_verified').eq('id', uid).single();
+    const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', uid).single();
+    res.json({ ok: true, comment: { ...comment, user: { ...u, avatar_url: prof?.avatar_url }, replies: [] } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sn/comments/:id', auth, async (req, res) => {
+  try {
+    const { data: c } = await supabase.from('sn_comments').select('user_id,post_id,parent_id').eq('id', req.params.id).single();
+    if (!c || c.user_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('sn_comments').update({ status: 'deleted' }).eq('id', req.params.id);
+    await supabase.from('sn_posts').update({ comments_count: supabase.raw('GREATEST(0, comments_count - 1)') }).eq('id', c.post_id);
+    if (c.parent_id) await supabase.from('sn_comments').update({ replies_count: supabase.raw('GREATEST(0, replies_count - 1)') }).eq('id', c.parent_id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// SHARE
+// ════════════════════════════════════════
+
+app.post('/api/sn/posts/:id/share', auth, async (req, res) => {
+  try {
+    const { content, visibility } = req.body;
+    const uid = req.user.id;
+    const orig = req.params.id;
+    const { data: post } = await supabase.from('sn_posts').insert({ user_id: uid, content: content || '', shared_post_id: orig, post_type: 'share', visibility: visibility || 'public', media_urls: [], media_type: 'none' }).select().single();
+    await supabase.from('sn_posts').update({ shares_count: supabase.raw('shares_count + 1') }).eq('id', orig);
+    const { data: origPost } = await supabase.from('sn_posts').select('user_id').eq('id', orig).single();
+    const { data: me } = await supabase.from('users').select('name').eq('id', uid).single();
+    if (origPost) await snNotify(origPost.user_id, uid, 'post_share', 'post', orig, `${me.name} đã chia sẻ bài viết của bạn`);
+    await supabase.from('sn_profiles').update({ posts_count: supabase.raw('posts_count + 1') }).eq('user_id', uid);
+    res.json({ ok: true, post });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// GROUPS
+// ════════════════════════════════════════
+
+app.get('/api/sn/groups', async (req, res) => {
+  try {
+    const { search, category, page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    let q = supabase.from('sn_groups').select('*', { count: 'exact' }).eq('status', 'active').in('privacy', ['public','private']);
+    if (search) q = q.ilike('name', `%${search}%`);
+    if (category && category !== 'all') q = q.eq('category', category);
+    const { data, count } = await q.order('members_count', { ascending: false }).range(offset, offset + parseInt(limit) - 1);
+    res.json({ groups: data || [], total: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/groups/:id', async (req, res) => {
+  try {
+    const { data: group } = await supabase.from('sn_groups').select('*').eq('id', req.params.id).single();
+    if (!group) return res.status(404).json({ error: 'Không tìm thấy nhóm' });
+    const { data: posts } = await supabase.from('sn_posts').select('*').eq('group_id', req.params.id).eq('status', 'active').order('created_at', { ascending: false }).limit(20);
+    const enriched = await Promise.all((posts||[]).map(async p => {
+      const { data: u } = await supabase.from('users').select('id,name,is_verified').eq('id', p.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', p.user_id).single();
+      return { ...p, user: { ...u, avatar_url: prof?.avatar_url } };
+    }));
+    res.json({ ...group, posts: enriched });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/groups', auth, async (req, res) => {
+  try {
+    const { name, description, category, privacy, avatar_url, cover_url } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Tên nhóm không được trống' });
+    const uid = req.user.id;
+    const { data: group } = await supabase.from('sn_groups').insert({ name, description, category: category || 'general', privacy: privacy || 'public', avatar_url, cover_url, created_by: uid, members_count: 1 }).select().single();
+    await supabase.from('sn_group_members').insert({ group_id: group.id, user_id: uid, role: 'admin' });
+    res.json({ ok: true, group });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/groups/:id/join', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { data: group } = await supabase.from('sn_groups').select('privacy,members_count').eq('id', req.params.id).single();
+    if (!group) return res.status(404).json({ error: 'Không tìm thấy nhóm' });
+    const { data: existing } = await supabase.from('sn_group_members').select('id').eq('group_id', req.params.id).eq('user_id', uid).maybeSingle();
+    if (existing) return res.status(400).json({ error: 'Đã là thành viên' });
+    await supabase.from('sn_group_members').insert({ group_id: req.params.id, user_id: uid, role: 'member' });
+    await supabase.from('sn_groups').update({ members_count: supabase.raw('members_count + 1') }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sn/groups/:id/leave', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { data: m } = await supabase.from('sn_group_members').select('role').eq('group_id', req.params.id).eq('user_id', uid).single();
+    if (!m) return res.status(404).json({ error: 'Không phải thành viên' });
+    if (m.role === 'admin') return res.status(400).json({ error: 'Admin không thể rời nhóm. Hãy chuyển quyền trước.' });
+    await supabase.from('sn_group_members').delete().eq('group_id', req.params.id).eq('user_id', uid);
+    await supabase.from('sn_groups').update({ members_count: supabase.raw('GREATEST(0, members_count - 1)') }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/groups/:id/membership', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('sn_group_members').select('role').eq('group_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
+    res.json({ member: !!data, role: data?.role || null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET my groups
+app.get('/api/sn/my-groups', auth, async (req, res) => {
+  try {
+    const { data: memberships } = await supabase.from('sn_group_members').select('group_id,role').eq('user_id', req.user.id);
+    if (!memberships?.length) return res.json([]);
+    const ids = memberships.map(m => m.group_id);
+    const { data: groups } = await supabase.from('sn_groups').select('*').in('id', ids).eq('status', 'active');
+    res.json((groups||[]).map(g => ({ ...g, my_role: memberships.find(m=>m.group_id===g.id)?.role })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// PAGES
+// ════════════════════════════════════════
+
+app.get('/api/sn/pages', async (req, res) => {
+  try {
+    const { search, category, page = 1, limit = 20 } = req.query;
+    let q = supabase.from('sn_pages').select('*', { count: 'exact' }).eq('status', 'active');
+    if (search) q = q.ilike('name', `%${search}%`);
+    if (category && category !== 'all') q = q.eq('category', category);
+    const { data, count } = await q.order('followers_count', { ascending: false }).range(0, parseInt(limit) - 1);
+    res.json({ pages: data || [], total: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/pages', auth, async (req, res) => {
+  try {
+    const { name, description, category, website, phone, email, avatar_url, cover_url } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Tên trang không được trống' });
+    const username = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now().toString(36);
+    const { data: pg } = await supabase.from('sn_pages').insert({ owner_id: req.user.id, name, username, description, category: category || 'business', website, phone, email, avatar_url, cover_url }).select().single();
+    res.json({ ok: true, page: pg });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sn/pages/:id/follow', auth, async (req, res) => {
+  try {
+    const { data: existing } = await supabase.from('sn_page_followers').select('id').eq('page_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
+    if (existing) {
+      await supabase.from('sn_page_followers').delete().eq('id', existing.id);
+      await supabase.from('sn_pages').update({ followers_count: supabase.raw('GREATEST(0, followers_count - 1)') }).eq('id', req.params.id);
+      return res.json({ ok: true, following: false });
+    }
+    await supabase.from('sn_page_followers').insert({ page_id: req.params.id, user_id: req.user.id });
+    await supabase.from('sn_pages').update({ followers_count: supabase.raw('followers_count + 1') }).eq('id', req.params.id);
+    res.json({ ok: true, following: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sn/my-pages', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('sn_pages').select('*').eq('owner_id', req.user.id).eq('status', 'active');
+    res.json(data || []);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// NOTIFICATIONS
+// ════════════════════════════════════════
+
+app.get('/api/sn/notifications', auth, async (req, res) => {
+  try {
+    const { page = 1, limit = 30 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const { data, count } = await supabase.from('sn_notifications').select('*', { count: 'exact' }).eq('user_id', req.user.id).order('created_at', { ascending: false }).range(offset, offset + parseInt(limit) - 1);
+    // enrich with actor info
+    const enriched = await Promise.all((data||[]).map(async n => {
+      if (!n.actor_id) return n;
+      const { data: actor } = await supabase.from('users').select('id,name').eq('id', n.actor_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', n.actor_id).single();
+      return { ...n, actor: { ...actor, avatar_url: prof?.avatar_url } };
+    }));
+    res.json({ notifications: enriched, total: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/sn/notifications/read-all', auth, async (req, res) => {
+  try {
+    await supabase.from('sn_notifications').update({ is_read: true }).eq('user_id', req.user.id).eq('is_read', false);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/sn/notifications/:id/read', auth, async (req, res) => {
+  try {
+    await supabase.from('sn_notifications').update({ is_read: true }).eq('id', req.params.id).eq('user_id', req.user.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// SEARCH
+// ════════════════════════════════════════
+
+app.get('/api/sn/search', async (req, res) => {
+  try {
+    const { q, type = 'all' } = req.query;
+    if (!q?.trim()) return res.json({ users: [], posts: [], groups: [], pages: [] });
+    const results = {};
+    if (type === 'all' || type === 'users') {
+      const { data: users } = await supabase.from('users').select('id,name,is_verified').ilike('name', `%${q}%`).limit(10);
+      const enriched = await Promise.all((users||[]).map(async u => {
+        const { data: prof } = await supabase.from('sn_profiles').select('avatar_url,bio,friends_count,followers_count').eq('user_id', u.id).single();
+        return { ...u, ...prof };
+      }));
+      results.users = enriched;
+    }
+    if (type === 'all' || type === 'posts') {
+      const { data: posts } = await supabase.from('sn_posts').select('id,content,media_urls,media_type,user_id,reactions_count,comments_count,created_at').ilike('content', `%${q}%`).eq('status', 'active').eq('visibility', 'public').order('created_at', { ascending: false }).limit(10);
+      const enriched = await Promise.all((posts||[]).map(async p => {
+        const { data: u } = await supabase.from('users').select('id,name').eq('id', p.user_id).single();
+        const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', p.user_id).single();
+        return { ...p, user: { ...u, avatar_url: prof?.avatar_url } };
+      }));
+      results.posts = enriched;
+    }
+    if (type === 'all' || type === 'groups') {
+      const { data: groups } = await supabase.from('sn_groups').select('id,name,description,avatar_url,members_count,category').ilike('name', `%${q}%`).eq('status', 'active').limit(10);
+      results.groups = groups || [];
+    }
+    if (type === 'all' || type === 'pages') {
+      const { data: pages } = await supabase.from('sn_pages').select('id,name,description,avatar_url,followers_count,category,is_verified').ilike('name', `%${q}%`).eq('status', 'active').limit(10);
+      results.pages = pages || [];
+    }
+    res.json(results);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════
+// TRENDING
+// ════════════════════════════════════════
+
+app.get('/api/sn/trending', async (req, res) => {
+  try {
+    const { data: posts } = await supabase.from('sn_posts').select('*').eq('status', 'active').eq('visibility', 'public').is('group_id', null).order('reactions_count', { ascending: false }).limit(20);
+    const enriched = await Promise.all((posts||[]).map(async p => {
+      const { data: u } = await supabase.from('users').select('id,name,is_verified').eq('id', p.user_id).single();
+      const { data: prof } = await supabase.from('sn_profiles').select('avatar_url').eq('user_id', p.user_id).single();
+      return { ...p, user: { ...u, avatar_url: prof?.avatar_url } };
+    }));
+    const { data: groups } = await supabase.from('sn_groups').select('id,name,avatar_url,members_count,category').eq('status', 'active').order('members_count', { ascending: false }).limit(5);
+    res.json({ posts: enriched, groups: groups || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ── END SOCIAL NETWORK CORE ── */
+
 /* ── END PHASE 21 ── */
 
 const PORT = process.env.PORT || 5000;
