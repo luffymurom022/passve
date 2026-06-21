@@ -1,0 +1,324 @@
+BUILD PHASE SOCIAL 6
+
+AI COMMERCE ENGINE
+
+====================================================
+
+GOAL
+
+Create an AI-powered commerce system.
+
+AI should help users:
+
+* Sell products
+* Create content
+* Generate reels
+* Price products
+* Improve trust
+
+====================================================
+
+MODULE 1
+
+AI PRODUCT DETECTION
+
+====================================================
+
+User uploads photos.
+
+AI automatically detects:
+
+* Product name
+* Brand
+* Category
+* Condition
+
+Examples:
+
+Upload iPhone image
+
+AI detects:
+
+* Apple
+* iPhone 14 Pro
+* Smartphone
+
+====================================================
+
+MODULE 2
+
+AI PRICE ESTIMATION
+
+====================================================
+
+AI suggests:
+
+* Market value
+* Recommended selling price
+* Fast-sale price
+* Premium price
+
+Display:
+
+* Low
+* Recommended
+* High
+
+====================================================
+
+MODULE 3
+
+AI LISTING GENERATOR
+
+====================================================
+
+Generate:
+
+* Product title
+* Product description
+* Features
+* Condition notes
+
+One-click listing creation.
+
+====================================================
+
+MODULE 4
+
+AI REELS GENERATOR
+
+====================================================
+
+Convert product photos into reels.
+
+Automatically create:
+
+* Video slideshow
+* Captions
+* Product highlights
+* Call-to-action
+
+====================================================
+
+MODULE 5
+
+AI SELLING ASSISTANT
+
+====================================================
+
+Provide recommendations:
+
+* Better photos
+* Better pricing
+* Better titles
+* Better categories
+
+====================================================
+
+MODULE 6
+
+AI TRUST ANALYZER
+
+====================================================
+
+Analyze listings.
+
+Detect:
+
+* Suspicious pricing
+* Missing information
+* Risk factors
+
+Display:
+
+Trust Recommendations
+
+====================================================
+
+MODULE 7
+
+AI CHAT ASSISTANT
+
+====================================================
+
+Marketplace assistant.
+
+Can answer:
+
+* Product questions
+* Shipping questions
+* Escrow process
+* Seller guidance
+
+====================================================
+
+MODULE 8
+
+AI BUYER ASSISTANT
+
+====================================================
+
+Help buyers find products.
+
+Supports:
+
+* Natural language search
+
+Examples:
+
+"I need a gaming laptop under 15 million"
+
+"Find concert tickets in Ho Chi Minh City"
+
+====================================================
+
+MODULE 9
+
+AI PRODUCT MATCHING
+
+====================================================
+
+Recommend:
+
+* Similar products
+* Better offers
+* Trusted sellers
+
+====================================================
+
+MODULE 10
+
+AI CONTENT CREATOR
+
+====================================================
+
+Generate:
+
+* Post captions
+* Reels captions
+* Hashtags
+* Product highlights
+
+====================================================
+
+MODULE 11
+
+AI LIVE ASSISTANT
+
+====================================================
+
+Support livestream sellers.
+
+Suggest:
+
+* Talking points
+* Product highlights
+* Promotions
+
+====================================================
+
+MODULE 12
+
+AI MARKET INSIGHTS
+
+====================================================
+
+Show:
+
+* Trending products
+* Trending categories
+* Price trends
+
+====================================================
+
+MODULE 13
+
+AI FRAUD SIGNALS
+
+====================================================
+
+Flag:
+
+* Duplicate listings
+* Suspicious behavior
+* Scam indicators
+
+Integrate with Trust Center.
+
+====================================================
+
+MODULE 14
+
+AI COMMERCE DASHBOARD
+
+====================================================
+
+Display:
+
+* AI suggestions
+* Listing quality score
+* Trust score
+* Sales optimization score
+
+====================================================
+
+MODULE 15
+
+FUTURE AI READY
+
+====================================================
+
+Prepare architecture for:
+
+* LLM integration
+* Voice assistant
+* AI agents
+* Autonomous commerce workflows
+
+====================================================
+
+UI
+
+Inspired by:
+
+ChatGPT
+TikTok Seller Center
+Shopify Magic
+
+Modern
+
+Dark Mode
+
+Responsive
+
+====================================================
+
+DO NOT REMOVE
+
+* Marketplace
+* Reels
+* Groups
+* Messenger
+* Escrow
+* Creator Economy
+* Trust Center
+
+====================================================
+
+FINAL RESULT
+
+SafePass becomes:
+
+Facebook
++
+TikTok
++
+Marketplace
++
+Creator Economy
++
+AI Commerce Engine
++
+Escrow Protection
++
+Social Commerce Ecosystem
