@@ -3,158 +3,401 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SafePass v13</title>
+<title>SafePass — Mua Bán Đồ Cũ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SAFEPASS — PREMIUM DARK UI
+   SAFEPASS — FACEBOOK STYLE UI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 *{box-sizing:border-box;margin:0;padding:0;}
 
 :root{
-  /* Backgrounds */
-  --bg:#06090f;
-  --bg2:#090d16;
-  --card:#0d1220;
-  --card2:#101828;
-  --card3:#131d2e;
+  /* Facebook Light Mode */
+  --bg:#f0f2f5;
+  --bg2:#e4e6eb;
+  --card:#ffffff;
+  --card2:#f0f2f5;
+  --card3:#e4e6eb;
 
   /* Borders */
-  --border:rgba(255,255,255,.055);
-  --border2:rgba(255,255,255,.1);
-  --border3:rgba(255,255,255,.16);
+  --border:#dadde1;
+  --border2:#ccd0d5;
+  --border3:#bec3c9;
 
-  /* Brand */
-  --brand:#3d8ef8;
-  --brandD:#2e7ef0;
-  --brandL:rgba(61,142,248,.07);
-  --brandM:rgba(61,142,248,.12);
-  --brandGlow:rgba(61,142,248,.25);
+  /* Brand — Facebook Blue */
+  --brand:#1877f2;
+  --brandD:#166fe5;
+  --brandL:rgba(24,119,242,.08);
+  --brandM:rgba(24,119,242,.14);
+  --brandGlow:rgba(24,119,242,.2);
 
   /* Text */
-  --text:#e8edf8;
-  --sub:#7b8fad;
-  --hint:#3d4f6a;
+  --text:#050505;
+  --sub:#65676b;
+  --hint:#8a8d91;
 
   /* Status */
-  --ok:#22d38e;     --okBg:rgba(34,211,142,.07);
-  --warn:#f5a623;   --warnBg:rgba(245,166,35,.07);
-  --red:#f05068;    --redBg:rgba(240,80,104,.07);
+  --ok:#42b72a;     --okBg:rgba(66,183,42,.08);
+  --warn:#f5a623;   --warnBg:rgba(245,166,35,.08);
+  --red:#fa3e3e;    --redBg:rgba(250,62,62,.08);
   --purple:#9b87f5; --purpleBg:rgba(155,135,245,.08);
   --gold:#f5a623;
-  --cyan:#00e5ff;
+  --cyan:#1877f2;
 
   /* Elevation */
-  --shadow-sm:0 2px 8px rgba(0,0,0,.4);
-  --shadow:0 8px 32px rgba(0,0,0,.5);
-  --shadow-lg:0 20px 60px rgba(0,0,0,.7);
-  --glow:0 0 28px rgba(61,142,248,.14);
-  --glow-ok:0 0 20px rgba(34,211,142,.12);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.1);
+  --shadow:0 2px 8px rgba(0,0,0,.15);
+  --shadow-lg:0 4px 20px rgba(0,0,0,.2);
+  --glow:0 0 0 2px rgba(24,119,242,.2);
+  --glow-ok:0 0 0 2px rgba(66,183,42,.2);
 
   /* Shape */
-  --radius:16px;
-  --radius-sm:10px;
-  --radius-lg:20px;
-  --radius-xl:24px;
+  --radius:8px;
+  --radius-sm:6px;
+  --radius-lg:12px;
+  --radius-xl:16px;
+}
+
+/* Dark Mode */
+body.dark{
+  --bg:#18191a;
+  --bg2:#242526;
+  --card:#242526;
+  --card2:#3a3b3c;
+  --card3:#3a3b3c;
+  --border:#3a3b3c;
+  --border2:#4a4b4c;
+  --border3:#5a5b5c;
+  --text:#e4e6eb;
+  --sub:#b0b3b8;
+  --hint:#8a8d91;
 }
 
 /* ── BASE ── */
+html,body{height:100%;}
 body{
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg);
   color:var(--text);
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
-  background-image:
-    radial-gradient(ellipse 80% 60% at 80% -10%, rgba(61,142,248,.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at -10% 80%, rgba(155,135,245,.04) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 50% 110%, rgba(0,229,255,.025) 0%, transparent 50%);
 }
-.app{width:100%;margin:0;padding:0 0 88px;}
+.app{width:100%;margin:0;padding:0;}
 
-/* ━━ HEADER ━━ */
+/* ━━ FACEBOOK TOPBAR ━━ */
 .header{
-  position:sticky;top:0;z-index:100;
-  height:60px;
-  padding:0 16px;
-  display:flex;align-items:center;gap:4px;
-  background:rgba(6,9,15,.88);
-  backdrop-filter:blur(32px) saturate(180%);
-  -webkit-backdrop-filter:blur(32px) saturate(180%);
-  border-bottom:1px solid rgba(255,255,255,.045);
-  overflow-x:auto;scrollbar-width:none;
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:56px;
+  background:var(--brand);
+  box-shadow:0 2px 4px rgba(0,0,0,.25);
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  padding:0 12px;
+  gap:8px;
 }
-.header::after{
-  content:'';
-  position:absolute;bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(61,142,248,.3),rgba(155,135,245,.2),transparent);
-  pointer-events:none;
-}
-.header::-webkit-scrollbar{display:none;}
+body.dark .header{background:#242526;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 
+/* Left: logo + search */
+.header-left{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .logo{
-  width:34px;height:34px;border-radius:10px;
-  background:linear-gradient(145deg,#1a2a4a,#0d1a36);
-  border:1px solid rgba(61,142,248,.25);
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.15);
   display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-  box-shadow:0 0 12px rgba(61,142,248,.12),inset 0 1px 0 rgba(255,255,255,.06);
+  flex-shrink:0;cursor:pointer;font-size:22px;
 }
-.logo-txt{
-  font-size:14px;font-weight:800;letter-spacing:-.5px;
-  background:linear-gradient(135deg,var(--text) 40%,var(--sub));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
+.logo-txt{display:none;}
+.badge-v{display:none;}
+.tb-searchbox{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.18);
+  border-radius:20px;padding:8px 14px;
+  cursor:pointer;min-width:220px;
+  transition:background .15s;
 }
-.badge-v{
-  font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:600;
-  background:rgba(61,142,248,.1);
-  color:var(--brand);
-  padding:2px 7px;border-radius:5px;
-  border:1px solid rgba(61,142,248,.18);
-  letter-spacing:.04em;
+body.dark .tb-searchbox{background:rgba(255,255,255,.08);}
+.tb-searchbox:hover{background:rgba(255,255,255,.25);}
+.tb-searchbox input{
+  background:none;border:none;outline:none;
+  font-size:15px;color:#fff;width:100%;
+  font-family:'Inter',sans-serif;
 }
-.spacer{flex:1;}
+.tb-searchbox input::placeholder{color:rgba(255,255,255,.75);}
+@media(max-width:600px){.tb-searchbox{min-width:120px;}}
 
-/* ━━ NAV TABS ━━ */
+/* Center: nav icons */
+.header-center{display:flex;align-items:center;justify-content:center;gap:2px;}
 .nav-tab{
-  display:flex;align-items:center;gap:5px;
-  padding:6px 11px;border:none;border-radius:9px;
-  cursor:pointer;font-size:11.5px;font-weight:600;
-  background:transparent;color:var(--hint);
-  transition:all .2s cubic-bezier(.4,0,.2,1);
-  position:relative;font-family:'Inter',sans-serif;
-  letter-spacing:-.1px;white-space:nowrap;
-}
-.nav-tab:hover{color:var(--sub);background:rgba(255,255,255,.04);}
-.nav-tab.active{
-  color:var(--brand);
-  background:linear-gradient(135deg,rgba(61,142,248,.12),rgba(61,142,248,.07));
-  border:1px solid rgba(61,142,248,.15);
-}
-.nav-tab.active::after{
-  content:'';position:absolute;bottom:-1px;left:20%;right:20%;height:2px;
-  background:var(--brand);border-radius:2px 2px 0 0;
-  box-shadow:0 0 8px var(--brandGlow);
-}
-.tab-badge{
-  position:absolute;top:2px;right:2px;
-  min-width:15px;height:15px;border-radius:8px;
-  background:var(--red);color:#fff;
-  font-size:8px;font-weight:800;
+  width:110px;height:48px;
+  border:none;background:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  padding:0 3px;
-  box-shadow:0 0 8px rgba(240,80,104,.4);
-}
-.btn-icon{
-  width:34px;height:34px;border-radius:9px;
-  border:1px solid var(--border);
-  background:var(--card);cursor:pointer;font-size:14px;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .2s;color:var(--sub);
+  border-radius:var(--radius);
+  position:relative;transition:background .15s;
   flex-shrink:0;
 }
+.nav-tab svg{width:24px;height:24px;fill:rgba(255,255,255,.7);}
+.nav-tab:hover{background:rgba(255,255,255,.12);}
+.nav-tab.active{border-bottom:3px solid #fff;}
+.nav-tab.active svg{fill:#fff;}
+.tab-badge{
+  position:absolute;top:4px;right:18px;
+  min-width:18px;height:18px;border-radius:10px;
+  background:var(--red);color:#fff;
+  font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 5px;border:2px solid var(--brand);
+}
+body.dark .tab-badge{border-color:#242526;}
+.nav-tab-text{display:none;}
+
+/* Right: user actions */
+.header-right{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-shrink:0;}
+.btn-icon{
+  width:40px;height:40px;border-radius:50%;
+  border:none;
+  background:rgba(255,255,255,.15);
+  cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;color:#fff;
+  flex-shrink:0;position:relative;
+}
+body.dark .btn-icon{background:rgba(255,255,255,.08);}
+.btn-icon:hover{background:rgba(255,255,255,.25);}
+.tb-me-btn{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.15);
+  border:none;border-radius:20px;padding:6px 10px;
+  cursor:pointer;color:#fff;font-size:14px;font-weight:700;
+  transition:background .15s;
+}
+body.dark .tb-me-btn{background:rgba(255,255,255,.08);}
+.tb-me-btn:hover{background:rgba(255,255,255,.25);}
+.tb-me-av{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;
+  overflow:hidden;flex-shrink:0;
+}
+.tb-me-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.spacer{display:none;}
+
+/* ━━ 3-COLUMN FACEBOOK LAYOUT ━━ */
+#fb-layout{
+  display:grid;
+  grid-template-columns:280px 1fr 280px;
+  min-height:calc(100vh - 56px);
+  max-width:1440px;
+  margin:56px auto 0;
+  gap:0;
+}
+.fb-left{
+  position:sticky;top:56px;height:calc(100vh - 56px);
+  overflow-y:auto;padding:8px 8px 20px;
+  scrollbar-width:thin;
+  background:var(--bg);
+}
+.fb-left::-webkit-scrollbar{width:6px;}
+.fb-left::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.fb-center{
+  min-width:0;
+  padding-bottom:60px;
+  border-left:1px solid var(--border);
+  border-right:1px solid var(--border);
+}
+.fb-right{
+  position:sticky;top:56px;height:calc(100vh - 56px);
+  overflow-y:auto;padding:16px 8px 20px;
+  scrollbar-width:thin;
+  background:var(--bg);
+}
+.fb-right::-webkit-scrollbar{width:6px;}
+.fb-right::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+@media(max-width:1280px){
+  #fb-layout{grid-template-columns:240px 1fr 240px;}
+}
+@media(max-width:1024px){
+  #fb-layout{grid-template-columns:0 1fr 0;}
+  .fb-left,.fb-right{display:none;}
+  .fb-center{border:none;}
+}
+@media(max-width:640px){
+  .header-center{display:none;}
+  .tb-searchbox{min-width:40px;}
+}
+
+/* ━━ LEFT SIDEBAR ━━ */
+.lsb-user{
+  display:flex;align-items:center;gap:10px;
+  padding:8px;border-radius:var(--radius);
+  cursor:pointer;margin-bottom:2px;
+  transition:background .15s;
+}
+.lsb-user:hover{background:var(--card2);}
+.lsb-av{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--brand);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:800;color:#fff;
+  overflow:hidden;flex-shrink:0;
+}
+.lsb-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.lsb-name{font-size:15px;font-weight:600;}
+.lsb-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px;border-radius:var(--radius);
+  cursor:pointer;font-size:15px;font-weight:500;
+  transition:background .15s;color:var(--text);
+  text-decoration:none;
+}
+.lsb-row:hover{background:var(--card2);}
+.lsb-ic{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--card2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.lsb-divider{
+  height:1px;background:var(--border);
+  margin:8px 0;
+}
+.lsb-section{
+  font-size:17px;font-weight:700;
+  padding:8px 8px 4px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.lsb-seeall{font-size:13px;font-weight:600;color:var(--brand);cursor:pointer;}
+.lsb-seeall:hover{text-decoration:underline;}
+
+/* ━━ RIGHT SIDEBAR ━━ */
+.rsb-title{font-size:17px;font-weight:700;margin-bottom:12px;padding:0 8px;}
+.rsb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px;border-radius:var(--radius);
+  cursor:pointer;margin-bottom:4px;
+  transition:background .15s;
+}
+.rsb-item:hover{background:var(--card2);}
+.rsb-av{
+  width:44px;height:44px;border-radius:var(--radius);
+  background:var(--brand);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.rsb-av img{width:100%;height:100%;object-fit:cover;}
+.rsb-name{font-size:13px;font-weight:700;margin-bottom:2px;}
+.rsb-meta{font-size:12px;color:var(--sub);}
+.rsb-btn{
+  margin-left:auto;background:var(--brandL);color:var(--brand);
+  border:none;border-radius:6px;padding:6px 12px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  white-space:nowrap;flex-shrink:0;transition:background .15s;
+}
+.rsb-btn:hover{background:var(--brandM);}
+.rsb-divider{height:1px;background:var(--border);margin:12px 8px;}
+
+/* ━━ MOBILE BOTTOM NAV ━━ */
+.mb-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:var(--card);
+  border-top:1px solid var(--border);
+  padding:4px 0;
+}
+.mb-nav-inner{display:flex;}
+.mb-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:6px 4px;border:none;background:none;cursor:pointer;
+  font-size:22px;color:var(--hint);position:relative;transition:color .15s;
+}
+.mb-btn.active{color:var(--brand);}
+.mb-label{font-size:10px;font-weight:600;margin-top:2px;}
+@media(max-width:640px){
+  .mb-nav{display:block;}
+  #fb-layout{margin-bottom:56px;}
+}
+
+/* ━━ FACEBOOK CARD STYLE ━━ */
+.fb-card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  border:1px solid var(--border);
+  margin-bottom:12px;
+  overflow:hidden;
+}
+.fb-card-p{padding:16px;}
+
+/* ━━ NOTIF DROPDOWN ━━ */
+.notif-dd{
+  position:fixed;top:56px;right:8px;z-index:300;
+  background:var(--card);border-radius:var(--radius-lg);
+  width:360px;max-height:calc(100vh - 70px);
+  overflow-y:auto;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);
+  border:1px solid var(--border);
+}
+.notif-dd-h{
+  padding:16px;font-size:24px;font-weight:800;
+  position:sticky;top:0;background:var(--card);z-index:1;
+  border-bottom:1px solid var(--border);
+}
+.notif-item-fb{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 12px;cursor:pointer;transition:background .15s;
+}
+.notif-item-fb:hover{background:var(--bg2);}
+.ni-av{
+  width:56px;height:56px;border-radius:50%;
+  background:var(--brand);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:800;color:#fff;
+  position:relative;flex-shrink:0;overflow:hidden;
+}
+.ni-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.ni-ic{
+  position:absolute;bottom:0;right:0;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--brand);color:#fff;
+  font-size:11px;border:2px solid var(--card);
+  display:flex;align-items:center;justify-content:center;
+}
+.ni-msg{font-size:14px;color:var(--text);line-height:1.4;}
+.ni-time{font-size:12px;color:var(--brand);font-weight:600;margin-top:3px;}
+.ni-dot{width:12px;height:12px;border-radius:50%;background:var(--brand);flex-shrink:0;margin-top:8px;}
+
+/* ━━ SEARCH TOPBAR (replace old sticky search) ━━ */
+.search-wrap{
+  position:sticky;top:56px;z-index:90;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  padding:8px 16px;
+}
+.search-row{display:flex;gap:8px;align-items:center;}
+.search-box{flex:1;position:relative;}
+.search-input{
+  width:100%;height:42px;
+  border:1px solid var(--border2);border-radius:10px;
+  padding:0 44px 0 44px;
+  font-size:13.5px;font-weight:400;
+  color:var(--text);
+  background:var(--bg2);
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+  font-family:'Inter',sans-serif;
+}
+.search-input:focus{
+  border-color:var(--brand);
+  background:var(--card);
+  box-shadow:0 0 0 2px rgba(24,119,242,.15);
+}
+.search-input::placeholder{color:var(--hint);}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;color:var(--hint);}
+.search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:var(--border2);border:none;cursor:pointer;font-size:11px;color:var(--sub);display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.search-clear:hover{background:var(--border3);color:var(--text);}
+.btn-icon:hover{background:rgba(255,255,255,.25);}
 .btn-icon:hover{border-color:var(--border2);color:var(--text);background:var(--card2);}
 
 /* ━━ CARDS ━━ */
@@ -622,11 +865,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;}
 .alert-row.triggered{border-color:rgba(34,211,142,.3);background:var(--okBg);}
 
 /* ━━ TMĐT HOME ━━ */
-.hp-search{display:flex;align-items:center;gap:8px;padding:10px 14px 10px;background:rgba(6,9,15,.95);position:sticky;top:60px;z-index:90;}
-.hp-search-box{flex:1;display:flex;align-items:center;gap:10px;background:var(--card2);border:1.5px solid var(--border2);border-radius:26px;padding:9px 16px;cursor:pointer;transition:border-color .2s;}
-.hp-search-box:hover{border-color:rgba(61,142,248,.4);}
-.hp-search-ph{font-size:12.5px;color:var(--hint);font-weight:500;}
-.hp-search-btn{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#3d8ef8,#2e6fd6);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 4px 14px rgba(61,142,248,.35);}
+.hp-search{display:none;}
+.hp-search-box{display:none;}
+.hp-search-ph{display:none;}
+.hp-search-btn{display:none;}
 
 /* ── BANNER (full-bleed, tall, split layout) ── */
 .hp-banner{position:relative;overflow:hidden;height:196px;margin:0;border-radius:0;}
@@ -853,7 +1095,7 @@ const AI_SUGGESTIONS=[
 ];
 
 let state={
-  theme: localStorage.getItem('sp_theme') || "dark",
+  theme: localStorage.getItem('sp_theme') || "light",
   page:"home",
   query:"",queryInput:"",
   category:"all",location:"Tất cả",
@@ -992,7 +1234,7 @@ function highlight(text,query){
 
 /* ── CAT EMOJI & GRAD ── */
 const catEmoji=c=>c==="ticket"?"🎟":c==="product"?"📦":c==="account"?"🔑":c==="course"?"📚":c==="service"?"🛠":c==="booking"?"📅":c==="concerts"?"🎵":c==="sports"?"⚽":c==="festivals"?"🎪":c==="kpop"?"⭐":"🎯";
-const catGrad=c=>(c==="ticket"||c==="concerts"||c==="kpop")?"background:linear-gradient(135deg,#0d1b3e,#1a2f6b)":(c==="product"||c==="sports")?"background:linear-gradient(135deg,#0d2010,#173525)":c==="account"?"background:linear-gradient(135deg,#1e0d38,#321560)":c==="course"?"background:linear-gradient(135deg,#1a1206,#2e1e08)":c==="service"?"background:linear-gradient(135deg,#060d1e,#0a1830)":c==="booking"?"background:linear-gradient(135deg,#0d1a20,#152835)":c==="festivals"?"background:linear-gradient(135deg,#1e0d38,#321560)":"background:linear-gradient(135deg,#111827,#1f2d42)";
+const catGrad=c=>(c==="ticket"||c==="concerts"||c==="kpop")?"background:linear-gradient(135deg,#1877f2,#1251b3)":(c==="product"||c==="sports")?"background:linear-gradient(135deg,#f5a623,#c97d00)":c==="account"?"background:linear-gradient(135deg,#42b72a,#2d8a1b)":c==="course"?"background:linear-gradient(135deg,#9b59b6,#7d3c98)":c==="service"?"background:linear-gradient(135deg,#e74c3c,#c0392b)":c==="booking"?"background:linear-gradient(135deg,#1abc9c,#16a085)":c==="festivals"?"background:linear-gradient(135deg,#e91e63,#c2185b)":"background:linear-gradient(135deg,#607d8b,#455a64)";
 
 /* ── RENDER LISTING CARD ── */
 function renderCard(l,idx,listView){
@@ -1067,7 +1309,7 @@ function renderCard(l,idx,listView){
 /* ── RENDER SHIMMER ── */
 function renderShimmer(){
   return Array.from({length:6},()=>`
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
     <div style="padding-bottom:52%;border-radius:0;" class="shimmer"></div>
     <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
       <div style="height:14px;border-radius:4px;width:80%;" class="shimmer"></div>
@@ -1295,77 +1537,189 @@ function render(){
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
 
+  // Helper: page click action
+  function pageClick(p){
+    if(p.id==="orders") return "setState({page:'orders',orderBadge:0,activeOrder:null})";
+    if(p.id==="video") return "window.location.href='/social'";
+    if(p.id==="marketplace") return "window.location.href='/marketplace'";
+    if(p.id==="live") return "window.location.href='/live'";
+    if(p.id==="open_escrow") return "window.location.href='/escrow.html'";
+    if(p.id==="dam") return "window.location.href='/dam.html'";
+    if(p.id==="freelance") return "window.location.href='/freelance'";
+    if(p.id==="logistics") return "window.location.href='/logistics'";
+    if(p.id==="trust_center") return "window.location.href='/trust'";
+    if(p.id==="inspection") return "window.location.href='/inspection'";
+    if(p.id==="warehouse") return "window.location.href='/warehouse'";
+    if(p.id==="delivery") return "window.location.href='/delivery'";
+    if(p.id==="risk") return "window.location.href='/risk'";
+    if(p.id==="business_center") return "window.location.href='/business'";
+    if(p.id==="franchise_network") return "window.location.href='/franchise'";
+    if(p.id==="ecosystem") return "window.location.href='/ecosystem'";
+    if(p.id==="superapp") return "window.location.href='/superapp'";
+    if(p.id==="pay") return "window.location.href='/pay'";
+    if(p.id==="stories") return "window.location.href='/stories'";
+    if(p.id==="network") return "window.location.href='/network'";
+    return `setState({page:'${p.id}'})`;
+  }
+
+  // Facebook-style center nav (5 main icons)
+  const mainNavIcons=[
+    {id:"home",svg:`<svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,label:"Trang chủ"},
+    {id:"search",svg:`<svg viewBox="0 0 24 24" width="24" height="24"><path d="M10 18a7.952 7.952 0 0 0 4.897-1.688l4.396 4.396 1.414-1.414-4.396-4.396A8 8 0 1 0 10 18zm0-14a6 6 0 1 1 0 12A6 6 0 0 1 10 4z"/></svg>`,label:"Tìm kiếm"},
+    {id:"sell",svg:`<svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`,label:"Đăng bán"},
+    {id:"orders",svg:`<svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>`,label:"Đơn hàng"},
+    {id:"network",svg:`<svg viewBox="0 0 24 24" width="24" height="24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`,label:"Mạng xã hội"},
+  ];
+
+  const catLinks=[
+    {cat:"ticket",icon:"🎟",label:"Pass Vé"},
+    {cat:"product",icon:"📦",label:"Pass Đồ"},
+    {cat:"account",icon:"🔑",label:"Tài Khoản"},
+    {cat:"course",icon:"📚",label:"Khóa Học"},
+    {cat:"service",icon:"🛠",label:"Dịch Vụ"},
+    {cat:"booking",icon:"📅",label:"Booking"},
+  ];
+  const lsbMore=[
+    {label:"🛍️ Marketplace",href:"/marketplace"},
+    {label:"🎬 Video",href:"/social"},
+    {label:"📡 Live",href:"/live"},
+    {label:"🤝 Network",href:"/network"},
+    {label:"💰 SafePay",href:"/pay"},
+    {label:"🛡️ Trust Center",href:"/trust"},
+    {label:"🏪 Tài Sản Số",href:"/dam.html"},
+    {label:"👨‍💻 Freelance",href:"/freelance"},
+    {label:"🏭 Warehouse",href:"/warehouse"},
+    {label:"🚴 Delivery",href:"/delivery"},
+    {label:"🏬 Business",href:"/business"},
+    {label:"🌐 Ecosystem",href:"/ecosystem"},
+    {label:"⚡ Super App",href:"/superapp"},
+    ...(currentUser?.is_admin?[{label:"🔐 Admin",href:"/"}]:[]),
+  ];
+
+  const trendingListings=ALL_LISTINGS.slice().sort((a,b)=>(b.views||0)-(a.views||0)).slice(0,5);
+  const uName=currentUser?.name||"Bạn";
+  const uAv=currentUser?.avatar_url;
+  const uAvHTML=uAv?`<img src="${uAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="font-size:13px;font-weight:800;color:#fff">${uName.charAt(0).toUpperCase()}</span>`;
+
   document.getElementById("root").innerHTML=`
   <div class="app">
-    <!-- HEADER -->
+
+    <!-- ═══════ FACEBOOK TOPBAR ═══════ -->
     <div class="header">
-      <svg width="34" height="34" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;" class="holo-logo"> <defs>  <linearGradient id="hShield" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00f5ff"/><stop offset="40%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#9b87f5"/></linearGradient>  <linearGradient id="hScan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00f5ff" stop-opacity="0"/><stop offset="50%" stop-color="#00f5ff" stop-opacity=".7"/><stop offset="100%" stop-color="#00f5ff" stop-opacity="0"/></linearGradient>  <clipPath id="hShieldClip"><path d="M32 8 L52 17 L52 37 Q52 52 32 58 Q12 52 12 37 L12 17 Z"/></clipPath> </defs> <!-- Background --> <rect width="64" height="64" rx="14" fill="#030912"/> <!-- Outer glow border --> <rect x="1" y="1" width="62" height="62" rx="13.5" stroke="url(#hShield)" stroke-width=".8" fill="none" opacity=".5"/> <!-- Shield body --> <path d="M32 8 L52 17 L52 37 Q52 52 32 58 Q12 52 12 37 L12 17 Z" fill="rgba(0,245,255,.04)" stroke="url(#hShield)" stroke-width="1.5"/> <!-- Inner shield --> <path d="M32 13 L47 20.5 L47 36 Q47 48 32 53 Q17 48 17 36 L17 20.5 Z" fill="none" stroke="#00f5ff" stroke-width=".5" opacity=".4"/> <!-- Scan line (animated via CSS class) --> <rect x="12" y="0" width="40" height="10" fill="url(#hScan)" clip-path="url(#hShieldClip)" class="holo-scan" opacity=".8"/> <!-- Grid lines inside shield --> <line x1="12" y1="27" x2="52" y2="27" stroke="#00f5ff" stroke-width=".4" opacity=".2" clip-path="url(#hShieldClip)"/> <line x1="12" y1="37" x2="52" y2="37" stroke="#00f5ff" stroke-width=".4" opacity=".2" clip-path="url(#hShieldClip)"/> <line x1="12" y1="47" x2="52" y2="47" stroke="#00f5ff" stroke-width=".4" opacity=".15" clip-path="url(#hShieldClip)"/> <!-- SP text --> <text x="32" y="38" text-anchor="middle" font-size="16" font-weight="800" fill="url(#hShield)" font-family="JetBrains Mono,monospace" letter-spacing=".5">SP</text> <!-- Corner energy dots --> <circle cx="12" cy="17" r="2" fill="#00f5ff" class="holo-pulse"/> <circle cx="52" cy="17" r="2" fill="#9b87f5" class="holo-pulse" style="animation-delay:.5s"/> <circle cx="32" cy="58" r="2" fill="#4f8ef7" class="holo-pulse" style="animation-delay:1s"/></svg>
-      <span class="logo-txt">Safe<span style="color:var(--brand)">Pass</span> <span class="badge-v">v12</span></span>
-      <div class="spacer"></div>
-      ${pages.map(p=>{
-        const isActive=state.page===p.id;
-        const badge=(p.id==="orders"&&state.orderBadge>0)?`<span class="tab-badge">${state.orderBadge}</span>`:"";
-        const click=p.id==="orders"
-          ?"setState({page:'orders',orderBadge:0,activeOrder:null})"
-          :p.id==="video"
-          ?"window.location.href='/social'"
-          :p.id==="marketplace"
-          ?"window.location.href='/marketplace'"
-          :p.id==="live"
-          ?"window.location.href='/live'"
-          :p.id==="open_escrow"
-          ?"window.location.href='/escrow.html'"
-          :p.id==="dam"
-          ?"window.location.href='/dam.html'"
-          :p.id==="freelance"
-          ?"window.location.href='/freelance'"
-          :p.id==="logistics"
-          ?"window.location.href='/logistics'"
-          :p.id==="trust_center"
-          ?"window.location.href='/trust'"
-          :p.id==="inspection"
-          ?"window.location.href='/inspection'"
-          :p.id==="warehouse"
-          ?"window.location.href='/warehouse'"
-          :p.id==="delivery"
-          ?"window.location.href='/delivery'"
-          :p.id==="risk"
-          ?"window.location.href='/risk'"
-          :p.id==="business_center"
-          ?"window.location.href='/business'"
-          :p.id==="franchise_network"
-          ?"window.location.href='/franchise'"
-          :p.id==="ecosystem"
-          ?"window.location.href='/ecosystem'"
-          :p.id==="superapp"
-          ?"window.location.href='/superapp'"
-          :p.id==="pay"
-          ?"window.location.href='/pay'"
-          :p.id==="stories"
-          ?"window.location.href='/stories'"
-          :p.id==="network"
-          ?"window.location.href='/network'"
-          :`setState({page:'${p.id}'})`;
-        return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
-      }).join("")}
-      <!-- Notification Bell -->
-      <div style="position:relative;">
-        <button class="btn-icon" onclick="toggleNotif()" style="${state.notifOpen?'border-color:var(--brand);box-shadow:var(--glow);':''}" title="Thông báo">🔔
-          ${state.notifCount>0?`<span style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);">${state.notifCount}</span>`:""}
-        </button>
-        ${state.notifOpen?buildNotifDropdown():""}
+      <div class="header-left">
+        <div class="logo" onclick="setState({page:'home'})" title="SafePass">🛡️</div>
+        <div class="tb-searchbox" onclick="setState({page:'search'})">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="rgba(255,255,255,.8)"><path d="M10 18a7.952 7.952 0 0 0 4.897-1.688l4.396 4.396 1.414-1.414-4.396-4.396A8 8 0 1 0 10 18zm0-14a6 6 0 1 1 0 12A6 6 0 0 1 10 4z"/></svg>
+          <input type="text" placeholder="Tìm vé, đồ cũ, tài khoản..." readonly style="cursor:pointer">
+        </div>
       </div>
-      <button class="btn-icon" onclick="setState({theme:state.theme==='dark'?'light':'dark'})">${isDark?"☀️":"🌙"}</button>
+      <div class="header-center">
+        ${mainNavIcons.map(n=>{
+          const isActive=n.id!=="network"&&state.page===n.id;
+          const badge=n.id==="orders"&&state.orderBadge>0?`<span class="tab-badge">${state.orderBadge}</span>`:"";
+          const click=n.id==="network"?"window.location.href='/network'":n.id==="orders"?"setState({page:'orders',orderBadge:0,activeOrder:null})":`setState({page:'${n.id}'})`;
+          return`<button class="nav-tab${isActive?" active":""}" onclick="${click}" title="${n.label}" style="fill:rgba(255,255,255,${isActive?1:.7})">${n.svg}${badge}</button>`;
+        }).join("")}
+      </div>
+      <div class="header-right">
+        <button class="btn-icon" onclick="toggleNotif()" title="Thông báo" style="position:relative">
+          🔔${state.notifCount>0?`<span style="position:absolute;top:0;right:0;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--brand)">${state.notifCount}</span>`:""}
+        </button>
+        <button class="btn-icon" onclick="setState({theme:state.theme==='dark'?'light':'dark'})" title="Chế độ">${isDark?"☀️":"🌙"}</button>
+        <button class="tb-me-btn" onclick="setState({page:'profile'})" title="Trang cá nhân">
+          <div class="tb-me-av">${uAvHTML}</div>
+          <span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${uName.split(" ").pop()}</span>
+        </button>
+      </div>
     </div>
 
-    <!-- PAGE CONTENT -->
-    ${state.page==="listing" ? buildListingDetail(state.activeListing)
-    : state.page==="chat" ? buildChatPage()
-    : state.page==="sell" ? buildSellPage()
-    : state.page==="orders" ? buildOrdersPage()
-    : state.page==="search" ? buildSearchPage(results,activeCount,hasQuery,listView)
-    : buildPlaceholderPage(state.page)}
+    ${state.notifOpen?`<div class="notif-dd" style="position:fixed;top:56px;right:8px;z-index:300;background:var(--card);border-radius:12px;width:360px;max-height:calc(100vh - 70px);overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.25);border:1px solid var(--border)">${buildNotifDropdown()}</div>`:""}
+
+    <!-- ═══════ 3-COLUMN FACEBOOK LAYOUT ═══════ -->
+    <div id="fb-layout">
+
+      <!-- LEFT SIDEBAR -->
+      <div class="fb-left">
+        <div class="lsb-user" onclick="setState({page:'profile'})">
+          <div class="lsb-av">${uAvHTML}</div>
+          <span class="lsb-name">${uName}</span>
+        </div>
+        <div class="lsb-row" onclick="setState({page:'wallet'})"><div class="lsb-ic">💳</div>Ví SafePay</div>
+        <div class="lsb-row" onclick="setState({page:'orders'})"><div class="lsb-ic">📋</div>Đơn hàng</div>
+        <div class="lsb-row" onclick="setState({page:'aichat'})"><div class="lsb-ic">💬</div>AI Chat</div>
+        <div class="lsb-row" onclick="setState({page:'referral'})"><div class="lsb-ic">🎁</div>Mời bạn bè</div>
+        <div class="lsb-row" onclick="setState({page:'sell'})" style="color:var(--brand);font-weight:700"><div class="lsb-ic" style="background:var(--brandL);color:var(--brand)">➕</div>Đăng bán</div>
+        <div class="lsb-divider"></div>
+        <div class="lsb-section">Danh mục <span class="lsb-seeall" onclick="setState({page:'search'})">Tất cả</span></div>
+        ${catLinks.map(c=>`<div class="lsb-row" onclick="setState({page:'search',category:'${c.cat}'})"><div class="lsb-ic">${c.icon}</div>${c.label}</div>`).join("")}
+        <div class="lsb-divider"></div>
+        <div class="lsb-section">Khám phá thêm</div>
+        ${lsbMore.map(s=>`<div class="lsb-row" onclick="window.location.href='${s.href}'"><div class="lsb-ic" style="font-size:14px">${s.label.split(' ')[0]}</div>${s.label.split(' ').slice(1).join(' ')}</div>`).join("")}
+        <div class="lsb-divider"></div>
+        <div style="font-size:11px;color:var(--hint);padding:4px 8px;line-height:1.9">
+          SafePass · Điều khoản · Bảo mật<br>Trợ giúp · Trung tâm quảng cáo<br>© 2025 SafePass Vietnam
+        </div>
+      </div>
+
+      <!-- CENTER: Main Content -->
+      <div class="fb-center">
+        ${state.page==="listing" ? buildListingDetail(state.activeListing)
+        : state.page==="chat" ? buildChatPage()
+        : state.page==="sell" ? buildSellPage()
+        : state.page==="orders" ? buildOrdersPage()
+        : state.page==="search" ? buildSearchPage(results,activeCount,hasQuery,listView)
+        : buildPlaceholderPage(state.page)}
+      </div>
+
+      <!-- RIGHT SIDEBAR -->
+      <div class="fb-right">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px">🏷️ Đăng bán ngay</div>
+          <button style="width:100%;background:var(--brand);color:#fff;border:none;border-radius:6px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" onclick="setState({page:'sell'})">+ Đăng vé / đồ cũ miễn phí</button>
+        </div>
+        <div class="rsb-title">🔥 Đang bán chạy</div>
+        ${trendingListings.map(l=>`
+        <div class="rsb-item" onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})">
+          <div class="rsb-av" style="border-radius:8px;font-size:22px">${catEmoji(l.category)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="rsb-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${l.title}</div>
+            <div class="rsb-meta">${VND(l.price)}</div>
+          </div>
+        </div>`).join("")}
+        <div class="rsb-divider"></div>
+        <div class="rsb-title">🔗 Truy cập nhanh</div>
+        ${[
+          {l:"🔐 Escrow An Toàn",h:"/escrow.html"},
+          {l:"🛡️ Trust Center",h:"/trust"},
+          {l:"🚴 Giao Hàng",h:"/delivery"},
+          {l:"🏭 Kho Bãi",h:"/warehouse"},
+          {l:"📡 Live Stream",h:"/live"},
+          {l:"🤝 Mạng Xã Hội",h:"/network"},
+        ].map(q=>`<div class="rsb-item" onclick="window.location.href='${q.h}'"><span style="font-size:13px;font-weight:600;color:var(--text)">${q.l}</span></div>`).join("")}
+        <div class="rsb-divider"></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--sub)">🛡️ Cam Kết SafePass</div>
+          ${[["🔐","Escrow an toàn 100%"],["💯","Hoàn tiền không cần lý do"],["⚡","Duyệt vé trong 5 phút"],["📱","QR xác thực độc quyền"]].map(b=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13px;color:var(--sub)"><span>${b[0]}</span><span>${b[1]}</span></div>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    <!-- MOBILE BOTTOM NAV -->
+    <div class="mb-nav">
+      <div class="mb-nav-inner">
+        ${[
+          {id:"home",icon:"🏠",label:"Trang chủ"},
+          {id:"search",icon:"🔍",label:"Tìm kiếm"},
+          {id:"sell",icon:"➕",label:"Đăng bán"},
+          {id:"orders",icon:"📋",label:"Đơn hàng"},
+          {id:"profile",icon:"👤",label:"Cá nhân"},
+        ].map(b=>`<button class="mb-btn${state.page===b.id?" active":""}" onclick="setState({page:'${b.id}'})">
+          <span>${b.icon}</span><span class="mb-label">${b.label}</span>
+        </button>`).join("")}
+      </div>
+    </div>
   </div>`;
+
 
   // Re-attach modals outside innerHTML to avoid nesting issues
   renderModals();
@@ -1571,7 +1925,7 @@ function showWithdrawModal(){
   const bal=currentUser?.balance??0;
   el.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;';
   el.innerHTML=`
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
         <div style="font-size:18px;font-weight:800;">💳 Rút tiền</div>
         <button onclick="document.getElementById('wd-modal').style.display='none'" style="background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;padding:4px;">✕</button>
@@ -1760,7 +2114,7 @@ function buildWalletPage(){
             </div>
           </div>`;
         return `
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
               <div>
                 <div style="font-size:13px;font-weight:800;">👑 Gói VIP SafePass</div>
@@ -1818,7 +2172,7 @@ function buildWalletPage(){
         <button onclick="exportTransactionsCSV()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--brand);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">📥 Xuất CSV</button>
       </div>
       <div style="font-size:11px;color:var(--hint);margin-bottom:14px;"><span id="tx-count">Đang tải...</span></div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0 16px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0 16px;">
         <div id="tx-list">${authToken?'<div style="text-align:center;padding:30px 0;color:var(--hint);">⏳ Đang tải...</div>':txHTML}</div>
       </div>
       <button id="tx-load-more" onclick="loadTransactions(_txPage+1)" style="display:none;width:100%;margin-top:12px;padding:11px;border-radius:12px;border:1px solid var(--border2);background:var(--card);color:var(--brand);font-size:13px;font-weight:700;cursor:pointer;">Tải thêm</button>
@@ -1843,7 +2197,7 @@ function buildAnalyticsPage(){
   const myListings=ALL_LISTINGS.filter(l=>l.seller_id==="u1");
 
   const revenueChart=`
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
         <div>
           <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;">📈 Doanh thu 6 tháng</div>
@@ -1865,7 +2219,7 @@ function buildAnalyticsPage(){
     </div>`;
 
   const viewChart=`
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;">
       <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">👁 Lượt xem tuần này</div>
       <div style="font-size:22px;font-weight:800;font-family:'Inter',sans-serif;color:var(--brand);margin-bottom:16px;">${ANALYTICS_VIEWS.reduce((s,d)=>s+d.views,0).toLocaleString()} views</div>
       <!-- Line chart via SVG -->
@@ -1935,13 +2289,13 @@ function buildAnalyticsPage(){
       ${viewChart}
 
       <!-- Listing performance -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:14px;">🎟 Hiệu suất listing</div>
         ${listingPerfHTML}
       </div>
 
       <!-- Category breakdown -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;">
         <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:14px;">📂 Theo danh mục</div>
         ${CATEGORIES.filter(c=>c.id!=="all").map(c=>{
           const ls=myListings.filter(l=>l.category===c.id);
@@ -2125,26 +2479,26 @@ function buildHomePage(){
     },
   ];
 
-  // Category data with colors
+  // Category data with colors (light-theme friendly)
   const catData=[
-    {id:"ticket",label:"Pass Vé",icon:"🎟",bg:"linear-gradient(145deg,#1a3a6c,#0f2548)"},
-    {id:"product",label:"Pass Đồ",icon:"📦",bg:"linear-gradient(145deg,#4a2000,#7a3800)"},
-    {id:"account",label:"Tài Khoản",icon:"🔑",bg:"linear-gradient(145deg,#1a4a2a,#0d3020)"},
-    {id:"course",label:"Khóa Học",icon:"📚",bg:"linear-gradient(145deg,#3a1a6a,#250f4a)"},
-    {id:"service",label:"Dịch Vụ",icon:"🛠",bg:"linear-gradient(145deg,#4a1a1a,#6a0f2a)"},
-    {id:"booking",label:"Booking",icon:"📅",bg:"linear-gradient(145deg,#0a3a4a,#062535)"},
+    {id:"ticket",label:"Pass Vé",icon:"🎟",bg:"linear-gradient(145deg,#1877f2,#1251b3)"},
+    {id:"product",label:"Pass Đồ",icon:"📦",bg:"linear-gradient(145deg,#f5a623,#e08c00)"},
+    {id:"account",label:"Tài Khoản",icon:"🔑",bg:"linear-gradient(145deg,#42b72a,#2d8a1b)"},
+    {id:"course",label:"Khóa Học",icon:"📚",bg:"linear-gradient(145deg,#9b59b6,#7d3c98)"},
+    {id:"service",label:"Dịch Vụ",icon:"🛠",bg:"linear-gradient(145deg,#e74c3c,#c0392b)"},
+    {id:"booking",label:"Booking",icon:"📅",bg:"linear-gradient(145deg,#1abc9c,#16a085)"},
   ];
 
   // Service shortcuts (2 rows × 4)
   const svcs=[
-    {icon:"🎟",label:"Vé sự kiện",bg:"linear-gradient(135deg,#1e3a7c,#0f2548)",cat:"ticket"},
-    {icon:"📦",label:"Pass đồ",bg:"linear-gradient(135deg,#7a3800,#4a2000)",cat:"product"},
-    {icon:"🔑",label:"Tài khoản",bg:"linear-gradient(135deg,#1a5c2a,#0d3020)",cat:"account"},
-    {icon:"📚",label:"Khóa học",bg:"linear-gradient(135deg,#3a0f5a,#250f4a)",cat:"course"},
-    {icon:"🛠",label:"Dịch vụ",bg:"linear-gradient(135deg,#5a0f1a,#3a0a10)",cat:"service"},
-    {icon:"📅",label:"Booking",bg:"linear-gradient(135deg,#0a3a5c,#052535)",cat:"booking"},
-    {icon:"🔐",label:"Escrow",bg:"linear-gradient(135deg,#1a2a4a,#0d1a36)",href:"/escrow.html"},
-    {icon:"💳",label:"Ví Pay",bg:"linear-gradient(135deg,#2d1b69,#1a0f40)",href:"/pay"},
+    {icon:"🎟",label:"Vé sự kiện",bg:"linear-gradient(135deg,#1877f2,#1251b3)",cat:"ticket"},
+    {icon:"📦",label:"Pass đồ",bg:"linear-gradient(135deg,#f5a623,#e08c00)",cat:"product"},
+    {icon:"🔑",label:"Tài khoản",bg:"linear-gradient(135deg,#42b72a,#2d8a1b)",cat:"account"},
+    {icon:"📚",label:"Khóa học",bg:"linear-gradient(135deg,#9b59b6,#7d3c98)",cat:"course"},
+    {icon:"🛠",label:"Dịch vụ",bg:"linear-gradient(135deg,#e74c3c,#c0392b)",cat:"service"},
+    {icon:"📅",label:"Booking",bg:"linear-gradient(135deg,#1abc9c,#16a085)",cat:"booking"},
+    {icon:"🔐",label:"Escrow",bg:"linear-gradient(135deg,#2c3e50,#1a252f)",href:"/escrow.html"},
+    {icon:"💳",label:"Ví Pay",bg:"linear-gradient(135deg,#8e44ad,#6c3483)",href:"/pay"},
   ];
 
   return`
@@ -2921,7 +3275,7 @@ function buildSellerStatsPage(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">${cardsHTML}</div>
 
       <!-- Chart with toggle -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;">📈 Doanh thu & đơn hàng</div>
           <div style="display:flex;gap:4px;background:var(--bg2);border-radius:8px;padding:3px;border:1px solid var(--border);">
@@ -2936,13 +3290,13 @@ function buildSellerStatsPage(){
       </div>
 
       <!-- Monthly table -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
         <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">📅 Chi tiết theo tháng</div>
         ${loading ? '<div style="text-align:center;padding:20px;color:var(--hint);font-size:12px;">⏳ Đang tải...</div>' : monthTableHTML}
       </div>
 
       <!-- Top listings -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
         <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">🏆 Sự kiện doanh thu cao nhất</div>
         ${topHTML}
       </div>
@@ -3619,7 +3973,7 @@ function buildListingDetail(lid){
     <div style="padding:16px 20px 0;">
 
       <!-- Info card -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
         <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">📋 Thông tin vé</div>
         ${[
           ["🎟 Khu vực / Loại vé",l.section],
@@ -3646,7 +4000,7 @@ function buildListingDetail(lid){
       </div>
 
       <!-- Seller card -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
         <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">🏷️ Người bán</div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
           <div style="flex-shrink:0;"><svg width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;border-radius:50%;animation:holoFlicker 5s infinite,holoGlow 4s ease-in-out infinite;" ><defs><radialGradient id="u48sebg" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="#9b87f5" stop-opacity=".22"/><stop offset="100%" stop-color="#030912" stop-opacity="0"/></radialGradient><linearGradient id="u48sescan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9b87f5" stop-opacity="0"/><stop offset="50%" stop-color="#9b87f5" stop-opacity=".5"/><stop offset="100%" stop-color="#9b87f5" stop-opacity="0"/></linearGradient><clipPath id="u48seclip"><circle cx="32" cy="32" r="30"/></clipPath></defs><circle cx="32" cy="32" r="32" fill="#040c18"/><circle cx="32" cy="32" r="30" stroke="#9b87f5" stroke-width="1" fill="none" opacity=".45"/><circle cx="32" cy="32" r="26" fill="url(#u48sebg)"/><circle cx="32" cy="32" r="18" stroke="#9b87f5" stroke-width=".6" fill="none" opacity=".2" stroke-dasharray="3 4" style="animation:holoRing 6s linear reverse infinite;transform-origin:32px 32px;"/><line x1="2" y1="22" x2="62" y2="22" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#u48seclip)"/><line x1="2" y1="32" x2="62" y2="32" stroke="#9b87f5" stroke-width=".35" opacity=".12" clip-path="url(#u48seclip)"/><line x1="2" y1="42" x2="62" y2="42" stroke="#9b87f5" stroke-width=".45" opacity=".18" clip-path="url(#u48seclip)"/><rect x="2" y="0" width="60" height="12" fill="url(#u48sescan)" clip-path="url(#u48seclip)" style="animation:holoScan 3.5s 1s linear infinite;"/><polygon points="32,14 42,20 42,32 32,38 22,32 22,20" fill="none" stroke="#9b87f5" stroke-width="1.1" opacity=".55" style="animation:holoPulse 2.5s .5s ease-in-out infinite;"/><text x="32" y="37" text-anchor="middle" font-size="16" font-weight="800" fill="#9b87f5" font-family="JetBrains Mono,monospace" letter-spacing="1">${seller.avatar}</text></svg></div>
@@ -3680,7 +4034,7 @@ function buildListingDetail(lid){
       </div>
 
       <!-- Reviews -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <div style="font-size:10.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;">⭐ Đánh giá</div>
           <div style="font-size:13px;font-weight:800;color:var(--gold);">${stars(seller.rating)} ${seller.rating}</div>
@@ -4451,7 +4805,7 @@ function buildSellerProfilePage(sellerId){
       </div>
 
       <!-- Reviews section -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div style="font-size:13px;font-weight:800;font-family:'Inter',sans-serif;">⭐ Đánh giá (${loading?'...':reviews.length})</div>
           ${avgRating>0?`<div style="font-size:18px;font-weight:800;color:var(--gold);">${stars(avgRating)} ${avgRating}</div>`:''}
@@ -6458,18 +6812,18 @@ function showDigitalBuyModal(listingId) {
   modal.id = 'digital-buy-modal';
   modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;';
   modal.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;width:100%;max-width:400px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;width:100%;max-width:400px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
         <div style="font-size:36px;">${typeInfo.icon}</div>
         <div>
           <div style="font-size:16px;font-weight:800;">${escHtml(l.title)}</div>
-          <div style="font-size:12px;color:#7b8fad;">${typeInfo.label} · ${l.available_qty} còn lại</div>
+          <div style="font-size:12px;color:var(--sub);">${typeInfo.label} · ${l.available_qty} còn lại</div>
         </div>
       </div>
-      ${l.description ? `<div style="font-size:13px;color:#7b8fad;margin-bottom:16px;padding:12px;background:rgba(255,255,255,.03);border-radius:10px;">${escHtml(l.description)}</div>` : ''}
+      ${l.description ? `<div style="font-size:13px;color:var(--sub);margin-bottom:16px;padding:12px;background:rgba(255,255,255,.03);border-radius:10px;">${escHtml(l.description)}</div>` : ''}
       <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:18px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;color:#7b8fad;">Giá tài khoản</span><span style="font-size:13px;font-weight:700;">${l.price.toLocaleString('vi-VN')}đ</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;color:#7b8fad;">Phí SafePass (3%)</span><span style="font-size:13px;color:#f5a623;">−${fee.toLocaleString('vi-VN')}đ</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;color:var(--sub);">Giá tài khoản</span><span style="font-size:13px;font-weight:700;">${l.price.toLocaleString('vi-VN')}đ</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;color:var(--sub);">Phí SafePass (3%)</span><span style="font-size:13px;color:#f5a623;">−${fee.toLocaleString('vi-VN')}đ</span></div>
         <div style="height:1px;background:rgba(255,255,255,.06);margin:8px 0;"></div>
         <div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">Tổng thanh toán</span><span style="font-size:16px;font-weight:800;color:#3d8ef8;">${l.price.toLocaleString('vi-VN')}đ</span></div>
       </div>
@@ -6518,22 +6872,22 @@ function showCreateDigitalListingModal() {
   const typeOptions = DIGITAL_TYPES.filter(t => t.id !== 'all').map(t =>
     `<option value="${t.id}">${t.icon} ${t.label}</option>`).join('');
   modal.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;width:100%;max-width:440px;margin:auto;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;width:100%;max-width:440px;margin:auto;">
       <div style="font-size:18px;font-weight:800;margin-bottom:20px;">➕ Tạo Listing Tài Khoản</div>
       <div style="display:flex;flex-direction:column;gap:12px;">
-        <div><label style="font-size:11px;font-weight:700;color:#7b8fad;display:block;margin-bottom:5px;">LOẠI TÀI KHOẢN *</label>
-          <select id="cdl-type" style="width:100%;height:44px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;padding:0 12px;font-family:'Inter',sans-serif;">
+        <div><label style="font-size:11px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">LOẠI TÀI KHOẢN *</label>
+          <select id="cdl-type" style="width:100%;height:44px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text);font-size:14px;padding:0 12px;font-family:'Inter',sans-serif;">
             ${typeOptions}
           </select>
         </div>
-        <div><label style="font-size:11px;font-weight:700;color:#7b8fad;display:block;margin-bottom:5px;">TÊN LISTING *</label>
-          <input id="cdl-title" placeholder="VD: ChatGPT Plus tháng 12/2025" style="width:100%;height:44px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;padding:0 14px;font-family:'Inter',sans-serif;box-sizing:border-box;">
+        <div><label style="font-size:11px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">TÊN LISTING *</label>
+          <input id="cdl-title" placeholder="VD: ChatGPT Plus tháng 12/2025" style="width:100%;height:44px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text);font-size:14px;padding:0 14px;font-family:'Inter',sans-serif;box-sizing:border-box;">
         </div>
-        <div><label style="font-size:11px;font-weight:700;color:#7b8fad;display:block;margin-bottom:5px;">MÔ TẢ</label>
-          <textarea id="cdl-desc" placeholder="Thời hạn, điều kiện sử dụng, lưu ý..." rows="3" style="width:100%;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04);color:#e8edf8;font-size:13px;padding:10px 14px;font-family:'Inter',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
+        <div><label style="font-size:11px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">MÔ TẢ</label>
+          <textarea id="cdl-desc" placeholder="Thời hạn, điều kiện sử dụng, lưu ý..." rows="3" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text);font-size:13px;padding:10px 14px;font-family:'Inter',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
         </div>
-        <div><label style="font-size:11px;font-weight:700;color:#7b8fad;display:block;margin-bottom:5px;">GIÁ BÁN (đ) *</label>
-          <input id="cdl-price" type="number" placeholder="150000" style="width:100%;height:44px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;padding:0 14px;font-family:'JetBrains Mono',monospace;box-sizing:border-box;">
+        <div><label style="font-size:11px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;">GIÁ BÁN (đ) *</label>
+          <input id="cdl-price" type="number" placeholder="150000" style="width:100%;height:44px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text);font-size:14px;padding:0 14px;font-family:'JetBrains Mono',monospace;box-sizing:border-box;">
         </div>
       </div>
       <div id="cdl-err" style="color:#f05068;font-size:13px;margin:10px 0;display:none;"></div>
@@ -6573,11 +6927,11 @@ function showUploadInventoryModal(listingId) {
   modal.id = 'upload-inv-modal';
   modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
   modal.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px;width:100%;max-width:480px;margin:auto;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;width:100%;max-width:480px;margin:auto;">
       <div style="font-size:17px;font-weight:800;margin-bottom:8px;">📤 Upload Kho Tài Khoản</div>
-      <div style="font-size:12px;color:#7b8fad;margin-bottom:16px;">Mỗi dòng = 1 tài khoản. Định dạng: <code style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;">username|password|backup_email|ghi_chu</code></div>
-      <textarea id="inv-bulk" rows="10" placeholder="user1@gmail.com|MatKhau123|backup@gmail.com|Gói 1 tháng&#10;user2@gmail.com|Pass456||&#10;user3@gmail.com|Secret789" style="width:100%;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.03);color:#e8edf8;font-size:12px;font-family:'JetBrains Mono',monospace;padding:12px;box-sizing:border-box;resize:vertical;"></textarea>
-      <div id="inv-preview" style="font-size:11px;color:#7b8fad;margin-top:6px;"></div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Mỗi dòng = 1 tài khoản. Định dạng: <code style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;">username|password|backup_email|ghi_chu</code></div>
+      <textarea id="inv-bulk" rows="10" placeholder="user1@gmail.com|MatKhau123|backup@gmail.com|Gói 1 tháng&#10;user2@gmail.com|Pass456||&#10;user3@gmail.com|Secret789" style="width:100%;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.03);color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;padding:12px;box-sizing:border-box;resize:vertical;"></textarea>
+      <div id="inv-preview" style="font-size:11px;color:var(--sub);margin-top:6px;"></div>
       <div id="inv-err" style="color:#f05068;font-size:13px;margin:10px 0;display:none;"></div>
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button onclick="document.getElementById('upload-inv-modal').remove()" class="btn btn-ghost" style="flex:1;">Huỷ</button>
@@ -6660,24 +7014,24 @@ function showAuthModal(tab = 'login') {
     document.body.appendChild(el);
   }
   el.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:380px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;width:100%;max-width:380px;">
       <div style="display:flex;gap:8px;margin-bottom:24px;">
         <button onclick="showAuthModal('login')" style="flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:14px;
           background:${tab==='login'?'#3d8ef8':'transparent'};color:${tab==='login'?'#fff':'#7b8fad'};">Đăng nhập</button>
         <button onclick="showAuthModal('register')" style="flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:14px;
           background:${tab==='register'?'#3d8ef8':'transparent'};color:${tab==='register'?'#fff':'#7b8fad'};">Đăng ký</button>
       </div>
-      ${tab==='register' ? '<input id="auth-name" placeholder="Họ tên" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">' : ''}
-      <input id="auth-phone" placeholder="Số điện thoại" type="tel" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">
-      ${tab==='register' ? '<input id="auth-email" placeholder="Email (để nhận thông báo)" type="email" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">' : ''}
-      <input id="auth-pass" placeholder="Mật khẩu" type="password" style="width:100%;margin-bottom:16px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;">
+      ${tab==='register' ? '<input id="auth-name" placeholder="Họ tên" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;">' : ''}
+      <input id="auth-phone" placeholder="Số điện thoại" type="tel" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;">
+      ${tab==='register' ? '<input id="auth-email" placeholder="Email (để nhận thông báo)" type="email" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;">' : ''}
+      <input id="auth-pass" placeholder="Mật khẩu" type="password" style="width:100%;margin-bottom:16px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;">
       <div id="auth-err" style="color:#f05068;font-size:13px;margin-bottom:10px;display:none;"></div>
       <button onclick="submitAuth('${tab}')" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">
         ${tab==='login' ? 'Đăng nhập' : 'Tạo tài khoản'}
       </button>
       ${tab==='login' ? '<p style="text-align:center;margin-top:12px;"><button onclick="showForgotPasswordModal()" style="background:none;border:none;color:#3d8ef8;font-size:13px;cursor:pointer;text-decoration:underline;">Quên mật khẩu?</button></p>' : ''}
       ${currentUser ? '' : '<p style="text-align:center;margin-top:10px;font-size:12px;color:#3d4f6a;">Bỏ qua → dùng tài khoản demo</p>'}
-      ${currentUser ? '' : '<button onclick="loginDemo()" style="width:100%;margin-top:6px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#7b8fad;font-size:13px;cursor:pointer;">Dùng demo (không lưu dữ liệu)</button>'}
+      ${currentUser ? '' : '<button onclick="loginDemo()" style="width:100%;margin-top:6px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:13px;cursor:pointer;">Dùng demo (không lưu dữ liệu)</button>'}
     </div>`;
 }
 
@@ -6751,13 +7105,13 @@ function showForgotPasswordModal() {
   el.id = 'forgot-modal';
   el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;';
   el.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:380px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;width:100%;max-width:380px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-        <button onclick="document.getElementById('forgot-modal').remove();showAuthModal('login')" style="background:none;border:none;color:#7b8fad;cursor:pointer;font-size:18px;padding:0;">←</button>
+        <button onclick="document.getElementById('forgot-modal').remove();showAuthModal('login')" style="background:none;border:none;color:var(--sub);cursor:pointer;font-size:18px;padding:0;">←</button>
         <div style="font-size:18px;font-weight:800;">🔐 Quên mật khẩu</div>
       </div>
-      <p style="font-size:13px;color:#7b8fad;margin-bottom:20px;">Nhập email bạn đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu.</p>
-      <input id="forgot-email" placeholder="Email của bạn" type="email" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;box-sizing:border-box;">
+      <p style="font-size:13px;color:var(--sub);margin-bottom:20px;">Nhập email bạn đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu.</p>
+      <input id="forgot-email" placeholder="Email của bạn" type="email" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;box-sizing:border-box;">
       <div id="forgot-msg" style="font-size:13px;margin-bottom:10px;display:none;"></div>
       <button onclick="submitForgotPassword()" id="forgot-btn" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">Gửi link đặt lại</button>
     </div>`;
@@ -6790,11 +7144,11 @@ function showResetPasswordModal(token) {
   el.id = 'reset-modal';
   el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;';
   el.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:380px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;width:100%;max-width:380px;">
       <div style="font-size:18px;font-weight:800;margin-bottom:6px;">🔐 Đặt lại mật khẩu</div>
-      <p style="font-size:13px;color:#7b8fad;margin-bottom:20px;">Nhập mật khẩu mới cho tài khoản của bạn.</p>
-      <input id="reset-pw" placeholder="Mật khẩu mới (ít nhất 6 ký tự)" type="password" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;box-sizing:border-box;">
-      <input id="reset-pw2" placeholder="Xác nhận mật khẩu mới" type="password" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e8edf8;font-size:14px;box-sizing:border-box;">
+      <p style="font-size:13px;color:var(--sub);margin-bottom:20px;">Nhập mật khẩu mới cho tài khoản của bạn.</p>
+      <input id="reset-pw" placeholder="Mật khẩu mới (ít nhất 6 ký tự)" type="password" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;box-sizing:border-box;">
+      <input id="reset-pw2" placeholder="Xác nhận mật khẩu mới" type="password" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;box-sizing:border-box;">
       <div id="reset-msg" style="font-size:13px;margin-bottom:10px;display:none;"></div>
       <button onclick="submitResetPassword('${token}')" id="reset-btn" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">Đặt lại mật khẩu</button>
     </div>`;
@@ -6848,14 +7202,14 @@ function showOtpVerifyModal() {
   el.id = 'otp-modal';
   el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;';
   el.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:360px;text-align:center;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;width:100%;max-width:360px;text-align:center;">
       <div style="font-size:32px;margin-bottom:10px;">✉️</div>
       <div style="font-size:18px;font-weight:800;margin-bottom:6px;">Nhập mã xác minh</div>
-      <p style="font-size:13px;color:#7b8fad;margin-bottom:20px;">Kiểm tra email của bạn. Mã gồm 6 chữ số, có hiệu lực 10 phút.</p>
-      <input id="otp-input" placeholder="_ _ _ _ _ _" maxlength="6" style="width:100%;text-align:center;letter-spacing:10px;font-size:24px;font-weight:700;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#e8edf8;margin-bottom:10px;box-sizing:border-box;">
+      <p style="font-size:13px;color:var(--sub);margin-bottom:20px;">Kiểm tra email của bạn. Mã gồm 6 chữ số, có hiệu lực 10 phút.</p>
+      <input id="otp-input" placeholder="_ _ _ _ _ _" maxlength="6" style="width:100%;text-align:center;letter-spacing:10px;font-size:24px;font-weight:700;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:var(--bg2);color:var(--text);margin-bottom:10px;box-sizing:border-box;">
       <div id="otp-msg" style="font-size:13px;margin-bottom:10px;display:none;"></div>
       <button onclick="submitOtpVerify()" id="otp-btn" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#3d8ef8,#2563eb);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;">Xác minh</button>
-      <button onclick="document.getElementById('otp-modal').remove()" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#7b8fad;font-size:13px;cursor:pointer;">Đóng</button>
+      <button onclick="document.getElementById('otp-modal').remove()" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:13px;cursor:pointer;">Đóng</button>
     </div>`;
   document.body.appendChild(el);
   document.getElementById('otp-input')?.focus();
@@ -7149,7 +7503,7 @@ function showVNPayModal() {
   const presets = [50000, 100000, 200000, 500000, 1000000, 2000000];
   el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:16px;';
   el.innerHTML = `
-    <div style="background:#0d1220;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:400px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;width:100%;max-width:400px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
         <div style="font-size:18px;font-weight:800;">💰 Nạp tiền qua VNPay</div>
         <button onclick="document.getElementById('vnpay-modal').style.display='none'" style="background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;padding:4px;">✕</button>
@@ -7455,7 +7809,7 @@ function buildSvcBrowse(){
     const stars='⭐'.repeat(Math.round(s.avg_rating||0));
     const sellerVerified=s.seller?.is_verified?'<span style="color:#3d8ef8;font-size:10px;">✓</span>':'';
     const pkgCount=(s.service_packages||[]).length;
-    return `<div onclick="openSvcDetail('${s.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;" onmouseenter="this.style.borderColor='var(--brand)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.borderColor='var(--border)';this.style.transform=''">
+    return `<div onclick="openSvcDetail('${s.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0;overflow:hidden;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;" onmouseenter="this.style.borderColor='var(--brand)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.borderColor='var(--border)';this.style.transform=''">
       <div style="height:140px;background:linear-gradient(135deg,rgba(61,142,248,.15),rgba(155,135,245,.15));display:flex;align-items:center;justify-content:center;font-size:48px;">${getCatIcon(s.category)}</div>
       <div style="padding:14px;flex:1;display:flex;flex-direction:column;gap:6px;">
         <div style="font-size:10px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.4px;">${s.category}</div>
