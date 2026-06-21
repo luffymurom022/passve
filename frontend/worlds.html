@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Virtual Worlds — SafePass</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0b0f;--bg2:#111318;--bg3:#1a1d26;--bg4:#21263a;
+  --brand:#6c63ff;--brand2:#8b5cf6;--accent:#00d4ff;--accent2:#ff6b6b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --text:#e8eaf0;--text2:#9ba3b8;--text3:#5a6280;
+  --border:#1e2235;--card:#161a24;--radius:14px;
+  --shadow:0 4px 24px rgba(0,0,0,.5);
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input,textarea,select{font-family:inherit;outline:none;border:none}
+img{display:block}
+
+/* ── TOP NAV ── */
+.topnav{position:sticky;top:0;z-index:100;background:rgba(10,11,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 20px;height:60px}
+.topnav-logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.topnav-search{flex:1;max-width:400px;background:var(--bg3);border:1px solid var(--border);border-radius:24px;display:flex;align-items:center;gap:8px;padding:0 14px;height:38px}
+.topnav-search input{background:none;color:var(--text);flex:1;font-size:14px}
+.topnav-search input::placeholder{color:var(--text3)}
+.topnav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;font-size:14px;font-weight:600;transition:.2s}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg4);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:13px}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--text2);font-size:14px;font-weight:600;padding:6px 12px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);transition:.2s}
+.back-btn:hover{color:var(--text);background:var(--bg4)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1;max-width:1400px;margin:0 auto;width:100%;padding:20px;gap:20px}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;flex-shrink:0}
+.sidebar-section{margin-bottom:24px}
+.sidebar-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px;padding:0 8px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:14px;font-weight:500;color:var(--text2);cursor:pointer;transition:.15s;margin-bottom:2px}
+.sidebar-item:hover{background:var(--bg3);color:var(--text)}
+.sidebar-item.active{background:linear-gradient(135deg,rgba(108,99,255,.18),rgba(139,92,246,.1));color:var(--brand);font-weight:600}
+.sidebar-item .si-icon{font-size:18px;width:24px;text-align:center}
+.sidebar-item .si-badge{margin-left:auto;background:var(--brand);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--bg2);border-radius:12px;padding:4px;margin-bottom:20px;border:1px solid var(--border)}
+.tab{flex:1;padding:9px 16px;border-radius:9px;font-size:14px;font-weight:600;color:var(--text2);text-align:center;cursor:pointer;transition:.2s}
+.tab.active{background:var(--brand);color:#fff}
+.tab:hover:not(.active){background:var(--bg3);color:var(--text)}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-header h2{font-size:20px;font-weight:800}
+.section-header p{font-size:13px;color:var(--text3);margin-top:2px}
+
+/* ── WORLD CARDS ── */
+.worlds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:28px}
+.world-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:.2s;position:relative}
+.world-card:hover{border-color:var(--brand);transform:translateY(-3px);box-shadow:0 8px 32px rgba(108,99,255,.2)}
+.wc-cover{height:120px;background:linear-gradient(135deg,#1a1d3a,#0d1a3a);position:relative;overflow:hidden}
+.wc-cover img{width:100%;height:100%;object-fit:cover}
+.wc-cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.6))}
+.wc-type-badge{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.1)}
+.wc-featured-badge{position:absolute;top:10px;left:10px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:#fff}
+.wc-body{padding:14px}
+.wc-avatar-row{display:flex;align-items:flex-end;gap:12px;margin-top:-24px;margin-bottom:10px}
+.wc-avatar{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid var(--card);flex-shrink:0}
+.wc-name{font-size:16px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wc-desc{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.wc-stats{display:flex;gap:12px}
+.wc-stat{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.wc-stat span{color:var(--text2);font-weight:600}
+.wc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.wc-tags{display:flex;gap:6px;flex-wrap:wrap}
+.wc-tag{font-size:11px;background:rgba(108,99,255,.12);color:var(--brand);padding:3px 8px;border-radius:20px}
+
+/* ── HERO BANNER ── */
+.hero-banner{background:linear-gradient(135deg,#0f0a2a 0%,#1a0a3a 50%,#0a1a2a 100%);border:1px solid var(--border);border-radius:20px;padding:40px 36px;margin-bottom:28px;position:relative;overflow:hidden}
+.hero-banner::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;background:radial-gradient(circle,rgba(108,99,255,.25) 0%,transparent 70%);pointer-events:none}
+.hero-banner::after{content:'';position:absolute;bottom:-60px;left:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(0,212,255,.15) 0%,transparent 70%);pointer-events:none}
+.hero-banner h1{font-size:32px;font-weight:900;margin-bottom:10px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-banner p{font-size:16px;color:var(--text2);max-width:520px;line-height:1.6;margin-bottom:24px}
+.hero-banner .hero-stats{display:flex;gap:28px;margin-bottom:28px}
+.hero-stat-item{text-align:center}
+.hero-stat-item .val{font-size:24px;font-weight:800;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-stat-item .lbl{font-size:12px;color:var(--text3)}
+.hero-actions{display:flex;gap:12px}
+
+/* ── WORLD DETAIL VIEW ── */
+.world-detail{display:none}
+.world-detail.active{display:block}
+.wdh-cover{height:240px;background:linear-gradient(135deg,#1a1d3a,#0d1a3a);border-radius:16px;overflow:hidden;position:relative;margin-bottom:20px}
+.wdh-cover img{width:100%;height:100%;object-fit:cover}
+.wdh-cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.75))}
+.wdh-cover-info{position:absolute;bottom:20px;left:20px;right:20px;display:flex;align-items:flex-end;gap:16px}
+.wdh-avatar{width:72px;height:72px;border-radius:16px;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:32px;border:4px solid var(--bg);flex-shrink:0}
+.wdh-info h1{font-size:24px;font-weight:900}
+.wdh-info p{font-size:13px;color:rgba(255,255,255,.7);margin-top:4px}
+.wdh-actions{margin-left:auto;display:flex;gap:8px}
+.wdh-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.wdh-tab{padding:12px 20px;font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.wdh-tab:hover{color:var(--text)}
+.wdh-tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+
+/* ── POSTS ── */
+.post-composer{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start}
+.post-composer textarea{flex:1;background:var(--bg3);border-radius:10px;padding:12px;color:var(--text);font-size:14px;resize:none;min-height:72px;border:1px solid var(--border);transition:.2s}
+.post-composer textarea:focus{border-color:var(--brand);background:var(--bg4)}
+.post-composer-actions{display:flex;gap:8px;margin-top:10px}
+.post-type-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--bg4);color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:.15s}
+.post-type-btn.active,.post-type-btn:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+.post-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.pc-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.pc-author{flex:1}
+.pc-author-name{font-size:14px;font-weight:700}
+.pc-meta{font-size:12px;color:var(--text3)}
+.pc-type-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.pc-type-post{background:rgba(108,99,255,.15);color:var(--brand)}
+.pc-type-announcement{background:rgba(245,158,11,.15);color:var(--yellow)}
+.pc-type-discussion{background:rgba(0,212,255,.15);color:var(--accent)}
+.pc-content{font-size:14px;line-height:1.6;color:var(--text2);margin-bottom:12px}
+.pc-img{width:100%;border-radius:10px;margin-bottom:12px;max-height:320px;object-fit:cover}
+.pc-actions{display:flex;gap:16px;align-items:center}
+.pc-action{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3);cursor:pointer;padding:5px 10px;border-radius:8px;transition:.15s}
+.pc-action:hover,.pc-action.liked{color:var(--accent2)}
+.pc-action.liked svg path{fill:var(--accent2)}
+.pin-badge{font-size:11px;background:rgba(245,158,11,.15);color:var(--yellow);padding:3px 8px;border-radius:20px;margin-left:auto}
+
+/* ── MEMBERS ── */
+.members-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.member-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;transition:.2s}
+.member-card:hover{border-color:var(--brand)}
+.mc-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;margin:0 auto 10px;overflow:hidden}
+.mc-avatar img{width:100%;height:100%;object-fit:cover}
+.mc-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.mc-role{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block}
+.mc-role-owner{background:rgba(245,158,11,.2);color:var(--yellow)}
+.mc-role-moderator{background:rgba(108,99,255,.2);color:var(--brand)}
+.mc-role-member{background:var(--bg3);color:var(--text3)}
+.mc-rep{font-size:12px;color:var(--text3);margin-top:6px}
+
+/* ── EVENTS ── */
+.events-list{display:flex;flex-direction:column;gap:12px}
+.event-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;gap:16px;align-items:flex-start;transition:.2s}
+.event-card:hover{border-color:var(--brand)}
+.ec-date{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.ec-date .day{font-size:20px;font-weight:900;line-height:1;color:#fff}
+.ec-date .mon{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase}
+.ec-body{flex:1}
+.ec-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.ec-meta{font-size:12px;color:var(--text3);display:flex;gap:12px;margin-bottom:8px}
+.ec-type-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,212,255,.12);color:var(--accent)}
+.ec-actions{display:flex;gap:8px;align-items:center}
+.ec-attendees{font-size:12px;color:var(--text3);margin-left:auto}
+
+/* ── MARKETPLACE ── */
+.listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.listing-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:.2s;cursor:pointer}
+.listing-card:hover{border-color:var(--brand);transform:translateY(-2px)}
+.lc-img{height:140px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:48px}
+.lc-img img{width:100%;height:100%;object-fit:cover}
+.lc-body{padding:12px}
+.lc-title{font-size:14px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lc-cat{font-size:11px;color:var(--text3);margin-bottom:8px}
+.lc-price{font-size:16px;font-weight:800;color:var(--green)}
+
+/* ── CREATE WORLD ── */
+.create-form{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:640px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px}
+.form-control{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;transition:.2s}
+.form-control:focus{border-color:var(--brand);background:var(--bg4)}
+.form-control::placeholder{color:var(--text3)}
+textarea.form-control{resize:none;min-height:90px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.type-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.type-opt{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:.2s}
+.type-opt:hover,.type-opt.active{border-color:var(--brand);background:rgba(108,99,255,.1)}
+.type-opt .to-icon{font-size:22px;margin-bottom:4px}
+.type-opt .to-label{font-size:11px;font-weight:600;color:var(--text2)}
+
+/* ── LEADERBOARD ── */
+.leaderboard-list{display:flex;flex-direction:column;gap:10px}
+.lb-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.2s}
+.lb-item:hover{border-color:var(--brand);background:var(--bg3)}
+.lb-rank{font-size:20px;font-weight:900;width:32px;text-align:center;color:var(--text3)}
+.lb-rank.gold{color:var(--yellow)}
+.lb-rank.silver{color:#9ba3b8}
+.lb-rank.bronze{color:#cd7f32}
+.lb-world-avatar{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.lb-info{flex:1}
+.lb-name{font-size:14px;font-weight:700}
+.lb-meta{font-size:12px;color:var(--text3)}
+.lb-stat{font-size:15px;font-weight:800;color:var(--brand)}
+
+/* ── STATS PANEL ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.stat-card .val{font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-card .lbl{font-size:12px;color:var(--text3);margin-top:4px}
+
+/* ── AI ASSISTANT ── */
+.ai-panel{background:linear-gradient(135deg,rgba(108,99,255,.1),rgba(0,212,255,.05));border:1px solid rgba(108,99,255,.3);border-radius:16px;padding:20px;margin-bottom:20px}
+.ai-panel h3{font-size:16px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ai-suggestions{display:flex;flex-direction:column;gap:8px}
+.ai-suggestion{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text2);cursor:pointer;transition:.2s}
+.ai-suggestion:hover{border-color:var(--brand);color:var(--text)}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-state .es-icon{font-size:52px;margin-bottom:16px}
+.empty-state h3{font-size:18px;font-weight:700;color:var(--text2);margin-bottom:8px}
+.empty-state p{font-size:14px;line-height:1.6}
+
+/* ── TOAST ── */
+.toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:14px;font-weight:600;animation:slideUp .3s ease;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow)}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+.toast.info{border-color:var(--brand);color:var(--brand)}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:20px;font-weight:800;margin-bottom:20px}
+.modal-close{float:right;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){.layout{padding:12px}.sidebar{display:none}.form-row{grid-template-columns:1fr}}
+@media(max-width:600px){.worlds-grid{grid-template-columns:1fr}.hero-banner h1{font-size:22px}.hero-banner .hero-stats{gap:16px}}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-logo">🌐 Worlds</div>
+  <div class="topnav-search">
+    <span>🔍</span>
+    <input type="text" id="searchInput" placeholder="Tìm kiếm thế giới..." oninput="debounceSearch(this.value)"/>
+  </div>
+  <div class="topnav-right">
+    <button class="btn btn-primary btn-sm" onclick="showCreateModal()">＋ Tạo World</button>
+    <div class="avatar" id="userAvatar" onclick="window.location.href='/'">S</div>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Khám phá</div>
+      <div class="sidebar-item active" id="sb-discovery" onclick="showView('discovery')"><span class="si-icon">🌌</span>Khám phá</div>
+      <div class="sidebar-item" id="sb-trending" onclick="showView('trending')"><span class="si-icon">🔥</span>Trending</div>
+      <div class="sidebar-item" id="sb-new" onclick="showView('new')"><span class="si-icon">✨</span>Mới nhất</div>
+      <div class="sidebar-item" id="sb-leaderboard" onclick="showView('leaderboard')"><span class="si-icon">🏆</span>Bảng xếp hạng</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Của tôi</div>
+      <div class="sidebar-item" id="sb-my" onclick="showView('my')"><span class="si-icon">🏠</span>Thế giới của tôi</div>
+      <div class="sidebar-item" id="sb-joined" onclick="showView('joined')"><span class="si-icon">✅</span>Đã tham gia</div>
+      <div class="sidebar-item" id="sb-create" onclick="showView('create')"><span class="si-icon">＋</span>Tạo thế giới</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Thể loại</div>
+      <div class="sidebar-item" onclick="filterByType('gaming')"><span class="si-icon">🎮</span>Gaming</div>
+      <div class="sidebar-item" onclick="filterByType('community')"><span class="si-icon">👥</span>Community</div>
+      <div class="sidebar-item" onclick="filterByType('business')"><span class="si-icon">🏢</span>Business</div>
+      <div class="sidebar-item" onclick="filterByType('event')"><span class="si-icon">🎉</span>Events</div>
+      <div class="sidebar-item" onclick="filterByType('private')"><span class="si-icon">🔒</span>Private</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="window.location.href='/'"><span class="si-icon">🏠</span>Về trang chủ</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DISCOVERY VIEW -->
+    <div id="view-discovery" class="view-section">
+      <!-- HERO -->
+      <div class="hero-banner">
+        <h1>Virtual Worlds Network 🌐</h1>
+        <p>Tạo, khám phá và giao dịch trong các thế giới ảo. Từ gaming đến business — mọi cộng đồng đều có nơi của mình.</p>
+        <div class="hero-stats">
+          <div class="hero-stat-item"><div class="val" id="stat-worlds">—</div><div class="lbl">Thế giới</div></div>
+          <div class="hero-stat-item"><div class="val" id="stat-members">—</div><div class="lbl">Thành viên</div></div>
+          <div class="hero-stat-item"><div class="val" id="stat-posts">—</div><div class="lbl">Bài viết</div></div>
+          <div class="hero-stat-item"><div class="val" id="stat-events">—</div><div class="lbl">Sự kiện</div></div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="showCreateModal()">🌐 Tạo thế giới</button>
+          <button class="btn btn-ghost" onclick="showView('leaderboard')">🏆 Bảng xếp hạng</button>
+        </div>
+      </div>
+
+      <!-- AI SUGGESTIONS -->
+      <div class="ai-panel">
+        <h3>🤖 AI Gợi ý dành cho bạn</h3>
+        <div class="ai-suggestions" id="aiSuggestions">
+          <div class="ai-suggestion" onclick="filterByType('gaming')">🎮 Thế giới Gaming — Mua bán tài khoản, skin và vật phẩm game</div>
+          <div class="ai-suggestion" onclick="filterByType('community')">👥 Cộng đồng — Kết nối với người có cùng sở thích</div>
+          <div class="ai-suggestion" onclick="showView('new')">✨ Khám phá thế giới mới nhất vừa được tạo</div>
+        </div>
+      </div>
+
+      <!-- FEATURED -->
+      <div class="section-header">
+        <div><h2>⭐ Nổi bật</h2><p>Các thế giới được đề xuất bởi SafePass</p></div>
+      </div>
+      <div class="worlds-grid" id="featuredGrid"></div>
+
+      <!-- TRENDING -->
+      <div class="section-header">
+        <div><h2>🔥 Đang thịnh hành</h2><p>Tăng trưởng nhanh nhất tuần này</p></div>
+        <button class="btn btn-ghost btn-sm" onclick="showView('trending')">Xem tất cả →</button>
+      </div>
+      <div class="worlds-grid" id="trendingGrid"></div>
+    </div>
+
+    <!-- TRENDING VIEW -->
+    <div id="view-trending" class="view-section" style="display:none">
+      <div class="section-header"><div><h2>🔥 Thế giới Trending</h2><p>Đang tăng trưởng mạnh nhất</p></div></div>
+      <div class="worlds-grid" id="trendingFullGrid"></div>
+    </div>
+
+    <!-- NEW VIEW -->
+    <div id="view-new" class="view-section" style="display:none">
+      <div class="section-header"><div><h2>✨ Thế giới mới nhất</h2><p>Vừa được tạo gần đây</p></div></div>
+      <div class="worlds-grid" id="newWorldsGrid"></div>
+    </div>
+
+    <!-- LEADERBOARD VIEW -->
+    <div id="view-leaderboard" class="view-section" style="display:none">
+      <div class="section-header"><div><h2>🏆 Bảng xếp hạng</h2><p>Top thế giới theo thành viên</p></div></div>
+      <div class="leaderboard-list" id="leaderboardList"></div>
+    </div>
+
+    <!-- MY WORLDS VIEW -->
+    <div id="view-my" class="view-section" style="display:none">
+      <div class="section-header">
+        <div><h2>🏠 Thế giới của tôi</h2><p>Các thế giới bạn tạo và sở hữu</p></div>
+        <button class="btn btn-primary btn-sm" onclick="showCreateModal()">＋ Tạo mới</button>
+      </div>
+      <div class="worlds-grid" id="myWorldsGrid">
+        <div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🌐</div><h3>Chưa có thế giới nào</h3><p>Tạo thế giới đầu tiên của bạn!</p></div>
+      </div>
+    </div>
+
+    <!-- JOINED VIEW -->
+    <div id="view-joined" class="view-section" style="display:none">
+      <div class="section-header"><div><h2>✅ Đã tham gia</h2><p>Các thế giới bạn là thành viên</p></div></div>
+      <div class="worlds-grid" id="joinedWorldsGrid">
+        <div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🔍</div><h3>Chưa tham gia thế giới nào</h3><p>Khám phá và tham gia ngay!</p></div>
+      </div>
+    </div>
+
+    <!-- CREATE VIEW -->
+    <div id="view-create" class="view-section" style="display:none">
+      <div class="section-header"><div><h2>🌐 Tạo thế giới mới</h2></div></div>
+      <div class="create-form">
+        <div class="form-group">
+          <label>Tên thế giới *</label>
+          <input class="form-control" id="cf-name" placeholder="Ví dụ: Gaming Hub Việt Nam" maxlength="60"/>
+        </div>
+        <div class="form-group">
+          <label>Mô tả</label>
+          <textarea class="form-control" id="cf-desc" placeholder="Thế giới của bạn là về điều gì?"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Quyền riêng tư</label>
+            <select class="form-control" id="cf-privacy">
+              <option value="public">🌐 Công khai</option>
+              <option value="community">👥 Cộng đồng</option>
+              <option value="private">🔒 Riêng tư</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Chủ đề</label>
+            <select class="form-control" id="cf-theme">
+              <option value="default">🎨 Mặc định</option>
+              <option value="gaming">🎮 Gaming</option>
+              <option value="concert">🎵 Âm nhạc</option>
+              <option value="brand">🏢 Thương hiệu</option>
+              <option value="education">📚 Giáo dục</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Loại thế giới</label>
+          <div class="type-picker">
+            <div class="type-opt active" data-type="community" onclick="selectType(this,'community')"><div class="to-icon">👥</div><div class="to-label">Community</div></div>
+            <div class="type-opt" data-type="gaming" onclick="selectType(this,'gaming')"><div class="to-icon">🎮</div><div class="to-label">Gaming</div></div>
+            <div class="type-opt" data-type="business" onclick="selectType(this,'business')"><div class="to-icon">🏢</div><div class="to-label">Business</div></div>
+            <div class="type-opt" data-type="event" onclick="selectType(this,'event')"><div class="to-icon">🎉</div><div class="to-label">Event</div></div>
+            <div class="type-opt" data-type="education" onclick="selectType(this,'education')"><div class="to-icon">📚</div><div class="to-label">Education</div></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Tags (cách nhau bằng dấu phẩy)</label>
+          <input class="form-control" id="cf-tags" placeholder="game, moba, fps"/>
+        </div>
+        <button class="btn btn-primary" onclick="createWorld()" style="width:100%;justify-content:center;padding:13px">🚀 Tạo thế giới</button>
+      </div>
+    </div>
+
+    <!-- WORLD DETAIL VIEW -->
+    <div id="view-world-detail" class="view-section" style="display:none">
+      <button class="back-btn" onclick="goBack()" style="margin-bottom:16px">← Quay lại</button>
+
+      <div class="wdh-cover" id="wdCover">
+        <div class="wdh-cover-overlay"></div>
+        <div class="wdh-cover-info">
+          <div class="wdh-avatar" id="wdAvatar">🌐</div>
+          <div class="wdh-info">
+            <h1 id="wdName">World</h1>
+            <p id="wdMeta">—</p>
+          </div>
+          <div class="wdh-actions">
+            <button class="btn btn-ghost btn-sm" id="wdJoinBtn" onclick="toggleJoin()">Tham gia</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORLD STATS -->
+      <div class="stats-grid" id="worldStatsGrid"></div>
+
+      <!-- WORLD TABS -->
+      <div class="wdh-tabs">
+        <div class="wdh-tab active" onclick="switchWorldTab('feed',this)">📰 Feed</div>
+        <div class="wdh-tab" onclick="switchWorldTab('members',this)">👥 Thành viên</div>
+        <div class="wdh-tab" onclick="switchWorldTab('events',this)">📅 Sự kiện</div>
+        <div class="wdh-tab" onclick="switchWorldTab('market',this)">🛒 Marketplace</div>
+        <div class="wdh-tab" onclick="switchWorldTab('chat',this)">💬 Chat</div>
+        <div class="wdh-tab" onclick="switchWorldTab('analytics',this)">📊 Analytics</div>
+      </div>
+
+      <!-- FEED TAB -->
+      <div id="wtab-feed">
+        <div class="post-composer" id="postComposer">
+          <div class="avatar" id="composerAvatar">S</div>
+          <div style="flex:1">
+            <textarea id="postContent" placeholder="Chia sẻ điều gì đó với thế giới này..."></textarea>
+            <div class="post-composer-actions">
+              <button class="post-type-btn active" data-t="post" onclick="setPostType('post',this)">📝 Bài viết</button>
+              <button class="post-type-btn" data-t="announcement" onclick="setPostType('announcement',this)">📣 Thông báo</button>
+              <button class="post-type-btn" data-t="discussion" onclick="setPostType('discussion',this)">💬 Thảo luận</button>
+              <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="createPost()">Đăng</button>
+            </div>
+          </div>
+        </div>
+        <div id="postsList"></div>
+      </div>
+
+      <!-- MEMBERS TAB -->
+      <div id="wtab-members" style="display:none">
+        <div class="members-grid" id="membersList"></div>
+      </div>
+
+      <!-- EVENTS TAB -->
+      <div id="wtab-events" style="display:none">
+        <button class="btn btn-primary btn-sm" style="margin-bottom:16px" onclick="showEventModal()">＋ Tạo sự kiện</button>
+        <div class="events-list" id="eventsList"></div>
+      </div>
+
+      <!-- MARKET TAB -->
+      <div id="wtab-market" style="display:none">
+        <button class="btn btn-primary btn-sm" style="margin-bottom:16px" onclick="showListingModal()">＋ Đăng bán</button>
+        <div class="listings-grid" id="listingsList"></div>
+      </div>
+
+      <!-- CHAT TAB -->
+      <div id="wtab-chat" style="display:none">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <div id="chatMessages" style="height:380px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px"></div>
+          <div style="border-top:1px solid var(--border);padding:12px;display:flex;gap:10px">
+            <input id="chatInput" class="form-control" placeholder="Nhập tin nhắn..." style="flex:1" onkeydown="if(event.key==='Enter')sendChatMsg()"/>
+            <button class="btn btn-primary btn-sm" onclick="sendChatMsg()">Gửi</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS TAB -->
+      <div id="wtab-analytics" style="display:none">
+        <div class="stats-grid" id="analyticsGrid"></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px">
+          <h3 style="font-size:16px;font-weight:700;margin-bottom:16px">📊 Hoạt động gần đây</h3>
+          <div id="recentActivity" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<!-- Create World Modal -->
+<div id="createModal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeModal('createModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('createModal')">×</button>
+    <h2>🌐 Tạo thế giới mới</h2>
+    <div class="form-group">
+      <label>Tên thế giới *</label>
+      <input class="form-control" id="m-cf-name" placeholder="Ví dụ: Gaming Hub Việt Nam" maxlength="60"/>
+    </div>
+    <div class="form-group">
+      <label>Mô tả</label>
+      <textarea class="form-control" id="m-cf-desc" placeholder="Thế giới của bạn là về điều gì?"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Loại thế giới</label>
+        <select class="form-control" id="m-cf-type">
+          <option value="community">👥 Community</option>
+          <option value="gaming">🎮 Gaming</option>
+          <option value="business">🏢 Business</option>
+          <option value="event">🎉 Event</option>
+          <option value="education">📚 Education</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quyền riêng tư</label>
+        <select class="form-control" id="m-cf-privacy">
+          <option value="public">🌐 Công khai</option>
+          <option value="community">👥 Cộng đồng</option>
+          <option value="private">🔒 Riêng tư</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Tags (cách nhau bằng dấu phẩy)</label>
+      <input class="form-control" id="m-cf-tags" placeholder="game, moba, fps"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('createModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="createWorldFromModal()">🚀 Tạo thế giới</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Event Modal -->
+<div id="eventModal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeModal('eventModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('eventModal')">×</button>
+    <h2>📅 Tạo sự kiện</h2>
+    <div class="form-group">
+      <label>Tiêu đề *</label>
+      <input class="form-control" id="ev-title" placeholder="Tên sự kiện"/>
+    </div>
+    <div class="form-group">
+      <label>Mô tả</label>
+      <textarea class="form-control" id="ev-desc" placeholder="Chi tiết sự kiện..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Loại</label>
+        <select class="form-control" id="ev-type">
+          <option value="meetup">🤝 Meetup</option>
+          <option value="livestream">📡 Livestream</option>
+          <option value="competition">🏆 Thi đấu</option>
+          <option value="conference">🎤 Hội thảo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Địa điểm</label>
+        <input class="form-control" id="ev-location" placeholder="Online hoặc địa chỉ" value="Online"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Bắt đầu</label>
+        <input class="form-control" id="ev-start" type="datetime-local"/>
+      </div>
+      <div class="form-group">
+        <label>Kết thúc</label>
+        <input class="form-control" id="ev-end" type="datetime-local"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Số người tối đa</label>
+      <input class="form-control" id="ev-max" type="number" value="100"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('eventModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="createEvent()">📅 Tạo sự kiện</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Listing Modal -->
+<div id="listingModal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeModal('listingModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('listingModal')">×</button>
+    <h2>🛒 Đăng bán sản phẩm</h2>
+    <div class="form-group">
+      <label>Tên sản phẩm *</label>
+      <input class="form-control" id="ls-title" placeholder="Tên sản phẩm"/>
+    </div>
+    <div class="form-group">
+      <label>Mô tả</label>
+      <textarea class="form-control" id="ls-desc" placeholder="Chi tiết sản phẩm..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Giá (VNĐ)</label>
+        <input class="form-control" id="ls-price" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label>Danh mục</label>
+        <select class="form-control" id="ls-cat">
+          <option value="account">🎮 Tài khoản</option>
+          <option value="item">🗡️ Vật phẩm</option>
+          <option value="ticket">🎫 Vé</option>
+          <option value="merchandise">👕 Merchandise</option>
+          <option value="service">⚡ Dịch vụ</option>
+          <option value="other">📦 Khác</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('listingModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="createListing()">✅ Đăng bán</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const API = '';
+const TOKEN = localStorage.getItem('token');
+const USER = (() => { try { return JSON.parse(atob(TOKEN.split('.')[1])); } catch { return null; } })();
+
+if (USER) {
+  document.getElementById('userAvatar').textContent = (USER.name||'U')[0].toUpperCase();
+}
+
+// ── STATE ──
+let currentView = 'discovery';
+let currentWorld = null;
+let currentWorldTab = 'feed';
+let currentPostType = 'post';
+let isMember = false;
+let isOwner = false;
+let searchTimer = null;
+
+// ── UTILS ──
+function toast(msg, type='info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  t.innerHTML = `${icons[type]||'ℹ️'} ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function showCreateModal() { document.getElementById('createModal').style.display = 'flex'; }
+function showEventModal() { document.getElementById('eventModal').style.display = 'flex'; }
+function showListingModal() { document.getElementById('listingModal').style.display = 'flex'; }
+function fmtNum(n) { if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'K'; return String(n||0); }
+function fmtDate(d) { if(!d) return '—'; return new Date(d).toLocaleDateString('vi-VN'); }
+function fmtDateTime(d) { if(!d) return '—'; return new Date(d).toLocaleString('vi-VN'); }
+function timeAgo(d) {
+  if(!d) return '';
+  const sec = (Date.now() - new Date(d))/1000;
+  if(sec<60) return 'Vừa xong';
+  if(sec<3600) return Math.floor(sec/60)+'p trước';
+  if(sec<86400) return Math.floor(sec/3600)+'h trước';
+  return Math.floor(sec/86400)+'d trước';
+}
+function authHeaders() { return { 'Content-Type':'application/json', 'Authorization': `Bearer ${TOKEN}` }; }
+async function apiFetch(url, opts={}) {
+  const r = await fetch(API+url, { ...opts, headers: { ...authHeaders(), ...(opts.headers||{}) } });
+  return r.json();
+}
+function themeColor(theme) {
+  const map = {gaming:'#7c3aed',concert:'#db2777',brand:'#f59e0b',education:'#3b82f6',default:'#6c63ff'};
+  return map[theme]||map.default;
+}
+function typeIcon(type) {
+  const map = {community:'👥',gaming:'🎮',business:'🏢',event:'🎉',education:'📚',public:'🌐',private:'🔒'};
+  return map[type]||'🌐';
+}
+function worldAvatar(w) {
+  const emojis = {gaming:'🎮',concert:'🎵',brand:'🏢',education:'📚',community:'👥',event:'🎉'};
+  return emojis[w.theme]||emojis[w.type]||'🌐';
+}
+
+// ── VIEW MANAGEMENT ──
+function showView(v) {
+  document.querySelectorAll('.view-section').forEach(el => el.style.display='none');
+  const el = document.getElementById(`view-${v}`);
+  if(el) el.style.display='block';
+  currentView = v;
+  // Update sidebar
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  const sb = document.getElementById(`sb-${v}`);
+  if(sb) sb.classList.add('active');
+  // Load data
+  if(v==='discovery') loadDiscovery();
+  else if(v==='trending') loadTrending();
+  else if(v==='new') loadNew();
+  else if(v==='leaderboard') loadLeaderboard();
+  else if(v==='my') loadMyWorlds();
+  else if(v==='joined') loadJoined();
+}
+
+function goBack() {
+  showView(currentView==='world-detail' ? 'discovery' : 'discovery');
+}
+
+// ── LOAD DISCOVERY ──
+async function loadDiscovery() {
+  // Stats
+  const statsR = await apiFetch('/api/worlds/stats');
+  if(statsR.stats) {
+    document.getElementById('stat-worlds').textContent = fmtNum(statsR.stats.worlds);
+    document.getElementById('stat-members').textContent = fmtNum(statsR.stats.members);
+    document.getElementById('stat-posts').textContent = fmtNum(statsR.stats.posts);
+    document.getElementById('stat-events').textContent = fmtNum(statsR.stats.events);
+  }
+  // Featured
+  const fr = await apiFetch('/api/worlds?featured=true&limit=4');
+  document.getElementById('featuredGrid').innerHTML = (fr.worlds||[]).map(renderWorldCard).join('');
+  // Trending
+  const tr = await apiFetch('/api/worlds?sort=members&limit=4');
+  document.getElementById('trendingGrid').innerHTML = (tr.worlds||[]).map(renderWorldCard).join('');
+}
+
+async function loadTrending() {
+  const r = await apiFetch('/api/worlds?sort=members&limit=20');
+  document.getElementById('trendingFullGrid').innerHTML = (r.worlds||[]).map(renderWorldCard).join('') || '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🔥</div><h3>Chưa có thế giới nào</h3></div>';
+}
+
+async function loadNew() {
+  const r = await apiFetch('/api/worlds?sort=new&limit=20');
+  document.getElementById('newWorldsGrid').innerHTML = (r.worlds||[]).map(renderWorldCard).join('') || '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">✨</div><h3>Chưa có thế giới mới</h3></div>';
+}
+
+async function loadLeaderboard() {
+  const r = await apiFetch('/api/worlds/leaderboard');
+  const list = r.worlds||[];
+  document.getElementById('leaderboardList').innerHTML = list.length ? list.map((w,i) => `
+    <div class="lb-item" onclick="openWorld('${w.id}')">
+      <div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">#${i+1}</div>
+      <div class="lb-world-avatar">${worldAvatar(w)}</div>
+      <div class="lb-info">
+        <div class="lb-name">${w.name}</div>
+        <div class="lb-meta">${typeIcon(w.type)} ${w.type} · ${w.privacy}</div>
+      </div>
+      <div class="lb-stat">${fmtNum(w.members_count)}</div>
+      <div style="font-size:12px;color:var(--text3)">thành viên</div>
+    </div>`).join('') : '<div class="empty-state"><div class="es-icon">🏆</div><h3>Chưa có thế giới nào</h3></div>';
+}
+
+async function loadMyWorlds() {
+  if(!TOKEN) { document.getElementById('myWorldsGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🔐</div><h3>Cần đăng nhập</h3></div>'; return; }
+  const r = await apiFetch('/api/worlds/mine');
+  document.getElementById('myWorldsGrid').innerHTML = (r.worlds||[]).length ? (r.worlds||[]).map(renderWorldCard).join('') : '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🌐</div><h3>Chưa có thế giới nào</h3><p>Tạo thế giới đầu tiên của bạn!</p><br><button class="btn btn-primary" onclick="showCreateModal()">＋ Tạo ngay</button></div>';
+}
+
+async function loadJoined() {
+  if(!TOKEN) { document.getElementById('joinedWorldsGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🔐</div><h3>Cần đăng nhập</h3></div>'; return; }
+  const r = await apiFetch('/api/worlds/joined');
+  document.getElementById('joinedWorldsGrid').innerHTML = (r.worlds||[]).length ? (r.worlds||[]).map(renderWorldCard).join('') : '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🔍</div><h3>Chưa tham gia thế giới nào</h3><p>Khám phá và tham gia ngay!</p><br><button class="btn btn-primary" onclick="showView(\'discovery\')">Khám phá</button></div>';
+}
+
+// ── RENDER WORLD CARD ──
+function renderWorldCard(w) {
+  const col = themeColor(w.theme);
+  return `
+  <div class="world-card" onclick="openWorld('${w.id}')">
+    <div class="wc-cover" style="background:linear-gradient(135deg,${col}22,${col}44)">
+      ${w.cover_image ? `<img src="${w.cover_image}" alt="" onerror="this.style.display='none'"/>` : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:56px;opacity:.3">${worldAvatar(w)}</div>`}
+      <div class="wc-cover-overlay"></div>
+      <div class="wc-type-badge">${typeIcon(w.type)} ${w.type}</div>
+      ${w.is_featured ? '<div class="wc-featured-badge">⭐ Nổi bật</div>' : ''}
+    </div>
+    <div class="wc-body">
+      <div class="wc-avatar-row">
+        <div class="wc-avatar" style="background:linear-gradient(135deg,${col},${col}aa)">${worldAvatar(w)}</div>
+      </div>
+      <div class="wc-name">${w.name}</div>
+      <div class="wc-desc">${w.description||'Chưa có mô tả'}</div>
+      <div class="wc-stats">
+        <div class="wc-stat">👥 <span>${fmtNum(w.members_count)}</span></div>
+        <div class="wc-stat">📝 <span>${fmtNum(w.posts_count)}</span></div>
+        <div class="wc-stat">🎉 <span>${fmtNum(w.events_count)}</span></div>
+      </div>
+      <div class="wc-footer">
+        <div class="wc-tags">${(w.tags||[]).slice(0,3).map(t=>`<div class="wc-tag">#${t}</div>`).join('')}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── OPEN WORLD ──
+async function openWorld(id) {
+  document.querySelectorAll('.view-section').forEach(el => el.style.display='none');
+  document.getElementById('view-world-detail').style.display='block';
+  currentView = 'world-detail';
+  // Load world
+  const r = await apiFetch(`/api/worlds/${id}`);
+  if(r.error) { toast(r.error, 'error'); goBack(); return; }
+  currentWorld = r.world;
+  isMember = r.is_member||false;
+  isOwner = USER && r.world.owner_id === USER.id;
+  renderWorldHeader(r.world);
+  // Load feed by default
+  switchWorldTab('feed', document.querySelector('.wdh-tab'));
+  loadWorldFeed();
+}
+
+function renderWorldHeader(w) {
+  const col = themeColor(w.theme);
+  const cover = document.getElementById('wdCover');
+  cover.style.background = `linear-gradient(135deg,${col}33,${col}22)`;
+  if(w.cover_image) cover.innerHTML = `<img src="${w.cover_image}" style="width:100%;height:100%;object-fit:cover"/><div class="wdh-cover-overlay"></div><div class="wdh-cover-info" id="wdCoverInfo"></div>`;
+  document.getElementById('wdAvatar').textContent = worldAvatar(w);
+  document.getElementById('wdAvatar').style.background = `linear-gradient(135deg,${col},${col}99)`;
+  document.getElementById('wdName').textContent = w.name;
+  document.getElementById('wdMeta').textContent = `${fmtNum(w.members_count)} thành viên · ${w.type} · ${w.privacy}`;
+  const joinBtn = document.getElementById('wdJoinBtn');
+  joinBtn.textContent = isOwner ? '⚙️ Quản lý' : isMember ? '✅ Đã tham gia' : '＋ Tham gia';
+  joinBtn.className = `btn btn-sm ${isMember||isOwner?'btn-ghost':'btn-primary'}`;
+  // Stats
+  document.getElementById('worldStatsGrid').innerHTML = [
+    {val:fmtNum(w.members_count),lbl:'Thành viên'},
+    {val:fmtNum(w.posts_count),lbl:'Bài viết'},
+    {val:fmtNum(w.events_count),lbl:'Sự kiện'},
+    {val:fmtNum(w.listings_count),lbl:'Sản phẩm'},
+  ].map(s=>`<div class="stat-card"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+}
+
+function switchWorldTab(tab, el) {
+  document.querySelectorAll('.wdh-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.querySelectorAll('[id^="wtab-"]').forEach(t=>t.style.display='none');
+  document.getElementById(`wtab-${tab}`).style.display='block';
+  currentWorldTab = tab;
+  if(tab==='members') loadWorldMembers();
+  else if(tab==='events') loadWorldEvents();
+  else if(tab==='market') loadWorldListings();
+  else if(tab==='chat') loadWorldChat();
+  else if(tab==='analytics') loadWorldAnalytics();
+}
+
+// ── TOGGLE JOIN ──
+async function toggleJoin() {
+  if(!TOKEN) { toast('Cần đăng nhập để tham gia','error'); return; }
+  if(isOwner) return;
+  if(isMember) {
+    const r = await apiFetch(`/api/worlds/${currentWorld.id}/leave`, {method:'DELETE'});
+    if(r.error) return toast(r.error,'error');
+    isMember=false; toast('Đã rời thế giới','info');
+  } else {
+    const r = await apiFetch(`/api/worlds/${currentWorld.id}/join`, {method:'POST'});
+    if(r.error) return toast(r.error,'error');
+    isMember=true; toast('Đã tham gia thế giới!','success');
+    currentWorld.members_count = (currentWorld.members_count||0)+1;
+  }
+  renderWorldHeader(currentWorld);
+}
+
+// ── POSTS ──
+async function loadWorldFeed() {
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/posts`);
+  const posts = r.posts||[];
+  document.getElementById('postsList').innerHTML = posts.length ? posts.map(renderPost).join('') : '<div class="empty-state"><div class="es-icon">📝</div><h3>Chưa có bài viết nào</h3><p>Hãy là người đầu tiên chia sẻ!</p></div>';
+  // Show composer if member/owner
+  document.getElementById('postComposer').style.display = (isMember||isOwner)&&TOKEN ? 'flex' : 'none';
+}
+
+function renderPost(p) {
+  return `
+  <div class="post-card" id="post-${p.id}">
+    <div class="pc-header">
+      <div class="avatar" style="width:36px;height:36px;font-size:14px">${(p.author_name||'U')[0]}</div>
+      <div class="pc-author">
+        <div class="pc-author-name">${p.author_name||'User'}</div>
+        <div class="pc-meta">${timeAgo(p.created_at)}</div>
+      </div>
+      <div class="pc-type-badge pc-type-${p.type}">${{post:'📝 Bài viết',announcement:'📣 Thông báo',discussion:'💬 Thảo luận'}[p.type]||p.type}</div>
+      ${p.is_pinned ? '<div class="pin-badge">📌 Ghim</div>' : ''}
+    </div>
+    ${p.image_url ? `<img class="pc-img" src="${p.image_url}" onerror="this.style.display='none'"/>` : ''}
+    <div class="pc-content">${p.content}</div>
+    <div class="pc-actions">
+      <div class="pc-action ${p.liked?'liked':''}" onclick="likePost('${p.id}',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span>${p.likes_count||0}</span>
+      </div>
+      <div class="pc-action">💬 <span>${p.comments_count||0}</span></div>
+    </div>
+  </div>`;
+}
+
+function setPostType(t, el) {
+  document.querySelectorAll('.post-type-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  currentPostType = t;
+}
+
+async function createPost() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const content = document.getElementById('postContent').value.trim();
+  if(!content) return toast('Nhập nội dung bài viết','error');
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/posts`, {method:'POST',body:JSON.stringify({content,type:currentPostType})});
+  if(r.error) return toast(r.error,'error');
+  document.getElementById('postContent').value='';
+  toast('Đã đăng bài!','success');
+  currentWorld.posts_count=(currentWorld.posts_count||0)+1;
+  loadWorldFeed();
+}
+
+async function likePost(id, el) {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const r = await apiFetch(`/api/worlds/posts/${id}/like`, {method:'POST'});
+  if(r.error) return;
+  el.classList.toggle('liked');
+  const span = el.querySelector('span');
+  span.textContent = r.likes_count;
+}
+
+// ── MEMBERS ──
+async function loadWorldMembers() {
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/members`);
+  const members = r.members||[];
+  document.getElementById('membersList').innerHTML = members.length ? members.map(m=>`
+    <div class="member-card">
+      <div class="mc-avatar">${(m.user_name||'U')[0]}</div>
+      <div class="mc-name">${m.user_name||'User'}</div>
+      <div class="mc-role mc-role-${m.role}">${{owner:'👑 Owner',moderator:'🛡️ Mod',member:'👤 Member'}[m.role]||m.role}</div>
+      <div class="mc-rep">⭐ ${m.reputation} điểm</div>
+    </div>`).join('') : '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">👥</div><h3>Chưa có thành viên</h3></div>';
+}
+
+// ── EVENTS ──
+async function loadWorldEvents() {
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/events`);
+  const events = r.events||[];
+  document.getElementById('eventsList').innerHTML = events.length ? events.map(renderEvent).join('') : '<div class="empty-state"><div class="es-icon">📅</div><h3>Chưa có sự kiện nào</h3></div>';
+}
+
+function renderEvent(e) {
+  const d = e.start_at ? new Date(e.start_at) : null;
+  return `
+  <div class="event-card">
+    <div class="ec-date">
+      <div class="day">${d?d.getDate():'?'}</div>
+      <div class="mon">${d?d.toLocaleString('vi-VN',{month:'short'}):''}</div>
+    </div>
+    <div class="ec-body">
+      <div class="ec-title">${e.title}</div>
+      <div class="ec-meta">
+        <span>📍 ${e.location||'Online'}</span>
+        <span>👥 ${e.attendees_count||0}/${e.max_attendees||100}</span>
+      </div>
+      <div class="ec-actions">
+        <div class="ec-type-badge">${{meetup:'🤝 Meetup',livestream:'📡 Livestream',competition:'🏆 Thi đấu',conference:'🎤 Hội thảo'}[e.type]||e.type}</div>
+        <button class="btn btn-primary btn-sm" onclick="joinEvent('${e.id}',this)">Tham gia</button>
+        <div class="ec-attendees">${fmtDateTime(e.start_at)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function createEvent() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const title = document.getElementById('ev-title').value.trim();
+  if(!title) return toast('Nhập tiêu đề sự kiện','error');
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/events`, {method:'POST', body:JSON.stringify({
+    title, description:document.getElementById('ev-desc').value,
+    type:document.getElementById('ev-type').value,
+    location:document.getElementById('ev-location').value,
+    start_at:document.getElementById('ev-start').value,
+    end_at:document.getElementById('ev-end').value,
+    max_attendees:parseInt(document.getElementById('ev-max').value)||100
+  })});
+  if(r.error) return toast(r.error,'error');
+  closeModal('eventModal');
+  toast('Đã tạo sự kiện!','success');
+  currentWorld.events_count=(currentWorld.events_count||0)+1;
+  loadWorldEvents();
+}
+
+async function joinEvent(id, btn) {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const r = await apiFetch(`/api/worlds/events/${id}/join`, {method:'POST'});
+  if(r.error) return toast(r.error,'error');
+  btn.textContent='✅ Đã đăng ký'; btn.disabled=true;
+  toast('Đã đăng ký sự kiện!','success');
+}
+
+// ── MARKETPLACE ──
+async function loadWorldListings() {
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/listings`);
+  const listings = r.listings||[];
+  document.getElementById('listingsList').innerHTML = listings.length ? listings.map(l=>`
+    <div class="listing-card">
+      <div class="lc-img">${l.image_url?`<img src="${l.image_url}" onerror="this.innerHTML='📦'"/>`:'📦'}</div>
+      <div class="lc-body">
+        <div class="lc-title">${l.title}</div>
+        <div class="lc-cat">${l.category}</div>
+        <div class="lc-price">${l.price>0?l.price.toLocaleString('vi-VN')+'₫':'Miễn phí'}</div>
+      </div>
+    </div>`).join('') : '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🛒</div><h3>Chưa có sản phẩm nào</h3></div>';
+}
+
+async function createListing() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const title = document.getElementById('ls-title').value.trim();
+  if(!title) return toast('Nhập tên sản phẩm','error');
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/listings`, {method:'POST',body:JSON.stringify({
+    title, description:document.getElementById('ls-desc').value,
+    price:parseFloat(document.getElementById('ls-price').value)||0,
+    category:document.getElementById('ls-cat').value
+  })});
+  if(r.error) return toast(r.error,'error');
+  closeModal('listingModal');
+  toast('Đã đăng bán!','success');
+  currentWorld.listings_count=(currentWorld.listings_count||0)+1;
+  loadWorldListings();
+}
+
+// ── CHAT ──
+async function loadWorldChat() {
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/chat`);
+  const msgs = r.messages||[];
+  const box = document.getElementById('chatMessages');
+  box.innerHTML = msgs.length ? msgs.map(m=>`
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">${(m.sender_name||'U')[0]}</div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:2px">${m.sender_name} <span style="font-weight:400;color:var(--text3)">${timeAgo(m.created_at)}</span></div>
+        <div style="font-size:14px;background:var(--bg3);padding:8px 12px;border-radius:0 10px 10px 10px;max-width:400px">${m.content}</div>
+      </div>
+    </div>`).join('') : '<div style="text-align:center;color:var(--text3);padding:40px">💬 Chưa có tin nhắn nào. Hãy là người đầu tiên!</div>';
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendChatMsg() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const input = document.getElementById('chatInput');
+  const content = input.value.trim();
+  if(!content) return;
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/chat`, {method:'POST',body:JSON.stringify({content})});
+  if(r.error) return toast(r.error,'error');
+  input.value='';
+  loadWorldChat();
+}
+
+// ── ANALYTICS ──
+async function loadWorldAnalytics() {
+  const r = await apiFetch(`/api/worlds/${currentWorld.id}/stats`);
+  const s = r.stats||{};
+  document.getElementById('analyticsGrid').innerHTML = [
+    {val:fmtNum(s.members||0),lbl:'Tổng thành viên'},
+    {val:fmtNum(s.posts||0),lbl:'Tổng bài viết'},
+    {val:fmtNum(s.events||0),lbl:'Tổng sự kiện'},
+    {val:fmtNum(s.listings||0),lbl:'Sản phẩm'},
+    {val:fmtNum(s.chat_msgs||0),lbl:'Tin nhắn chat'},
+    {val:s.owner_name||'—',lbl:'Chủ sở hữu'},
+  ].map(s=>`<div class="stat-card"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+  // Recent activity
+  document.getElementById('recentActivity').innerHTML = (r.recent_posts||[]).map(p=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="avatar" style="width:32px;height:32px;font-size:12px">${(p.author_name||'U')[0]}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${p.author_name||'User'}</div><div style="font-size:12px;color:var(--text3)">${p.content?.substring(0,60)}...</div></div>
+      <div style="font-size:12px;color:var(--text3)">${timeAgo(p.created_at)}</div>
+    </div>`).join('') || '<div style="color:var(--text3);font-size:13px">Chưa có hoạt động</div>';
+}
+
+// ── CREATE WORLD ──
+let selectedType = 'community';
+function selectType(el, type) {
+  document.querySelectorAll('.type-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  selectedType = type;
+}
+async function createWorld() {
+  const name = document.getElementById('cf-name').value.trim();
+  if(!name) return toast('Nhập tên thế giới','error');
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const r = await apiFetch('/api/worlds', {method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('cf-desc').value,
+    type:selectedType, privacy:document.getElementById('cf-privacy').value,
+    theme:document.getElementById('cf-theme').value,
+    tags:document.getElementById('cf-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  })});
+  if(r.error) return toast(r.error,'error');
+  toast('Đã tạo thế giới!','success');
+  document.getElementById('cf-name').value='';document.getElementById('cf-desc').value='';document.getElementById('cf-tags').value='';
+  openWorld(r.world.id);
+}
+async function createWorldFromModal() {
+  const name = document.getElementById('m-cf-name').value.trim();
+  if(!name) return toast('Nhập tên thế giới','error');
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const r = await apiFetch('/api/worlds', {method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('m-cf-desc').value,
+    type:document.getElementById('m-cf-type').value,
+    privacy:document.getElementById('m-cf-privacy').value,
+    theme:document.getElementById('m-cf-type').value,
+    tags:document.getElementById('m-cf-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  })});
+  if(r.error) return toast(r.error,'error');
+  closeModal('createModal');
+  toast('Đã tạo thế giới!','success');
+  openWorld(r.world.id);
+}
+
+// ── SEARCH ──
+function debounceSearch(q) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>doSearch(q), 400);
+}
+async function doSearch(q) {
+  if(!q.trim()) { showView('discovery'); return; }
+  document.querySelectorAll('.view-section').forEach(el=>el.style.display='none');
+  document.getElementById('view-discovery').style.display='block';
+  const r = await apiFetch(`/api/worlds?search=${encodeURIComponent(q)}`);
+  const grid = document.getElementById('featuredGrid');
+  grid.innerHTML = (r.worlds||[]).map(renderWorldCard).join('') || `<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🔍</div><h3>Không tìm thấy kết quả cho "${q}"</h3></div>`;
+  document.getElementById('trendingGrid').innerHTML='';
+  document.querySelector('.hero-banner h1').textContent=`Kết quả: "${q}"`;
+}
+
+// ── FILTER BY TYPE ──
+async function filterByType(type) {
+  document.querySelectorAll('.view-section').forEach(el=>el.style.display='none');
+  document.getElementById('view-trending').style.display='block';
+  const r = await apiFetch(`/api/worlds?type=${type}&limit=20`);
+  const icons = {gaming:'🎮',community:'👥',business:'🏢',event:'🎉',education:'📚'};
+  document.querySelector('#view-trending .section-header h2').textContent=`${icons[type]||'🌐'} ${type.charAt(0).toUpperCase()+type.slice(1)}`;
+  document.getElementById('trendingFullGrid').innerHTML = (r.worlds||[]).map(renderWorldCard).join('') || `<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">${icons[type]||'🌐'}</div><h3>Chưa có thế giới loại này</h3></div>`;
+}
+
+// ── INIT ──
+loadDiscovery();
+</script>
+</body>
+</html>

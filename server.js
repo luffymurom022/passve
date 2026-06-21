@@ -13393,6 +13393,320 @@ app.get('/api/admin/ai/social-graph', adminAuth, async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════
+// PHASE SOCIAL 10: VIRTUAL WORLDS NETWORK
+// ════════════════════════════════════════════════════════════════
+
+app.get('/worlds', (req, res) => res.sendFile(join(__dirname, 'frontend', 'worlds.html')));
+app.get('/worlds.html', (req, res) => res.sendFile(join(__dirname, 'frontend', 'worlds.html')));
+
+// helper: generate slug from name
+function slugify(name) {
+  return name.toLowerCase().trim()
+    .replace(/[àáảãạăắằẳẵặâấầẩẫậ]/g,'a')
+    .replace(/[èéẻẽẹêếềểễệ]/g,'e')
+    .replace(/[ìíỉĩị]/g,'i')
+    .replace(/[òóỏõọôốồổỗộơớờởỡợ]/g,'o')
+    .replace(/[ùúủũụưứừửữự]/g,'u')
+    .replace(/[ỳýỷỹỵ]/g,'y')
+    .replace(/đ/g,'d')
+    .replace(/[^a-z0-9\s-]/g,'')
+    .replace(/\s+/g,'-')
+    .replace(/-+/g,'-')
+    + '-' + Date.now().toString(36);
+}
+
+// ── GET /api/worlds — list worlds ──
+app.get('/api/worlds', async (req, res) => {
+  try {
+    const { featured, sort, type, search, limit=12, page=1 } = req.query;
+    let q = supabase.from('vw_worlds').select('*').eq('status','active');
+    if (featured === 'true') q = q.eq('is_featured', true);
+    if (type) q = q.eq('type', type);
+    if (search) q = q.ilike('name', `%${search}%`);
+    if (sort === 'new') q = q.order('created_at', { ascending: false });
+    else q = q.order('members_count', { ascending: false });
+    q = q.range((page-1)*limit, page*limit-1);
+    const { data, error } = await q;
+    if (error) return res.json({ worlds: [] });
+    res.json({ worlds: data || [] });
+  } catch(e) { res.json({ worlds: [] }); }
+});
+
+// ── GET /api/worlds/stats ──
+app.get('/api/worlds/stats', async (req, res) => {
+  try {
+    const [wR, mR, pR, eR] = await Promise.all([
+      supabase.from('vw_worlds').select('id', { count: 'exact', head: true }),
+      supabase.from('vw_world_members').select('id', { count: 'exact', head: true }),
+      supabase.from('vw_world_posts').select('id', { count: 'exact', head: true }),
+      supabase.from('vw_world_events').select('id', { count: 'exact', head: true })
+    ]);
+    res.json({ stats: { worlds: wR.count||0, members: mR.count||0, posts: pR.count||0, events: eR.count||0 } });
+  } catch(e) { res.json({ stats: { worlds:0, members:0, posts:0, events:0 } }); }
+});
+
+// ── GET /api/worlds/leaderboard ──
+app.get('/api/worlds/leaderboard', async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_worlds').select('*').eq('status','active').order('members_count',{ascending:false}).limit(20);
+    res.json({ worlds: data||[] });
+  } catch(e) { res.json({ worlds:[] }); }
+});
+
+// ── GET /api/worlds/mine ──
+app.get('/api/worlds/mine', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_worlds').select('*').eq('owner_id', req.user.id).order('created_at',{ascending:false});
+    res.json({ worlds: data||[] });
+  } catch(e) { res.json({ worlds:[] }); }
+});
+
+// ── GET /api/worlds/joined ──
+app.get('/api/worlds/joined', auth, async (req, res) => {
+  try {
+    const { data: memberships } = await supabase.from('vw_world_members').select('world_id').eq('user_id', req.user.id);
+    if (!memberships?.length) return res.json({ worlds:[] });
+    const ids = memberships.map(m=>m.world_id);
+    const { data } = await supabase.from('vw_worlds').select('*').in('id', ids).order('created_at',{ascending:false});
+    res.json({ worlds: data||[] });
+  } catch(e) { res.json({ worlds:[] }); }
+});
+
+// ── POST /api/worlds — create world ──
+app.post('/api/worlds', auth, async (req, res) => {
+  try {
+    const { name, description, type='community', privacy='public', theme='default', tags=[], cover_image } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên thế giới' });
+    const slug = slugify(name);
+    const { data: world, error } = await supabase.from('vw_worlds').insert({
+      owner_id: req.user.id, name: name.trim(), slug, description, type, privacy, theme, tags, cover_image, members_count: 1
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    // Auto-add owner as member with owner role
+    await supabase.from('vw_world_members').insert({ world_id: world.id, user_id: req.user.id, role: 'owner' });
+    res.json({ world });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/worlds/:id — world detail ──
+app.get('/api/worlds/:id', async (req, res) => {
+  try {
+    const { data: world, error } = await supabase.from('vw_worlds').select('*').eq('id', req.params.id).single();
+    if (error || !world) return res.status(404).json({ error: 'Không tìm thấy thế giới' });
+    // Check membership
+    let is_member = false;
+    const token = req.headers.authorization?.replace('Bearer ','');
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const { data: mem } = await supabase.from('vw_world_members').select('id').eq('world_id', req.params.id).eq('user_id', decoded.id).single();
+        is_member = !!mem;
+      } catch {}
+    }
+    res.json({ world, is_member });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/worlds/:id ──
+app.patch('/api/worlds/:id', auth, async (req, res) => {
+  try {
+    const { data: world } = await supabase.from('vw_worlds').select('owner_id').eq('id', req.params.id).single();
+    if (!world || world.owner_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    const { name, description, cover_image, theme, privacy, tags, rules } = req.body;
+    const { data, error } = await supabase.from('vw_worlds').update({ name, description, cover_image, theme, privacy, tags, rules }).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ world: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/worlds/:id/join ──
+app.post('/api/worlds/:id/join', auth, async (req, res) => {
+  try {
+    const { data: world } = await supabase.from('vw_worlds').select('id,members_count,privacy').eq('id', req.params.id).single();
+    if (!world) return res.status(404).json({ error: 'Không tìm thấy thế giới' });
+    const { error } = await supabase.from('vw_world_members').insert({ world_id: req.params.id, user_id: req.user.id, role: 'member' });
+    if (error && error.code !== '23505') return res.status(400).json({ error: error.message });
+    await supabase.from('vw_worlds').update({ members_count: (world.members_count||0)+1 }).eq('id', req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── DELETE /api/worlds/:id/leave ──
+app.delete('/api/worlds/:id/leave', auth, async (req, res) => {
+  try {
+    const { data: world } = await supabase.from('vw_worlds').select('members_count').eq('id', req.params.id).single();
+    await supabase.from('vw_world_members').delete().eq('world_id', req.params.id).eq('user_id', req.user.id);
+    if (world) await supabase.from('vw_worlds').update({ members_count: Math.max(0,(world.members_count||1)-1) }).eq('id', req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/worlds/:id/members ──
+app.get('/api/worlds/:id/members', async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_world_members').select('*, users(name, avatar)').eq('world_id', req.params.id).order('joined_at',{ascending:true});
+    const members = (data||[]).map(m=>({ ...m, user_name: m.users?.name, user_avatar: m.users?.avatar }));
+    res.json({ members });
+  } catch(e) { res.json({ members:[] }); }
+});
+
+// ── GET /api/worlds/:id/posts ──
+app.get('/api/worlds/:id/posts', async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_world_posts').select('*, users(name)').eq('world_id', req.params.id).order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(30);
+    const posts = (data||[]).map(p=>({ ...p, author_name: p.users?.name }));
+    res.json({ posts });
+  } catch(e) { res.json({ posts:[] }); }
+});
+
+// ── POST /api/worlds/:id/posts ──
+app.post('/api/worlds/:id/posts', auth, async (req, res) => {
+  try {
+    const { content, type='post', image_url } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Nhập nội dung' });
+    // Check membership or ownership
+    const { data: mem } = await supabase.from('vw_world_members').select('id').eq('world_id', req.params.id).eq('user_id', req.user.id).single();
+    const { data: world } = await supabase.from('vw_worlds').select('owner_id').eq('id', req.params.id).single();
+    if (!mem && world?.owner_id !== req.user.id) return res.status(403).json({ error: 'Tham gia thế giới để đăng bài' });
+    const { data: post, error } = await supabase.from('vw_world_posts').insert({ world_id: req.params.id, author_id: req.user.id, content: content.trim(), type, image_url }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    await supabase.from('vw_worlds').update({ posts_count: supabase.rpc ? undefined : undefined }).eq('id', req.params.id);
+    // Increment posts_count
+    const { data: w } = await supabase.from('vw_worlds').select('posts_count').eq('id', req.params.id).single();
+    await supabase.from('vw_worlds').update({ posts_count: (w?.posts_count||0)+1 }).eq('id', req.params.id);
+    res.json({ post });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/worlds/posts/:pid/like ──
+app.post('/api/worlds/posts/:pid/like', auth, async (req, res) => {
+  try {
+    const { data: existing } = await supabase.from('vw_world_post_likes').select('id').eq('post_id', req.params.pid).eq('user_id', req.user.id).single();
+    const { data: post } = await supabase.from('vw_world_posts').select('likes_count').eq('id', req.params.pid).single();
+    if (existing) {
+      await supabase.from('vw_world_post_likes').delete().eq('post_id', req.params.pid).eq('user_id', req.user.id);
+      const newCount = Math.max(0,(post?.likes_count||1)-1);
+      await supabase.from('vw_world_posts').update({ likes_count: newCount }).eq('id', req.params.pid);
+      return res.json({ liked: false, likes_count: newCount });
+    } else {
+      await supabase.from('vw_world_post_likes').insert({ post_id: req.params.pid, user_id: req.user.id });
+      const newCount = (post?.likes_count||0)+1;
+      await supabase.from('vw_world_posts').update({ likes_count: newCount }).eq('id', req.params.pid);
+      return res.json({ liked: true, likes_count: newCount });
+    }
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/worlds/:id/events ──
+app.get('/api/worlds/:id/events', async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_world_events').select('*, users(name)').eq('world_id', req.params.id).order('start_at',{ascending:true});
+    res.json({ events: data||[] });
+  } catch(e) { res.json({ events:[] }); }
+});
+
+// ── POST /api/worlds/:id/events ──
+app.post('/api/worlds/:id/events', auth, async (req, res) => {
+  try {
+    const { title, description, type='meetup', location='Online', start_at, end_at, max_attendees=100 } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Nhập tiêu đề sự kiện' });
+    const { data: event, error } = await supabase.from('vw_world_events').insert({ world_id: req.params.id, organizer_id: req.user.id, title: title.trim(), description, type, location, start_at, end_at, max_attendees }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    const { data: w } = await supabase.from('vw_worlds').select('events_count').eq('id', req.params.id).single();
+    await supabase.from('vw_worlds').update({ events_count: (w?.events_count||0)+1 }).eq('id', req.params.id);
+    res.json({ event });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/worlds/events/:eid/join ──
+app.post('/api/worlds/events/:eid/join', auth, async (req, res) => {
+  try {
+    const { data: ev } = await supabase.from('vw_world_events').select('attendees_count,max_attendees').eq('id', req.params.eid).single();
+    if (!ev) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+    if ((ev.attendees_count||0) >= (ev.max_attendees||100)) return res.status(400).json({ error: 'Sự kiện đã đầy' });
+    const { error } = await supabase.from('vw_world_event_attendees').insert({ event_id: req.params.eid, user_id: req.user.id });
+    if (error && error.code !== '23505') return res.status(400).json({ error: 'Đã đăng ký sự kiện này' });
+    await supabase.from('vw_world_events').update({ attendees_count: (ev.attendees_count||0)+1 }).eq('id', req.params.eid);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/worlds/:id/listings ──
+app.get('/api/worlds/:id/listings', async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_world_listings').select('*, users(name)').eq('world_id', req.params.id).eq('status','active').order('created_at',{ascending:false});
+    res.json({ listings: data||[] });
+  } catch(e) { res.json({ listings:[] }); }
+});
+
+// ── POST /api/worlds/:id/listings ──
+app.post('/api/worlds/:id/listings', auth, async (req, res) => {
+  try {
+    const { title, description, price=0, category='other', image_url } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Nhập tên sản phẩm' });
+    const { data: listing, error } = await supabase.from('vw_world_listings').insert({ world_id: req.params.id, seller_id: req.user.id, title: title.trim(), description, price, category, image_url }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    const { data: w } = await supabase.from('vw_worlds').select('listings_count').eq('id', req.params.id).single();
+    await supabase.from('vw_worlds').update({ listings_count: (w?.listings_count||0)+1 }).eq('id', req.params.id);
+    res.json({ listing });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/worlds/:id/chat ──
+app.get('/api/worlds/:id/chat', async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_world_chat').select('*, users(name)').eq('world_id', req.params.id).order('created_at',{ascending:true}).limit(100);
+    const messages = (data||[]).map(m=>({ ...m, sender_name: m.users?.name }));
+    res.json({ messages });
+  } catch(e) { res.json({ messages:[] }); }
+});
+
+// ── POST /api/worlds/:id/chat ──
+app.post('/api/worlds/:id/chat', auth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Nhập tin nhắn' });
+    const { data, error } = await supabase.from('vw_world_chat').insert({ world_id: req.params.id, sender_id: req.user.id, content: content.trim() }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ message: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/worlds/:id/stats ──
+app.get('/api/worlds/:id/stats', async (req, res) => {
+  try {
+    const { data: world } = await supabase.from('vw_worlds').select('*, users(name)').eq('id', req.params.id).single();
+    if (!world) return res.status(404).json({ error: 'Không tìm thấy' });
+    const [chatR, postsR] = await Promise.all([
+      supabase.from('vw_world_chat').select('id',{count:'exact',head:true}).eq('world_id', req.params.id),
+      supabase.from('vw_world_posts').select('*, users(name)').eq('world_id', req.params.id).order('created_at',{ascending:false}).limit(5)
+    ]);
+    res.json({
+      stats: { members: world.members_count||0, posts: world.posts_count||0, events: world.events_count||0, listings: world.listings_count||0, chat_msgs: chatR.count||0, owner_name: world.users?.name },
+      recent_posts: postsR.data?.map(p=>({...p, author_name:p.users?.name}))||[]
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: GET /api/admin/worlds ──
+app.get('/api/admin/worlds', adminAuth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('vw_worlds').select('*, users(name)').order('created_at',{ascending:false}).limit(100);
+    res.json({ worlds: data||[] });
+  } catch(e) { res.json({ worlds:[] }); }
+});
+
+// ── ADMIN: PATCH /api/admin/worlds/:id ──
+app.patch('/api/admin/worlds/:id', adminAuth, async (req, res) => {
+  try {
+    const { is_featured, is_verified, status } = req.body;
+    const { data, error } = await supabase.from('vw_worlds').update({ is_featured, is_verified, status }).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ world: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
