@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>XR Social Network — SafePass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050608;--bg2:#0a0c12;--bg3:#10131e;--bg4:#161a28;
+  --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.08);--glass3:rgba(255,255,255,.12);
+  --brand:#7c6dfa;--brand2:#a78bfa;--accent:#00e5ff;--accent2:#ff6b9d;--accent3:#39ff14;
+  --green:#10f08a;--yellow:#fbbf24;--red:#ff4d6d;--orange:#ff8c42;
+  --text:#f0f2ff;--text2:#9ba8cc;--text3:#4a5270;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --radius:16px;--shadow:0 8px 40px rgba(0,0,0,.6);
+  --glow-brand:0 0 40px rgba(124,109,250,.3);
+  --glow-accent:0 0 40px rgba(0,229,255,.2);
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input,textarea,select{font-family:inherit;outline:none;border:none;background:none;color:inherit}
+
+/* ── PARTICLE BG ── */
+#xr-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.particle{position:absolute;border-radius:50%;animation:float linear infinite;opacity:0}
+@keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:1}90%{opacity:.3}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+
+/* ── TOP NAV ── */
+.topnav{position:sticky;top:0;z-index:200;background:rgba(5,6,8,.85);backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 20px;height:62px}
+.topnav-logo{font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.xr-badge{font-size:11px;font-weight:800;background:linear-gradient(135deg,var(--brand),var(--accent2));color:#fff;-webkit-text-fill-color:#fff;padding:3px 8px;border-radius:20px;margin-left:4px}
+.topnav-modes{display:flex;gap:4px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:30px;padding:4px}
+.mode-btn{padding:6px 16px;border-radius:24px;font-size:13px;font-weight:700;color:var(--text2);transition:.25s;white-space:nowrap}
+.mode-btn.active{background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;box-shadow:var(--glow-brand)}
+.mode-btn:hover:not(.active){color:var(--text);background:var(--glass2)}
+.topnav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:12px;font-size:14px;font-weight:700;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-xr{background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;box-shadow:var(--glow-brand)}
+.btn-xr:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 0 60px rgba(124,109,250,.5)}
+.btn-glass{background:var(--glass2);color:var(--text2);border:1px solid var(--border);backdrop-filter:blur(12px)}
+.btn-glass:hover{background:var(--glass3);color:var(--text);border-color:var(--border2)}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:10px}
+.avatar-orb{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;cursor:pointer;box-shadow:0 0 16px rgba(124,109,250,.4);border:2px solid rgba(255,255,255,.15)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1;max-width:1440px;margin:0 auto;width:100%;padding:20px;gap:20px;position:relative;z-index:1}
+
+/* ── LEFT SIDEBAR ── */
+.lsb{width:210px;flex-shrink:0}
+.lsb-section{margin-bottom:24px}
+.lsb-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:10px;padding:0 10px}
+.lsb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:.15s;margin-bottom:2px;border:1px solid transparent}
+.lsb-item:hover{background:var(--glass2);color:var(--text);border-color:var(--border)}
+.lsb-item.active{background:linear-gradient(135deg,rgba(124,109,250,.15),rgba(0,229,255,.08));color:var(--brand);border-color:rgba(124,109,250,.3)}
+.lsb-item .li-icon{font-size:18px;width:26px;text-align:center}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);margin-left:auto;box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0}
+
+/* ── GLASS CARD ── */
+.glass-card{background:var(--glass);backdrop-filter:blur(20px) saturate(180%);border:1px solid var(--border);border-radius:20px;transition:.2s}
+.glass-card:hover{border-color:var(--border2)}
+
+/* ── XR HERO ── */
+.xr-hero{position:relative;overflow:hidden;border-radius:24px;padding:48px 40px;margin-bottom:24px;background:linear-gradient(135deg,#0d0a1f 0%,#0a0d2a 40%,#0a1a1a 100%);border:1px solid rgba(124,109,250,.2)}
+.xr-hero::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(124,109,250,.2) 0%,transparent 65%);pointer-events:none}
+.xr-hero::after{content:'';position:absolute;bottom:-80px;left:-80px;width:320px;height:320px;background:radial-gradient(circle,rgba(0,229,255,.12) 0%,transparent 65%);pointer-events:none}
+.xr-hero-grid{display:grid;grid-template-columns:1fr 280px;gap:40px;align-items:center;position:relative;z-index:1}
+.xr-hero-text h1{font-size:38px;font-weight:900;line-height:1.1;margin-bottom:14px}
+.xr-hero-text h1 span{background:linear-gradient(135deg,var(--brand2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.xr-hero-text p{font-size:16px;color:var(--text2);line-height:1.7;margin-bottom:28px;max-width:480px}
+.xr-stats-row{display:flex;gap:28px;margin-bottom:28px}
+.xr-stat{text-align:center}
+.xr-stat .val{font-size:22px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.xr-stat .lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.xr-hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.xr-hero-visual{position:relative;height:200px;display:flex;align-items:center;justify-content:center}
+.avatar-3d{width:140px;height:140px;position:relative}
+.avatar-3d .body{width:80px;height:100px;background:linear-gradient(180deg,var(--brand),var(--brand2));border-radius:40px 40px 30px 30px;margin:0 auto;position:relative;box-shadow:0 0 40px rgba(124,109,250,.5);animation:hover3d 3s ease-in-out infinite}
+.avatar-3d .head{width:52px;height:52px;background:linear-gradient(135deg,#f5c5a3,#e8a882);border-radius:50%;margin:0 auto -8px;position:relative;z-index:2;box-shadow:0 0 20px rgba(245,197,163,.3)}
+.avatar-3d .halo{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:80px;height:12px;border-radius:50%;background:transparent;border:2px solid rgba(124,109,250,.6);box-shadow:0 0 20px rgba(124,109,250,.5);animation:rotate 4s linear infinite}
+.avatar-3d .orbit{position:absolute;inset:-20px;border-radius:50%;border:1px solid rgba(0,229,255,.2);animation:rotate 6s linear infinite reverse}
+@keyframes hover3d{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes rotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.floating-badge{position:absolute;background:var(--glass2);backdrop-filter:blur(12px);border:1px solid var(--border2);border-radius:12px;padding:8px 14px;font-size:12px;font-weight:700;white-space:nowrap}
+.fb1{top:10px;left:0;color:var(--accent);border-color:rgba(0,229,255,.3)}
+.fb2{bottom:20px;right:0;color:var(--accent2);border-color:rgba(255,107,157,.3)}
+.fb3{top:60px;right:-10px;color:var(--green);border-color:rgba(57,255,20,.2)}
+
+/* ── SECTION HEADER ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sh h2{font-size:20px;font-weight:800}
+.sh p{font-size:12px;color:var(--text3);margin-top:2px}
+.sh .see-all{font-size:13px;color:var(--brand);cursor:pointer;font-weight:600}
+.sh .see-all:hover{text-decoration:underline}
+
+/* ── SPACE CARDS ── */
+.spaces-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px}
+.space-card{border-radius:20px;overflow:hidden;cursor:pointer;transition:.25s;position:relative;background:var(--bg3);border:1px solid var(--border)}
+.space-card:hover{transform:translateY(-4px);border-color:rgba(124,109,250,.4);box-shadow:0 12px 48px rgba(124,109,250,.2)}
+.sc-visual{height:140px;position:relative;overflow:hidden}
+.sc-visual canvas{width:100%;height:100%}
+.sc-theme-cosmos{background:linear-gradient(135deg,#0a0514 0%,#1a0a3a 50%,#0a1a2a 100%)}
+.sc-theme-aurora{background:linear-gradient(135deg,#001a0a 0%,#0a2a1a 50%,#001a2a 100%)}
+.sc-theme-neon{background:linear-gradient(135deg,#1a0014 0%,#2a0028 50%,#0a001a 100%)}
+.sc-theme-corporate{background:linear-gradient(135deg,#0a0e1a 0%,#1a1e2a 50%,#0e121a 100%)}
+.sc-theme-nature{background:linear-gradient(135deg,#041a08 0%,#0a2a0e 50%,#041a12 100%)}
+.sc-theme-luxury{background:linear-gradient(135deg,#1a0e00 0%,#2a1a00 50%,#1a0e00 100%)}
+.sc-theme-space{background:linear-gradient(135deg,#000814 0%,#001428 50%,#000814 100%)}
+.sc-visual-emoji{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:60px;opacity:.4}
+.sc-visual-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,rgba(124,109,250,.3) 0%,transparent 60%)}
+.sc-badges{position:absolute;top:10px;left:10px;display:flex;gap:6px}
+.sc-badge{font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;backdrop-filter:blur(8px)}
+.scb-featured{background:rgba(251,191,36,.15);color:var(--yellow);border:1px solid rgba(251,191,36,.3)}
+.scb-live{background:rgba(255,77,109,.15);color:#ff6b6b;border:1px solid rgba(255,77,109,.3);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.sc-visitors{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text2);border:1px solid var(--border)}
+.sc-body{padding:14px}
+.sc-name{font-size:15px;font-weight:800;margin-bottom:6px}
+.sc-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sc-footer{display:flex;align-items:center;gap:8px}
+.sc-type-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+.sct-concert{background:rgba(255,107,157,.12);color:var(--accent2)}
+.sct-gaming{background:rgba(57,255,20,.1);color:var(--accent3)}
+.sct-office{background:rgba(124,109,250,.12);color:var(--brand)}
+.sct-social{background:rgba(0,229,255,.1);color:var(--accent)}
+.sct-marketplace{background:rgba(251,191,36,.1);color:var(--yellow)}
+.sct-education{background:rgba(16,240,138,.1);color:var(--green)}
+.sc-enter-btn{margin-left:auto;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;transition:.2s}
+.sc-enter-btn:hover{box-shadow:0 0 20px rgba(124,109,250,.5)}
+
+/* ── EVENT CARDS ── */
+.events-scroll{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;margin-bottom:28px;-webkit-overflow-scrolling:touch}
+.events-scroll::-webkit-scrollbar{height:4px}
+.events-scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.event-card-xr{min-width:260px;border-radius:20px;overflow:hidden;cursor:pointer;border:1px solid var(--border);background:var(--bg3);transition:.25s}
+.event-card-xr:hover{border-color:rgba(124,109,250,.4);transform:translateY(-3px);box-shadow:0 8px 40px rgba(124,109,250,.15)}
+.ecx-cover{height:120px;display:flex;align-items:center;justify-content:center;font-size:52px;position:relative}
+.ecx-cover-glow{position:absolute;inset:0;opacity:.6}
+.ecx-body{padding:14px}
+.ecx-title{font-size:14px;font-weight:800;margin-bottom:6px}
+.ecx-meta{font-size:11px;color:var(--text3);display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.ecx-footer{display:flex;align-items:center;justify-content:space-between}
+.ecx-attendees{font-size:11px;color:var(--text3)}
+.ecx-join-btn{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff}
+
+/* ── AVATAR BUILDER ── */
+.avatar-builder{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
+.ab-preview{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:20px;text-align:center;position:relative}
+.ab-avatar-display{width:120px;height:160px;margin:0 auto 16px;position:relative}
+.ab-head{width:60px;height:60px;border-radius:50%;margin:0 auto;border:3px solid rgba(255,255,255,.1);transition:.3s}
+.ab-body-suit{width:76px;height:90px;border-radius:38px 38px 20px 20px;margin:4px auto 0;transition:.3s}
+.ab-halo{width:76px;height:10px;border-radius:50%;border:2px solid rgba(124,109,250,.6);margin:0 auto -14px;box-shadow:0 0 16px rgba(124,109,250,.5);animation:rotate 4s linear infinite}
+.ab-xp{font-size:12px;color:var(--text3);margin-bottom:4px}
+.ab-level{font-size:20px;font-weight:900;color:var(--brand)}
+.ab-level-label{font-size:11px;color:var(--text3)}
+.ab-options{display:flex;flex-direction:column;gap:16px}
+.ab-group label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.ab-swatches{display:flex;gap:8px;flex-wrap:wrap}
+.ab-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s}
+.ab-swatch.active,.ab-swatch:hover{border-color:#fff;transform:scale(1.15)}
+.ab-chips{display:flex;gap:6px;flex-wrap:wrap}
+.ab-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--glass);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:.15s}
+.ab-chip.active,.ab-chip:hover{background:rgba(124,109,250,.15);border-color:rgba(124,109,250,.4);color:var(--brand)}
+.ab-select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-size:13px}
+
+/* ── AI ASSISTANT ── */
+.ai-panel-xr{background:linear-gradient(135deg,rgba(124,109,250,.08),rgba(0,229,255,.04));border:1px solid rgba(124,109,250,.2);border-radius:20px;padding:20px;margin-bottom:24px}
+.ai-panel-xr h3{font-size:15px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ai-orb{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 20px rgba(124,109,250,.4);animation:ai-pulse 2s infinite}
+@keyframes ai-pulse{0%,100%{box-shadow:0 0 20px rgba(124,109,250,.4)}50%{box-shadow:0 0 40px rgba(124,109,250,.7)}}
+.ai-chips{display:flex;gap:8px;flex-wrap:wrap}
+.ai-chip-xr{padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;background:var(--glass2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:.2s}
+.ai-chip-xr:hover{background:rgba(124,109,250,.15);border-color:rgba(124,109,250,.4);color:var(--text)}
+
+/* ── DEVICE CENTER ── */
+.device-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.device-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center;cursor:pointer;transition:.2s;border:1px solid var(--border)}
+.device-card:hover{border-color:rgba(124,109,250,.4);background:var(--glass2)}
+.device-card.connected{border-color:rgba(16,240,138,.4);background:rgba(16,240,138,.05)}
+.dc-icon{font-size:32px;margin-bottom:10px}
+.dc-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.dc-status{font-size:11px;color:var(--text3)}
+.dc-status.online{color:var(--green)}
+.dc-connect-btn{margin-top:10px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;background:var(--glass2);border:1px solid var(--border);color:var(--text2);transition:.2s}
+.dc-connect-btn:hover,.dc-connect-btn.connected{background:rgba(124,109,250,.2);border-color:rgba(124,109,250,.5);color:var(--brand)}
+
+/* ── ANALYTICS ── */
+.analytics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.analytics-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center}
+.analytics-card .val{font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.analytics-card .lbl{font-size:11px;color:var(--text3);margin-top:4px}
+.analytics-card .trend{font-size:11px;margin-top:6px;color:var(--green)}
+
+/* ── CREATOR ROOMS ── */
+.creator-rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.cr-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:.2s}
+.cr-card:hover{border-color:rgba(124,109,250,.4);transform:translateY(-2px)}
+.cr-icon{font-size:28px;margin-bottom:10px}
+.cr-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.cr-meta{font-size:12px;color:var(--text3)}
+
+/* ── LEADERBOARD ── */
+.lb-xr-list{display:flex;flex-direction:column;gap:10px}
+.lb-xr-item{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.2s}
+.lb-xr-item:hover{border-color:rgba(124,109,250,.3);background:var(--glass2)}
+.lb-xr-rank{font-size:18px;font-weight:900;width:28px;color:var(--text3)}
+.lb-xr-rank.g1{color:#fbbf24}
+.lb-xr-rank.g2{color:#9ca3af}
+.lb-xr-rank.g3{color:#cd7f32}
+.lb-xr-name{flex:1;font-size:14px;font-weight:700}
+.lb-xr-meta{font-size:12px;color:var(--text3)}
+.lb-xr-val{font-size:16px;font-weight:900;color:var(--accent)}
+
+/* ── CREATE SPACE MODAL ── */
+.modal-xr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-xr{background:var(--bg2);border:1px solid var(--border2);border-radius:24px;padding:32px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-xr h2{font-size:22px;font-weight:900;margin-bottom:22px;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal-close-xr{float:right;background:none;color:var(--text3);font-size:24px;cursor:pointer;-webkit-text-fill-color:var(--text3)}
+.form-group-xr{margin-bottom:18px}
+.form-group-xr label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.form-ctrl-xr{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:14px;transition:.2s}
+.form-ctrl-xr:focus{border-color:var(--brand);background:var(--bg4)}
+.form-ctrl-xr::placeholder{color:var(--text3)}
+textarea.form-ctrl-xr{resize:none;min-height:80px}
+.form-row-xr{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.theme-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.theme-opt{height:44px;border-radius:12px;cursor:pointer;border:2px solid transparent;transition:.2s;position:relative;overflow:hidden}
+.theme-opt.active,.theme-opt:hover{border-color:var(--brand);transform:scale(1.04)}
+.theme-opt label{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;color:rgba(255,255,255,.8);white-space:nowrap;pointer-events:none}
+.modal-footer-xr{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+
+/* ── SPACE DETAIL ── */
+.space-detail-header{border-radius:20px;overflow:hidden;margin-bottom:20px;position:relative;height:200px;display:flex;align-items:flex-end}
+.sdh-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(5,6,8,.95) 0%,transparent 60%)}
+.sdh-content{position:relative;padding:20px;width:100%}
+.sdh-name{font-size:26px;font-weight:900;margin-bottom:6px}
+.sdh-meta{font-size:13px;color:var(--text2);display:flex;gap:16px;align-items:center}
+.sdh-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.sdh-tab{padding:12px 20px;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.sdh-tab:hover{color:var(--text)}
+.sdh-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── XR VIEWER ── */
+.xr-viewer{background:linear-gradient(135deg,#050a1a,#0a0514,#051a0a);border:1px solid rgba(124,109,250,.2);border-radius:20px;height:420px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:16px}
+.xr-viewer-canvas{width:100%;height:100%}
+.xr-viewer-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.xr-viewer-icon{font-size:72px;animation:hover3d 3s ease-in-out infinite}
+.xr-viewer-label{font-size:16px;font-weight:700;color:var(--text2)}
+.xr-viewer-btn{padding:12px 28px;border-radius:20px;font-size:15px;font-weight:800;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;box-shadow:var(--glow-brand);animation:glow-pulse 2s infinite}
+@keyframes glow-pulse{0%,100%{box-shadow:var(--glow-brand)}50%{box-shadow:0 0 80px rgba(124,109,250,.5)}}
+.xr-avatar-crowd{position:absolute;bottom:20px;left:0;right:0;display:flex;justify-content:center;gap:-8px}
+.crowd-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--bg);background:linear-gradient(135deg,var(--brand),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;margin-left:-8px}
+
+/* ── TABS ── */
+.tabs-xr{display:flex;gap:4px;background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:4px;margin-bottom:20px}
+.tab-xr{flex:1;padding:9px;border-radius:13px;font-size:13px;font-weight:700;color:var(--text2);text-align:center;cursor:pointer;transition:.2s}
+.tab-xr.active{background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;box-shadow:var(--glow-brand)}
+.tab-xr:hover:not(.active){background:var(--glass2);color:var(--text)}
+
+/* ── TOAST ── */
+.toast-xr-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast-xr{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px 20px;font-size:14px;font-weight:700;animation:slide-up .3s ease;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);backdrop-filter:blur(12px)}
+.toast-xr.success{border-color:rgba(16,240,138,.4);color:var(--green)}
+.toast-xr.error{border-color:rgba(255,77,109,.4);color:var(--red)}
+.toast-xr.info{border-color:rgba(124,109,250,.4);color:var(--brand)}
+@keyframes slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* ── EMPTY STATE ── */
+.empty-xr{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-xr .ei{font-size:56px;margin-bottom:14px;filter:grayscale(.5)}
+.empty-xr h3{font-size:16px;font-weight:700;color:var(--text2);margin-bottom:6px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){.lsb{display:none}.xr-hero-grid{grid-template-columns:1fr}.xr-hero-visual{display:none}}
+@media(max-width:640px){.xr-hero{padding:28px 20px}.xr-hero-text h1{font-size:26px}.spaces-grid{grid-template-columns:1fr}.avatar-builder{grid-template-columns:1fr}.tabs-xr .tab-xr{font-size:11px;padding:8px 6px}}
+</style>
+</head>
+<body>
+
+<!-- PARTICLE BACKGROUND -->
+<div id="xr-bg"></div>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-logo">
+    <span>⬡</span> SafePass XR
+    <span class="xr-badge">BETA</span>
+  </div>
+  <div class="topnav-modes">
+    <div class="mode-btn active" id="mode-classic" onclick="setMode('classic',this)">🖥️ Classic</div>
+    <div class="mode-btn" id="mode-spatial" onclick="setMode('spatial',this)">🌐 Spatial</div>
+    <div class="mode-btn" id="mode-xr" onclick="setMode('xr',this)">🥽 XR Mode</div>
+  </div>
+  <div class="topnav-right">
+    <button class="btn btn-glass btn-sm" onclick="showCreateSpaceModal()">＋ Tạo Space</button>
+    <button class="btn btn-xr btn-sm" onclick="enterXR()">🥽 Vào XR</button>
+    <div class="avatar-orb" id="userOrb" onclick="showView('avatar')">U</div>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="lsb">
+    <div class="lsb-section">
+      <div class="lsb-title">Khám phá</div>
+      <div class="lsb-item active" id="sb-discover" onclick="showView('discover')"><span class="li-icon">🌌</span>XR Discovery</div>
+      <div class="lsb-item" id="sb-spaces" onclick="showView('spaces')"><span class="li-icon">🏛️</span>XR Spaces</div>
+      <div class="lsb-item" id="sb-events" onclick="showView('events')"><span class="li-icon">🎪</span>XR Events</div>
+      <div class="lsb-item" id="sb-leaderboard" onclick="showView('leaderboard')"><span class="li-icon">🏆</span>Leaderboard</div>
+    </div>
+    <div class="lsb-section">
+      <div class="lsb-title">Của tôi</div>
+      <div class="lsb-item" id="sb-avatar" onclick="showView('avatar')"><span class="li-icon">🧬</span>Avatar<div class="online-dot"></div></div>
+      <div class="lsb-item" id="sb-myspaces" onclick="showView('myspaces')"><span class="li-icon">🏠</span>My Spaces</div>
+      <div class="lsb-item" id="sb-creator" onclick="showView('creator')"><span class="li-icon">🎨</span>Creator Room</div>
+      <div class="lsb-item" id="sb-devices" onclick="showView('devices')"><span class="li-icon">📱</span>Devices</div>
+    </div>
+    <div class="lsb-section">
+      <div class="lsb-title">Thể loại</div>
+      <div class="lsb-item" onclick="filterSpaceType('social')"><span class="li-icon">👥</span>Social</div>
+      <div class="lsb-item" onclick="filterSpaceType('gaming')"><span class="li-icon">🎮</span>Gaming</div>
+      <div class="lsb-item" onclick="filterSpaceType('concert')"><span class="li-icon">🎵</span>Concert</div>
+      <div class="lsb-item" onclick="filterSpaceType('office')"><span class="li-icon">🏢</span>Business</div>
+      <div class="lsb-item" onclick="filterSpaceType('marketplace')"><span class="li-icon">🛍️</span>Marketplace</div>
+    </div>
+    <div class="lsb-section">
+      <div class="lsb-item" onclick="window.location.href='/'"><span class="li-icon">🏠</span>Về trang chủ</div>
+      <div class="lsb-item" onclick="window.location.href='/worlds'"><span class="li-icon">🌐</span>Worlds</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DISCOVER VIEW -->
+    <div id="view-discover" class="xr-view">
+
+      <!-- HERO -->
+      <div class="xr-hero">
+        <div class="xr-hero-grid">
+          <div class="xr-hero-text">
+            <h1>Mạng xã hội <span>XR thế hệ mới</span></h1>
+            <p>Trải nghiệm không gian ảo, kết nối bạn bè qua avatar 3D, khám phá XR Spaces và tham gia sự kiện immersive — tất cả ngay trên trình duyệt.</p>
+            <div class="xr-stats-row">
+              <div class="xr-stat"><div class="val" id="stat-spaces">—</div><div class="lbl">XR Spaces</div></div>
+              <div class="xr-stat"><div class="val" id="stat-visits">—</div><div class="lbl">Lượt ghé thăm</div></div>
+              <div class="xr-stat"><div class="val" id="stat-events">—</div><div class="lbl">Sự kiện</div></div>
+              <div class="xr-stat"><div class="val" id="stat-avatars">—</div><div class="lbl">Avatars</div></div>
+            </div>
+            <div class="xr-hero-actions">
+              <button class="btn btn-xr" onclick="enterXR()">🥽 Vào XR ngay</button>
+              <button class="btn btn-glass" onclick="showView('avatar')">🧬 Tùy chỉnh Avatar</button>
+              <button class="btn btn-glass" onclick="showCreateSpaceModal()">＋ Tạo Space</button>
+            </div>
+          </div>
+          <div class="xr-hero-visual">
+            <div class="avatar-3d">
+              <div class="ab-halo"></div>
+              <div class="ab-head" id="heroHead" style="background:linear-gradient(135deg,#f5c5a3,#e8a882)"></div>
+              <div class="ab-body-suit" id="heroBody" style="background:linear-gradient(180deg,#7c6dfa,#a78bfa)"></div>
+              <div class="orbit"></div>
+            </div>
+            <div class="floating-badge fb1">🥽 WebXR Ready</div>
+            <div class="floating-badge fb2">🧬 Avatar 3D</div>
+            <div class="floating-badge fb3">✓ Spatial Audio</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI ASSISTANT -->
+      <div class="ai-panel-xr">
+        <h3><div class="ai-orb">🤖</div> Spatial AI Assistant — Gợi ý cho bạn</h3>
+        <div class="ai-chips">
+          <div class="ai-chip-xr" onclick="filterSpaceType('gaming')">🎮 Gaming Arena phù hợp với bạn</div>
+          <div class="ai-chip-xr" onclick="showView('events')">🎵 Concert XR tối nay lúc 8PM</div>
+          <div class="ai-chip-xr" onclick="showView('avatar')">🧬 Cập nhật avatar để nổi bật hơn</div>
+          <div class="ai-chip-xr" onclick="showView('creator')">🎨 Tạo Creator Room của riêng bạn</div>
+        </div>
+      </div>
+
+      <!-- FEATURED SPACES -->
+      <div class="sh">
+        <div><h2>⭐ XR Spaces Nổi bật</h2><p>Không gian được đề xuất bởi SafePass XR</p></div>
+        <span class="see-all" onclick="showView('spaces')">Xem tất cả →</span>
+      </div>
+      <div class="spaces-grid" id="featuredSpacesGrid"></div>
+
+      <!-- UPCOMING EVENTS -->
+      <div class="sh">
+        <div><h2>🎪 Sự kiện XR sắp diễn ra</h2><p>Đặt chỗ để không bỏ lỡ</p></div>
+        <span class="see-all" onclick="showView('events')">Xem tất cả →</span>
+      </div>
+      <div class="events-scroll" id="upcomingEventsScroll"></div>
+
+    </div>
+
+    <!-- SPACES VIEW -->
+    <div id="view-spaces" class="xr-view" style="display:none">
+      <div class="sh"><div><h2>🏛️ Tất cả XR Spaces</h2></div>
+        <button class="btn btn-xr btn-sm" onclick="showCreateSpaceModal()">＋ Tạo Space</button>
+      </div>
+      <div class="spaces-grid" id="allSpacesGrid"></div>
+    </div>
+
+    <!-- EVENTS VIEW -->
+    <div id="view-events" class="xr-view" style="display:none">
+      <div class="sh"><div><h2>🎪 XR Events</h2><p>Sự kiện ảo sắp diễn ra</p></div>
+        <button class="btn btn-xr btn-sm" onclick="showCreateEventModal()">＋ Tạo Event</button>
+      </div>
+      <div id="allEventsList" style="display:flex;flex-direction:column;gap:14px"></div>
+    </div>
+
+    <!-- LEADERBOARD VIEW -->
+    <div id="view-leaderboard" class="xr-view" style="display:none">
+      <div class="sh"><div><h2>🏆 XR Leaderboard</h2><p>Top spaces theo lượt ghé thăm</p></div></div>
+      <div class="lb-xr-list" id="leaderboardList"></div>
+    </div>
+
+    <!-- AVATAR VIEW -->
+    <div id="view-avatar" class="xr-view" style="display:none">
+      <div class="sh"><div><h2>🧬 Avatar của tôi</h2><p>Tùy chỉnh diện mạo XR của bạn</p></div>
+        <button class="btn btn-xr btn-sm" onclick="saveAvatar()">💾 Lưu Avatar</button>
+      </div>
+      <div class="avatar-builder" id="avatarBuilder">
+        <!-- Preview -->
+        <div class="ab-preview">
+          <div class="ab-avatar-display">
+            <div class="ab-halo"></div>
+            <div class="ab-head" id="avHead" style="background:linear-gradient(135deg,#f5c5a3,#e8a882)"></div>
+            <div class="ab-body-suit" id="avBody" style="background:linear-gradient(180deg,#7c6dfa,#a78bfa)"></div>
+          </div>
+          <div class="ab-xp">XP: <span id="avXP">0</span></div>
+          <div class="ab-level" id="avLevel">1</div>
+          <div class="ab-level-label">Level</div>
+          <div style="margin-top:12px;font-size:13px;font-weight:700;color:var(--text)" id="avName">Avatar</div>
+        </div>
+        <!-- Options -->
+        <div class="ab-options">
+          <div class="ab-group">
+            <label>Tên hiển thị</label>
+            <input class="form-ctrl-xr" id="avDisplayName" placeholder="Tên trong XR..."/>
+          </div>
+          <div class="ab-group">
+            <label>Màu da</label>
+            <div class="ab-swatches" id="skinSwatches"></div>
+          </div>
+          <div class="ab-group">
+            <label>Kiểu tóc</label>
+            <div class="ab-chips" id="hairChips"></div>
+          </div>
+          <div class="ab-group">
+            <label>Màu tóc</label>
+            <div class="ab-swatches" id="hairColorSwatches"></div>
+          </div>
+          <div class="ab-group">
+            <label>Trang phục</label>
+            <div class="ab-chips" id="outfitChips"></div>
+          </div>
+          <div class="ab-group">
+            <label>Màu trang phục</label>
+            <div class="ab-swatches" id="outfitColorSwatches"></div>
+          </div>
+          <div class="ab-group">
+            <label>Emote chào hỏi</label>
+            <div class="ab-chips" id="emoteChips"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY SPACES VIEW -->
+    <div id="view-myspaces" class="xr-view" style="display:none">
+      <div class="sh"><div><h2>🏠 XR Spaces của tôi</h2></div>
+        <button class="btn btn-xr btn-sm" onclick="showCreateSpaceModal()">＋ Tạo Space</button>
+      </div>
+      <div class="spaces-grid" id="mySpacesGrid">
+        <div class="empty-xr" style="grid-column:1/-1"><div class="ei">🏛️</div><h3>Chưa có Space nào</h3><p style="color:var(--text3)">Tạo XR Space đầu tiên của bạn!</p></div>
+      </div>
+    </div>
+
+    <!-- CREATOR VIEW -->
+    <div id="view-creator" class="xr-view" style="display:none">
+      <div class="sh"><div><h2>🎨 Creator Room</h2><p>Xây dựng không gian XR của riêng bạn</p></div>
+        <button class="btn btn-xr btn-sm" onclick="showCreateRoomModal()">＋ Tạo Room</button>
+      </div>
+      <div class="creator-rooms-grid" id="creatorRoomsGrid">
+        <div class="cr-card" onclick="showCreateRoomModal()">
+          <div class="cr-icon">＋</div>
+          <div class="cr-name">Tạo Room mới</div>
+          <div class="cr-meta">Showcase, Studio, Gallery...</div>
+        </div>
+      </div>
+      <div style="margin-top:24px" class="glass-card" style="padding:20px">
+        <div style="padding:20px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:16px">🛠️ XR Creator Tools</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+            <div class="cr-card"><div class="cr-icon">🎬</div><div class="cr-name">XR Showcase</div><div class="cr-meta">Trưng bày sản phẩm 3D</div></div>
+            <div class="cr-card"><div class="cr-icon">🎤</div><div class="cr-name">Virtual Stage</div><div class="cr-meta">Sân khấu ảo cho creator</div></div>
+            <div class="cr-card"><div class="cr-icon">🖼️</div><div class="cr-name">XR Gallery</div><div class="cr-meta">Triển lãm nghệ thuật ảo</div></div>
+            <div class="cr-card"><div class="cr-icon">🏪</div><div class="cr-name">Virtual Store</div><div class="cr-meta">Cửa hàng trong XR</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEVICES VIEW -->
+    <div id="view-devices" class="xr-view" style="display:none">
+      <div class="sh"><div><h2>📱 XR Device Center</h2><p>Quản lý thiết bị XR của bạn</p></div></div>
+      <div class="device-list" id="deviceList"></div>
+      <div style="margin-top:20px;padding:20px;background:var(--glass);border:1px solid var(--border);border-radius:16px">
+        <h3 style="font-size:15px;font-weight:800;margin-bottom:12px">📊 XR Analytics</h3>
+        <div class="analytics-grid" id="analyticsGrid"></div>
+      </div>
+    </div>
+
+    <!-- SPACE DETAIL VIEW -->
+    <div id="view-space-detail" class="xr-view" style="display:none">
+      <button class="btn btn-glass btn-sm" onclick="showView('spaces')" style="margin-bottom:16px">← Quay lại</button>
+      <div id="spaceDetailContent"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<!-- Create Space Modal -->
+<div id="createSpaceModal" style="display:none" class="modal-xr-overlay" onclick="if(event.target===this)closeModal('createSpaceModal')">
+  <div class="modal-xr">
+    <button class="modal-close-xr" onclick="closeModal('createSpaceModal')">×</button>
+    <h2>🏛️ Tạo XR Space</h2>
+    <div class="form-group-xr">
+      <label>Tên Space *</label>
+      <input class="form-ctrl-xr" id="cs-name" placeholder="Ví dụ: Gaming Arena của tôi" maxlength="60"/>
+    </div>
+    <div class="form-group-xr">
+      <label>Mô tả</label>
+      <textarea class="form-ctrl-xr" id="cs-desc" placeholder="Không gian XR này là về điều gì?"></textarea>
+    </div>
+    <div class="form-row-xr">
+      <div class="form-group-xr">
+        <label>Loại Space</label>
+        <select class="form-ctrl-xr" id="cs-type">
+          <option value="social">👥 Social</option>
+          <option value="gaming">🎮 Gaming</option>
+          <option value="concert">🎵 Concert</option>
+          <option value="office">🏢 Business</option>
+          <option value="marketplace">🛍️ Marketplace</option>
+          <option value="education">📚 Education</option>
+        </select>
+      </div>
+      <div class="form-group-xr">
+        <label>Quyền riêng tư</label>
+        <select class="form-ctrl-xr" id="cs-privacy">
+          <option value="public">🌐 Công khai</option>
+          <option value="private">🔒 Riêng tư</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group-xr">
+      <label>Giao diện (Theme)</label>
+      <div class="theme-picker">
+        <div class="theme-opt sc-theme-cosmos active" data-theme="cosmos" onclick="selectTheme(this,'cosmos')"><label>Cosmos</label></div>
+        <div class="theme-opt sc-theme-aurora" data-theme="aurora" onclick="selectTheme(this,'aurora')"><label>Aurora</label></div>
+        <div class="theme-opt sc-theme-neon" data-theme="neon" onclick="selectTheme(this,'neon')"><label>Neon</label></div>
+        <div class="theme-opt sc-theme-corporate" data-theme="corporate" onclick="selectTheme(this,'corporate')"><label>Corporate</label></div>
+        <div class="theme-opt sc-theme-nature" data-theme="nature" onclick="selectTheme(this,'nature')"><label>Nature</label></div>
+        <div class="theme-opt sc-theme-luxury" data-theme="luxury" onclick="selectTheme(this,'luxury')"><label>Luxury</label></div>
+        <div class="theme-opt sc-theme-space" data-theme="space" onclick="selectTheme(this,'space')"><label>Space</label></div>
+      </div>
+    </div>
+    <div class="form-group-xr">
+      <label>Tags (cách nhau bởi dấu phẩy)</label>
+      <input class="form-ctrl-xr" id="cs-tags" placeholder="game, pvp, social"/>
+    </div>
+    <div class="modal-footer-xr">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('createSpaceModal')">Hủy</button>
+      <button class="btn btn-xr btn-sm" onclick="createSpace()">🚀 Tạo XR Space</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Event Modal -->
+<div id="createEventModal" style="display:none" class="modal-xr-overlay" onclick="if(event.target===this)closeModal('createEventModal')">
+  <div class="modal-xr">
+    <button class="modal-close-xr" onclick="closeModal('createEventModal')">×</button>
+    <h2>🎪 Tạo XR Event</h2>
+    <div class="form-group-xr">
+      <label>Tiêu đề *</label>
+      <input class="form-ctrl-xr" id="ce-title" placeholder="Tên sự kiện XR"/>
+    </div>
+    <div class="form-group-xr">
+      <label>Mô tả</label>
+      <textarea class="form-ctrl-xr" id="ce-desc" placeholder="Mô tả sự kiện..."></textarea>
+    </div>
+    <div class="form-row-xr">
+      <div class="form-group-xr">
+        <label>Loại sự kiện</label>
+        <select class="form-ctrl-xr" id="ce-type">
+          <option value="concert">🎵 Virtual Concert</option>
+          <option value="conference">🎤 Conference</option>
+          <option value="gaming">🎮 Gaming Event</option>
+          <option value="showcase">🎨 Showcase</option>
+          <option value="launch">🚀 Product Launch</option>
+        </select>
+      </div>
+      <div class="form-group-xr">
+        <label>Giới hạn người tham dự</label>
+        <input class="form-ctrl-xr" id="ce-max" type="number" value="500"/>
+      </div>
+    </div>
+    <div class="form-row-xr">
+      <div class="form-group-xr">
+        <label>Bắt đầu</label>
+        <input class="form-ctrl-xr" id="ce-start" type="datetime-local"/>
+      </div>
+      <div class="form-group-xr">
+        <label>Kết thúc</label>
+        <input class="form-ctrl-xr" id="ce-end" type="datetime-local"/>
+      </div>
+    </div>
+    <div class="modal-footer-xr">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('createEventModal')">Hủy</button>
+      <button class="btn btn-xr btn-sm" onclick="createEvent()">🚀 Tạo Event XR</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Creator Room Modal -->
+<div id="createRoomModal" style="display:none" class="modal-xr-overlay" onclick="if(event.target===this)closeModal('createRoomModal')">
+  <div class="modal-xr">
+    <button class="modal-close-xr" onclick="closeModal('createRoomModal')">×</button>
+    <h2>🎨 Tạo Creator Room</h2>
+    <div class="form-group-xr">
+      <label>Tên Room *</label>
+      <input class="form-ctrl-xr" id="cr-name" placeholder="Tên phòng sáng tạo của bạn"/>
+    </div>
+    <div class="form-group-xr">
+      <label>Mô tả</label>
+      <textarea class="form-ctrl-xr" id="cr-desc" placeholder="Phòng này là để làm gì?"></textarea>
+    </div>
+    <div class="form-row-xr">
+      <div class="form-group-xr">
+        <label>Loại phòng</label>
+        <select class="form-ctrl-xr" id="cr-type">
+          <option value="showcase">🎬 Showcase</option>
+          <option value="studio">🎤 Studio</option>
+          <option value="gallery">🖼️ Gallery</option>
+          <option value="store">🏪 Virtual Store</option>
+        </select>
+      </div>
+      <div class="form-group-xr">
+        <label>Giao diện</label>
+        <select class="form-ctrl-xr" id="cr-theme">
+          <option value="studio">🎤 Studio</option>
+          <option value="space">🌌 Space</option>
+          <option value="nature">🌿 Nature</option>
+          <option value="neon">💜 Neon</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer-xr">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('createRoomModal')">Hủy</button>
+      <button class="btn btn-xr btn-sm" onclick="createCreatorRoom()">🚀 Tạo Room</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-xr-container" id="toastContainer"></div>
+
+<script>
+const API = '';
+const TOKEN = localStorage.getItem('token');
+const USER = (() => { try { return JSON.parse(atob(TOKEN.split('.')[1])); } catch { return null; } })();
+if (USER) document.getElementById('userOrb').textContent = (USER.name||'U')[0].toUpperCase();
+
+// ── STATE ──
+let currentView = 'discover';
+let selectedTheme = 'cosmos';
+let avatar = { skin_tone:'#f5c5a3', hair_style:'short', hair_color:'#3d2b1f', outfit:'casual', outfit_color:'#6c63ff', emote:'wave', display_name:USER?.name||'' };
+
+// ── PARTICLES ──
+function initParticles() {
+  const bg = document.getElementById('xr-bg');
+  const colors = ['#7c6dfa','#00e5ff','#ff6b9d','#a78bfa','#39ff14'];
+  for (let i=0; i<30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*4+1;
+    p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${Math.random()*15+8}s;animation-delay:${Math.random()*10}s`;
+    bg.appendChild(p);
+  }
+}
+initParticles();
+
+// ── UTILS ──
+function toast(msg, type='info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast-xr ${type}`;
+  t.innerHTML = `${type==='success'?'✅':type==='error'?'❌':'ℹ️'} ${msg}`;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+function showCreateSpaceModal() { document.getElementById('createSpaceModal').style.display='flex'; }
+function showCreateEventModal() { document.getElementById('createEventModal').style.display='flex'; }
+function showCreateRoomModal() { document.getElementById('createRoomModal').style.display='flex'; }
+function fmtNum(n) { if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'K'; return String(n||0); }
+function fmtDateTime(d) { if(!d) return ''; return new Date(d).toLocaleString('vi-VN'); }
+function timeAgo(d) { if(!d) return ''; const s=(Date.now()-new Date(d))/1000; if(s<3600) return Math.floor(s/60)+'p'; if(s<86400) return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
+function authHeaders() { return {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`}; }
+async function apiFetch(url,opts={}) {
+  const r = await fetch(API+url,{...opts,headers:{...authHeaders(),...(opts.headers||{})}});
+  return r.json();
+}
+function themeTypeIcon(type) {
+  return {concert:'🎵',gaming:'🎮',office:'🏢',social:'👥',marketplace:'🛍️',education:'📚',showcase:'🎬',studio:'🎤',gallery:'🖼️',store:'🏪'}[type]||'🌌';
+}
+function eventTypeLabel(type) {
+  return {concert:'🎵 Virtual Concert',conference:'🎤 Conference',gaming:'🎮 Gaming',showcase:'🎨 Showcase',launch:'🚀 Product Launch'}[type]||type;
+}
+
+// ── VIEW MANAGEMENT ──
+function showView(v) {
+  document.querySelectorAll('.xr-view').forEach(el=>el.style.display='none');
+  const el = document.getElementById(`view-${v}`);
+  if(el) el.style.display='block';
+  currentView=v;
+  document.querySelectorAll('.lsb-item').forEach(s=>s.classList.remove('active'));
+  const sb = document.getElementById(`sb-${v}`);
+  if(sb) sb.classList.add('active');
+  if(v==='discover') loadDiscover();
+  else if(v==='spaces') loadAllSpaces();
+  else if(v==='events') loadAllEvents();
+  else if(v==='leaderboard') loadLeaderboard();
+  else if(v==='avatar') initAvatarBuilder();
+  else if(v==='myspaces') loadMySpaces();
+  else if(v==='creator') loadCreatorRooms();
+  else if(v==='devices') loadDevices();
+}
+
+// ── MODE SELECTOR ──
+function setMode(mode, el) {
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(mode==='xr') enterXR();
+  else if(mode==='spatial') toast('🌐 Spatial Mode — Em đang mở không gian 3D...','info');
+}
+
+function enterXR() {
+  if(navigator.xr) {
+    navigator.xr.isSessionSupported('immersive-vr').then(s=>{
+      if(s) toast('🥽 VR Headset phát hiện — Đang khởi động XR...','success');
+      else toast('🥽 WebXR sẵn sàng — Dùng kính VR để trải nghiệm đầy đủ!','info');
+    });
+  } else {
+    toast('🌐 Chế độ XR đang hoạt động trên trình duyệt của bạn!','info');
+  }
+}
+
+// ── LOAD DISCOVER ──
+async function loadDiscover() {
+  const [statsR, spacesR, eventsR] = await Promise.all([
+    apiFetch('/api/xr/stats'),
+    apiFetch('/api/xr/spaces?featured=true&limit=6'),
+    apiFetch('/api/xr/events?limit=6'),
+  ]);
+  if(statsR.stats) {
+    document.getElementById('stat-spaces').textContent = fmtNum(statsR.stats.spaces);
+    document.getElementById('stat-visits').textContent = fmtNum(statsR.stats.visits);
+    document.getElementById('stat-events').textContent = fmtNum(statsR.stats.events);
+    document.getElementById('stat-avatars').textContent = fmtNum(statsR.stats.avatars);
+  }
+  document.getElementById('featuredSpacesGrid').innerHTML = (spacesR.spaces||[]).map(renderSpaceCard).join('') || '<div class="empty-xr" style="grid-column:1/-1"><div class="ei">🏛️</div><h3>Chưa có Space nào</h3></div>';
+  document.getElementById('upcomingEventsScroll').innerHTML = (eventsR.events||[]).map(renderEventCardScroll).join('') || '<div class="empty-xr"><div class="ei">🎪</div><h3>Chưa có Event</h3></div>';
+}
+
+async function loadAllSpaces(type) {
+  let url = '/api/xr/spaces?limit=20';
+  if(type) url += `&type=${type}`;
+  const r = await apiFetch(url);
+  document.getElementById('allSpacesGrid').innerHTML = (r.spaces||[]).map(renderSpaceCard).join('') || '<div class="empty-xr" style="grid-column:1/-1"><div class="ei">🏛️</div><h3>Chưa có Space nào</h3><p style="color:var(--text3)">Tạo XR Space đầu tiên!</p></div>';
+}
+
+async function loadAllEvents() {
+  const r = await apiFetch('/api/xr/events?limit=20');
+  document.getElementById('allEventsList').innerHTML = (r.events||[]).map(renderEventCardFull).join('') || '<div class="empty-xr"><div class="ei">🎪</div><h3>Chưa có XR Event</h3></div>';
+}
+
+async function loadLeaderboard() {
+  const r = await apiFetch('/api/xr/leaderboard');
+  const ranks = ['g1','g2','g3'];
+  document.getElementById('leaderboardList').innerHTML = (r.spaces||[]).map((s,i)=>`
+    <div class="lb-xr-item" onclick="openSpace('${s.id}')">
+      <div class="lb-xr-rank ${ranks[i]||''}">#${i+1}</div>
+      <div style="font-size:22px">${themeTypeIcon(s.type)}</div>
+      <div style="flex:1">
+        <div class="lb-xr-name">${s.name}</div>
+        <div class="lb-xr-meta">${s.type} · ${s.privacy}</div>
+      </div>
+      <div class="lb-xr-val">${fmtNum(s.total_visits||s.visitors_count)}</div>
+      <div style="font-size:11px;color:var(--text3)">visits</div>
+    </div>`).join('') || '<div class="empty-xr"><div class="ei">🏆</div><h3>Chưa có dữ liệu</h3></div>';
+}
+
+async function loadMySpaces() {
+  if(!TOKEN) { document.getElementById('mySpacesGrid').innerHTML='<div class="empty-xr" style="grid-column:1/-1"><div class="ei">🔐</div><h3>Cần đăng nhập</h3></div>'; return; }
+  const r = await apiFetch('/api/xr/spaces/mine');
+  document.getElementById('mySpacesGrid').innerHTML = (r.spaces||[]).length ? (r.spaces||[]).map(renderSpaceCard).join('') : '<div class="empty-xr" style="grid-column:1/-1"><div class="ei">🏛️</div><h3>Chưa có Space nào</h3><p style="color:var(--text3)">Tạo XR Space đầu tiên của bạn!</p><br><button class="btn btn-xr btn-sm" onclick="showCreateSpaceModal()">＋ Tạo ngay</button></div>';
+}
+
+async function loadCreatorRooms() {
+  if(!TOKEN) return;
+  const r = await apiFetch('/api/xr/creator-rooms/mine');
+  const grid = document.getElementById('creatorRoomsGrid');
+  const rooms = r.rooms||[];
+  grid.innerHTML = `<div class="cr-card" onclick="showCreateRoomModal()"><div class="cr-icon">＋</div><div class="cr-name">Tạo Room mới</div><div class="cr-meta">Showcase, Studio, Gallery...</div></div>` +
+    rooms.map(r=>`<div class="cr-card"><div class="cr-icon">${themeTypeIcon(r.type)}</div><div class="cr-name">${r.name}</div><div class="cr-meta">${r.type} · ${fmtNum(r.visits_count)} visits</div></div>`).join('');
+}
+
+function loadDevices() {
+  const devices = [
+    {icon:'🥽',name:'Meta Quest 3',type:'vr',platform:'Meta',status:'ready'},
+    {icon:'🍎',name:'Apple Vision Pro',type:'mr',platform:'Apple',status:'ready'},
+    {icon:'📱',name:'Mobile AR',type:'ar',platform:'iOS/Android',status:'connected'},
+    {icon:'🖥️',name:'WebXR Browser',type:'webxr',platform:'Chrome/Firefox',status:'connected'},
+    {icon:'💻',name:'Desktop 3D',type:'desktop',platform:'PC/Mac',status:'connected'},
+  ];
+  document.getElementById('deviceList').innerHTML = devices.map(d=>`
+    <div class="device-card ${d.status==='connected'?'connected':''}">
+      <div class="dc-icon">${d.icon}</div>
+      <div class="dc-name">${d.name}</div>
+      <div class="dc-status ${d.status==='connected'?'online':''}">${d.status==='connected'?'✓ Kết nối':'Sẵn sàng'}</div>
+      <button class="dc-connect-btn ${d.status==='connected'?'connected':''}" onclick="connectDevice('${d.type}',this)">${d.status==='connected'?'✓ Đang dùng':'Kết nối'}</button>
+    </div>`).join('');
+  document.getElementById('analyticsGrid').innerHTML = [
+    {val:'—',lbl:'XR Sessions',trend:''},
+    {val:'—',lbl:'Thời gian TB',trend:''},
+    {val:'—',lbl:'Spaces đã thăm',trend:''},
+    {val:'—',lbl:'Events tham dự',trend:''},
+  ].map(a=>`<div class="analytics-card"><div class="val">${a.val}</div><div class="lbl">${a.lbl}</div>${a.trend?`<div class="trend">${a.trend}</div>`:''}</div>`).join('');
+  // Load real stats
+  if(TOKEN) apiFetch('/api/xr/analytics').then(r=>{
+    if(r.stats) {
+      const vals = [fmtNum(r.stats.visits||0), r.stats.avg_duration||'0s', fmtNum(r.stats.spaces_visited||0), fmtNum(r.stats.events_attended||0)];
+      document.querySelectorAll('.analytics-card .val').forEach((el,i)=>{ if(vals[i]) el.textContent=vals[i]; });
+    }
+  }).catch(()=>{});
+}
+
+function connectDevice(type, btn) {
+  btn.classList.add('connected');
+  btn.textContent = '✓ Kết nối';
+  toast(`🥽 Đã kết nối thiết bị ${type.toUpperCase()}!`, 'success');
+}
+
+function filterSpaceType(type) {
+  showView('spaces');
+  loadAllSpaces(type);
+}
+
+// ── RENDER SPACE CARD ──
+function renderSpaceCard(s) {
+  const typeClass = `sct-${s.type}`;
+  const themeClass = `sc-theme-${s.theme||'cosmos'}`;
+  return `
+  <div class="space-card" onclick="openSpace('${s.id}')">
+    <div class="sc-visual ${themeClass}">
+      <div class="sc-visual-emoji">${themeTypeIcon(s.type)}</div>
+      <div class="sc-visual-glow"></div>
+      <div class="sc-badges">
+        ${s.is_featured?'<span class="sc-badge scb-featured">⭐ Featured</span>':''}
+      </div>
+      <div class="sc-visitors">👁 ${fmtNum(s.visitors_count||0)}</div>
+    </div>
+    <div class="sc-body">
+      <div class="sc-name">${s.name}</div>
+      <div class="sc-desc">${s.description||'Không gian XR thú vị'}</div>
+      <div class="sc-footer">
+        <span class="sc-type-chip ${typeClass}">${themeTypeIcon(s.type)} ${s.type}</span>
+        <button class="sc-enter-btn" onclick="event.stopPropagation();visitSpace('${s.id}',this)">Vào →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderEventCardScroll(e) {
+  const icons = {concert:'🎵',conference:'🎤',gaming:'🎮',showcase:'🎨',launch:'🚀'};
+  const bgColors = {concert:'linear-gradient(135deg,#1a0028,#2a0042)',conference:'linear-gradient(135deg,#001428,#002042)',gaming:'linear-gradient(135deg,#0a1400,#142800)',showcase:'linear-gradient(135deg,#1a0a00,#2a1400)',launch:'linear-gradient(135deg,#001a1a,#002828)'};
+  return `
+  <div class="event-card-xr" onclick="joinEvent('${e.id}',null)">
+    <div class="ecx-cover" style="background:${bgColors[e.type]||bgColors.concert}">
+      <div class="ecx-cover-glow" style="background:radial-gradient(circle,rgba(124,109,250,.3) 0%,transparent 70%)"></div>
+      <span style="position:relative;z-index:1">${icons[e.type]||'🌌'}</span>
+    </div>
+    <div class="ecx-body">
+      <div class="ecx-title">${e.title}</div>
+      <div class="ecx-meta">
+        <span>📅 ${fmtDateTime(e.start_at)}</span>
+        <span>👥 ${e.attendees_count||0}/${e.max_attendees||500}</span>
+      </div>
+      <div class="ecx-footer">
+        <span class="sc-badge" style="background:rgba(124,109,250,.1);color:var(--brand);border:1px solid rgba(124,109,250,.2)">${eventTypeLabel(e.type)}</span>
+        <button class="ecx-join-btn" onclick="event.stopPropagation();joinEvent('${e.id}',this)">Tham gia</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderEventCardFull(e) {
+  const d = e.start_at ? new Date(e.start_at) : null;
+  const icons = {concert:'🎵',conference:'🎤',gaming:'🎮',showcase:'🎨',launch:'🚀'};
+  return `
+  <div style="background:var(--glass);border:1px solid var(--border);border-radius:20px;padding:20px;display:flex;gap:16px;align-items:flex-start;transition:.2s;cursor:pointer" onmouseenter="this.style.borderColor='rgba(124,109,250,.4)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="joinEvent('${e.id}',null)">
+    <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">${icons[e.type]||'🌌'}</div>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:800;margin-bottom:6px">${e.title}</div>
+      <div style="font-size:12px;color:var(--text3);display:flex;gap:14px;margin-bottom:10px">
+        <span>📅 ${fmtDateTime(e.start_at)}</span>
+        <span>👥 ${e.attendees_count||0}/${e.max_attendees||500} người</span>
+        <span>${eventTypeLabel(e.type)}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2)">${e.description||''}</div>
+    </div>
+    <button class="btn btn-xr btn-sm" onclick="event.stopPropagation();joinEvent('${e.id}',this)">🥽 Tham gia</button>
+  </div>`;
+}
+
+// ── OPEN SPACE ──
+async function openSpace(id) {
+  document.querySelectorAll('.xr-view').forEach(el=>el.style.display='none');
+  document.getElementById('view-space-detail').style.display='block';
+  const r = await apiFetch(`/api/xr/spaces/${id}`);
+  if(r.error) { toast(r.error,'error'); return; }
+  const s = r.space;
+  document.getElementById('spaceDetailContent').innerHTML = `
+    <div class="space-detail-header sc-theme-${s.theme||'cosmos'}">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:.3">${themeTypeIcon(s.type)}</div>
+      <div class="sdh-overlay"></div>
+      <div class="sdh-content">
+        <div class="sdh-name">${s.name}</div>
+        <div class="sdh-meta">
+          <span>${themeTypeIcon(s.type)} ${s.type}</span>
+          <span>👁 ${fmtNum(s.visitors_count)} visitors</span>
+          <span>${s.privacy}</span>
+          <button class="btn btn-xr btn-sm" onclick="visitSpace('${s.id}',this)">🥽 Vào Space</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px;background:var(--glass);border:1px solid var(--border);border-radius:16px;margin-bottom:16px">
+      <p style="font-size:14px;color:var(--text2);line-height:1.7">${s.description||'Chưa có mô tả.'}</p>
+      ${(s.tags||[]).length?`<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">${s.tags.map(t=>`<span style="background:rgba(124,109,250,.1);color:var(--brand);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">#${t}</span>`).join('')}</div>`:''}
+    </div>
+    <div class="xr-viewer">
+      <div class="xr-viewer-overlay">
+        <div class="xr-viewer-icon">${themeTypeIcon(s.type)}</div>
+        <div class="xr-viewer-label">Nhấn để vào không gian XR</div>
+        <button class="xr-viewer-btn" onclick="visitSpace('${s.id}',this)">🥽 Trải nghiệm XR</button>
+      </div>
+      <div class="xr-avatar-crowd">
+        ${Array.from({length:Math.min(8,s.visitors_count||0)}).map((_,i)=>`<div class="crowd-avatar">${String.fromCharCode(65+i)}</div>`).join('')}
+      </div>
+    </div>`;
+}
+
+async function visitSpace(id, btn) {
+  if(btn) { btn.textContent='✓ Đang vào...'; btn.disabled=true; }
+  await apiFetch(`/api/xr/spaces/${id}/visit`, {method:'POST',body:JSON.stringify({device_type:'webxr'})});
+  toast('🥽 Đang khởi động không gian XR...','success');
+  setTimeout(()=>{
+    if(btn) { btn.textContent='🥽 Đang trải nghiệm'; }
+    toast('✅ Đã vào XR Space!','success');
+  }, 1500);
+}
+
+// ── EVENTS ──
+async function joinEvent(id, btn) {
+  if(!TOKEN) { toast('Cần đăng nhập để tham gia XR Event','error'); return; }
+  if(btn) { btn.textContent='Đang đăng ký...'; btn.disabled=true; }
+  const r = await apiFetch(`/api/xr/events/${id}/join`, {method:'POST'});
+  if(r.error) { toast(r.error,'error'); if(btn){btn.textContent='Tham gia';btn.disabled=false;} return; }
+  if(btn) { btn.textContent='✅ Đã đăng ký'; }
+  toast('✅ Đã đăng ký XR Event!','success');
+}
+
+async function createSpace() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const name = document.getElementById('cs-name').value.trim();
+  if(!name) return toast('Nhập tên Space','error');
+  const r = await apiFetch('/api/xr/spaces',{method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('cs-desc').value,
+    type:document.getElementById('cs-type').value,
+    privacy:document.getElementById('cs-privacy').value,
+    theme:selectedTheme,
+    tags:document.getElementById('cs-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  })});
+  if(r.error) return toast(r.error,'error');
+  closeModal('createSpaceModal');
+  toast('🚀 Đã tạo XR Space!','success');
+  openSpace(r.space.id);
+}
+
+async function createEvent() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const title = document.getElementById('ce-title').value.trim();
+  if(!title) return toast('Nhập tiêu đề event','error');
+  const r = await apiFetch('/api/xr/events',{method:'POST',body:JSON.stringify({
+    title, description:document.getElementById('ce-desc').value,
+    type:document.getElementById('ce-type').value,
+    max_attendees:parseInt(document.getElementById('ce-max').value)||500,
+    start_at:document.getElementById('ce-start').value,
+    end_at:document.getElementById('ce-end').value
+  })});
+  if(r.error) return toast(r.error,'error');
+  closeModal('createEventModal');
+  toast('🎪 Đã tạo XR Event!','success');
+  loadAllEvents();
+}
+
+async function createCreatorRoom() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  const name = document.getElementById('cr-name').value.trim();
+  if(!name) return toast('Nhập tên Room','error');
+  const r = await apiFetch('/api/xr/creator-rooms',{method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('cr-desc').value,
+    type:document.getElementById('cr-type').value,
+    theme:document.getElementById('cr-theme').value
+  })});
+  if(r.error) return toast(r.error,'error');
+  closeModal('createRoomModal');
+  toast('🎨 Đã tạo Creator Room!','success');
+  loadCreatorRooms();
+}
+
+// ── AVATAR BUILDER ──
+const SKIN_TONES = ['#f5c5a3','#e8a882','#d4845a','#c46d3d','#a0522d','#8b3a1a','#5c2912','#fde8d8'];
+const HAIR_STYLES = ['short','long','curly','bob','buzz','afro','ponytail'];
+const HAIR_COLORS = ['#1a0a00','#3d2b1f','#6b3a1f','#c4843d','#f5d04f','#ff4d6d','#6c63ff','#00e5ff','#ffffff'];
+const OUTFITS = ['casual','formal','sport','hoodie','kimono','futuristic'];
+const OUTFIT_COLORS = ['#6c63ff','#00e5ff','#ff6b9d','#39ff14','#fbbf24','#ef4444','#10b981','#000000','#ffffff'];
+const EMOTES = ['wave','dance','bow','clap','thumbsup','heart','peace'];
+
+function initAvatarBuilder() {
+  // Skin swatches
+  document.getElementById('skinSwatches').innerHTML = SKIN_TONES.map(c=>`<div class="ab-swatch ${avatar.skin_tone===c?'active':''}" style="background:${c}" onclick="setSkin('${c}',this)" title="${c}"></div>`).join('');
+  // Hair styles
+  document.getElementById('hairChips').innerHTML = HAIR_STYLES.map(s=>`<div class="ab-chip ${avatar.hair_style===s?'active':''}" onclick="setHairStyle('${s}',this)">${s}</div>`).join('');
+  // Hair colors
+  document.getElementById('hairColorSwatches').innerHTML = HAIR_COLORS.map(c=>`<div class="ab-swatch ${avatar.hair_color===c?'active':''}" style="background:${c}" onclick="setHairColor('${c}',this)"></div>`).join('');
+  // Outfits
+  document.getElementById('outfitChips').innerHTML = OUTFITS.map(o=>`<div class="ab-chip ${avatar.outfit===o?'active':''}" onclick="setOutfit('${o}',this)">${o}</div>`).join('');
+  // Outfit colors
+  document.getElementById('outfitColorSwatches').innerHTML = OUTFIT_COLORS.map(c=>`<div class="ab-swatch ${avatar.outfit_color===c?'active':''}" style="background:${c}" onclick="setOutfitColor('${c}',this)"></div>`).join('');
+  // Emotes
+  document.getElementById('emoteChips').innerHTML = EMOTES.map(e=>`<div class="ab-chip ${avatar.emote===e?'active':''}" onclick="setEmote('${e}',this)">${e}</div>`).join('');
+  // Set name
+  document.getElementById('avDisplayName').value = avatar.display_name;
+  updateAvatarPreview();
+  // Load existing avatar
+  if(TOKEN) apiFetch('/api/xr/avatar').then(r=>{
+    if(r.avatar) {
+      Object.assign(avatar, r.avatar);
+      document.getElementById('avXP').textContent = r.avatar.xp||0;
+      document.getElementById('avLevel').textContent = r.avatar.level||1;
+      document.getElementById('avName').textContent = r.avatar.display_name||USER?.name||'Avatar';
+      document.getElementById('avDisplayName').value = r.avatar.display_name||'';
+      initAvatarBuilder();
+    }
+  }).catch(()=>{});
+}
+function setSkin(c,el) { avatar.skin_tone=c; document.querySelectorAll('#skinSwatches .ab-swatch').forEach(s=>s.classList.remove('active')); el.classList.add('active'); updateAvatarPreview(); }
+function setHairStyle(s,el) { avatar.hair_style=s; document.querySelectorAll('#hairChips .ab-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+function setHairColor(c,el) { avatar.hair_color=c; document.querySelectorAll('#hairColorSwatches .ab-swatch').forEach(s=>s.classList.remove('active')); el.classList.add('active'); updateAvatarPreview(); }
+function setOutfit(o,el) { avatar.outfit=o; document.querySelectorAll('#outfitChips .ab-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+function setOutfitColor(c,el) { avatar.outfit_color=c; document.querySelectorAll('#outfitColorSwatches .ab-swatch').forEach(s=>s.classList.remove('active')); el.classList.add('active'); updateAvatarPreview(); }
+function setEmote(e,el) { avatar.emote=e; document.querySelectorAll('#emoteChips .ab-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+function updateAvatarPreview() {
+  document.getElementById('avHead').style.background = `linear-gradient(135deg,${avatar.skin_tone},${avatar.skin_tone}cc)`;
+  document.getElementById('avBody').style.background = `linear-gradient(180deg,${avatar.outfit_color},${avatar.outfit_color}88)`;
+  if(document.getElementById('heroHead')) {
+    document.getElementById('heroHead').style.background = `linear-gradient(135deg,${avatar.skin_tone},${avatar.skin_tone}cc)`;
+    document.getElementById('heroBody').style.background = `linear-gradient(180deg,${avatar.outfit_color},${avatar.outfit_color}88)`;
+  }
+}
+async function saveAvatar() {
+  if(!TOKEN) return toast('Cần đăng nhập','error');
+  avatar.display_name = document.getElementById('avDisplayName').value.trim()||USER?.name||'';
+  const r = await apiFetch('/api/xr/avatar',{method:'PUT',body:JSON.stringify(avatar)});
+  if(r.error) return toast(r.error,'error');
+  toast('✅ Đã lưu Avatar!','success');
+  document.getElementById('avXP').textContent = r.avatar?.xp||0;
+  document.getElementById('avName').textContent = avatar.display_name;
+}
+
+// ── THEME PICKER ──
+function selectTheme(el, theme) {
+  document.querySelectorAll('.theme-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  selectedTheme = theme;
+}
+
+// ── INIT ──
+loadDiscover();
+</script>
+</body>
+</html>

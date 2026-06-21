@@ -13707,6 +13707,216 @@ app.patch('/api/admin/worlds/:id', adminAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// PHASE SOCIAL 11: XR SOCIAL NETWORK
+// ════════════════════════════════════════════════════════════════
+
+app.get('/xr', (req, res) => res.sendFile(join(__dirname, 'frontend', 'xr.html')));
+app.get('/xr.html', (req, res) => res.sendFile(join(__dirname, 'frontend', 'xr.html')));
+
+// ── GET /api/xr/stats ──
+app.get('/api/xr/stats', async (req, res) => {
+  try {
+    const [sR, vR, eR, aR] = await Promise.all([
+      supabase.from('xr_spaces').select('id', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('xr_space_visits').select('id', { count: 'exact', head: true }),
+      supabase.from('xr_events').select('id', { count: 'exact', head: true }),
+      supabase.from('xr_avatars').select('id', { count: 'exact', head: true })
+    ]);
+    res.json({ stats: { spaces: sR.count||0, visits: vR.count||0, events: eR.count||0, avatars: aR.count||0 } });
+  } catch(e) { res.json({ stats: { spaces:0, visits:0, events:0, avatars:0 } }); }
+});
+
+// ── GET /api/xr/spaces ──
+app.get('/api/xr/spaces', async (req, res) => {
+  try {
+    const { featured, type, limit=12, page=1 } = req.query;
+    let q = supabase.from('xr_spaces').select('*').eq('is_active', true);
+    if (featured === 'true') q = q.eq('is_featured', true);
+    if (type) q = q.eq('type', type);
+    q = q.order('visitors_count', { ascending: false }).range((page-1)*limit, page*limit-1);
+    const { data, error } = await q;
+    if (error) return res.json({ spaces: [] });
+    res.json({ spaces: data||[] });
+  } catch(e) { res.json({ spaces: [] }); }
+});
+
+// ── GET /api/xr/spaces/mine ──
+app.get('/api/xr/spaces/mine', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('xr_spaces').select('*').eq('owner_id', req.user.id).order('created_at', { ascending: false });
+    res.json({ spaces: data||[] });
+  } catch(e) { res.json({ spaces: [] }); }
+});
+
+// ── GET /api/xr/leaderboard ──
+app.get('/api/xr/leaderboard', async (req, res) => {
+  try {
+    const { data } = await supabase.from('xr_spaces').select('*').eq('is_active', true).order('total_visits', { ascending: false }).limit(20);
+    res.json({ spaces: data||[] });
+  } catch(e) { res.json({ spaces: [] }); }
+});
+
+// ── POST /api/xr/spaces ──
+app.post('/api/xr/spaces', auth, async (req, res) => {
+  try {
+    const { name, description, type='social', theme='cosmos', privacy='public', tags=[], capacity=50 } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên Space' });
+    const { data: space, error } = await supabase.from('xr_spaces').insert({
+      owner_id: req.user.id, name: name.trim(), description, type, theme, privacy, tags, capacity
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ space });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/xr/spaces/:id ──
+app.get('/api/xr/spaces/:id', async (req, res) => {
+  try {
+    const { data: space, error } = await supabase.from('xr_spaces').select('*').eq('id', req.params.id).single();
+    if (error || !space) return res.status(404).json({ error: 'Không tìm thấy Space' });
+    res.json({ space });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/xr/spaces/:id/visit ──
+app.post('/api/xr/spaces/:id/visit', async (req, res) => {
+  try {
+    const { device_type='desktop', duration_secs=0 } = req.body;
+    let user_id = null;
+    try { const d = jwt.verify((req.headers.authorization||'').replace('Bearer ',''), JWT_SECRET); user_id = d.id; } catch {}
+    await supabase.from('xr_space_visits').insert({ space_id: req.params.id, user_id, device_type, duration_secs });
+    const { data: s } = await supabase.from('xr_spaces').select('visitors_count,total_visits').eq('id', req.params.id).single();
+    if (s) await supabase.from('xr_spaces').update({ visitors_count: (s.visitors_count||0)+1, total_visits: (s.total_visits||0)+1 }).eq('id', req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.json({ success: false }); }
+});
+
+// ── GET /api/xr/avatar ──
+app.get('/api/xr/avatar', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('xr_avatars').select('*').eq('user_id', req.user.id).single();
+    res.json({ avatar: data || null });
+  } catch(e) { res.json({ avatar: null }); }
+});
+
+// ── PUT /api/xr/avatar ──
+app.put('/api/xr/avatar', auth, async (req, res) => {
+  try {
+    const { display_name, body_type, skin_tone, hair_style, hair_color, outfit, outfit_color, accessories, emote } = req.body;
+    const { data: existing } = await supabase.from('xr_avatars').select('id,xp,level').eq('user_id', req.user.id).single();
+    let result;
+    if (existing) {
+      const xp = (existing.xp||0) + 10;
+      const level = Math.floor(xp / 100) + 1;
+      const { data } = await supabase.from('xr_avatars').update({ display_name, body_type, skin_tone, hair_style, hair_color, outfit, outfit_color, accessories, emote, xp, level, updated_at: new Date().toISOString() }).eq('user_id', req.user.id).select().single();
+      result = data;
+    } else {
+      const { data } = await supabase.from('xr_avatars').insert({ user_id: req.user.id, display_name, body_type, skin_tone, hair_style, hair_color, outfit, outfit_color, accessories, emote, xp: 10, level: 1 }).select().single();
+      result = data;
+    }
+    res.json({ avatar: result });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/xr/events ──
+app.get('/api/xr/events', async (req, res) => {
+  try {
+    const { type, limit=12, page=1 } = req.query;
+    let q = supabase.from('xr_events').select('*').in('status', ['upcoming','live']);
+    if (type) q = q.eq('type', type);
+    q = q.order('start_at', { ascending: true }).range((page-1)*limit, page*limit-1);
+    const { data, error } = await q;
+    if (error) return res.json({ events: [] });
+    res.json({ events: data||[] });
+  } catch(e) { res.json({ events: [] }); }
+});
+
+// ── POST /api/xr/events ──
+app.post('/api/xr/events', auth, async (req, res) => {
+  try {
+    const { title, description, type='concert', start_at, end_at, max_attendees=500, xr_mode='webxr' } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Nhập tiêu đề sự kiện' });
+    const { data: event, error } = await supabase.from('xr_events').insert({
+      organizer_id: req.user.id, title: title.trim(), description, type, start_at, end_at, max_attendees, xr_mode
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ event });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/xr/events/:id/join ──
+app.post('/api/xr/events/:id/join', auth, async (req, res) => {
+  try {
+    const { data: ev } = await supabase.from('xr_events').select('attendees_count,max_attendees').eq('id', req.params.id).single();
+    if (!ev) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+    if ((ev.attendees_count||0) >= (ev.max_attendees||500)) return res.status(400).json({ error: 'Sự kiện đã đầy chỗ' });
+    const { error } = await supabase.from('xr_event_attendees').insert({ event_id: req.params.id, user_id: req.user.id });
+    if (error && error.code !== '23505') return res.status(400).json({ error: 'Đã đăng ký sự kiện này rồi' });
+    await supabase.from('xr_events').update({ attendees_count: (ev.attendees_count||0)+1 }).eq('id', req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/xr/creator-rooms/mine ──
+app.get('/api/xr/creator-rooms/mine', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('xr_creator_rooms').select('*').eq('creator_id', req.user.id).order('created_at', { ascending: false });
+    res.json({ rooms: data||[] });
+  } catch(e) { res.json({ rooms: [] }); }
+});
+
+// ── POST /api/xr/creator-rooms ──
+app.post('/api/xr/creator-rooms', auth, async (req, res) => {
+  try {
+    const { name, description, type='showcase', theme='studio' } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên Room' });
+    const { data: room, error } = await supabase.from('xr_creator_rooms').insert({
+      creator_id: req.user.id, name: name.trim(), description, type, theme
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ room });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/xr/analytics ──
+app.get('/api/xr/analytics', auth, async (req, res) => {
+  try {
+    const [visitsR, spacesR, eventsR] = await Promise.all([
+      supabase.from('xr_space_visits').select('duration_secs').eq('user_id', req.user.id),
+      supabase.from('xr_space_visits').select('space_id').eq('user_id', req.user.id),
+      supabase.from('xr_event_attendees').select('id', { count: 'exact', head: true }).eq('user_id', req.user.id)
+    ]);
+    const visits = visitsR.data||[];
+    const avgDuration = visits.length ? Math.round(visits.reduce((a,v)=>a+(v.duration_secs||0),0)/visits.length) : 0;
+    const uniqueSpaces = new Set((spacesR.data||[]).map(v=>v.space_id)).size;
+    res.json({ stats: { visits: visits.length, avg_duration: avgDuration+'s', spaces_visited: uniqueSpaces, events_attended: eventsR.count||0 } });
+  } catch(e) { res.json({ stats: {} }); }
+});
+
+// ── ADMIN: GET /api/admin/xr/overview ──
+app.get('/api/admin/xr/overview', adminAuth, async (req, res) => {
+  try {
+    const [spacesR, eventsR, avatarsR, visitsR] = await Promise.all([
+      supabase.from('xr_spaces').select('*').order('created_at', { ascending: false }).limit(20),
+      supabase.from('xr_events').select('*').order('created_at', { ascending: false }).limit(20),
+      supabase.from('xr_avatars').select('id', { count: 'exact', head: true }),
+      supabase.from('xr_space_visits').select('id', { count: 'exact', head: true })
+    ]);
+    res.json({ spaces: spacesR.data||[], events: eventsR.data||[], total_avatars: avatarsR.count||0, total_visits: visitsR.count||0 });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: PATCH /api/admin/xr/spaces/:id ──
+app.patch('/api/admin/xr/spaces/:id', adminAuth, async (req, res) => {
+  try {
+    const { is_featured, is_active } = req.body;
+    const { data, error } = await supabase.from('xr_spaces').update({ is_featured, is_active }).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ space: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
