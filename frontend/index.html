@@ -620,6 +620,99 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;}
 }
 .alert-row:hover{border-color:var(--border2);}
 .alert-row.triggered{border-color:rgba(34,211,142,.3);background:var(--okBg);}
+
+/* ━━ TMĐT HOME ━━ */
+.hp-search{display:flex;align-items:center;gap:8px;padding:10px 14px 10px;background:rgba(6,9,15,.95);position:sticky;top:60px;z-index:90;}
+.hp-search-box{flex:1;display:flex;align-items:center;gap:10px;background:var(--card2);border:1.5px solid var(--border2);border-radius:26px;padding:9px 16px;cursor:pointer;transition:border-color .2s;}
+.hp-search-box:hover{border-color:rgba(61,142,248,.4);}
+.hp-search-ph{font-size:12.5px;color:var(--hint);font-weight:500;}
+.hp-search-btn{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#3d8ef8,#2e6fd6);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 4px 14px rgba(61,142,248,.35);}
+
+/* Banner carousel */
+.hp-banner{position:relative;overflow:hidden;height:160px;margin:0 14px;border-radius:18px;}
+.hp-banner-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.4,0,.2,1);}
+.hp-banner-slide{min-width:100%;height:100%;border-radius:18px;position:relative;overflow:hidden;}
+.hp-banner-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:2;}
+.hp-banner-dot{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,.4);transition:all .3s;cursor:pointer;}
+.hp-banner-dot.active{width:18px;background:#fff;}
+
+/* Service icons */
+.hp-services{display:flex;gap:0;overflow-x:auto;padding:14px 10px 6px;scrollbar-width:none;}
+.hp-services::-webkit-scrollbar{display:none;}
+.hp-svc{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:72px;cursor:pointer;padding:4px 6px;border-radius:12px;transition:background .2s;flex-shrink:0;}
+.hp-svc:hover{background:var(--card2);}
+.hp-svc-icon{width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.hp-svc-lbl{font-size:10px;font-weight:600;color:var(--sub);text-align:center;line-height:1.3;white-space:nowrap;}
+
+/* Section headers */
+.hp-sec{padding:16px 16px 10px;display:flex;align-items:center;justify-content:space-between;}
+.hp-sec-title{font-size:14.5px;font-weight:800;letter-spacing:-.3px;}
+.hp-sec-more{font-size:11.5px;font-weight:700;color:var(--brand);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;padding:4px 8px;border-radius:8px;transition:background .15s;}
+.hp-sec-more:hover{background:var(--brandL);}
+
+/* Flash sale */
+.hp-flash{background:linear-gradient(135deg,rgba(240,80,104,.08),rgba(245,166,35,.05));border-top:1px solid rgba(240,80,104,.12);border-bottom:1px solid rgba(240,80,104,.12);}
+.hp-flash-hd{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;}
+.hp-flash-title{font-size:15px;font-weight:900;color:#ff4d6d;letter-spacing:-.3px;}
+.hp-flash-timer{display:flex;gap:4px;align-items:center;margin-left:auto;}
+.hp-t-seg{background:#ff4d6d;color:#fff;font-size:11px;font-weight:900;padding:3px 7px;border-radius:6px;font-family:'JetBrains Mono',monospace;min-width:26px;text-align:center;}
+.hp-t-colon{font-size:12px;font-weight:900;color:#ff4d6d;}
+.hp-flash-row{display:flex;gap:10px;overflow-x:auto;padding:0 14px 14px;scrollbar-width:none;}
+.hp-flash-row::-webkit-scrollbar{display:none;}
+.hp-fcard{min-width:120px;max-width:120px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.hp-fcard:hover{border-color:rgba(240,80,104,.35);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.hp-fcard-thumb{width:100%;height:90px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(145deg,var(--card2),rgba(240,80,104,.06));}
+.hp-fcard-body{padding:8px;}
+.hp-fcard-name{font-size:11px;font-weight:600;line-height:1.35;margin-bottom:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.hp-fcard-price{font-size:13px;font-weight:900;color:#ff4d6d;letter-spacing:-.3px;}
+.hp-fcard-orig{font-size:10px;color:var(--hint);text-decoration:line-through;}
+.hp-fcard-badge{display:inline-block;background:linear-gradient(135deg,#ff4d6d,#c0304a);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;margin-top:4px;}
+
+/* Product grid 2-col */
+.hp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px;}
+.hp-pcard{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .2s;}
+.hp-pcard:hover{border-color:rgba(61,142,248,.25);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.hp-pcard-thumb{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:44px;background:linear-gradient(145deg,var(--card2),var(--card3));position:relative;}
+.hp-pcard-badges{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:3px;}
+.hp-pcard-disc{background:linear-gradient(135deg,#ff4d6d,#c0304a);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;}
+.hp-pcard-trust{background:rgba(34,211,142,.15);border:1px solid rgba(34,211,142,.25);color:var(--ok);font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:5px;}
+.hp-pcard-body{padding:10px;}
+.hp-pcard-name{font-size:12px;font-weight:600;line-height:1.4;margin-bottom:6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.hp-pcard-loc{font-size:10px;color:var(--hint);margin-bottom:6px;}
+.hp-pcard-price{font-size:14px;font-weight:900;color:var(--brand);letter-spacing:-.4px;}
+.hp-pcard-orig{font-size:10px;color:var(--hint);text-decoration:line-through;margin-left:4px;}
+.hp-pcard-bot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
+.hp-pcard-sold{font-size:9.5px;color:var(--hint);}
+.hp-pcard-star{font-size:9.5px;color:var(--gold);}
+
+/* Horizontal product scroll */
+.hp-hscroll{display:flex;gap:10px;overflow-x:auto;padding:0 14px 14px;scrollbar-width:none;}
+.hp-hscroll::-webkit-scrollbar{display:none;}
+.hp-hcard{min-width:140px;max-width:140px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.hp-hcard:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.35);}
+.hp-hcard-thumb{width:100%;height:110px;display:flex;align-items:center;justify-content:center;font-size:42px;background:linear-gradient(145deg,var(--card2),var(--card3));}
+.hp-hcard-body{padding:10px;}
+.hp-hcard-name{font-size:11.5px;font-weight:600;line-height:1.35;margin-bottom:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.hp-hcard-price{font-size:13px;font-weight:900;color:var(--brand);}
+
+/* Category chips */
+.hp-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 12px 12px;}
+.hp-cat{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 6px;border-radius:16px;border:1px solid var(--border);background:linear-gradient(145deg,var(--card),var(--card2));cursor:pointer;transition:all .2s;}
+.hp-cat:hover{border-color:rgba(61,142,248,.3);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.hp-cat-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.hp-cat-lbl{font-size:10px;font-weight:700;color:var(--sub);text-align:center;line-height:1.3;}
+.hp-cat-cnt{font-size:9px;color:var(--hint);}
+
+/* Trust strip */
+.hp-trust{display:flex;gap:0;overflow-x:auto;padding:0 12px 6px;scrollbar-width:none;}
+.hp-trust::-webkit-scrollbar{display:none;}
+.hp-tbadge{display:flex;align-items:center;gap:8px;min-width:170px;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:var(--card);margin-right:10px;flex-shrink:0;}
+.hp-tbadge-icon{font-size:20px;}
+.hp-tbadge-title{font-size:11px;font-weight:700;margin-bottom:1px;}
+.hp-tbadge-desc{font-size:9.5px;color:var(--hint);line-height:1.4;}
+
+@keyframes hpFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hp-animate{animation:hpFadeUp .4s ease both;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1965,139 +2058,251 @@ function submitReview(orderId){
    🏠 HOME PAGE
 ══════════════════════════════════════════ */
 function buildHomePage(){
-  const featured=ALL_LISTINGS.slice(0,3);
-  const trending=ALL_LISTINGS.sort((a,b)=>b.views-a.views).slice(0,4);
-  const endingSoon=ALL_LISTINGS.filter(l=>l.quantity<=2).slice(0,3);
+  const all=ALL_LISTINGS;
+  const flashItems=all.filter(l=>l.original_price&&l.price<l.original_price).slice(0,8);
+  const forYou=all.slice(0,12);
+  const trending=all.slice().sort((a,b)=>(b.views||0)-(a.views||0)).slice(0,8);
+
+  // Banner data
+  const banners=[
+    {bg:"linear-gradient(135deg,#1a0a2e 0%,#16213e 50%,#0f3460 100%)",accent:"#e94560",emoji:"🎵",title:"Concert mùa hè 2026",sub:"Hàng trăm vé concert giá tốt đang chờ bạn",cta:"Xem ngay"},
+    {bg:"linear-gradient(135deg,#0d2137 0%,#1a3a5c 50%,#2d6a4f 100%)",accent:"#22d38e",emoji:"⚽",title:"Thể thao & Sự kiện",sub:"Vé VIP xem trực tiếp — đảm bảo 100%",cta:"Khám phá"},
+    {bg:"linear-gradient(135deg,#2d1b69 0%,#11998e 50%,#38ef7d 100%)",accent:"#9b87f5",emoji:"🎪",title:"Festival & Lễ hội",sub:"Những trải nghiệm không thể bỏ lỡ",cta:"Đặt vé"},
+    {bg:"linear-gradient(135deg,#373b44 0%,#4286f4 100%)",accent:"#f5a623",emoji:"🔑",title:"Pass Tài Khoản Premium",sub:"Netflix, Spotify, Adobe — giá siêu rẻ",cta:"Mua ngay"},
+  ];
+
+  // Category icon colors
+  const catColors=["rgba(61,142,248,.15)","rgba(240,80,104,.15)","rgba(34,211,142,.15)","rgba(245,166,35,.15)","rgba(155,135,245,.15)","rgba(0,229,255,.12)"];
 
   return`
-  <!-- ═══ HERO ═══ -->
-  <div style="position:relative;overflow:hidden;padding:28px 20px 24px;background:linear-gradient(160deg,rgba(61,142,248,.07) 0%,transparent 50%),linear-gradient(200deg,rgba(155,135,245,.05) 0%,transparent 60%);">
-    <!-- Grid overlay -->
-    <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(61,142,248,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(61,142,248,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black,transparent);"></div>
-    <!-- Glow orbs -->
-    <div style="position:absolute;top:-60px;right:-40px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(61,142,248,.08),transparent 70%);pointer-events:none;"></div>
-    <div style="position:absolute;bottom:-40px;left:-20px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(155,135,245,.06),transparent 70%);pointer-events:none;"></div>
+  <!-- ═══ SEARCH BAR ═══ -->
+  <div class="hp-search">
+    <div class="hp-search-box" onclick="setState({page:'search'})">
+      <span style="font-size:15px;opacity:.5;">🔍</span>
+      <span class="hp-search-ph">Tìm vé, concert, tài khoản...</span>
+    </div>
+    <button class="hp-search-btn" onclick="setState({page:'sell'})">🏷</button>
+  </div>
 
-    <div style="position:relative;z-index:1;">
-      <!-- Trust badge -->
-      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(34,211,142,.08);border:1px solid rgba(34,211,142,.2);border-radius:20px;padding:4px 12px;margin-bottom:16px;">
-        <span style="width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 6px var(--ok);"></span>
-        <span style="font-size:11px;font-weight:700;color:var(--ok);letter-spacing:.04em;">GIAO DỊCH AN TOÀN 100%</span>
-      </div>
-
-      <!-- Headline -->
-      <div style="font-size:28px;font-weight:900;line-height:1.2;letter-spacing:-.8px;margin-bottom:10px;font-family:'Inter',sans-serif;">
-        Mua bán vé
-        <span style="display:block;background:linear-gradient(135deg,#3d8ef8 0%,#7c5cf5 50%,#00e5ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">không lo lừa đảo</span>
-      </div>
-      <div style="font-size:13px;color:var(--sub);margin-bottom:22px;line-height:1.6;max-width:320px;">
-        Escrow thông minh · QR xác thực · Hoàn tiền 100% nếu vé lỗi
-      </div>
-
-      <!-- CTA Buttons -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="setState({page:'search'})" style="font-size:13px;padding:11px 22px;border-radius:12px;display:flex;align-items:center;gap:8px;">
-          <span style="font-size:16px;">🎟</span> Tìm vé ngay
-        </button>
-        <button class="btn btn-ghost" onclick="setState({page:'sell'})" style="font-size:13px;padding:11px 18px;border-radius:12px;display:flex;align-items:center;gap:8px;border:1px solid var(--border2);">
-          <span style="font-size:14px;">🏷</span> Đăng bán vé
-        </button>
-      </div>
+  <!-- ═══ BANNER CAROUSEL ═══ -->
+  <div class="hp-banner hp-animate" id="hpBanner" style="margin-top:10px;">
+    <div class="hp-banner-track" id="hpTrack">
+      ${banners.map((b,i)=>`
+      <div class="hp-banner-slide" style="background:${b.bg};cursor:pointer;" onclick="setState({page:'search'})">
+        <!-- Texture overlay -->
+        <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 80% 50%,${b.accent}22 0%,transparent 60%),radial-gradient(circle at 20% 80%,rgba(255,255,255,.04) 0%,transparent 40%);pointer-events:none;"></div>
+        <!-- Content -->
+        <div style="position:absolute;inset:0;padding:22px 20px;display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="position:absolute;top:16px;right:20px;font-size:52px;opacity:.85;line-height:1;">${b.emoji}</div>
+          <div style="display:inline-block;background:${b.accent}33;border:1px solid ${b.accent}55;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:${b.accent};margin-bottom:8px;width:fit-content;">HOT DEAL</div>
+          <div style="font-size:17px;font-weight:900;line-height:1.2;margin-bottom:5px;text-shadow:0 2px 8px rgba(0,0,0,.6);">${b.title}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.65);margin-bottom:12px;">${b.sub}</div>
+          <button style="align-self:flex-start;background:${b.accent};border:none;border-radius:20px;padding:6px 16px;font-size:11px;font-weight:800;color:#fff;cursor:pointer;letter-spacing:.03em;">${b.cta} →</button>
+        </div>
+      </div>`).join("")}
+    </div>
+    <!-- Dots -->
+    <div class="hp-banner-dots" id="hpDots">
+      ${banners.map((_,i)=>`<div class="hp-banner-dot ${i===0?"active":""}" id="hpDot${i}" onclick="hpGoSlide(${i})"></div>`).join("")}
     </div>
   </div>
 
-  <!-- ═══ STATS ═══ -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);margin:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <!-- ═══ STATS STRIP ═══ -->
+  <div style="display:flex;gap:0;overflow-x:auto;padding:12px 14px;scrollbar-width:none;border-bottom:1px solid var(--border);">
     ${[
-      {val:"12,400+",label:"Vé đã giao dịch",color:"var(--brand)"},
-      {val:"98.2%",label:"Tỉ lệ thành công",color:"var(--ok)"},
-      {val:"4,800+",label:"Người dùng tin tưởng",color:"var(--purple)"}
+      {emoji:"✅",val:"12,400+",label:"Giao dịch thành công"},
+      {emoji:"🛡",val:"98.2%",label:"Tỉ lệ thành công"},
+      {emoji:"👥",val:"4,800+",label:"Người dùng"},
+      {emoji:"⚡",val:"< 5 phút",label:"Thời gian duyệt"},
     ].map(s=>`
-    <div style="background:var(--bg2);padding:16px 12px;text-align:center;">
-      <div style="font-size:18px;font-weight:900;color:${s.color};letter-spacing:-.5px;font-family:'Inter',sans-serif;">${s.val}</div>
-      <div style="font-size:10px;color:var(--hint);margin-top:3px;font-weight:500;">${s.label}</div>
+    <div style="display:flex;align-items:center;gap:8px;min-width:150px;padding:6px 14px 6px 0;border-right:1px solid var(--border);margin-right:14px;flex-shrink:0;" class="last-no-border">
+      <span style="font-size:18px;">${s.emoji}</span>
+      <div>
+        <div style="font-size:13px;font-weight:900;letter-spacing:-.3px;">${s.val}</div>
+        <div style="font-size:9.5px;color:var(--hint);">${s.label}</div>
+      </div>
     </div>`).join("")}
   </div>
 
-  <!-- ═══ FEATURED ═══ -->
-  <div style="padding:20px 16px 8px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div>
-        <div style="font-size:15px;font-weight:800;letter-spacing:-.3px;">🔥 Nổi bật tuần này</div>
-        <div style="font-size:11px;color:var(--hint);margin-top:2px;">Vé hot đang được săn đón nhiều nhất</div>
+  <!-- ═══ SERVICES ═══ -->
+  <div class="hp-services">
+    ${[
+      {icon:"🎟",label:"Vé sự kiện",bg:"rgba(61,142,248,.15)",page:"search",cat:"ticket"},
+      {icon:"📦",label:"Pass đồ",bg:"rgba(245,166,35,.15)",page:"search",cat:"product"},
+      {icon:"🔑",label:"Tài khoản",bg:"rgba(34,211,142,.15)",page:"search",cat:"account"},
+      {icon:"📚",label:"Khóa học",bg:"rgba(155,135,245,.15)",page:"search",cat:"course"},
+      {icon:"🛠",label:"Dịch vụ",bg:"rgba(240,80,104,.15)",page:"search",cat:"service"},
+      {icon:"📅",label:"Booking",bg:"rgba(0,229,255,.12)",page:"search",cat:"booking"},
+      {icon:"🔐",label:"Escrow",bg:"rgba(61,142,248,.1)",page:"open_escrow",cat:""},
+      {icon:"💳",label:"Ví Pay",bg:"rgba(155,135,245,.15)",page:"pay",cat:""},
+    ].map(s=>`
+    <div class="hp-svc" onclick="${s.cat?`setState({page:'${s.page}',category:'${s.cat}'})`:s.page==="open_escrow"?"window.location.href='/escrow.html'":s.page==="pay"?"window.location.href='/pay'":"setState({page:'"+s.page+"'})"}">
+      <div class="hp-svc-icon" style="background:${s.bg};">${s.icon}</div>
+      <span class="hp-svc-lbl">${s.label}</span>
+    </div>`).join("")}
+  </div>
+  <div style="height:1px;background:var(--border);margin:4px 0 0;"></div>
+
+  <!-- ═══ FLASH SALE ═══ -->
+  ${flashItems.length>0?`
+  <div class="hp-flash">
+    <div class="hp-flash-hd">
+      <span style="font-size:20px;">⚡</span>
+      <span class="hp-flash-title">FLASH SALE</span>
+      <div class="hp-flash-timer">
+        <span style="font-size:10px;color:var(--hint);margin-right:4px;">Kết thúc sau</span>
+        <span class="hp-t-seg" id="hpTH">02</span>
+        <span class="hp-t-colon">:</span>
+        <span class="hp-t-seg" id="hpTM">47</span>
+        <span class="hp-t-colon">:</span>
+        <span class="hp-t-seg" id="hpTS">30</span>
       </div>
-      <button onclick="setState({page:'search'})" style="font-size:12px;font-weight:700;color:var(--brand);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;padding:6px 10px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(61,142,248,.08)'" onmouseout="this.style.background='none'">Xem tất cả →</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      ${featured.map((l,i)=>{
-        const disc=Math.round((1-l.price/l.original_price)*100);
-        const trustCol=l.trust>=80?"var(--ok)":l.trust>=60?"var(--warn)":"var(--red)";
+    <div class="hp-flash-row">
+      ${flashItems.map(l=>{
+        const disc=l.original_price?Math.round((1-l.price/l.original_price)*100):0;
         return`
-        <div onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})"
-          style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(135deg,var(--card) 0%,rgba(9,13,22,.8) 100%);cursor:pointer;transition:all .2s;animation:cardIn .3s ${i*.07}s ease both;"
-          onmouseover="this.style.borderColor='rgba(61,142,248,.22)';this.style.transform='translateX(4px)';this.style.boxShadow='0 8px 28px rgba(0,0,0,.35)'"
-          onmouseout="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
-          <!-- Rank badge -->
-          <div style="width:28px;height:28px;border-radius:8px;background:${i===0?"linear-gradient(135deg,#f5a623,#d4870a)":i===1?"linear-gradient(135deg,#8896b3,#6b7a93)":i===2?"linear-gradient(135deg,#cd7f32,#a0612a)":"var(--card2)"};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:${i<3?"#fff":"var(--hint)"};flex-shrink:0;font-family:'JetBrains Mono',monospace;">
-            ${i<3?["🥇","🥈","🥉"][i]:i+1}
-          </div>
-          <!-- Emoji thumb -->
-          <div style="width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:linear-gradient(135deg,rgba(61,142,248,.06),rgba(155,135,245,.04));border:1px solid var(--border);">${catEmoji(l.category)}</div>
-          <!-- Info -->
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">${l.title}</div>
-            <div style="font-size:10.5px;color:var(--hint);display:flex;gap:8px;align-items:center;">
-              <span>📍 ${l.location}</span>
-              <span>📅 ${l.date}</span>
-            </div>
-          </div>
-          <!-- Price + discount -->
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:14px;font-weight:900;color:var(--brand);letter-spacing:-.3px;font-family:'Inter',sans-serif;">${VND(l.price)}</div>
-            <div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;">
-              <span style="font-size:9.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#e04060,#c0304a);padding:2px 6px;border-radius:5px;">-${disc}%</span>
-              <span style="font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${trustCol};">🛡${l.trust}</span>
-            </div>
+        <div class="hp-fcard" onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})">
+          <div class="hp-fcard-thumb">${catEmoji(l.category)}</div>
+          <div class="hp-fcard-body">
+            <div class="hp-fcard-name">${l.title}</div>
+            <div class="hp-fcard-price">${VND(l.price)}</div>
+            <div class="hp-fcard-orig">${VND(l.original_price)}</div>
+            <div class="hp-fcard-badge">-${disc}%</div>
           </div>
         </div>`;
       }).join("")}
     </div>
-  </div>
+  </div>`:""}
 
   <!-- ═══ CATEGORIES ═══ -->
-  <div style="padding:20px 16px;">
-    <div style="font-size:15px;font-weight:800;letter-spacing:-.3px;margin-bottom:14px;">📂 Danh mục</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-      ${CATEGORIES.filter(c=>c.id!=="all").map(c=>`
-      <button onclick="setState({page:'search',category:'${c.id}'})"
-        style="padding:14px 8px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(145deg,var(--card),var(--card2));cursor:pointer;text-align:center;transition:all .2s;font-family:'Inter',sans-serif;"
-        onmouseover="this.style.borderColor='rgba(61,142,248,.3)';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.3)'"
-        onmouseout="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:22px;margin-bottom:6px;">${c.icon}</div>
-        <div style="font-size:10.5px;font-weight:600;color:var(--sub);">${c.label}</div>
-        <div style="font-size:9.5px;color:var(--hint);margin-top:2px;">${ALL_LISTINGS.filter(l=>l.category===c.id).length} vé</div>
-      </button>`).join("")}
-    </div>
+  <div class="hp-sec">
+    <span class="hp-sec-title">📂 Danh mục</span>
+    <button class="hp-sec-more" onclick="setState({page:'search'})">Tất cả →</button>
+  </div>
+  <div class="hp-cats">
+    ${CATEGORIES.filter(c=>c.id!=="all").map((c,i)=>`
+    <div class="hp-cat" onclick="setState({page:'search',category:'${c.id}'})">
+      <div class="hp-cat-icon" style="background:${catColors[i%catColors.length]};">${c.icon}</div>
+      <div class="hp-cat-lbl">${c.label}</div>
+      <div class="hp-cat-cnt">${ALL_LISTINGS.filter(l=>l.category===c.id).length} vé</div>
+    </div>`).join("")}
   </div>
 
-  <!-- ═══ TRUST SECTION ═══ -->
-  <div style="margin:0 16px 20px;padding:18px;border-radius:16px;background:linear-gradient(135deg,rgba(34,211,142,.05),rgba(61,142,248,.04));border:1px solid rgba(34,211,142,.12);">
-    <div style="font-size:12px;font-weight:800;color:var(--ok);letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px;">🛡 Tại sao chọn SafePass?</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      ${[
-        {icon:"🔐",title:"Escrow thông minh",desc:"Tiền được giữ an toàn đến khi bạn nhận vé"},
-        {icon:"📱",title:"QR xác thực độc quyền",desc:"Mỗi vé có mã QR riêng chống làm giả"},
-        {icon:"💯",title:"Hoàn tiền 100%",desc:"Không hài lòng? Hoàn tiền không câu hỏi"}
-      ].map(f=>`
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(34,211,142,.08);border:1px solid rgba(34,211,142,.15);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${f.icon}</div>
-        <div>
-          <div style="font-size:12.5px;font-weight:700;margin-bottom:2px;">${f.title}</div>
-          <div style="font-size:11px;color:var(--hint);line-height:1.5;">${f.desc}</div>
-        </div>
-      </div>`).join("")}
-    </div>
+  <!-- ═══ FOR YOU GRID ═══ -->
+  <div class="hp-sec" style="margin-top:4px;">
+    <span class="hp-sec-title">🎯 Gợi ý hôm nay</span>
+    <button class="hp-sec-more" onclick="setState({page:'search'})">Xem thêm →</button>
   </div>
+  <div class="hp-grid">
+    ${forYou.map((l,i)=>{
+      const disc=l.original_price&&l.price<l.original_price?Math.round((1-l.price/l.original_price)*100):0;
+      const stars=l.trust>=90?"⭐⭐⭐⭐⭐":l.trust>=75?"⭐⭐⭐⭐":l.trust>=60?"⭐⭐⭐":"⭐⭐";
+      return`
+      <div class="hp-pcard hp-animate" style="animation-delay:${i*.04}s;" onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})">
+        <div class="hp-pcard-thumb">
+          ${catEmoji(l.category)}
+          <div class="hp-pcard-badges">
+            ${disc>0?`<span class="hp-pcard-disc">-${disc}%</span>`:""}
+            ${l.trust>=85?`<span class="hp-pcard-trust">🛡 ${l.trust}</span>`:""}
+          </div>
+        </div>
+        <div class="hp-pcard-body">
+          <div class="hp-pcard-name">${l.title}</div>
+          <div class="hp-pcard-loc">📍 ${l.location}</div>
+          <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;">
+            <span class="hp-pcard-price">${VND(l.price)}</span>
+            ${disc>0?`<span class="hp-pcard-orig">${VND(l.original_price)}</span>`:""}
+          </div>
+          <div class="hp-pcard-bot">
+            <span class="hp-pcard-sold">Đã bán ${l.sold||Math.floor(Math.random()*40)+5}</span>
+            <span class="hp-pcard-star">${stars}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>
+
+  <!-- ═══ TRENDING HORIZONTAL ═══ -->
+  <div class="hp-sec" style="margin-top:4px;">
+    <span class="hp-sec-title">🔥 Đang hot</span>
+    <button class="hp-sec-more" onclick="setState({page:'search',sortBy:'popular'})">Xem thêm →</button>
+  </div>
+  <div class="hp-hscroll">
+    ${trending.map(l=>`
+    <div class="hp-hcard" onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})">
+      <div class="hp-hcard-thumb">${catEmoji(l.category)}</div>
+      <div class="hp-hcard-body">
+        <div class="hp-hcard-name">${l.title}</div>
+        <div style="font-size:9.5px;color:var(--hint);margin-bottom:4px;">📍 ${l.location}</div>
+        <div class="hp-hcard-price">${VND(l.price)}</div>
+      </div>
+    </div>`).join("")}
+  </div>
+
+  <!-- ═══ TRUST BADGES ═══ -->
+  <div class="hp-sec" style="margin-top:4px;">
+    <span class="hp-sec-title">🛡 Cam kết của SafePass</span>
+  </div>
+  <div class="hp-trust" style="padding:0 12px 24px;">
+    ${[
+      {icon:"🔐",title:"Escrow thông minh",desc:"Tiền giữ an toàn đến khi nhận vé"},
+      {icon:"📱",title:"QR xác thực",desc:"Mã QR độc quyền chống làm giả"},
+      {icon:"💯",title:"Hoàn tiền 100%",desc:"Không hài lòng? Hoàn ngay, không câu hỏi"},
+      {icon:"⚡",title:"Duyệt nhanh",desc:"Vé được kiểm tra trong vòng 5 phút"},
+      {icon:"🤝",title:"Người bán xác thực",desc:"KYC đầy đủ, có điểm uy tín rõ ràng"},
+    ].map(t=>`
+    <div class="hp-tbadge">
+      <span class="hp-tbadge-icon">${t.icon}</span>
+      <div>
+        <div class="hp-tbadge-title">${t.title}</div>
+        <div class="hp-tbadge-desc">${t.desc}</div>
+      </div>
+    </div>`).join("")}
+  </div>
+
+  <script>
+  // ── Banner carousel ──
+  (function(){
+    let cur=0;
+    const total=${banners.length};
+    function hpGoSlide(idx){
+      cur=idx;
+      const track=document.getElementById('hpTrack');
+      if(track) track.style.transform='translateX(-'+cur*100+'%)';
+      for(let i=0;i<total;i++){
+        const d=document.getElementById('hpDot'+i);
+        if(d){d.className='hp-banner-dot'+(i===cur?' active':'');}
+      }
+    }
+    window.hpGoSlide=hpGoSlide;
+    const iv=setInterval(()=>{hpGoSlide((cur+1)%total);},3800);
+    // Pause on hover
+    const el=document.getElementById('hpBanner');
+    if(el){el.addEventListener('mouseenter',()=>clearInterval(iv));el.addEventListener('touchstart',()=>clearInterval(iv),{passive:true});}
+  })();
+
+  // ── Flash sale countdown ──
+  (function(){
+    // Set a session end time
+    if(!window._hpSaleEnd) window._hpSaleEnd=Date.now()+((2*3600+47*60+30)*1000);
+    function tick(){
+      const rem=Math.max(0,window._hpSaleEnd-Date.now());
+      const h=Math.floor(rem/3600000);
+      const m=Math.floor((rem%3600000)/60000);
+      const s=Math.floor((rem%60000)/1000);
+      const pad=n=>String(n).padStart(2,'0');
+      const th=document.getElementById('hpTH');
+      const tm=document.getElementById('hpTM');
+      const ts=document.getElementById('hpTS');
+      if(th) th.textContent=pad(h);
+      if(tm) tm.textContent=pad(m);
+      if(ts) ts.textContent=pad(s);
+    }
+    tick();
+    setInterval(tick,1000);
+  })();
+  <\/script>
 `;
 }
 
