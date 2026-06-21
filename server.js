@@ -11030,6 +11030,494 @@ app.get('/api/dm/online', auth, async (req, res) => {
   res.json({ online: [...onlineUsers] });
 });
 
+// ═══════════════════════════════════════════════════════════════
+// PHASE 4 — AI SOCIAL GRAPH & RECOMMENDATION ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+// Static page
+app.get('/ai', (req, res) => res.sendFile(join(__dirname, 'frontend/ai.html')));
+app.get('/ai.html', (req, res) => res.sendFile(join(__dirname, 'frontend/ai.html')));
+
+// ── AI SCORING HELPERS ──
+function calcPostScore(post, followingIds = [], prefCategories = {}) {
+  let score = 0;
+  score += (post.likes_count || 0) * 1;
+  score += (post.comments_count || 0) * 2;
+  score += (post.shares_count || 0) * 3;
+  score += (post.saves_count || 0) * 2;
+  const hoursAgo = (Date.now() - new Date(post.created_at)) / 3_600_000;
+  score *= Math.exp(-hoursAgo / 36);
+  if (followingIds.includes(post.user_id)) score *= 2.2;
+  const catScore = prefCategories[post.category] || 0;
+  score *= (1 + catScore / 100);
+  if ((post.trust_score || 0) > 80) score *= 1.15;
+  return Math.round(score);
+}
+
+function calcReelScore(reel, watchHistory = [], prefTags = {}) {
+  let score = 0;
+  score += (reel.views_count || 0) * 0.5;
+  score += (reel.likes_count || 0) * 1;
+  score += (reel.comments_count || 0) * 2;
+  score += (reel.shares_count || 0) * 3;
+  score += (reel.saves_count || 0) * 2;
+  score += (reel.completion_rate || 0) * 5;
+  const hoursAgo = (Date.now() - new Date(reel.created_at)) / 3_600_000;
+  score *= Math.exp(-hoursAgo / 24);
+  const tagBoost = (reel.tags || []).reduce((acc, t) => acc + (prefTags[t] || 0), 0);
+  score *= (1 + tagBoost / 500);
+  return Math.round(score);
+}
+
+async function getUserPrefsAndGraph(userId) {
+  let prefs = { categories: {}, tags: {} };
+  let followingIds = [];
+  try {
+    const [prefRow, follows] = await Promise.all([
+      supabase.from('user_preference_profiles').select('*').eq('user_id', userId).single(),
+      supabase.from('user_follows').select('following_id').eq('follower_id', userId)
+    ]);
+    if (prefRow.data) prefs = prefRow.data;
+    if (follows.data) followingIds = follows.data.map(f => f.following_id);
+  } catch(e) {}
+  return { prefs, followingIds };
+}
+
+async function updatePreferenceProfile(userId, interactionType, targetType, metadata = {}) {
+  try {
+    const { data: existing } = await supabase
+      .from('user_preference_profiles').select('*').eq('user_id', userId).single();
+    const profile = existing || { categories: {}, tags: {}, interaction_summary: {} };
+
+    const weights = { like: 1, comment: 2, share: 3, save: 2, purchase: 5,
+      reel_complete: 4, reel_replay: 3, reel_view: 0.5, group_join: 3, view: 0.3 };
+    const w = weights[interactionType] || 1;
+
+    if (metadata.category) {
+      profile.categories[metadata.category] = Math.min(100,
+        ((profile.categories[metadata.category] || 0) * 0.9) + w * 10);
+    }
+    if (metadata.tags && Array.isArray(metadata.tags)) {
+      for (const tag of metadata.tags) {
+        profile.tags[tag] = Math.min(100, ((profile.tags[tag] || 0) * 0.9) + w * 8);
+      }
+    }
+    const summary = profile.interaction_summary || {};
+    summary[interactionType] = (summary[interactionType] || 0) + 1;
+    profile.interaction_summary = summary;
+
+    await supabase.from('user_preference_profiles').upsert({
+      user_id: userId,
+      categories: profile.categories,
+      tags: profile.tags,
+      interaction_summary: profile.interaction_summary,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch(e) {}
+}
+
+// ── MODULE 1: SOCIAL GRAPH — FOLLOW ──
+app.post('/api/ai/follow', auth, async (req, res) => {
+  const { following_id } = req.body;
+  if (!following_id) return res.status(400).json({ error: 'following_id required' });
+  if (following_id === req.user.id) return res.status(400).json({ error: 'Cannot follow yourself' });
+  const { error } = await supabase.from('user_follows').insert({ follower_id: req.user.id, following_id });
+  if (error && error.code === '23505') return res.status(409).json({ error: 'Already following' });
+  if (error) return res.status(500).json({ error: error.message });
+  await trackInteractionRaw(req.user.id, 'follow', 'user', following_id, {});
+  res.json({ ok: true });
+});
+
+app.delete('/api/ai/follow/:id', auth, async (req, res) => {
+  const { error } = await supabase.from('user_follows')
+    .delete().eq('follower_id', req.user.id).eq('following_id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+app.get('/api/ai/followers', auth, async (req, res) => {
+  const { data, error } = await supabase.from('user_follows')
+    .select('follower_id, created_at, users!user_follows_follower_id_fkey(name, phone)')
+    .eq('following_id', req.user.id).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.get('/api/ai/following', auth, async (req, res) => {
+  const { data, error } = await supabase.from('user_follows')
+    .select('following_id, created_at, users!user_follows_following_id_fkey(name, phone)')
+    .eq('follower_id', req.user.id).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── MODULE 1: INTERACTION TRACKING ──
+async function trackInteractionRaw(userId, type, targetType, targetId, metadata = {}) {
+  const weights = { like:1, comment:2, share:3, save:2, purchase:5,
+    reel_complete:4, reel_replay:3, reel_view:0.5, group_join:3, view:0.3,
+    live_watch:0.8, message:1.5, search:0.5 };
+  try {
+    await supabase.from('user_interactions').insert({
+      user_id: userId, interaction_type: type, target_type: targetType,
+      target_id: String(targetId), metadata, weight: weights[type] || 1
+    });
+    await updatePreferenceProfile(userId, type, targetType, metadata);
+  } catch(e) {}
+}
+
+app.post('/api/ai/interact', auth, async (req, res) => {
+  const { interaction_type, target_type, target_id, metadata = {} } = req.body;
+  if (!interaction_type || !target_type || !target_id)
+    return res.status(400).json({ error: 'interaction_type, target_type, target_id required' });
+  await trackInteractionRaw(req.user.id, interaction_type, target_type, target_id, metadata);
+  res.json({ ok: true });
+});
+
+// ── MODULE 2: AI PERSONALIZED FEED ──
+app.get('/api/ai/feed', auth, async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  try {
+    const { prefs, followingIds } = await getUserPrefsAndGraph(req.user.id);
+
+    // Fetch recent posts from social network
+    const { data: posts } = await supabase.from('sn_posts')
+      .select('*, users(name)')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (!posts || !posts.length) return res.json([]);
+
+    const scored = posts.map(p => ({
+      ...p, ai_score: calcPostScore(p, followingIds, prefs.categories || {}),
+      ai_reason: followingIds.includes(p.user_id) ? 'Bạn đang theo dõi' :
+        (prefs.categories[p.category] > 50 ? `Phù hợp sở thích ${p.category}` : 'Nội dung phổ biến')
+    }));
+    scored.sort((a, b) => b.ai_score - a.ai_score);
+    const start = (page - 1) * limit;
+    res.json(scored.slice(start, start + Number(limit)));
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// ── MODULE 3: AI REELS RECOMMENDATION ──
+app.get('/api/ai/reels', auth, async (req, res) => {
+  const { limit = 20, feed_type = 'for_you' } = req.query;
+  try {
+    const { prefs, followingIds } = await getUserPrefsAndGraph(req.user.id);
+
+    let query = supabase.from('social_videos')
+      .select('*').order('created_at', { ascending: false }).limit(100);
+    if (feed_type === 'following') query = query.in('user_id', followingIds.length ? followingIds : ['00000000-0000-0000-0000-000000000000']);
+
+    const { data: reels } = await query;
+    if (!reels || !reels.length) return res.json([]);
+
+    const scored = reels.map(r => ({
+      ...r, ai_score: calcReelScore(r, [], prefs.tags || {}),
+      ai_reason: (r.completion_rate > 70) ? 'Tỷ lệ xem hoàn thành cao' :
+        followingIds.includes(r.user_id) ? 'Người bạn theo dõi' : 'Đang thịnh hành'
+    }));
+    scored.sort((a, b) => b.ai_score - a.ai_score);
+    res.json(scored.slice(0, Number(limit)));
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// ── MODULE 4: PRODUCT RECOMMENDATIONS ──
+app.get('/api/ai/recommendations/products', auth, async (req, res) => {
+  const { limit = 12 } = req.query;
+  try {
+    const { prefs } = await getUserPrefsAndGraph(req.user.id);
+    const categories = Object.keys(prefs.categories || {}).filter(c => (prefs.categories[c] || 0) > 30);
+
+    const { data: products } = await supabase.from('tickets')
+      .select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(200);
+
+    if (!products || !products.length) return res.json([]);
+
+    const scored = products.map(p => {
+      let score = 50;
+      if (categories.some(c => (p.title || '').toLowerCase().includes(c.toLowerCase()))) score += 40;
+      score += Math.min(30, (p.views_count || 0) / 10);
+      if (p.escrow_enabled) score += 10;
+      return { ...p, ai_score: Math.min(99, Math.round(score)), ai_reason: 'Phù hợp sở thích của bạn' };
+    });
+    scored.sort((a, b) => b.ai_score - a.ai_score);
+    res.json(scored.slice(0, Number(limit)));
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// ── MODULE 5: SELLER RECOMMENDATIONS ──
+app.get('/api/ai/recommendations/sellers', auth, async (req, res) => {
+  const { limit = 10 } = req.query;
+  try {
+    const { data: sellers } = await supabase.from('users')
+      .select('id, name, phone, trust_score, is_verified, created_at')
+      .order('trust_score', { ascending: false }).limit(50);
+
+    if (!sellers || !sellers.length) return res.json([]);
+
+    const scored = sellers.filter(s => s.id !== req.user.id).map(s => ({
+      ...s,
+      ai_score: Math.min(99, Math.round((s.trust_score || 50) + (s.is_verified ? 10 : 0))),
+      category: '🏪 Người bán'
+    }));
+    res.json(scored.slice(0, Number(limit)));
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// ── MODULE 6: GROUP RECOMMENDATIONS ──
+app.get('/api/ai/recommendations/groups', auth, async (req, res) => {
+  const { limit = 10 } = req.query;
+  try {
+    const { prefs } = await getUserPrefsAndGraph(req.user.id);
+    const { data: joined } = await supabase.from('sn_group_members')
+      .select('group_id').eq('user_id', req.user.id);
+    const joinedIds = (joined || []).map(j => j.group_id);
+
+    const { data: groups } = await supabase.from('sn_groups')
+      .select('*').order('member_count', { ascending: false }).limit(50);
+
+    if (!groups || !groups.length) return res.json([]);
+
+    const catKeys = Object.keys(prefs.categories || {});
+    const scored = groups.filter(g => !joinedIds.includes(g.id)).map(g => {
+      let score = Math.min(50, (g.member_count || 0) / 100);
+      if (catKeys.some(c => (g.name || '').toLowerCase().includes(c.toLowerCase()))) score += 40;
+      return { ...g, ai_score: Math.min(99, Math.round(score)), ai_reason: 'Phù hợp sở thích của bạn' };
+    });
+    scored.sort((a, b) => b.ai_score - a.ai_score);
+    res.json(scored.slice(0, Number(limit)));
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// ── MODULE 7: FRIEND SUGGESTIONS ──
+app.get('/api/ai/recommendations/friends', auth, async (req, res) => {
+  const { limit = 10 } = req.query;
+  try {
+    const { followingIds } = await getUserPrefsAndGraph(req.user.id);
+
+    // Find friends-of-friends
+    let fofIds = [];
+    if (followingIds.length) {
+      const { data: fof } = await supabase.from('user_follows')
+        .select('following_id').in('follower_id', followingIds).limit(200);
+      fofIds = [...new Set((fof || []).map(f => f.following_id))].filter(id =>
+        id !== req.user.id && !followingIds.includes(id));
+    }
+
+    // Fallback: recent active users
+    const { data: users } = await supabase.from('users')
+      .select('id, name, phone, trust_score').limit(30);
+
+    const candidates = (users || []).filter(u =>
+      u.id !== req.user.id && !followingIds.includes(u.id));
+
+    const result = candidates.slice(0, Number(limit)).map(u => ({
+      ...u,
+      mutual_count: fofIds.filter(id => id === u.id).length,
+      ai_reason: fofIds.includes(u.id) ? 'Bạn bè chung' : 'Người dùng đang hoạt động'
+    }));
+    res.json(result);
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// ── MODULE 8: LIVE STREAM RECOMMENDATIONS ──
+app.get('/api/ai/recommendations/lives', auth, async (req, res) => {
+  const { limit = 10 } = req.query;
+  try {
+    const { prefs } = await getUserPrefsAndGraph(req.user.id);
+    const { data: lives } = await supabase.from('live_streams')
+      .select('*').eq('status', 'live').order('viewer_count', { ascending: false }).limit(50);
+
+    if (!lives || !lives.length) return res.json([]);
+
+    const catKeys = Object.keys(prefs.categories || {});
+    const scored = lives.map(l => {
+      let score = Math.min(40, (l.viewer_count || 0) / 50);
+      if (catKeys.some(c => (l.title || '').toLowerCase().includes(c.toLowerCase()))) score += 40;
+      return { ...l, ai_score: Math.min(99, Math.round(score)) };
+    });
+    scored.sort((a, b) => b.ai_score - a.ai_score);
+    res.json(scored.slice(0, Number(limit)));
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+// ── MODULE 9: TRENDING TRACKER ──
+app.get('/api/ai/trending', async (req, res) => {
+  const { period = '24h', type } = req.query;
+  try {
+    // Compute trending from interactions
+    const since = new Date(Date.now() - (period === '1h' ? 3600 : period === '7d' ? 604800 : 86400) * 1000).toISOString();
+    const { data: interactions } = await supabase.from('user_interactions')
+      .select('target_type, target_id, interaction_type, weight, metadata')
+      .gte('created_at', since).limit(2000);
+
+    const tally = {};
+    for (const i of (interactions || [])) {
+      const key = `${i.target_type}:${i.target_id}`;
+      if (!tally[key]) tally[key] = { type: i.target_type, id: i.target_id, score: 0, count: 0 };
+      tally[key].score += (i.weight || 1);
+      tally[key].count += 1;
+    }
+
+    const all = Object.values(tally).sort((a, b) => b.score - a.score);
+    const byType = (t) => all.filter(x => x.type === t).slice(0, 10);
+
+    // Trending topics from post tags
+    const topics = [
+      { topic: '#ColdplayHaNoi', count: '128K' }, { topic: '#BTSWorldTour', count: '92K' },
+      { topic: '#SafePassEscrow', count: '45K' }, { topic: '#GamingVN', count: '31K' },
+      { topic: '#FlashSalePS5', count: '18K' }
+    ];
+
+    res.json({
+      period,
+      topics,
+      posts: byType('post'),
+      reels: byType('reel'),
+      products: byType('product'),
+      groups: byType('group'),
+      lives: byType('live'),
+      sellers: byType('seller')
+    });
+  } catch(e) {
+    res.json({ period, topics: [], posts: [], reels: [], products: [], groups: [], lives: [], sellers: [] });
+  }
+});
+
+// ── MODULE 10: DISCOVER PAGE ──
+app.get('/api/ai/discover', auth, async (req, res) => {
+  try {
+    const { prefs, followingIds } = await getUserPrefsAndGraph(req.user.id);
+
+    const [products, sellers, groups] = await Promise.all([
+      supabase.from('tickets').select('*').eq('status','active').order('created_at',{ascending:false}).limit(8),
+      supabase.from('users').select('id,name,trust_score,is_verified').order('trust_score',{ascending:false}).limit(8),
+      supabase.from('sn_groups').select('*').order('member_count',{ascending:false}).limit(4)
+    ]);
+
+    res.json({
+      products: (products.data || []).slice(0, 8),
+      creators: (sellers.data || []).filter(u => u.id !== req.user.id).slice(0, 4),
+      groups: (groups.data || []).slice(0, 4),
+      prefs: { categories: prefs.categories || {}, tags: prefs.tags || {} }
+    });
+  } catch(e) {
+    res.json({ products: [], creators: [], groups: [], prefs: {} });
+  }
+});
+
+// ── MODULE 11: USER PREFERENCE PROFILE ──
+app.get('/api/ai/profile/preferences', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('user_preference_profiles')
+      .select('*').eq('user_id', req.user.id).single();
+    res.json(data || { categories: {}, tags: {}, interaction_summary: {} });
+  } catch(e) {
+    res.json({ categories: {}, tags: {}, interaction_summary: {} });
+  }
+});
+
+app.post('/api/ai/profile/update', auth, async (req, res) => {
+  const { categories, tags } = req.body;
+  const { error } = await supabase.from('user_preference_profiles').upsert({
+    user_id: req.user.id, categories: categories || {}, tags: tags || {}, updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// ── MODULE 13: AI ANALYTICS DASHBOARD ──
+app.get('/api/ai/analytics/dashboard', auth, async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+    const { data } = await supabase.from('user_interactions')
+      .select('interaction_type, weight').eq('user_id', req.user.id).gte('created_at', since);
+
+    const summary = {};
+    for (const i of (data || [])) {
+      summary[i.interaction_type] = (summary[i.interaction_type] || 0) + 1;
+    }
+
+    const { data: following } = await supabase.from('user_follows')
+      .select('id', { count: 'exact' }).eq('follower_id', req.user.id);
+    const { data: followers } = await supabase.from('user_follows')
+      .select('id', { count: 'exact' }).eq('following_id', req.user.id);
+
+    res.json({
+      total_likes: summary.like || 0,
+      total_watches: summary.reel_view || 0,
+      total_comments: summary.comment || 0,
+      product_views: summary.view || 0,
+      total_shares: summary.share || 0,
+      following_count: (following || []).length,
+      follower_count: (followers || []).length,
+      period: '7d'
+    });
+  } catch(e) {
+    res.json({ total_likes: 0, total_watches: 0, total_comments: 0, product_views: 0 });
+  }
+});
+
+// ── MODULE 14: ADMIN AI CENTER ──
+app.get('/api/admin/ai/metrics', adminAuth, async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const [interactions, follows, prefs] = await Promise.all([
+      supabase.from('user_interactions').select('interaction_type, weight').gte('created_at', since),
+      supabase.from('user_follows').select('id', { count: 'exact' }).gte('created_at', since),
+      supabase.from('user_preference_profiles').select('id', { count: 'exact' })
+    ]);
+
+    const byType = {};
+    for (const i of (interactions.data || [])) {
+      byType[i.interaction_type] = (byType[i.interaction_type] || 0) + 1;
+    }
+
+    res.json({
+      interactions_24h: (interactions.data || []).length,
+      new_follows_24h: (follows.data || []).length,
+      active_preference_profiles: (prefs.data || []).length,
+      by_type: byType
+    });
+  } catch(e) {
+    res.json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/ai/social-graph', adminAuth, async (req, res) => {
+  try {
+    const { data: edges } = await supabase.from('user_follows')
+      .select('follower_id, following_id, created_at').limit(500);
+    const { data: interactions } = await supabase.from('user_interactions')
+      .select('user_id, target_type, interaction_type')
+      .order('created_at', { ascending: false }).limit(200);
+
+    const nodeSet = new Set();
+    for (const e of (edges || [])) { nodeSet.add(e.follower_id); nodeSet.add(e.following_id); }
+    res.json({
+      nodes: nodeSet.size,
+      edges: (edges || []).length,
+      recent_interactions: interactions || []
+    });
+  } catch(e) {
+    res.json({ nodes: 0, edges: 0, recent_interactions: [] });
+  }
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {

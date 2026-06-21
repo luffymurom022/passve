@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafePass AI — Khám Phá Thông Minh</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#222232;
+  --border:#2a2a3a;--text:#e8e8f0;--text2:#9999b3;--text3:#6666880;
+  --blue:#4f8ef7;--purple:#8b5cf6;--pink:#ec4899;--green:#10b981;
+  --orange:#f59e0b;--red:#ef4444;--cyan:#06b6d4;
+  --ai-grad:linear-gradient(135deg,#4f8ef7,#8b5cf6,#ec4899);
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.logo{font-size:20px;font-weight:800;background:var(--ai-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;cursor:pointer}
+.logo span{font-size:11px;background:var(--ai-grad);-webkit-background-clip:text;padding:2px 6px;border:1px solid #8b5cf6;border-radius:10px;margin-left:4px}
+.header-search{flex:1;max-width:440px;position:relative}
+.header-search input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 16px 8px 40px;border-radius:24px;font-size:14px;outline:none;transition:border-color .2s}
+.header-search input:focus{border-color:var(--purple)}
+.header-search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:16px}
+.header-nav{display:flex;gap:4px;margin-left:auto}
+.header-nav a{color:var(--text2);text-decoration:none;padding:6px 12px;border-radius:8px;font-size:14px;transition:.2s;display:flex;align-items:center;gap:6px}
+.header-nav a:hover,.header-nav a.active{background:var(--bg3);color:var(--text)}
+.header-btn{background:var(--ai-grad);border:none;color:#fff;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:260px 1fr 300px;gap:0;flex:1;max-width:1400px;margin:0 auto;width:100%;padding:0 12px}
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}}.r-panel{display:none}
+@media(min-width:1100px){.r-panel{display:block}}
+
+/* LEFT SIDEBAR */
+.l-sidebar{padding:16px 12px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.l-sidebar::-webkit-scrollbar{width:4px}.l-sidebar::-webkit-scrollbar-thumb{background:var(--border)}
+.nav-section{margin-bottom:24px}
+.nav-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;padding:0 8px;margin-bottom:8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--text2);transition:.2s;font-size:14px;text-decoration:none}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(79,142,247,.15);color:var(--blue)}
+.nav-item .ni{font-size:18px;width:24px;text-align:center}
+.nav-item .nbadge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:700}
+
+/* AI SCORE BADGE */
+.ai-badge{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:12px;padding:12px;margin-bottom:16px;text-align:center}
+.ai-badge .ab-icon{font-size:28px;margin-bottom:4px}
+.ai-badge .ab-title{font-size:13px;font-weight:700;background:var(--ai-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ai-badge .ab-sub{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* MAIN FEED */
+.main-feed{padding:16px 12px;border-left:1px solid var(--border);border-right:1px solid var(--border);min-height:calc(100vh - 56px)}
+
+/* TABS */
+.feed-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg2);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.feed-tab{flex:1;padding:8px;border:none;background:none;color:var(--text2);cursor:pointer;border-radius:8px;font-size:13px;font-weight:600;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.feed-tab.active{background:var(--ai-grad);color:#fff}
+.feed-tab:not(.active):hover{background:var(--bg3);color:var(--text)}
+
+/* FEED CARD */
+.feed-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;margin-bottom:16px;overflow:hidden;transition:.2s}
+.feed-card:hover{border-color:var(--purple)}
+.card-header{padding:14px 16px;display:flex;align-items:center;gap:10px}
+.card-avatar{width:40px;height:40px;border-radius:50%;background:var(--ai-grad);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;flex-shrink:0;position:relative}
+.card-avatar .online-dot{position:absolute;bottom:0;right:0;width:12px;height:12px;background:var(--green);border-radius:50%;border:2px solid var(--bg2)}
+.card-info{flex:1}
+.card-name{font-size:14px;font-weight:700;color:var(--text)}
+.card-meta{font-size:12px;color:var(--text2)}
+.card-ai-score{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);color:var(--blue);font-size:11px;padding:3px 8px;border-radius:10px;font-weight:700}
+.card-body{padding:0 16px 14px}
+.card-text{font-size:14px;line-height:1.6;color:var(--text);margin-bottom:12px}
+.card-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.card-tag{background:rgba(139,92,246,.1);color:var(--purple);font-size:11px;padding:3px 8px;border-radius:10px}
+.card-media{background:var(--bg3);border-radius:12px;height:200px;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:40px;margin-bottom:12px}
+.card-actions{display:flex;gap:4px}
+.card-btn{flex:1;background:none;border:1px solid var(--border);color:var(--text2);padding:8px;border-radius:10px;cursor:pointer;font-size:13px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.card-btn:hover{background:var(--bg3);color:var(--text)}
+.card-btn.liked{color:var(--red);border-color:var(--red)}
+.card-btn.saved{color:var(--orange);border-color:var(--orange)}
+
+/* AI REASON TAG */
+.ai-reason{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);padding:8px 16px;background:rgba(139,92,246,.05);border-top:1px solid var(--border)}
+.ai-reason-icon{font-size:14px}
+
+/* PRODUCT CARD */
+.product-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:.2s;cursor:pointer}
+.product-card:hover{border-color:var(--blue);transform:translateY(-2px)}
+.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
+.p-img{height:160px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative}
+.p-badge{position:absolute;top:8px;left:8px;background:var(--red);color:#fff;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:700}
+.p-body{padding:10px}
+.p-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-price{font-size:16px;font-weight:800;color:var(--orange)}
+.p-meta{font-size:11px;color:var(--text2)}
+.p-ai{font-size:11px;color:var(--purple);margin-top:4px}
+
+/* SELLER CARD */
+.seller-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:.2s}
+.seller-card:hover{border-color:var(--blue)}
+.seller-ava{width:48px;height:48px;border-radius:50%;background:var(--ai-grad);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff}
+.seller-info{flex:1}
+.seller-name{font-size:14px;font-weight:700;color:var(--text)}
+.seller-stats{font-size:12px;color:var(--text2)}
+.seller-trust{font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px}
+.trust-high{background:rgba(16,185,129,.15);color:var(--green)}
+.trust-med{background:rgba(245,158,11,.15);color:var(--orange)}
+.follow-btn{background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);color:var(--blue);padding:6px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;transition:.2s}
+.follow-btn:hover{background:var(--blue);color:#fff}
+.follow-btn.following{background:var(--bg3);border-color:var(--border);color:var(--text2)}
+
+/* FRIEND SUGGESTION */
+.friend-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.friend-row:last-child{border-bottom:none}
+.friend-ava{width:40px;height:40px;border-radius:50%;background:var(--ai-grad);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;flex-shrink:0}
+.friend-info{flex:1}
+.friend-name{font-size:13px;font-weight:700;color:var(--text)}
+.friend-reason{font-size:11px;color:var(--text2)}
+
+/* GROUP SUGGESTION */
+.group-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.group-icon{width:40px;height:40px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.group-info{flex:1}
+.group-name{font-size:13px;font-weight:700;color:var(--text)}
+.group-members{font-size:11px;color:var(--text2)}
+.join-btn{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:var(--purple);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600}
+
+/* TRENDING */
+.trend-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.trend-item:last-child{border-bottom:none}
+.trend-rank{font-size:18px;font-weight:900;color:var(--purple);width:28px;text-align:center}
+.trend-info{flex:1}
+.trend-topic{font-size:13px;font-weight:700;color:var(--text)}
+.trend-count{font-size:11px;color:var(--text2)}
+.trend-up{font-size:16px}
+
+/* RIGHT SIDEBAR */
+.r-panel{padding:16px 8px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.r-panel::-webkit-scrollbar{width:4px}.r-panel::-webkit-scrollbar-thumb{background:var(--border)}
+.r-section{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+.r-section-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.r-section-title .rs-icon{font-size:18px}
+.r-see-all{display:block;text-align:center;color:var(--blue);font-size:12px;margin-top:8px;cursor:pointer;padding:4px}
+
+/* PROFILE PANEL */
+.pref-bar{margin-bottom:10px}
+.pref-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px}
+.pref-label span:first-child{color:var(--text)}
+.pref-label span:last-child{color:var(--purple);font-weight:700}
+.pref-track{background:var(--bg3);border-radius:6px;height:6px;overflow:hidden}
+.pref-fill{height:100%;border-radius:6px;background:var(--ai-grad);transition:width .6s ease}
+
+/* REEL GRID */
+.reel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.reel-thumb{aspect-ratio:9/16;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;position:relative;overflow:hidden;transition:.2s}
+.reel-thumb:hover{opacity:.85}
+.reel-views{position:absolute;bottom:6px;left:6px;font-size:10px;color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.reel-ai-badge{position:absolute;top:6px;right:6px;background:rgba(139,92,246,.8);font-size:9px;color:#fff;padding:2px 5px;border-radius:6px;font-weight:700}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:18px;font-weight:800;background:var(--ai-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.section-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.see-all-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:10px;cursor:pointer;font-size:12px;transition:.2s}
+.see-all-btn:hover{border-color:var(--purple);color:var(--purple)}
+
+/* DISCOVER GRID */
+.discover-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.discover-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:.2s}
+.discover-card:hover{border-color:var(--purple);transform:translateY(-2px)}
+.dc-hero{height:100px;background:var(--ai-grad);display:flex;align-items:center;justify-content:center;font-size:36px;opacity:.8}
+.dc-body{padding:10px}
+.dc-type{font-size:10px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px}
+.dc-title{font-size:13px;font-weight:700;color:var(--text);margin:2px 0}
+.dc-meta{font-size:11px;color:var(--text2)}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.empty-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:14px;line-height:1.5}
+
+/* LOADING */
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+.sk-line{height:12px;margin-bottom:8px}
+.sk-avatar{width:40px;height:40px;border-radius:50%;margin-bottom:8px}
+
+/* AI INSIGHT BANNER */
+.ai-insight{background:linear-gradient(135deg,rgba(79,142,247,.1),rgba(139,92,246,.1));border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+.ai-insight-icon{font-size:28px;flex-shrink:0}
+.ai-insight-body{}
+.ai-insight-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.ai-insight-text{font-size:13px;color:var(--text2);line-height:1.5}
+.ai-insight-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ai-tag{background:rgba(79,142,247,.15);color:var(--blue);font-size:11px;padding:3px 8px;border-radius:10px}
+
+/* NOTIFICATION DOT */
+.notif-dot{width:8px;height:8px;background:var(--red);border-radius:50%;display:inline-block}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 16px;font-size:13px;z-index:9999;opacity:0;transform:translateY(20px);transition:.3s;max-width:300px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.info{border-color:var(--blue);color:var(--blue)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo" onclick="location.href='/'">SafePass <span>AI</span></div>
+  <div class="header-search">
+    <span class="si">🔍</span>
+    <input type="text" placeholder="Tìm kiếm thông minh..." id="globalSearch" oninput="handleSearch(this.value)">
+  </div>
+  <nav class="header-nav">
+    <a href="/" class="header-nav">🏠 Trang chủ</a>
+    <a href="/groups">👥 Nhóm</a>
+    <a href="/reels">🎬 Reels</a>
+    <a href="/messenger">💬 Chat</a>
+  </nav>
+  <button class="header-btn" onclick="trackInteract('view','page','ai_discover')">✨ AI Đang bật</button>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="l-sidebar">
+    <div class="ai-badge">
+      <div class="ab-icon">🤖</div>
+      <div class="ab-title">SafePass AI Engine</div>
+      <div class="ab-sub">Đề xuất được cá nhân hóa</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Bảng tin</div>
+      <div class="nav-item active" onclick="switchTab('feed')"><span class="ni">📰</span> Bảng tin AI</div>
+      <div class="nav-item" onclick="switchTab('reels')"><span class="ni">🎬</span> Reels AI</div>
+      <div class="nav-item" onclick="switchTab('discover')"><span class="ni">🔭</span> Khám phá</div>
+      <div class="nav-item" onclick="switchTab('trending')"><span class="ni">🔥</span> Xu hướng</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Đề xuất</div>
+      <div class="nav-item" onclick="switchTab('products')"><span class="ni">🎟️</span> Sản phẩm AI</div>
+      <div class="nav-item" onclick="switchTab('sellers')"><span class="ni">🏪</span> Người bán</div>
+      <div class="nav-item" onclick="switchTab('friends')"><span class="ni">👤</span> Kết bạn</div>
+      <div class="nav-item" onclick="switchTab('groups')"><span class="ni">👥</span> Nhóm phù hợp</div>
+      <div class="nav-item" onclick="switchTab('lives')"><span class="ni">📡</span> Livestream</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Hồ sơ AI</div>
+      <div class="nav-item" onclick="switchTab('profile')"><span class="ni">🧠</span> Sở thích của tôi</div>
+      <div class="nav-item" onclick="switchTab('analytics')"><span class="ni">📊</span> Phân tích AI</div>
+    </div>
+  </aside>
+
+  <!-- MAIN FEED -->
+  <main class="main-feed" id="mainFeed">
+
+    <!-- FEED TABS -->
+    <div class="feed-tabs" id="feedTabs">
+      <button class="feed-tab active" onclick="switchTab('feed')" id="tab-feed">📰 Bảng tin</button>
+      <button class="feed-tab" onclick="switchTab('reels')" id="tab-reels">🎬 Reels</button>
+      <button class="feed-tab" onclick="switchTab('discover')" id="tab-discover">🔭 Khám phá</button>
+      <button class="feed-tab" onclick="switchTab('trending')" id="tab-trending">🔥 Xu hướng</button>
+      <button class="feed-tab" onclick="switchTab('products')" id="tab-products">🎟️ Sản phẩm</button>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div id="contentArea">
+      <div class="empty-state">
+        <div class="empty-icon">🤖</div>
+        <div class="empty-title">Đang tải AI...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT SIDEBAR -->
+  <aside class="r-panel">
+
+    <!-- Trending topics -->
+    <div class="r-section" id="trendingPanel">
+      <div class="r-section-title"><span class="rs-icon">🔥</span> Xu hướng hôm nay</div>
+      <div id="trendingList">
+        <div class="skeleton sk-line" style="width:80%;height:14px;margin-bottom:12px"></div>
+        <div class="skeleton sk-line" style="width:60%;height:14px;margin-bottom:12px"></div>
+        <div class="skeleton sk-line" style="width:70%;height:14px"></div>
+      </div>
+    </div>
+
+    <!-- Friend suggestions -->
+    <div class="r-section" id="friendPanel">
+      <div class="r-section-title"><span class="rs-icon">👥</span> Có thể bạn quen</div>
+      <div id="friendList">
+        <div class="skeleton sk-line" style="height:40px;margin-bottom:8px"></div>
+        <div class="skeleton sk-line" style="height:40px;margin-bottom:8px"></div>
+        <div class="skeleton sk-line" style="height:40px"></div>
+      </div>
+    </div>
+
+    <!-- Group suggestions -->
+    <div class="r-section">
+      <div class="r-section-title"><span class="rs-icon">🎯</span> Nhóm phù hợp với bạn</div>
+      <div id="groupSuggList">
+        <div class="skeleton sk-line" style="height:40px;margin-bottom:8px"></div>
+        <div class="skeleton sk-line" style="height:40px"></div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('token');
+let currentUser = null;
+let currentTab = 'feed';
+let userPrefs = {};
+
+// ── INIT ──
+async function init() {
+  if (token) {
+    try {
+      const r = await fetch(`${API}/api/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) currentUser = await r.json();
+    } catch(e) {}
+  }
+  switchTab('feed');
+  loadRightSidebar();
+  loadUserPreferences();
+}
+
+// ── TAB SWITCHING ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.feed-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById(`tab-${tab}`);
+  if (tabEl) tabEl.classList.add('active');
+
+  const content = document.getElementById('contentArea');
+  content.innerHTML = renderSkeleton();
+
+  const tabs = { feed: loadFeed, reels: loadReels, discover: loadDiscover,
+    trending: loadTrending, products: loadProducts, sellers: loadSellers,
+    friends: loadFriends, groups: loadGroupSugg, lives: loadLives,
+    profile: loadProfile, analytics: loadAnalytics };
+  if (tabs[tab]) tabs[tab]();
+}
+
+function renderSkeleton(n=3) {
+  return Array(n).fill(0).map(() => `
+    <div class="sk-card">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <div class="skeleton sk-avatar"></div>
+        <div style="flex:1"><div class="skeleton sk-line" style="width:60%;margin-bottom:6px"></div><div class="skeleton sk-line" style="width:40%"></div></div>
+      </div>
+      <div class="skeleton sk-line" style="width:90%;margin-bottom:6px"></div>
+      <div class="skeleton sk-line" style="width:70%"></div>
+    </div>`).join('');
+}
+
+// ── MODULE 2: AI FEED ──
+async function loadFeed() {
+  const insight = `
+    <div class="ai-insight">
+      <div class="ai-insight-icon">🤖</div>
+      <div class="ai-insight-body">
+        <div class="ai-insight-title">Bảng tin được cá nhân hóa bởi AI</div>
+        <div class="ai-insight-text">Nội dung được chấm điểm theo độ tương tác, sở thích và mạng xã hội của bạn.</div>
+        <div class="ai-insight-tags">
+          <span class="ai-tag">📊 Điểm tương tác</span>
+          <span class="ai-tag">👥 Mạng xã hội</span>
+          <span class="ai-tag">❤️ Sở thích</span>
+        </div>
+      </div>
+    </div>`;
+
+  let feed = [];
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/feed`, { headers });
+    if (r.ok) feed = await r.json();
+  } catch(e) {}
+
+  const content = document.getElementById('contentArea');
+
+  if (!feed.length) {
+    content.innerHTML = insight + renderDefaultFeed();
+    return;
+  }
+
+  content.innerHTML = insight + feed.map(post => renderFeedCard(post)).join('');
+}
+
+function renderDefaultFeed() {
+  const posts = [
+    { id:'p1', user_name:'Minh Tú', avatar:'M', content:'Ai có vé Coldplay Hà Nội không? Cần mua gấp 2 vé standing 🎵', tags:['Coldplay','concert','vé'], likes:47, comments:23, time:'2 giờ trước', ai_score:94, ai_reason:'Phù hợp với sở thích âm nhạc của bạn' },
+    { id:'p2', user_name:'GameStore VN', avatar:'G', content:'Flash sale PS5 hôm nay 20h! Giá cực sốc chỉ từ 9.9tr 🎮', tags:['gaming','PS5','flashsale'], likes:132, comments:67, time:'1 giờ trước', ai_score:88, ai_reason:'Người bán đáng tin cậy bạn đã tương tác' },
+    { id:'p3', user_name:'K-Fan Club HN', avatar:'K', content:'Ticket BTS World Tour Hà Nội đang được phân phối qua SafePass Escrow ✅', tags:['BTS','kpop','ticket'], likes:298, comments:145, time:'30 phút trước', ai_score:97, ai_reason:'Xu hướng cao nhất trong nhóm của bạn' },
+  ];
+  return posts.map(p => renderFeedCard(p)).join('');
+}
+
+function renderFeedCard(p) {
+  const score = p.ai_score || Math.floor(Math.random()*30+65);
+  const reason = p.ai_reason || 'Phù hợp với sở thích của bạn';
+  const tags = (p.tags||[]).map(t => `<span class="card-tag">#${t}</span>`).join('');
+  return `
+  <div class="feed-card" id="card-${p.id}">
+    <div class="card-header">
+      <div class="card-avatar">
+        ${(p.user_name||p.avatar||'U')[0].toUpperCase()}
+        <div class="online-dot"></div>
+      </div>
+      <div class="card-info">
+        <div class="card-name">${p.user_name||'Người dùng'}</div>
+        <div class="card-meta">${p.time||'Vừa xong'}</div>
+      </div>
+      <div class="card-ai-score">🤖 ${score}</div>
+    </div>
+    <div class="card-body">
+      <div class="card-text">${p.content||p.body||''}</div>
+      ${tags ? `<div class="card-tags">${tags}</div>` : ''}
+      <div class="card-actions">
+        <button class="card-btn" onclick="likePost('${p.id}',this)">❤️ ${p.likes||0}</button>
+        <button class="card-btn" onclick="commentPost('${p.id}')">💬 ${p.comments||0}</button>
+        <button class="card-btn" onclick="sharePost('${p.id}',this)">↗️ Chia sẻ</button>
+        <button class="card-btn" onclick="savePost('${p.id}',this)">🔖 Lưu</button>
+      </div>
+    </div>
+    <div class="ai-reason"><span class="ai-reason-icon">🤖</span> ${reason}</div>
+  </div>`;
+}
+
+// ── MODULE 3: AI REELS ──
+async function loadReels() {
+  let reels = [];
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/reels`, { headers });
+    if (r.ok) reels = await r.json();
+  } catch(e) {}
+
+  const content = document.getElementById('contentArea');
+  const grid = reels.length ? reels.map(r => renderReelThumb(r)).join('') : renderDefaultReels();
+
+  content.innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Reels AI 🎬</div><div class="section-sub">Đề xuất dựa trên lịch sử xem của bạn</div></div>
+      <button class="see-all-btn" onclick="location.href='/reels'">Xem tất cả</button>
+    </div>
+    <div class="reel-grid">${grid}</div>
+    <div class="ai-insight">
+      <div class="ai-insight-icon">🎯</div>
+      <div class="ai-insight-body">
+        <div class="ai-insight-title">Thuật toán Reels AI</div>
+        <div class="ai-insight-text">Phân tích thời gian xem, tỷ lệ hoàn thành và lượt tương tác để đề xuất chính xác hơn.</div>
+      </div>
+    </div>`;
+}
+
+function renderDefaultReels() {
+  const reels = [
+    { emoji:'🎵', views:'12.4K', ai:true },{ emoji:'🎮', views:'8.1K', ai:true },
+    { emoji:'👗', views:'15.2K', ai:false },{ emoji:'🎤', views:'22.8K', ai:true },
+    { emoji:'⚽', views:'6.3K', ai:false },{ emoji:'🎪', views:'18.7K', ai:true },
+  ];
+  return reels.map(r => renderReelThumb(r)).join('');
+}
+
+function renderReelThumb(r) {
+  return `
+  <div class="reel-thumb" onclick="location.href='/reels'">
+    ${r.emoji||'🎬'}
+    <div class="reel-views">▶ ${r.views||'0'}</div>
+    ${r.ai ? `<div class="reel-ai-badge">AI</div>` : ''}
+  </div>`;
+}
+
+// ── MODULE 10: DISCOVER ──
+async function loadDiscover() {
+  let data = {};
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/discover`, { headers });
+    if (r.ok) data = await r.json();
+  } catch(e) {}
+
+  const cards = [
+    { emoji:'🌟', type:'Người sáng tạo mới', title:'TopCreators tuần này', meta:'12 nhà sáng tạo nổi bật' },
+    { emoji:'🏪', type:'Người bán mới', title:'Cửa hàng mới lên sàn', meta:'8 gian hàng đáng tin' },
+    { emoji:'🎟️', type:'Sản phẩm hot', title:'Vé đang bán chạy', meta:'50+ sản phẩm hot' },
+    { emoji:'📈', type:'Nội dung thịnh hành', title:'Bài đăng viral hôm nay', meta:'Top 10 bài đăng' },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Khám phá 🔭</div><div class="section-sub">Nội dung mới và thịnh hành được AI chọn lọc</div></div>
+    </div>
+    <div class="discover-grid">
+      ${cards.map(c => `
+        <div class="discover-card" onclick="showToast('Đang tải ${c.type}...','info')">
+          <div class="dc-hero">${c.emoji}</div>
+          <div class="dc-body">
+            <div class="dc-type">${c.type}</div>
+            <div class="dc-title">${c.title}</div>
+            <div class="dc-meta">${c.meta}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+    ${renderCreatorSpotlight(data.creators||[])}
+    ${renderTrendingProducts(data.products||[])}`;
+}
+
+function renderCreatorSpotlight(creators) {
+  const defaults = [
+    { name:'MinhTu_Official', category:'🎵 Âm nhạc', followers:'2.3K' },
+    { name:'GameZone_VN', category:'🎮 Gaming', followers:'5.1K' },
+    { name:'FashionHN', category:'👗 Thời trang', followers:'1.8K' },
+    { name:'TechReview_VN', category:'💻 Công nghệ', followers:'3.4K' },
+  ];
+  const list = creators.length ? creators : defaults;
+  return `
+    <div class="section-header">
+      <div><div class="section-title">Người sáng tạo nổi bật ⭐</div></div>
+    </div>
+    ${list.map(c => `
+      <div class="seller-card">
+        <div class="seller-ava">${(c.name||'U')[0].toUpperCase()}</div>
+        <div class="seller-info">
+          <div class="seller-name">@${c.name}</div>
+          <div class="seller-stats">${c.category} · ${c.followers} followers</div>
+        </div>
+        <button class="follow-btn" onclick="followUser('${c.name}',this)">+ Theo dõi</button>
+      </div>`).join('')}`;
+}
+
+function renderTrendingProducts(products) {
+  const defaults = [
+    { emoji:'🎟️', name:'Vé Coldplay Hà Nội 2026', price:'2,500,000₫', badge:'HOT', ai:'Phù hợp sở thích âm nhạc' },
+    { emoji:'🎮', name:'PlayStation 5 + 2 tay cầm', price:'11,500,000₫', badge:'NEW', ai:'Top gaming của bạn' },
+    { emoji:'👟', name:'Nike Air Max 2026 Limited', price:'3,200,000₫', badge:'-20%', ai:'Theo trend thời trang' },
+    { emoji:'💻', name:'MacBook Air M4 Chip', price:'28,000,000₫', badge:'HOT', ai:'Quan tâm công nghệ' },
+  ];
+  const list = products.length ? products : defaults;
+  return `
+    <div class="section-header">
+      <div><div class="section-title">Sản phẩm AI đề xuất 🎯</div></div>
+    </div>
+    <div class="product-grid">
+      ${list.map(p => `
+        <div class="product-card" onclick="trackInteract('view','product','${p.id||p.name}');showToast('Đang mở sản phẩm...','info')">
+          <div class="p-img">${p.emoji||'🎟️'}<span class="p-badge">${p.badge||'HOT'}</span></div>
+          <div class="p-body">
+            <div class="p-name">${p.name}</div>
+            <div class="p-price">${p.price}</div>
+            <div class="p-ai">🤖 ${p.ai}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── MODULE 9: TRENDING ──
+async function loadTrending() {
+  let data = { posts:[], reels:[], products:[], groups:[], topics:[] };
+  try {
+    const r = await fetch(`${API}/api/ai/trending`);
+    if (r.ok) data = await r.json();
+  } catch(e) {}
+
+  const topics = data.topics?.length ? data.topics : [
+    { topic:'#ColdplayHaNoi', count:'128K bài đăng', up:true },
+    { topic:'#SafePassEscrow', count:'45K bài đăng', up:true },
+    { topic:'#BTSWorldTour', count:'92K bài đăng', up:false },
+    { topic:'#GameingVN', count:'31K bài đăng', up:true },
+    { topic:'#FlashSalePS5', count:'18K bài đăng', up:true },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Xu hướng 🔥</div><div class="section-sub">Nội dung nổi bật trong 24 giờ qua</div></div>
+    </div>
+    <div class="feed-card" style="margin-bottom:20px">
+      <div class="card-body" style="padding:16px">
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">📊 Chủ đề hot nhất</div>
+        ${topics.map((t,i) => `
+          <div class="trend-item" onclick="trackInteract('click','topic','${t.topic}')">
+            <div class="trend-rank">#${i+1}</div>
+            <div class="trend-info">
+              <div class="trend-topic">${t.topic}</div>
+              <div class="trend-count">${t.count}</div>
+            </div>
+            <div class="trend-up">${t.up ? '📈' : '📉'}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="section-header">
+      <div><div class="section-title">Reels viral 🎬</div></div>
+    </div>
+    <div class="reel-grid" style="margin-bottom:20px">
+      ${Array(6).fill(0).map((_,i) => `<div class="reel-thumb" onclick="location.href='/reels'">
+        ${['🎵','🎮','👗','🎤','⚽','🎪'][i]}
+        <div class="reel-views">▶ ${['32K','28K','19K','45K','12K','67K'][i]}</div>
+        <div class="reel-ai-badge">VIRAL</div>
+      </div>`).join('')}
+    </div>`;
+}
+
+// ── MODULE 4: PRODUCT RECOMMENDATIONS ──
+async function loadProducts() {
+  let products = [];
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/recommendations/products`, { headers });
+    if (r.ok) products = await r.json();
+  } catch(e) {}
+
+  const list = products.length ? products : [
+    { emoji:'🎟️', name:'Vé Coldplay Hà Nội VIP', price:'4,200,000₫', badge:'HOT', ai:'Phù hợp sở thích âm nhạc của bạn', score:97 },
+    { emoji:'🎮', name:'PS5 Pro Edition', price:'14,500,000₫', badge:'NEW', ai:'Top danh mục gaming của bạn', score:91 },
+    { emoji:'🎤', name:'Vé BTS World Tour', price:'3,800,000₫', badge:'HOT', ai:'Bạn bè của bạn đang quan tâm', score:88 },
+    { emoji:'👟', name:'Jordan 1 Retro High OG', price:'5,500,000₫', badge:'-15%', ai:'Xu hướng thời trang tuần này', score:82 },
+    { emoji:'💻', name:'iPad Pro M4 256GB', price:'22,000,000₫', badge:'NEW', ai:'Tương tự sản phẩm bạn đã xem', score:79 },
+    { emoji:'🎵', name:'Vé concert Sơn Tùng', price:'1,200,000₫', badge:'HOT', ai:'Phổ biến trong nhóm của bạn', score:76 },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Sản phẩm AI đề xuất 🎟️</div><div class="section-sub">Dựa trên tìm kiếm, lịch sử và sở thích</div></div>
+    </div>
+    <div class="ai-insight">
+      <div class="ai-insight-icon">🎯</div>
+      <div class="ai-insight-body">
+        <div class="ai-insight-title">Tại sao những sản phẩm này?</div>
+        <div class="ai-insight-text">AI phân tích lịch sử tìm kiếm, video đã xem và nhóm đã tham gia để chọn sản phẩm phù hợp nhất.</div>
+      </div>
+    </div>
+    <div class="product-grid">
+      ${list.map(p => `
+        <div class="product-card" onclick="trackInteract('view','product','${p.id||p.name}');location.href='/'">
+          <div class="p-img">${p.emoji}<span class="p-badge">${p.badge}</span></div>
+          <div class="p-body">
+            <div class="p-name">${p.name}</div>
+            <div class="p-price">${p.price}</div>
+            <div class="p-meta">🤖 Điểm AI: ${p.score||80}/100</div>
+            <div class="p-ai">${p.ai}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── MODULE 5: SELLER RECOMMENDATIONS ──
+async function loadSellers() {
+  let sellers = [];
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/recommendations/sellers`, { headers });
+    if (r.ok) sellers = await r.json();
+  } catch(e) {}
+
+  const list = sellers.length ? sellers : [
+    { name:'TicketVIP_HN', category:'🎟️ Vé sự kiện', sales:'342 đơn', trust:95, score:97 },
+    { name:'GameZone Pro', category:'🎮 Gaming', sales:'1,240 đơn', trust:92, score:94 },
+    { name:'KpopStore VN', category:'🎵 K-Pop', sales:'867 đơn', trust:88, score:91 },
+    { name:'TechHub HN', category:'💻 Công nghệ', sales:'523 đơn', trust:94, score:89 },
+    { name:'FashionPro VN', category:'👗 Thời trang', sales:'2,100 đơn', trust:91, score:86 },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Người bán đáng tin 🏪</div><div class="section-sub">Xếp hạng theo điểm tín nhiệm và lịch sử giao dịch</div></div>
+    </div>
+    ${list.map(s => `
+      <div class="seller-card">
+        <div class="seller-ava">${s.name[0].toUpperCase()}</div>
+        <div class="seller-info">
+          <div class="seller-name">${s.name} <span style="font-size:11px;color:var(--green)">✓ Đã xác minh</span></div>
+          <div class="seller-stats">${s.category} · ${s.sales} · 🤖 AI: ${s.score}/100</div>
+        </div>
+        <span class="seller-trust ${s.trust>=90?'trust-high':'trust-med'}">⭐ ${s.trust}</span>
+        <button class="follow-btn" onclick="followSeller('${s.name}',this)">+ Theo dõi</button>
+      </div>`).join('')}`;
+}
+
+// ── MODULE 7: FRIEND SUGGESTIONS ──
+async function loadFriends() {
+  let friends = [];
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/recommendations/friends`, { headers });
+    if (r.ok) friends = await r.json();
+  } catch(e) {}
+
+  const list = friends.length ? friends : [
+    { name:'Nguyễn Minh Tú', reason:'3 bạn chung · Cùng nhóm Coldplay', mutual:3 },
+    { name:'Trần Thị Mai', reason:'Sở thích tương tự · K-Pop', mutual:1 },
+    { name:'Lê Hoàng Nam', reason:'5 bạn chung · Gaming', mutual:5 },
+    { name:'Phạm Thu Hà', reason:'Cùng nhóm BTS Fanclub', mutual:2 },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Có thể bạn quen 👥</div><div class="section-sub">Dựa trên bạn bè chung, nhóm và sở thích</div></div>
+    </div>
+    <div class="feed-card">
+      <div class="card-body" style="padding:16px">
+        ${list.map(f => `
+          <div class="friend-row">
+            <div class="friend-ava">${f.name[0]}</div>
+            <div class="friend-info">
+              <div class="friend-name">${f.name}</div>
+              <div class="friend-reason">🤖 ${f.reason}</div>
+            </div>
+            <button class="follow-btn" onclick="followUser('${f.name}',this)">+ Kết bạn</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── MODULE 6: GROUP SUGGESTIONS ──
+async function loadGroupSugg() {
+  let groups = [];
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/recommendations/groups`, { headers });
+    if (r.ok) groups = await r.json();
+  } catch(e) {}
+
+  const list = groups.length ? groups : [
+    { emoji:'🎵', name:'Coldplay Vietnam Fanclub', members:'12,400 thành viên', reason:'Phù hợp sở thích âm nhạc' },
+    { emoji:'🎮', name:'Gaming Vietnam Hub', members:'45,200 thành viên', reason:'Top nhóm gaming' },
+    { emoji:'🎟️', name:'Vé Sự Kiện Hà Nội', members:'8,900 thành viên', reason:'Mua bán vé an toàn' },
+    { emoji:'💜', name:'BTS ARMY Vietnam', members:'28,700 thành viên', reason:'Bạn bè đã tham gia' },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Nhóm phù hợp với bạn 🎯</div><div class="section-sub">Dựa trên sở thích, bạn bè và hoạt động trên Reels</div></div>
+    </div>
+    <div class="feed-card">
+      <div class="card-body" style="padding:16px">
+        ${list.map(g => `
+          <div class="group-row">
+            <div class="group-icon">${g.emoji}</div>
+            <div class="group-info">
+              <div class="group-name">${g.name}</div>
+              <div class="group-members">${g.members} · 🤖 ${g.reason}</div>
+            </div>
+            <button class="join-btn" onclick="joinGroup('${g.name}',this)">Tham gia</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── MODULE 8: LIVE RECOMMENDATIONS ──
+async function loadLives() {
+  let lives = [];
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/recommendations/lives`, { headers });
+    if (r.ok) lives = await r.json();
+  } catch(e) {}
+
+  const list = lives.length ? lives : [
+    { emoji:'🎵', name:'Concert mini Sơn Tùng', host:'@sontung_mtp', viewers:'2,340', ai:'Top âm nhạc của bạn' },
+    { emoji:'🎮', name:'Gaming tournament PS5', host:'@gamezone_vn', viewers:'5,120', ai:'Phù hợp gaming' },
+    { emoji:'🎟️', name:'Đấu giá vé Coldplay live', host:'@ticketvip_hn', viewers:'1,890', ai:'Sắp kết thúc!' },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Livestream đề xuất 📡</div><div class="section-sub">Dựa trên danh mục và lịch sử xem của bạn</div></div>
+    </div>
+    ${list.map(l => `
+      <div class="seller-card" onclick="trackInteract('view','live','${l.name}')">
+        <div class="seller-ava" style="border-radius:10px">${l.emoji}</div>
+        <div class="seller-info">
+          <div class="seller-name">${l.name} <span style="background:var(--red);color:#fff;font-size:10px;padding:2px 6px;border-radius:6px">● LIVE</span></div>
+          <div class="seller-stats">${l.host} · 👁 ${l.viewers} đang xem · 🤖 ${l.ai}</div>
+        </div>
+        <button class="follow-btn" onclick="location.href='/live'">Xem live</button>
+      </div>`).join('')}`;
+}
+
+// ── MODULE 11: USER PREFERENCE PROFILE ──
+async function loadProfile() {
+  let prefs = {};
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/profile/preferences`, { headers });
+    if (r.ok) prefs = await r.json();
+  } catch(e) {}
+
+  const categories = prefs.categories || { 'Âm nhạc': 92, 'Gaming': 78, 'K-Pop': 88, 'Thể thao': 45, 'Thời trang': 60, 'Công nghệ': 71, 'Phim ảnh': 55, 'Du lịch': 38 };
+  const tags = prefs.tags || { kpop: 95, concert: 88, coldplay: 82, ps5: 75, gaming: 78, vé: 90 };
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Hồ sơ sở thích AI 🧠</div><div class="section-sub">Được cập nhật tự động dựa trên hành vi của bạn</div></div>
+    </div>
+    <div class="feed-card">
+      <div class="card-body" style="padding:16px">
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px">📊 Điểm sở thích theo danh mục</div>
+        ${Object.entries(categories).map(([cat, score]) => `
+          <div class="pref-bar">
+            <div class="pref-label"><span>${cat}</span><span>${score}/100</span></div>
+            <div class="pref-track"><div class="pref-fill" style="width:${score}%"></div></div>
+          </div>`).join('')}
+        <div style="margin-top:20px">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">🏷️ Từ khóa quan tâm</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            ${Object.entries(tags).map(([tag, score]) => `
+              <div style="background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);color:var(--blue);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600">
+                #${tag} <span style="color:var(--purple)">${score}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div style="margin-top:20px">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">⚙️ Cài đặt AI</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${[['Đề xuất sản phẩm','Bật'],['Đề xuất bạn bè','Bật'],['Cá nhân hóa Reels','Bật'],['Chia sẻ dữ liệu sở thích','Bật']].map(([label,val]) => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg3);border-radius:10px">
+                <span style="font-size:13px">${label}</span>
+                <span style="background:var(--green);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px">${val}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── MODULE 13: AI ANALYTICS ──
+async function loadAnalytics() {
+  let data = {};
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch(`${API}/api/ai/analytics/dashboard`, { headers });
+    if (r.ok) data = await r.json();
+  } catch(e) {}
+
+  const stats = [
+    { icon:'❤️', label:'Tổng lượt thích', value: data.total_likes||'847', delta:'+12%' },
+    { icon:'🎬', label:'Video đã xem', value: data.total_watches||'234', delta:'+28%' },
+    { icon:'💬', label:'Bình luận', value: data.total_comments||'156', delta:'+8%' },
+    { icon:'🛒', label:'Tương tác sản phẩm', value: data.product_views||'89', delta:'+19%' },
+  ];
+
+  document.getElementById('contentArea').innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Phân tích AI 📊</div><div class="section-sub">Thống kê tương tác và hiệu suất đề xuất</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px">
+      ${stats.map(s => `
+        <div class="feed-card" style="margin:0">
+          <div class="card-body" style="padding:16px;text-align:center">
+            <div style="font-size:32px;margin-bottom:6px">${s.icon}</div>
+            <div style="font-size:24px;font-weight:800;color:var(--text)">${s.value}</div>
+            <div style="font-size:12px;color:var(--text2)">${s.label}</div>
+            <div style="font-size:12px;color:var(--green);margin-top:4px">${s.delta} tuần này</div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="feed-card">
+      <div class="card-body" style="padding:16px">
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">🤖 Hiệu suất AI Engine</div>
+        ${[['Độ chính xác đề xuất sản phẩm','94%'],['Tỷ lệ click Reels AI','78%'],['Đề xuất bạn bè được chấp nhận','61%'],['Nhóm AI được tham gia','45%']].map(([l,v]) => `
+          <div class="pref-bar">
+            <div class="pref-label"><span>${l}</span><span style="color:var(--green)">${v}</span></div>
+            <div class="pref-track"><div class="pref-fill" style="width:${v}"></div></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── RIGHT SIDEBAR ──
+async function loadRightSidebar() {
+  loadTrendingPanel();
+  loadFriendPanel();
+  loadGroupPanel();
+}
+
+async function loadTrendingPanel() {
+  let topics = [];
+  try {
+    const r = await fetch(`${API}/api/ai/trending?type=topics&period=24h`);
+    if (r.ok) { const d = await r.json(); topics = d.topics||[]; }
+  } catch(e) {}
+
+  const list = topics.length ? topics : [
+    { topic:'#ColdplayHaNoi', count:'128K' },
+    { topic:'#BTSWorldTour', count:'92K' },
+    { topic:'#SafePassEscrow', count:'45K' },
+    { topic:'#GameingVN', count:'31K' },
+    { topic:'#FlashSalePS5', count:'18K' },
+  ];
+
+  document.getElementById('trendingList').innerHTML = list.slice(0,5).map((t,i) => `
+    <div class="trend-item" onclick="showToast('Đang tìm ${t.topic}','info')">
+      <div class="trend-rank">#${i+1}</div>
+      <div class="trend-info">
+        <div class="trend-topic">${t.topic}</div>
+        <div class="trend-count">${t.count} bài đăng</div>
+      </div>
+      <div class="trend-up">📈</div>
+    </div>`).join('');
+}
+
+async function loadFriendPanel() {
+  const list = [
+    { name:'Minh Tú', reason:'3 bạn chung' },
+    { name:'Thu Hà', reason:'Cùng nhóm K-Pop' },
+    { name:'Hoàng Nam', reason:'5 bạn chung' },
+  ];
+  document.getElementById('friendList').innerHTML = list.map(f => `
+    <div class="friend-row">
+      <div class="friend-ava">${f.name[0]}</div>
+      <div class="friend-info">
+        <div class="friend-name">${f.name}</div>
+        <div class="friend-reason">${f.reason}</div>
+      </div>
+      <button class="follow-btn" style="font-size:11px;padding:4px 10px" onclick="followUser('${f.name}',this)">Kết bạn</button>
+    </div>`).join('');
+}
+
+async function loadGroupPanel() {
+  const list = [
+    { emoji:'🎵', name:'Coldplay Vietnam', members:'12.4K' },
+    { emoji:'🎮', name:'Gaming Vietnam Hub', members:'45.2K' },
+  ];
+  document.getElementById('groupSuggList').innerHTML = list.map(g => `
+    <div class="group-row">
+      <div class="group-icon">${g.emoji}</div>
+      <div class="group-info">
+        <div class="group-name">${g.name}</div>
+        <div class="group-members">${g.members} thành viên</div>
+      </div>
+      <button class="join-btn" onclick="joinGroup('${g.name}',this)">Tham gia</button>
+    </div>`).join('');
+}
+
+async function loadUserPreferences() {
+  if (!token) return;
+  try {
+    const r = await fetch(`${API}/api/ai/profile/preferences`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) userPrefs = await r.json();
+  } catch(e) {}
+}
+
+// ── INTERACTION TRACKING ──
+async function trackInteract(type, targetType, targetId, meta={}) {
+  if (!token) return;
+  try {
+    await fetch(`${API}/api/ai/interact`, {
+      method:'POST',
+      headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ interaction_type:type, target_type:targetType, target_id:targetId, metadata:meta })
+    });
+  } catch(e) {}
+}
+
+// ── ACTIONS ──
+function likePost(id, btn) {
+  btn.classList.toggle('liked');
+  const count = parseInt(btn.innerText.replace(/\D/g,''))||0;
+  btn.innerHTML = `❤️ ${btn.classList.contains('liked') ? count+1 : count-1}`;
+  if (btn.classList.contains('liked')) trackInteract('like','post',id);
+  showToast(btn.classList.contains('liked') ? '❤️ Đã thích bài viết' : 'Đã bỏ thích', 'info');
+}
+
+function savePost(id, btn) {
+  btn.classList.toggle('saved');
+  btn.innerHTML = btn.classList.contains('saved') ? '🔖 Đã lưu' : '🔖 Lưu';
+  if (btn.classList.contains('saved')) trackInteract('save','post',id);
+  showToast(btn.classList.contains('saved') ? '🔖 Đã lưu bài viết' : 'Đã bỏ lưu', 'info');
+}
+
+function sharePost(id, btn) {
+  trackInteract('share','post',id);
+  navigator.clipboard?.writeText(window.location.origin+'/post/'+id).catch(()=>{});
+  showToast('↗️ Đã sao chép liên kết chia sẻ!', 'success');
+}
+
+function commentPost(id) { showToast('💬 Mở bình luận...', 'info'); }
+
+function followUser(name, btn) {
+  const isFollowing = btn.classList.contains('following');
+  btn.classList.toggle('following');
+  btn.innerHTML = isFollowing ? '+ Theo dõi' : '✓ Đang theo dõi';
+  trackInteract(isFollowing?'unfollow':'follow','user',name);
+  showToast(isFollowing ? 'Đã bỏ theo dõi' : `✓ Đang theo dõi ${name}`, 'success');
+}
+
+function followSeller(name, btn) { followUser(name, btn); }
+
+function joinGroup(name, btn) {
+  btn.innerHTML = '✓ Đã tham gia';
+  btn.style.background = 'rgba(16,185,129,.15)';
+  btn.style.color = 'var(--green)';
+  btn.style.borderColor = 'var(--green)';
+  trackInteract('group_join','group',name);
+  showToast(`✅ Đã tham gia nhóm ${name}`, 'success');
+}
+
+function handleSearch(q) {
+  if (q.length > 2) trackInteract('search','query',q);
+}
+
+// ── TOAST ──
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>

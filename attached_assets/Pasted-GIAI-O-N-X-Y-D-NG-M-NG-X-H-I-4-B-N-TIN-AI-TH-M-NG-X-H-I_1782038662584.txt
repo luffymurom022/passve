@@ -1,0 +1,397 @@
+GIAI ĐOẠN XÂY DỰNG MẠNG XÃ HỘI 4
+
+BẢN TIN AI
++
+ĐỒ THỊ MẠNG XÃ HỘI
++
+CÔNG CỤ ĐỀ XUẤT
+
+=====================================================
+
+MỤC TIÊU
+
+Xây dựng lớp trí tuệ nhân tạo cho SafePass.
+
+Nền tảng phải học hỏi hành vi người dùng và cá nhân hóa:
+
+* Bảng tin
+* Video ngắn
+* Nhóm
+* Bạn bè
+* Sản phẩm
+* Người bán
+* Phát trực tiếp
+
+=====================================================
+
+MODULE 1
+
+CÔNG CỤ ĐỒ THỊ XÃ HỘI
+
+=====================================================
+
+Tạo một đồ thị xã hội hoàn chỉnh.
+
+Theo dõi mối quan hệ giữa:
+
+* Người dùng
+* Bạn bè
+* Người theo dõi
+* Nhóm
+* Sản phẩm
+* Người bán
+* Video
+* Reels
+
+=====================================================
+
+Tương tác trên cửa hàng:
+
+* Thích
+* Bình luận
+* Chia sẻ
+* Lưu
+* Mua hàng
+* Thời gian xem
+* Tin nhắn
+
+=====================================================
+
+Tạo hồ sơ sở thích.
+
+Ví dụ:
+
+Người dùng A thích:
+
+* Vé xem hòa nhạc
+
+* K-Pop
+* Phát trực tiếp
+
+Người dùng B thích:
+
+* Chơi game
+* Tài khoản
+* Phần cứng
+
+=====================================================
+
+MODULE 2
+
+BẢN TIN AI
+
+=====================================================
+
+Thay thế nguồn cấp tin theo thứ tự thời gian.
+
+Tạo nguồn cấp tin được cá nhân hóa.
+
+===================================================
+
+Các chỉ số xếp hạng:
+
+* Độ mạnh của mối quan hệ
+* Tương tác với bạn bè
+* Hoạt động nhóm
+* Mức độ tương tác bài đăng
+
+* Sở thích của người dùng
+* Lịch sử theo dõi
+* Hoạt động trên Marketplace
+
+=====================================================
+
+Hệ thống chấm điểm bài đăng.
+
+Mỗi bài đăng nhận được một điểm số.
+
+Điểm càng cao = xếp hạng càng cao.
+
+===================================================
+
+MODULE 3
+
+BẢN TIN AI REELS
+
+====================================================
+
+Tạo công cụ đề xuất kiểu TikTok.
+
+Theo dõi:
+
+* Thời lượng xem
+* Tỷ lệ hoàn thành
+* Lượt xem lại
+* Lượt thích
+* Bình luận
+* Lượt chia sẻ
+* Lượt mua hàng
+
+=====================================================
+
+Đề xuất thêm nội dung dựa trên hành vi.
+
+===================================================
+
+MODULE 4
+
+ĐỀ XUẤT SẢN PHẨM THÔNG MINH
+
+====================================================
+
+Đề xuất sản phẩm dựa trên:
+
+* Tìm kiếm
+* Tương tác trên bảng tin
+* Video đã xem
+* Tham gia nhóm
+* Mua hàng trước đó
+
+=====================================================
+
+Ví dụ:
+
+Người dùng xem:
+
+Video của Coldplay
+
+Đề xuất:
+
+* Vé xem hòa nhạc
+* Vé VIP
+* Hàng hóa
+
+===================================================
+
+MODULE 5
+
+ĐỀ XUẤT NGƯỜI BÁN
+
+====================================================
+
+Đề xuất những người bán đáng tin cậy.
+
+Các yếu tố xếp hạng:
+
+* Điểm tin cậy
+* Lịch sử giao dịch
+* Tỷ lệ giao hàng thành công
+* Đánh giá
+* Doanh số bán hàng
+
+=====================================================
+
+MODULE 6
+
+ĐỀ XUẤT NHÓM
+
+=====================================================
+
+Đề xuất nhóm dựa trên:
+
+* Sở thích
+* Bạn bè
+* Lịch sử hoạt động
+* Hành vi trên Reels
+
+=====================================================
+
+MODULE 7
+
+BẠN BÈ ĐỀ XUẤT
+
+====================================================
+
+Những người bạn có thể quen biết.
+
+Dấu hiệu:
+
+* Bạn bè chung
+
+* Nhóm chung
+* Sở thích chung
+* Hoạt động tương tự
+
+======================================================
+
+MODULE 8
+
+ĐỀ XUẤT PHÁT TRỰC TIẾP
+
+=====================================================
+
+Đề xuất các buổi phát trực tiếp.
+
+Dựa trên:
+
+* Danh mục
+* Sở thích
+* Các lần xem trước
+
+====================================================
+
+MODULE 9
+
+CÔNG CỤ THEO DÕI XU HƯỚNG
+
+====================================================
+
+Theo dõi xu hướng.
+
+Hiển thị:
+
+* Bài đăng nổi bật
+* Video nổi bật
+* Sản phẩm nổi bật
+* Nhóm nổi bật
+* Livestream nổi bật
+
+=====================================================
+
+MODULE 10
+
+TRANG KHÁM PHÁ AI
+
+=====================================================
+
+Tạo trang Khám phá.
+
+Hiển thị:
+
+* Người sáng tạo mới
+* Người bán mới
+* Sản phẩm mới
+* Nội dung thịnh hành
+
+=====================================================
+
+MODULE 11
+
+CÔNG CỤ PHÂN TÍCH SỞ THÍCH NGƯỜI DÙNG
+
+====================================================
+
+Tạo hồ sơ sở thích động.
+
+Ví dụ:
+
+Âm nhạc
+Công nghệ
+Trò chơi
+Thể thao
+Giáo dục
+Thời trang
+
+Cập nhật tự động.
+
+===================================================
+
+MODULE 12
+
+ĐỀ XUẤT DỰA TRÊN ĐỘ TIN CẬY
+
+=====================================================
+
+Ưu tiên:
+
+* Người dùng đã được xác minh
+* Người bán ký quỹ
+* Doanh nghiệp đáng tin cậy
+
+Giảm khả năng hiển thị cho:
+
+* Tài khoản rủi ro
+* Báo cáo lừa đảo
+* Điểm tin cậy thấp
+
+======================================================
+
+MODULE 13
+
+PHÂN TÍCH AI BẢNG ĐIỀU KHIỂN
+
+====================================================
+
+Hiển thị:
+
+* Các chủ đề được quan tâm hàng đầu
+* Các nhóm hàng đầu
+* Các video Reels hàng đầu
+* Các sản phẩm hàng đầu
+* Xu hướng tương tác
+
+======================================================
+
+MODULE 14
+
+TRUNG TÂM QUẢN TRỊ AI
+
+======================================================
+
+Quản trị viên có thể xem:
+
+* Hiệu suất đề xuất
+* Số liệu trên bảng tin
+* Số liệu trên Reels
+* Biểu đồ mạng xã hội số liệu
+
+===================================================
+
+MODULE 15
+
+SẴN SÀNG CHO TRÍ TUỆ NHÂN TẠO TƯƠNG LAI
+
+====================================================
+
+Kiến trúc phải hỗ trợ:
+
+* Học máy
+* Học sâu
+* Tích hợp LLM
+* Các tác nhân AI
+
+Mở rộng trong tương lai.
+
+=====================================
+==============
+
+Giao diện người dùng
+
+Hiện đại
+
+Facebook + TikTok
+
+Chế độ tối
+
+Thích ứng
+
+======================================================
+
+KHÔNG ĐƯỢC XÓA
+
+* Chợ ứng dụng
+* Dịch vụ ký quỹ
+* Ví điện tử
+* Messenger
+* Nhóm
+* Reels
+* Giao hàng
+* Trung tâm tin cậy
+
+=====================================================
+
+KẾT QUẢ CUỐI CÙNG
+
+SafePass trở thành:
+
+Facebook
++
+TikTok
++
+Chợ ứng dụng
++
+Dịch vụ ký quỹ
++
+Nền tảng đề xuất AI
++
+Hệ sinh thái thương mại xã hội
