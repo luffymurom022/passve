@@ -1263,6 +1263,7 @@ function render(){
   const pages=[
     {id:"home",icon:"🏠",label:"Khám phá"},
     {id:"video",icon:"🎬",label:"Video"},
+    {id:"live",icon:"📡",label:"Live"},
     {id:"search",icon:"🔍",label:"Tìm kiếm"},
     {id:"sell",icon:"➕",label:"Bán vé"},
     {id:"orders",icon:"📋",label:"Đơn hàng"},
@@ -1305,6 +1306,8 @@ function render(){
           ?"setState({page:'orders',orderBadge:0,activeOrder:null})"
           :p.id==="video"
           ?"window.location.href='/social'"
+          :p.id==="live"
+          ?"window.location.href='/live'"
           :p.id==="open_escrow"
           ?"window.location.href='/escrow.html'"
           :p.id==="dam"

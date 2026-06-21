@@ -9331,6 +9331,240 @@ app.post('/api/social/admin/videos/:id/restore', adminAuth, async (req, res) => 
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+/* ══════════════════════════════════════════════════
+   PHASE 19 — SAFEPASS LIVE COMMERCE
+══════════════════════════════════════════════════ */
+
+// Serve live.html
+app.get('/live', (req, res) => res.sendFile(join(__dirname, 'frontend/live.html')));
+app.get('/live.html', (req, res) => res.sendFile(join(__dirname, 'frontend/live.html')));
+
+// GET /api/live/streams — list streams
+app.get('/api/live/streams', async (req, res) => {
+  try {
+    const tab = req.query.tab || 'live';
+    let status = tab === 'replays' ? 'ended' : tab === 'upcoming' ? 'scheduled' : 'live';
+    const { data, error } = await supabase
+      .from('live_streams')
+      .select('id,user_id,title,category,status,viewers_count,peak_viewers,total_likes,is_auction:enable_auction,current_bid,started_at,ended_at,users(name)')
+      .eq('status', status)
+      .order('viewers_count', { ascending: false })
+      .limit(20);
+    if (error) throw error;
+    const streams = (data || []).map(s => ({
+      ...s,
+      creator_name: s.users?.name || 'SafePass Creator',
+      initials: (s.users?.name || 'SP').slice(0, 2).toUpperCase(),
+      emoji: s.category === 'ticket' ? '🎟' : s.category === 'tech' ? '💻' : s.category === 'beauty' ? '💄' : s.category === 'fashion' ? '👗' : s.category === 'account' ? '🎮' : '📡',
+      likes_count: s.total_likes || 0,
+      is_live: s.status === 'live'
+    }));
+    res.json({ streams });
+  } catch (e) { res.json({ streams: [] }); }
+});
+
+// POST /api/live/streams — start a stream
+app.post('/api/live/streams', auth, async (req, res) => {
+  try {
+    const { title, category, enable_auction, enable_recording, enable_gifts, follow_only } = req.body;
+    if (!title) return res.status(400).json({ error: 'Thiếu tiêu đề' });
+    const { data, error } = await supabase.from('live_streams').insert({
+      user_id: req.user.id, title, category: category || 'general',
+      enable_auction: !!enable_auction, enable_recording: !!enable_recording,
+      enable_gifts: enable_gifts !== false, follow_only: !!follow_only,
+      status: 'live', started_at: new Date().toISOString()
+    }).select().single();
+    if (error) throw error;
+    res.json({ ok: true, stream: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PATCH /api/live/streams/:id/end — end stream
+app.patch('/api/live/streams/:id/end', auth, async (req, res) => {
+  try {
+    await supabase.from('live_streams').update({ status: 'ended', ended_at: new Date().toISOString() })
+      .eq('id', req.params.id).eq('user_id', req.user.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/live/streams/:id — single stream detail
+app.get('/api/live/streams/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('live_streams').select('*,users(name,avatar_url)').eq('id', req.params.id).single();
+    if (error) throw error;
+    const { data: products } = await supabase.from('live_stream_products').select('*').eq('stream_id', req.params.id).order('display_order');
+    res.json({ stream: { ...data, creator_name: data.users?.name }, products: products || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/live/streams/:id/chat — send chat message
+app.post('/api/live/streams/:id/chat', auth, async (req, res) => {
+  try {
+    const { content, type } = req.body;
+    if (!content) return res.status(400).json({ error: 'Thiếu nội dung' });
+    const { data } = await supabase.from('live_chat_messages').insert({
+      stream_id: req.params.id, user_id: req.user.id,
+      content, type: type || 'message'
+    }).select().single();
+    res.json({ ok: true, message: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/live/streams/:id/chat — get chat messages
+app.get('/api/live/streams/:id/chat', async (req, res) => {
+  try {
+    const { data } = await supabase.from('live_chat_messages')
+      .select('*,users(name)').eq('stream_id', req.params.id)
+      .order('created_at', { ascending: false }).limit(50);
+    res.json({ messages: (data || []).reverse() });
+  } catch (e) { res.json({ messages: [] }); }
+});
+
+// POST /api/live/streams/:id/bid — place auction bid
+app.post('/api/live/streams/:id/bid', auth, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Số tiền không hợp lệ' });
+    const { data: auction } = await supabase.from('live_auctions')
+      .select('*').eq('stream_id', req.params.id).eq('status', 'active').single();
+    if (!auction) return res.status(404).json({ error: 'Không tìm thấy phiên đấu giá' });
+    if (amount <= auction.current_price) return res.status(400).json({ error: 'Giá phải cao hơn giá hiện tại' });
+    await supabase.from('live_auction_bids').insert({ auction_id: auction.id, user_id: req.user.id, amount });
+    await supabase.from('live_auctions').update({ current_price: amount, leader_id: req.user.id, leader_name: req.user.name, total_bids: (auction.total_bids || 0) + 1 }).eq('id', auction.id);
+    res.json({ ok: true, current_price: amount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/live/streams/:id/gift — send gift
+app.post('/api/live/streams/:id/gift', auth, async (req, res) => {
+  try {
+    const { gift_type, amount } = req.body;
+    if (!gift_type || !amount) return res.status(400).json({ error: 'Thiếu thông tin quà' });
+    const giftEmojis = { rose:'🌹', heart:'❤️', star:'⭐', diamond:'💎', crown:'👑', rocket:'🚀', car:'🚗', castle:'🏰' };
+    await supabase.from('live_gifts').insert({
+      stream_id: req.params.id, sender_id: req.user.id,
+      gift_type, gift_emoji: giftEmojis[gift_type] || '🎁',
+      gift_name: gift_type, amount
+    });
+    await supabase.from('live_streams').update({ total_gifts_value: supabase.raw('total_gifts_value + ' + amount) }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/live/buy — buy product during live
+app.post('/api/live/buy', auth, async (req, res) => {
+  try {
+    const { product_id, stream_id } = req.body;
+    if (!product_id || !stream_id) return res.status(400).json({ error: 'Thiếu thông tin' });
+    const { data: product } = await supabase.from('live_stream_products').select('*,live_streams(user_id)').eq('id', product_id).single();
+    if (!product) return res.status(404).json({ error: 'Sản phẩm không tồn tại' });
+    if (product.stock_count <= 0) return res.status(400).json({ error: 'Hết hàng' });
+    const { data: order } = await supabase.from('live_orders').insert({
+      stream_id, product_id, buyer_id: req.user.id,
+      seller_id: product.live_streams?.user_id, price: product.price, status: 'escrow'
+    }).select().single();
+    await supabase.from('live_stream_products').update({ stock_count: product.stock_count - 1, sold_count: (product.sold_count || 0) + 1 }).eq('id', product_id);
+    await supabase.from('live_streams').update({ total_sales: supabase.raw('total_sales + 1'), total_revenue: supabase.raw('total_revenue + ' + product.price) }).eq('id', stream_id);
+    res.json({ ok: true, order });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/live/streams/:id/like — like a stream
+app.post('/api/live/streams/:id/like', auth, async (req, res) => {
+  try {
+    await supabase.from('live_streams').update({ total_likes: supabase.raw('total_likes + 1') }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/live/streams/:id/view — increment viewer count
+app.post('/api/live/streams/:id/view', async (req, res) => {
+  try {
+    await supabase.from('live_streams').update({ viewers_count: supabase.raw('viewers_count + 1') }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/live/analytics — streamer analytics
+app.get('/api/live/analytics', auth, async (req, res) => {
+  try {
+    const { data: streams } = await supabase.from('live_streams')
+      .select('*').eq('user_id', req.user.id).order('created_at', { ascending: false }).limit(20);
+    const past = streams || [];
+    const total_views = past.reduce((a, s) => a + (s.peak_viewers || 0), 0);
+    const total_revenue = past.reduce((a, s) => a + (s.total_revenue || 0), 0);
+    const total_likes = past.reduce((a, s) => a + (s.total_likes || 0), 0);
+    const total_sales = past.reduce((a, s) => a + (s.total_sales || 0), 0);
+    res.json({ total_views, total_revenue, total_likes, total_sales, past_streams: past });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/live/streams/:id/pin — pin a chat message (streamer only)
+app.post('/api/live/streams/:id/pin', auth, async (req, res) => {
+  try {
+    const { message_id } = req.body;
+    await supabase.from('live_chat_messages').update({ is_pinned: false }).eq('stream_id', req.params.id);
+    await supabase.from('live_chat_messages').update({ is_pinned: true, pinned_by: req.user.id }).eq('id', message_id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/live/streams/:id/report — report a stream
+app.post('/api/live/streams/:id/report', auth, async (req, res) => {
+  try {
+    const { reason, description } = req.body;
+    if (!reason) return res.status(400).json({ error: 'Chọn lý do báo cáo' });
+    await supabase.from('live_reports').insert({ stream_id: req.params.id, reporter_id: req.user.id, reason, description });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN LIVE ROUTES ──
+app.get('/api/live/admin/:tab', adminAuth, async (req, res) => {
+  try {
+    const { tab } = req.params;
+    if (tab === 'live' || tab === 'ended') {
+      const status = tab === 'live' ? 'live' : 'ended';
+      const { data } = await supabase.from('live_streams').select('*,users(name)').eq('status', status).order('viewers_count', { ascending: false }).limit(50);
+      return res.json({ streams: (data || []).map(s => ({ ...s, creator_name: s.users?.name })) });
+    }
+    if (tab === 'reports') {
+      const { data } = await supabase.from('live_reports').select('*,users!reporter_id(name),live_streams(title)').eq('status', 'pending').order('created_at', { ascending: false }).limit(50);
+      return res.json({ reports: data || [] });
+    }
+    if (tab === 'auctions') {
+      const { data } = await supabase.from('live_auctions').select('*,live_streams(title,users(name))').order('created_at', { ascending: false }).limit(50);
+      return res.json({ auctions: data || [] });
+    }
+    res.json({});
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/live/admin/streams/:id/ban', adminAuth, async (req, res) => {
+  try {
+    await supabase.from('live_streams').update({ status: 'banned' }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/live/admin/streams/:id/warn', adminAuth, async (req, res) => {
+  try {
+    const { data: stream } = await supabase.from('live_streams').select('user_id').eq('id', req.params.id).single();
+    if (stream) await supabase.from('notifications').insert({ user_id: stream.user_id, type: 'warning', title: 'Cảnh báo livestream', message: 'Livestream của bạn vi phạm quy định SafePass. Vui lòng tuân thủ nội dung.' }).catch(() => {});
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/live/admin/streams/:id/restore', adminAuth, async (req, res) => {
+  try {
+    await supabase.from('live_streams').update({ status: 'live' }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ── END PHASE 19 ── */
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);

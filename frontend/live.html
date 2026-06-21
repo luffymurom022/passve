@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SafePass Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#000;--card:#111;--card2:#1a1a1a;--card3:#222;
+  --brand:#fe2c55;--brand2:#25f4ee;--gold:#ffd700;
+  --text:#fff;--sub:rgba(255,255,255,.7);--hint:rgba(255,255,255,.35);
+  --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.06);
+  --ok:#22d38e;--warn:#f5a623;--purple:#9b87f5;
+}
+html,body{height:100%;overflow:hidden;background:#000;font-family:'Inter',system-ui,sans-serif;color:#fff;}
+
+/* ── DISCOVERY FEED ── */
+.app-wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* Top nav */
+.top-nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;height:54px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 14px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);
+}
+.logo{font-size:17px;font-weight:900;letter-spacing:-.5px;}
+.logo .live-word{color:var(--brand);background:var(--brand);color:#fff;padding:1px 7px;border-radius:6px;font-size:13px;margin-left:4px;}
+.nav-pills{display:flex;gap:6px;}
+.nav-pill{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.nav-pill.active{background:var(--brand);color:#fff;}
+.top-actions{display:flex;gap:10px;align-items:center;}
+.icon-btn{background:none;border:none;color:#fff;font-size:21px;cursor:pointer;line-height:1;}
+
+/* Live grid (discovery) */
+.live-grid{
+  flex:1;overflow-y:auto;padding:58px 0 80px;
+  display:grid;grid-template-columns:1fr 1fr;gap:2px;
+  background:#0a0a0a;
+}
+.live-grid::-webkit-scrollbar{display:none;}
+.live-card{
+  position:relative;aspect-ratio:.56;overflow:hidden;cursor:pointer;
+  background:#1a1a1a;
+}
+.live-card-bg{
+  width:100%;height:100%;object-fit:cover;position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;font-size:52px;
+  background:linear-gradient(145deg,#1a1a2e,#16213e,#0f3460);
+}
+.live-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.1) 50%,transparent 100%);}
+.live-card-top{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;align-items:flex-start;}
+.live-badge-sm{display:inline-flex;align-items:center;gap:4px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;padding:3px 7px;border-radius:5px;letter-spacing:.05em;}
+.live-dot-sm{width:5px;height:5px;border-radius:50%;background:#fff;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.viewer-chip{background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;display:flex;align-items:center;gap:3px;}
+.live-card-bottom{position:absolute;bottom:0;left:0;right:0;padding:10px 8px;}
+.lc-avatar{width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:linear-gradient(135deg,var(--brand),#ff8c00);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-bottom:4px;}
+.lc-name{font-size:11px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lc-title{font-size:10px;color:rgba(255,255,255,.75);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.lc-price{margin-top:5px;font-size:11px;font-weight:800;color:var(--brand);}
+.auction-chip{display:inline-flex;align-items:center;gap:3px;background:rgba(255,215,0,.2);color:var(--gold);font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;border:1px solid rgba(255,215,0,.3);}
+
+/* ── LIVE STREAM VIEWER ── */
+.live-viewer{position:fixed;inset:0;z-index:300;background:#000;display:none;flex-direction:column;}
+.live-viewer.show{display:flex;}
+.live-video-area{flex:1;position:relative;overflow:hidden;background:#000;}
+.live-video-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px;background:linear-gradient(145deg,#0d0d1a,#1a0a0a);}
+
+/* Live top overlay */
+.live-top{
+  position:absolute;top:0;left:0;right:0;z-index:10;
+  padding:52px 12px 16px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%);
+  display:flex;align-items:center;gap:10px;
+}
+.lv-back{background:rgba(0,0,0,.5);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lv-creator{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+.lv-avatar{width:38px;height:38px;border-radius:50%;border:2px solid #fff;background:linear-gradient(135deg,var(--brand),#ff8c00);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;}
+.lv-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lv-viewers{font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:3px;}
+.lv-live-badge{display:inline-flex;align-items:center;gap:4px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:5px;}
+.lv-follow-btn{background:var(--brand);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;}
+.lv-follow-btn.following{background:rgba(255,255,255,.15);}
+
+/* Right actions */
+.live-actions{
+  position:absolute;right:10px;top:140px;z-index:10;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+}
+.lv-action{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.lv-action-icon{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:20px;border:none;color:#fff;cursor:pointer;transition:transform .15s;}
+.lv-action-icon:active{transform:scale(.85);}
+.lv-action-label{font-size:10px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.9);}
+
+/* Product showcase panel */
+.product-showcase{
+  position:absolute;left:0;right:0;bottom:0;z-index:9;
+  background:linear-gradient(to top,rgba(0,0,0,.9) 0%,transparent 100%);
+  padding:0 10px 10px;
+}
+.product-showcase-title{font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.product-showcase-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.product-showcase-scroll::-webkit-scrollbar{display:none;}
+.ps-card{
+  flex-shrink:0;width:130px;background:rgba(0,0,0,.7);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px;
+  cursor:pointer;transition:all .2s;
+}
+.ps-card.featured{border-color:var(--brand);background:rgba(254,44,85,.08);}
+.ps-card.auction{border-color:var(--gold);background:rgba(255,215,0,.06);}
+.ps-card:hover{transform:scale(1.02);}
+.ps-emoji{font-size:28px;margin-bottom:6px;text-align:center;}
+.ps-name{font-size:11px;font-weight:700;line-height:1.3;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.ps-price{font-size:13px;font-weight:800;color:var(--brand);margin-bottom:2px;}
+.ps-price.auction-price{color:var(--gold);}
+.ps-stock{font-size:10px;color:rgba(255,255,255,.5);}
+.ps-buy-btn{
+  width:100%;margin-top:6px;padding:6px;border-radius:8px;border:none;
+  background:var(--brand);color:#fff;font-size:11px;font-weight:700;cursor:pointer;
+}
+.ps-buy-btn.bid{background:rgba(255,215,0,.2);color:var(--gold);border:1px solid rgba(255,215,0,.4);}
+
+/* Live chat overlay */
+.live-chat-overlay{
+  position:absolute;left:10px;bottom:165px;right:80px;z-index:10;
+  max-height:220px;overflow:hidden;pointer-events:none;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:5px;
+}
+.lv-msg{
+  display:inline-flex;align-items:flex-start;gap:6px;max-width:85%;
+  pointer-events:auto;
+}
+.lv-msg-bubble{
+  background:rgba(0,0,0,.55);backdrop-filter:blur(10px);
+  border-radius:18px 18px 18px 4px;padding:6px 10px;
+  font-size:12px;line-height:1.4;
+}
+.lv-msg-name{font-weight:700;color:var(--brand2);font-size:11px;}
+.lv-msg-text{color:#fff;}
+.lv-msg-gift .lv-msg-bubble{background:rgba(255,215,0,.2);border:1px solid rgba(255,215,0,.3);}
+.lv-msg-gift .lv-msg-name{color:var(--gold);}
+.lv-msg-system .lv-msg-bubble{background:rgba(155,135,245,.2);border:1px solid rgba(155,135,245,.3);}
+.gift-float{
+  position:absolute;right:60px;bottom:200px;font-size:32px;
+  animation:floatUp 2s ease-out forwards;pointer-events:none;z-index:20;
+}
+@keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:1;}100%{transform:translateY(-120px) scale(1.5);opacity:0;}}
+
+/* Bottom chat bar */
+.live-bottom{
+  background:rgba(0,0,0,.92);border-top:1px solid rgba(255,255,255,.06);
+  padding:10px 12px 28px;display:flex;flex-direction:column;gap:8px;
+}
+.bid-strip{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none;}
+.bid-strip::-webkit-scrollbar{display:none;}
+.bid-btn{
+  flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,215,0,.4);
+  background:rgba(255,215,0,.08);color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.bid-btn:hover{background:rgba(255,215,0,.2);}
+.bid-btn.active{background:var(--gold);color:#000;}
+.chat-row{display:flex;gap:8px;align-items:center;}
+.lv-input{
+  flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);
+  border-radius:22px;color:#fff;padding:9px 16px;font-size:13px;outline:none;
+  font-family:'Inter',sans-serif;
+}
+.lv-input::placeholder{color:rgba(255,255,255,.35);}
+.lv-send{background:var(--brand);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.lv-emoji-btn{background:none;border:none;font-size:20px;cursor:pointer;flex-shrink:0;}
+.lv-gift-btn{background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;flex-shrink:0;}
+
+/* Emoji picker */
+.emoji-picker{
+  position:absolute;bottom:100%;left:0;right:0;background:#1a1a1a;
+  border-top:1px solid rgba(255,255,255,.1);padding:10px;
+  display:flex;flex-wrap:wrap;gap:6px;display:none;
+}
+.emoji-picker.show{display:flex;}
+.ep-emoji{font-size:22px;cursor:pointer;padding:4px;border-radius:8px;transition:background .15s;}
+.ep-emoji:hover{background:rgba(255,255,255,.1);}
+
+/* Pinned comment */
+.pinned-comment{
+  position:absolute;left:10px;top:140px;right:80px;z-index:11;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,215,0,.3);border-radius:12px;
+  padding:8px 12px;display:none;
+}
+.pinned-comment.show{display:block;}
+.pinned-label{font-size:9px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.pinned-text{font-size:12px;line-height:1.4;}
+
+/* ── AUCTION PANEL ── */
+.auction-panel{
+  position:absolute;inset:0;z-index:15;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+  display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;
+}
+.auction-panel.show{display:flex;}
+.auction-box{
+  width:100%;max-width:320px;background:#111;border:2px solid rgba(255,215,0,.4);
+  border-radius:20px;padding:20px;text-align:center;
+}
+.auction-emoji{font-size:56px;margin-bottom:8px;}
+.auction-title{font-size:16px;font-weight:800;margin-bottom:4px;}
+.auction-desc{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px;}
+.auction-current{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px;}
+.auction-price-big{font-size:34px;font-weight:900;color:var(--gold);margin-bottom:4px;}
+.auction-leader{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:6px;}
+.auction-timer{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:8px;
+  padding:6px 14px;font-size:14px;font-weight:800;color:var(--gold);margin-bottom:16px;
+}
+.auction-timer.urgent{color:var(--brand);border-color:rgba(254,44,85,.4);background:rgba(254,44,85,.08);animation:blink .5s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.5;}}
+.quick-bids{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.quick-bid{padding:10px;border-radius:10px;border:1.5px solid rgba(255,215,0,.3);background:rgba(255,215,0,.06);color:var(--gold);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.quick-bid:hover{background:rgba(255,215,0,.15);}
+.quick-bid.selected{background:var(--gold);color:#000;border-color:var(--gold);}
+.custom-bid-row{display:flex;gap:8px;margin-bottom:14px;}
+.custom-bid-input{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;padding:10px 12px;font-size:14px;outline:none;}
+.place-bid-btn{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,var(--gold),#ffaa00);color:#000;font-size:15px;font-weight:800;cursor:pointer;
+  transition:all .2s;
+}
+.place-bid-btn:disabled{opacity:.5;cursor:not-allowed;}
+.auction-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;margin-top:10px;text-decoration:underline;}
+
+/* ── GO LIVE (Start Stream) ── */
+.go-live-page{position:fixed;inset:0;z-index:400;background:#000;display:none;flex-direction:column;overflow-y:auto;}
+.go-live-page.show{display:flex;}
+.go-live-header{padding:52px 16px 16px;display:flex;align-items:center;gap:12px;}
+.go-live-back{background:rgba(255,255,255,.1);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.go-live-title{font-size:20px;font-weight:800;}
+.live-preview{
+  margin:0 16px;height:200px;background:linear-gradient(145deg,#0d0d1a,#1a0a0a);
+  border-radius:16px;display:flex;align-items:center;justify-content:center;
+  font-size:60px;border:2px solid rgba(254,44,85,.2);position:relative;overflow:hidden;
+}
+.live-preview-overlay{
+  position:absolute;bottom:0;left:0;right:0;padding:12px;
+  background:linear-gradient(to top,rgba(0,0,0,.8),transparent);
+  font-size:12px;font-weight:600;color:rgba(255,255,255,.7);
+}
+.go-live-form{padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:40px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;}
+.form-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;padding:12px 14px;font-size:14px;outline:none;font-family:'Inter',sans-serif;}
+.form-input:focus{border-color:rgba(254,44,85,.4);}
+.form-input::placeholder{color:rgba(255,255,255,.3);}
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.cat-chip{
+  padding:10px 6px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);text-align:center;cursor:pointer;transition:all .2s;
+}
+.cat-chip.selected{border-color:var(--brand);background:rgba(254,44,85,.1);}
+.cat-chip-icon{font-size:20px;margin-bottom:4px;}
+.cat-chip-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.7);}
+.cat-chip.selected .cat-chip-label{color:#fff;}
+.product-add-list{display:flex;flex-direction:column;gap:8px;}
+.product-add-item{
+  display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;cursor:pointer;
+}
+.product-add-check{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.product-add-check.checked{background:var(--brand);border-color:var(--brand);}
+.add-product-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);}
+.add-product-btn{background:none;border:1.5px dashed rgba(255,255,255,.2);color:rgba(255,255,255,.5);border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer;}
+.stream-options{display:flex;flex-direction:column;gap:10px;}
+.stream-option{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;
+}
+.stream-option-info{display:flex;flex-direction:column;gap:2px;}
+.stream-option-title{font-size:13px;font-weight:600;}
+.stream-option-desc{font-size:11px;color:rgba(255,255,255,.5);}
+.toggle{width:44px;height:26px;border-radius:13px;border:none;cursor:pointer;position:relative;transition:background .2s;background:rgba(255,255,255,.15);}
+.toggle.on{background:var(--brand);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;}
+.toggle.on::after{transform:translateX(18px);}
+.go-live-btn{
+  margin:0 16px 16px;padding:16px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--brand),#ff3d6e);color:#fff;font-size:16px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.go-live-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ── ANALYTICS ── */
+.analytics-page{position:fixed;inset:0;z-index:400;background:#0a0a0a;overflow-y:auto;display:none;}
+.analytics-page.show{display:block;}
+.analytics-header{padding:52px 16px 16px;display:flex;align-items:center;gap:12px;background:#000;}
+.anl-back{background:rgba(255,255,255,.1);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.anl-title{font-size:20px;font-weight:800;}
+.anl-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 16px;}
+.anl-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;}
+.anl-icon{font-size:22px;margin-bottom:6px;}
+.anl-val{font-size:26px;font-weight:900;margin-bottom:2px;}
+.anl-lbl{font-size:11px;color:rgba(255,255,255,.5);}
+.anl-change{font-size:10px;color:var(--ok);margin-top:4px;}
+.anl-section{padding:0 16px 16px;}
+.anl-section-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.past-stream-item{
+  display:flex;gap:12px;align-items:center;
+  padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;
+}
+.past-thumb{width:60px;height:84px;border-radius:8px;background:#1a1a1a;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.past-meta{flex:1;min-width:0;}
+.past-title{font-size:13px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.past-date{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;}
+.past-stats{display:flex;gap:10px;font-size:11px;color:rgba(255,255,255,.5);}
+
+/* ── ADMIN PAGE ── */
+.admin-live-page{position:fixed;inset:0;z-index:400;background:#0a0a0a;overflow-y:auto;display:none;}
+.admin-live-page.show{display:block;}
+.admin-header{padding:52px 16px 16px;background:#000;display:flex;align-items:center;gap:12px;}
+.tab-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 16px 12px;}
+.tab-row::-webkit-scrollbar{display:none;}
+.admin-tab{flex-shrink:0;padding:7px 16px;border-radius:20px;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;font-weight:700;cursor:pointer;}
+.admin-tab.active{background:var(--brand);color:#fff;}
+.admin-table{width:100%;border-collapse:collapse;}
+.admin-table th{font-size:10px;color:rgba(255,255,255,.4);padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07);}
+.admin-table td{font-size:12px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:800;text-transform:uppercase;}
+.badge-live{background:rgba(254,44,85,.2);color:var(--brand);}
+.badge-ended{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);}
+.badge-ban{background:rgba(254,44,85,.15);color:var(--brand);}
+.badge-ok{background:rgba(34,211,142,.12);color:var(--ok);}
+.admin-action-row{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;}
+.admin-mini-btn{padding:4px 10px;border-radius:6px;border:none;font-size:10px;font-weight:700;cursor:pointer;}
+.btn-red{background:rgba(254,44,85,.15);color:var(--brand);}
+.btn-ok{background:rgba(34,211,142,.12);color:var(--ok);}
+.btn-warn{background:rgba(245,166,35,.12);color:var(--warn);}
+
+/* ── GIFT SHEET ── */
+.gift-sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:500;
+  background:#111;border-radius:20px 20px 0 0;
+  padding:0 0 env(safe-area-inset-bottom,24px);
+  transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.gift-sheet.show{transform:translateY(0);}
+.gift-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 14px;}
+.gift-title{font-size:15px;font-weight:800;padding:0 16px;margin-bottom:12px;}
+.gift-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px 16px;}
+.gift-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:10px 6px;border-radius:12px;border:1.5px solid transparent;transition:all .2s;}
+.gift-item:hover,.gift-item.selected{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.06);}
+.gift-emoji{font-size:32px;}
+.gift-name{font-size:10px;font-weight:700;text-align:center;color:rgba(255,255,255,.8);}
+.gift-price{font-size:10px;color:var(--gold);font-weight:700;}
+.gift-send-btn{
+  margin:0 16px;width:calc(100% - 32px);padding:14px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,var(--gold),#ffaa00);color:#000;font-size:15px;font-weight:800;cursor:pointer;
+}
+.gift-overlay{position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.5);display:none;}
+.gift-overlay.show{display:block;}
+
+/* ── PRODUCT BUY SHEET ── */
+.buy-sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:500;
+  background:#111;border-radius:20px 20px 0 0;
+  padding:0 16px env(safe-area-inset-bottom,24px);
+  transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.buy-sheet.show{transform:translateY(0);}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;height:68px;
+  display:flex;align-items:center;justify-content:space-around;
+  background:rgba(0,0,0,.95);border-top:1px solid rgba(255,255,255,.06);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:10px;font-weight:700;min-width:52px;}
+.bnav-btn.active{color:#fff;}
+.bnav-icon{font-size:23px;line-height:1;}
+.go-live-pill{
+  background:linear-gradient(135deg,var(--brand),#ff5f79);
+  border:none;color:#fff;border-radius:22px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+
+/* Toast */
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.92);color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s;border:1px solid rgba(255,255,255,.12);white-space:nowrap;}
+.toast.show{opacity:1;}
+
+@media(min-width:480px){
+  .live-grid{max-width:420px;margin:0 auto;}
+  .live-viewer{max-width:420px;left:50%;transform:translateX(-50%);}
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- Gift overlay -->
+<div class="gift-overlay" id="giftOverlay" onclick="closeGiftSheet()"></div>
+
+<!-- ══ DISCOVERY PAGE ══ -->
+<div class="app-wrap" id="discoveryPage">
+  <div class="top-nav">
+    <div class="logo">SafePass <span class="live-word">LIVE</span></div>
+    <div class="nav-pills">
+      <button class="nav-pill active" onclick="switchTab('live',this)">🔴 Đang Live</button>
+      <button class="nav-pill" onclick="switchTab('upcoming',this)">📅 Sắp Live</button>
+      <button class="nav-pill" onclick="switchTab('replays',this)">📼 Xem lại</button>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" onclick="showAnalytics()">📊</button>
+    </div>
+  </div>
+
+  <div class="live-grid" id="liveGrid">
+    <!-- Injected by JS -->
+  </div>
+
+  <div class="bottom-nav">
+    <button class="bnav-btn active" onclick="switchBNav('discover',this)">
+      <span class="bnav-icon">🏠</span><span>Khám phá</span>
+    </button>
+    <button class="bnav-btn" onclick="switchBNav('following',this)">
+      <span class="bnav-icon">❤️</span><span>Theo dõi</span>
+    </button>
+    <button class="go-live-pill" onclick="openGoLive()">
+      🎙️ Go Live
+    </button>
+    <button class="bnav-btn" onclick="switchBNav('inbox',this)">
+      <span class="bnav-icon">📥</span><span>Thông báo</span>
+    </button>
+    <button class="bnav-btn" onclick="showAdmin()">
+      <span class="bnav-icon">⚙️</span><span>Quản lý</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ LIVE VIEWER ══ -->
+<div class="live-viewer" id="liveViewer">
+  <div class="live-video-area" id="liveVideoArea">
+    <div class="live-video-bg" id="liveVideoBg">🎥</div>
+
+    <!-- Top bar -->
+    <div class="live-top">
+      <button class="lv-back" onclick="closeLiveViewer()">←</button>
+      <div class="lv-creator">
+        <div class="lv-avatar" id="lvAvatar">?</div>
+        <div>
+          <div class="lv-name" id="lvName">...</div>
+          <div class="lv-viewers"><span class="live-dot-sm" style="background:var(--brand);"></span><span id="lvViewers">0</span> đang xem</div>
+        </div>
+        <span class="lv-live-badge"><span class="live-dot-sm"></span> LIVE</span>
+      </div>
+      <button class="lv-follow-btn" id="lvFollowBtn" onclick="toggleLiveFollow()">＋ Theo dõi</button>
+    </div>
+
+    <!-- Pinned comment -->
+    <div class="pinned-comment" id="pinnedComment">
+      <div class="pinned-label">📌 Ghim</div>
+      <div class="pinned-text" id="pinnedText"></div>
+    </div>
+
+    <!-- Right actions -->
+    <div class="live-actions">
+      <div class="lv-action" onclick="toggleLiveLike()">
+        <button class="lv-action-icon" id="lvLikeBtn">🤍</button>
+        <span class="lv-action-label" id="lvLikeCount">0</span>
+      </div>
+      <div class="lv-action" onclick="openGiftSheet()">
+        <button class="lv-action-icon">🎁</button>
+        <span class="lv-action-label">Quà</span>
+      </div>
+      <div class="lv-action" onclick="shareStream()">
+        <button class="lv-action-icon">↗️</button>
+        <span class="lv-action-label">Chia sẻ</span>
+      </div>
+      <div class="lv-action" onclick="openAuction()">
+        <button class="lv-action-icon">🔨</button>
+        <span class="lv-action-label">Đấu giá</span>
+      </div>
+    </div>
+
+    <!-- Chat overlay -->
+    <div class="live-chat-overlay" id="liveChatOverlay"></div>
+
+    <!-- Product showcase -->
+    <div class="product-showcase" id="productShowcase">
+      <div class="product-showcase-title">🛍️ Sản phẩm trong live</div>
+      <div class="product-showcase-scroll" id="productShowcaseScroll"></div>
+    </div>
+
+    <!-- Auction panel -->
+    <div class="auction-panel" id="auctionPanel">
+      <div class="auction-box">
+        <div class="auction-emoji" id="auctionEmoji">🎟</div>
+        <div class="auction-title" id="auctionTitle">Đấu giá sản phẩm</div>
+        <div class="auction-desc" id="auctionDesc">Phiên đấu giá đang diễn ra</div>
+        <div class="auction-current">Giá hiện tại</div>
+        <div class="auction-price-big" id="auctionPrice">0đ</div>
+        <div class="auction-leader" id="auctionLeader">Chưa có người trả giá</div>
+        <div class="auction-timer" id="auctionTimer">⏱ 5:00</div>
+        <div class="quick-bids">
+          <button class="quick-bid" onclick="selectBid(10000,this)">+10K</button>
+          <button class="quick-bid" onclick="selectBid(50000,this)">+50K</button>
+          <button class="quick-bid" onclick="selectBid(100000,this)">+100K</button>
+          <button class="quick-bid" onclick="selectBid(500000,this)">+500K</button>
+        </div>
+        <div class="custom-bid-row">
+          <input class="custom-bid-input" id="customBidInput" type="number" placeholder="Nhập số tiền tùy chỉnh..." oninput="clearSelectedBid()">
+        </div>
+        <button class="place-bid-btn" id="placeBidBtn" onclick="placeBid()">🔨 Đặt giá</button>
+        <button class="auction-close" onclick="closeAuction()">Đóng phiên đấu giá</button>
+      </div>
+    </div>
+
+    <!-- Emoji picker -->
+    <div class="emoji-picker" id="emojiPicker">
+      <span class="ep-emoji" onclick="insertEmoji('❤️')">❤️</span>
+      <span class="ep-emoji" onclick="insertEmoji('🔥')">🔥</span>
+      <span class="ep-emoji" onclick="insertEmoji('👏')">👏</span>
+      <span class="ep-emoji" onclick="insertEmoji('😍')">😍</span>
+      <span class="ep-emoji" onclick="insertEmoji('🎉')">🎉</span>
+      <span class="ep-emoji" onclick="insertEmoji('💯')">💯</span>
+      <span class="ep-emoji" onclick="insertEmoji('🤩')">🤩</span>
+      <span class="ep-emoji" onclick="insertEmoji('😮')">😮</span>
+      <span class="ep-emoji" onclick="insertEmoji('👍')">👍</span>
+      <span class="ep-emoji" onclick="insertEmoji('💸')">💸</span>
+      <span class="ep-emoji" onclick="insertEmoji('🛍️')">🛍️</span>
+      <span class="ep-emoji" onclick="insertEmoji('⭐')">⭐</span>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="live-bottom" id="liveBottom" style="position:relative;">
+    <div class="bid-strip" id="bidStrip" style="display:none;">
+      <span style="font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;">⚡ Nhanh tay:</span>
+      <button class="bid-btn" onclick="quickBidFromStrip(10000)">+10K</button>
+      <button class="bid-btn" onclick="quickBidFromStrip(50000)">+50K</button>
+      <button class="bid-btn" onclick="quickBidFromStrip(100000)">+100K</button>
+      <button class="bid-btn" onclick="quickBidFromStrip(500000)">+500K</button>
+    </div>
+    <div class="chat-row">
+      <button class="lv-emoji-btn" onclick="toggleEmojiPicker()">😊</button>
+      <input class="lv-input" id="lvChatInput" placeholder="Nhắn gì đó...">
+      <button class="lv-gift-btn" onclick="openGiftSheet()">🎁</button>
+      <button class="lv-send" onclick="sendLiveChat()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GIFT SHEET ══ -->
+<div class="gift-sheet" id="giftSheet">
+  <div class="gift-handle"></div>
+  <div class="gift-title">🎁 Tặng quà cho streamer</div>
+  <div class="gift-grid">
+    <div class="gift-item" onclick="selectGift('rose','🌹','Hoa hồng',100)"><div class="gift-emoji">🌹</div><div class="gift-name">Hoa hồng</div><div class="gift-price">100đ</div></div>
+    <div class="gift-item" onclick="selectGift('heart','❤️','Trái tim',500)"><div class="gift-emoji">❤️</div><div class="gift-name">Trái tim</div><div class="gift-price">500đ</div></div>
+    <div class="gift-item" onclick="selectGift('star','⭐','Ngôi sao',1000)"><div class="gift-emoji">⭐</div><div class="gift-name">Ngôi sao</div><div class="gift-price">1.000đ</div></div>
+    <div class="gift-item" onclick="selectGift('diamond','💎','Kim cương',5000)"><div class="gift-emoji">💎</div><div class="gift-name">Kim cương</div><div class="gift-price">5.000đ</div></div>
+    <div class="gift-item" onclick="selectGift('crown','👑','Vương miện',10000)"><div class="gift-emoji">👑</div><div class="gift-name">Vương miện</div><div class="gift-price">10.000đ</div></div>
+    <div class="gift-item" onclick="selectGift('rocket','🚀','Tên lửa',50000)"><div class="gift-emoji">🚀</div><div class="gift-name">Tên lửa</div><div class="gift-price">50.000đ</div></div>
+    <div class="gift-item" onclick="selectGift('car','🚗','Xe hơi',100000)"><div class="gift-emoji">🚗</div><div class="gift-name">Xe hơi</div><div class="gift-price">100.000đ</div></div>
+    <div class="gift-item" onclick="selectGift('castle','🏰','Lâu đài',500000)"><div class="gift-emoji">🏰</div><div class="gift-name">Lâu đài</div><div class="gift-price">500.000đ</div></div>
+  </div>
+  <button class="gift-send-btn" id="giftSendBtn" onclick="sendGift()">🎁 Gửi quà</button>
+</div>
+
+<!-- ══ BUY SHEET ══ -->
+<div class="buy-sheet" id="buySheet">
+  <div class="gift-handle"></div>
+  <div id="buySheetContent" style="padding-bottom:20px;"></div>
+</div>
+<div class="gift-overlay" id="buyOverlay" onclick="closeBuySheet()"></div>
+
+<!-- ══ GO LIVE PAGE ══ -->
+<div class="go-live-page" id="goLivePage">
+  <div class="go-live-header">
+    <button class="go-live-back" onclick="closeGoLive()">←</button>
+    <div class="go-live-title">🎙️ Bắt đầu Livestream</div>
+  </div>
+
+  <div class="live-preview">
+    📡
+    <div class="live-preview-overlay">Camera preview · Nhấn Go Live khi sẵn sàng</div>
+  </div>
+
+  <div class="go-live-form">
+    <div class="form-group">
+      <label class="form-label">Tiêu đề livestream *</label>
+      <input class="form-input" id="liveTitle" placeholder="Flash sale vé concert! Giảm 30% trong 1 tiếng..." maxlength="100">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Danh mục</label>
+      <div class="cat-grid">
+        <div class="cat-chip selected" onclick="selectCat('ticket',this)"><div class="cat-chip-icon">🎟</div><div class="cat-chip-label">Vé sự kiện</div></div>
+        <div class="cat-chip" onclick="selectCat('product',this)"><div class="cat-chip-icon">📦</div><div class="cat-chip-label">Sản phẩm</div></div>
+        <div class="cat-chip" onclick="selectCat('account',this)"><div class="cat-chip-icon">🔑</div><div class="cat-chip-label">Tài khoản</div></div>
+        <div class="cat-chip" onclick="selectCat('fashion',this)"><div class="cat-chip-icon">👗</div><div class="cat-chip-label">Thời trang</div></div>
+        <div class="cat-chip" onclick="selectCat('tech',this)"><div class="cat-chip-icon">💻</div><div class="cat-chip-label">Công nghệ</div></div>
+        <div class="cat-chip" onclick="selectCat('beauty',this)"><div class="cat-chip-icon">💄</div><div class="cat-chip-label">Làm đẹp</div></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Sản phẩm trong live</label>
+      <div class="product-add-list" id="productAddList">
+        <div class="product-add-item" onclick="toggleProduct('p1',this)">
+          <div class="product-add-check">✓</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">🎟 Vé BLACKPINK VIP</div><div style="font-size:11px;color:rgba(255,255,255,.5);">8.500.000đ • Còn 2 vé</div></div>
+        </div>
+        <div class="product-add-item" onclick="toggleProduct('p2',this)">
+          <div class="product-add-check"></div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">💻 MacBook Air M3</div><div style="font-size:11px;color:rgba(255,255,255,.5);">24.000.000đ • Còn 1 chiếc</div></div>
+        </div>
+        <div class="product-add-item" onclick="toggleProduct('p3',this)">
+          <div class="product-add-check"></div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;">💄 Son MAC chính hãng</div><div style="font-size:11px;color:rgba(255,255,255,.5);">680.000đ • Còn nhiều</div></div>
+        </div>
+      </div>
+      <div class="add-product-row">
+        <button class="add-product-btn" onclick="showToast('Chọn sản phẩm từ kho...')">＋ Thêm sản phẩm</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Tuỳ chọn stream</label>
+      <div class="stream-options">
+        <div class="stream-option">
+          <div class="stream-option-info"><div class="stream-option-title">Bật đấu giá</div><div class="stream-option-desc">Cho phép đấu giá sản phẩm trong live</div></div>
+          <button class="toggle on" id="toggleAuction" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="stream-option">
+          <div class="stream-option-info"><div class="stream-option-title">Ghi hình tự động</div><div class="stream-option-desc">Lưu lại video sau khi kết thúc</div></div>
+          <button class="toggle on" id="toggleRecord" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="stream-option">
+          <div class="stream-option-info"><div class="stream-option-title">Nhận quà tặng</div><div class="stream-option-desc">Người xem có thể gửi quà virtual</div></div>
+          <button class="toggle on" id="toggleGifts" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="stream-option">
+          <div class="stream-option-info"><div class="stream-option-title">Chế độ chỉ người theo dõi</div><div class="stream-option-desc">Chỉ follower mới được xem</div></div>
+          <button class="toggle" id="toggleFollowOnly" onclick="this.classList.toggle('on')"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="go-live-btn" id="goLiveBtn" onclick="startStream()">
+    🔴 GO LIVE
+  </button>
+</div>
+
+<!-- ══ ANALYTICS PAGE ══ -->
+<div class="analytics-page" id="analyticsPage">
+  <div class="analytics-header">
+    <button class="anl-back" onclick="closeAnalytics()">←</button>
+    <div class="anl-title">📊 Live Analytics</div>
+  </div>
+  <div class="anl-stats">
+    <div class="anl-card"><div class="anl-icon">👁️</div><div class="anl-val" id="anlViews">0</div><div class="anl-lbl">Tổng lượt xem</div><div class="anl-change">↑ +23%</div></div>
+    <div class="anl-card" style="border-color:rgba(254,44,85,.2);"><div class="anl-icon">💰</div><div class="anl-val" id="anlRevenue" style="color:var(--brand);">0đ</div><div class="anl-lbl">Doanh thu</div><div class="anl-change">↑ +41%</div></div>
+    <div class="anl-card"><div class="anl-icon">❤️</div><div class="anl-val" id="anlLikes">0</div><div class="anl-lbl">Lượt thích</div><div class="anl-change">↑ +15%</div></div>
+    <div class="anl-card" style="border-color:rgba(255,215,0,.2);"><div class="anl-icon">🛍️</div><div class="anl-val" id="anlSales" style="color:var(--gold);">0</div><div class="anl-lbl">Đơn hàng</div><div class="anl-change">↑ +8%</div></div>
+  </div>
+  <div class="anl-section">
+    <div class="anl-section-title">Livestream gần đây</div>
+    <div id="pastStreamsList">
+      <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Đang tải...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN PAGE ══ -->
+<div class="admin-live-page" id="adminLivePage">
+  <div class="admin-header">
+    <button class="anl-back" onclick="closeAdmin()">←</button>
+    <div class="anl-title">⚙️ Admin Live Center</div>
+  </div>
+  <div class="tab-row">
+    <button class="admin-tab active" onclick="switchAdminTab('live',this)">🔴 Đang Live</button>
+    <button class="admin-tab" onclick="switchAdminTab('ended',this)">📼 Đã kết thúc</button>
+    <button class="admin-tab" onclick="switchAdminTab('reports',this)">🚨 Báo cáo</button>
+    <button class="admin-tab" onclick="switchAdminTab('auctions',this)">🔨 Đấu giá</button>
+  </div>
+  <div style="padding:0 16px;" id="adminLiveContent">
+    <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Đang tải...</div>
+  </div>
+</div>
+
+<script>
+// ━━ STATE ━━
+const S = {
+  token: localStorage.getItem('sp_token'),
+  user: null,
+  tab: 'live',
+  streams: [],
+  currentStream: null,
+  liveFollowing: new Set(),
+  liveLiked: false,
+  liveViewers: 0,
+  liveLikes: 0,
+  chatInterval: null,
+  viewerInterval: null,
+  auctionInterval: null,
+  auctionTimeLeft: 300,
+  auctionCurrentPrice: 0,
+  auctionLeader: '—',
+  selectedBidAmount: 0,
+  selectedGift: null,
+  selectedCat: 'ticket',
+  selectedProducts: new Set(['p1']),
+  pinnedMsg: null,
+  adminTab: 'live',
+  products: []
+};
+
+const BASE = '';
+
+// ━━ INIT ━━
+async function init() {
+  if (S.token) {
+    try { const r = await api('/api/social/me'); if (r.user) S.user = r.user; } catch(e){}
+  }
+  await loadStreams();
+}
+
+// ━━ API ━━
+async function api(path, opts={}) {
+  const res = await fetch(BASE+path, {
+    ...opts,
+    headers: {'Content-Type':'application/json',...(S.token?{Authorization:'Bearer '+S.token}:{}),...(opts.headers||{})}
+  });
+  return res.json();
+}
+
+// ━━ STREAMS ━━
+async function loadStreams() {
+  try {
+    const data = await api('/api/live/streams?tab='+S.tab);
+    S.streams = (data.streams && data.streams.length > 0) ? data.streams : getDemoStreams();
+  } catch(e) { S.streams = getDemoStreams(); }
+  renderGrid();
+}
+
+function getDemoStreams() {
+  return [
+    {id:'l1',user_id:'u1',creator_name:'Ticket Master VN',initials:'TM',title:'🎟 Flash Sale Vé Concert! Giảm 30% trong 1 tiếng',category:'ticket',emoji:'🎸',viewers_count:1842,likes_count:29300,is_live:true,is_auction:false,products:[{id:'p1',name:'Vé BLACKPINK VIP',price:8500000,emoji:'🎟',stock:2},{id:'p2',name:'Vé Ed Sheeran',price:3200000,emoji:'🎸',stock:5}]},
+    {id:'l2',user_id:'u2',creator_name:'Đấu Giá Công Nghệ',initials:'DA',title:'💻 ĐẤU GIÁ: MacBook M3 giá khởi điểm 15 triệu!',category:'tech',emoji:'💻',viewers_count:3201,likes_count:51200,is_live:true,is_auction:true,current_bid:17500000,products:[{id:'p3',name:'MacBook Air M3',price:17500000,emoji:'💻',stock:1}]},
+    {id:'l3',user_id:'u3',creator_name:'Mỹ Phẩm Auth',initials:'MA',title:'💄 Son MAC auth giá sỉ — mua 3 tặng 1',category:'beauty',emoji:'💄',viewers_count:924,likes_count:14100,is_live:true,is_auction:false,products:[{id:'p4',name:'Son MAC Ruby Woo',price:680000,emoji:'💄',stock:50}]},
+    {id:'l4',user_id:'u4',creator_name:'Game Acc VN',initials:'GA',title:'🎮 Bán tài khoản PS5 Premium — KYC đảm bảo',category:'account',emoji:'🎮',viewers_count:567,likes_count:8900,is_live:true,is_auction:false,products:[{id:'p5',name:'PS5 Premium Account',price:1200000,emoji:'🎮',stock:3}]},
+    {id:'l5',user_id:'u5',creator_name:'Thời Trang 36+',initials:'TT',title:'👗 Hàng Quảng Châu auth - xả kho giá sỉ',category:'fashion',emoji:'👗',viewers_count:2103,likes_count:34700,is_live:true,is_auction:false,products:[{id:'p6',name:'Áo form oversize',price:250000,emoji:'👗',stock:100}]},
+    {id:'l6',user_id:'u6',creator_name:'ĐẤU GIÁ VÉ HOT',initials:'DG',title:'🏆 ĐẤU GIÁ SẮP MỞ: 2 vé VIP sự kiện 30/4',category:'ticket',emoji:'🏆',viewers_count:4812,likes_count:73100,is_live:true,is_auction:true,current_bid:5000000,products:[{id:'p7',name:'Vé VIP 30/4',price:5000000,emoji:'🏆',stock:2}]},
+  ];
+}
+
+function renderGrid() {
+  const grid = document.getElementById('liveGrid');
+  grid.innerHTML = S.streams.map(s => `
+    <div class="live-card" onclick="openStream('${s.id}')">
+      <div class="live-card-bg">${s.emoji||'🎥'}</div>
+      <div class="live-card-overlay"></div>
+      <div class="live-card-top">
+        ${s.is_live?`<span class="live-badge-sm"><span class="live-dot-sm"></span> LIVE</span>`:`<span style="background:rgba(0,0,0,.6);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;">📼 Xem lại</span>`}
+        <span class="viewer-chip">👁 ${fmtNum(s.viewers_count||0)}</span>
+      </div>
+      <div class="live-card-bottom">
+        <div class="lc-avatar">${s.initials||'??'}</div>
+        <div class="lc-name">${s.creator_name||'Creator'}</div>
+        <div class="lc-title">${s.title||''}</div>
+        ${s.is_auction&&s.current_bid?`<div class="lc-price"><span class="auction-chip">🔨 Đấu giá</span> ${fmtPrice(s.current_bid)}</div>`:s.products?.[0]?`<div class="lc-price">${fmtPrice(s.products[0].price)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ━━ OPEN STREAM ━━
+function openStream(streamId) {
+  const stream = S.streams.find(s=>s.id===streamId) || S.streams[0];
+  S.currentStream = stream;
+
+  document.getElementById('lvAvatar').textContent = stream.initials||'?';
+  document.getElementById('lvName').textContent = stream.creator_name||'Creator';
+  document.getElementById('lvViewers').textContent = fmtNum(stream.viewers_count||0);
+  document.getElementById('liveVideoBg').textContent = stream.emoji||'🎥';
+  document.getElementById('lvLikeCount').textContent = fmtNum(stream.likes_count||0);
+  S.liveViewers = stream.viewers_count||0;
+  S.liveLikes = stream.likes_count||0;
+  S.liveLiked = false;
+  document.getElementById('lvLikeBtn').textContent = '🤍';
+
+  const followBtn = document.getElementById('lvFollowBtn');
+  const isFollowing = S.liveFollowing.has(stream.user_id);
+  followBtn.textContent = isFollowing ? '✓ Đang theo dõi' : '＋ Theo dõi';
+  followBtn.className = 'lv-follow-btn' + (isFollowing?' following':'');
+
+  renderProductShowcase(stream.products||[]);
+
+  // Show/hide bid strip for auctions
+  document.getElementById('bidStrip').style.display = stream.is_auction ? 'flex' : 'none';
+
+  document.getElementById('liveViewer').classList.add('show');
+
+  startLiveChat(stream);
+  startViewerFluctuation();
+
+  if (stream.is_auction) {
+    S.auctionCurrentPrice = stream.current_bid || 500000;
+    S.auctionLeader = 'Nguyễn Văn A';
+    S.auctionTimeLeft = 300;
+    // Auto open auction after 2s
+    setTimeout(() => openAuction(), 2000);
+  }
+}
+
+function closeLiveViewer() {
+  document.getElementById('liveViewer').classList.remove('show');
+  stopAllIntervals();
+  document.getElementById('liveChatOverlay').innerHTML = '';
+  closeAuction();
+  closeEmojiPicker();
+}
+
+// ━━ PRODUCT SHOWCASE ━━
+function renderProductShowcase(products) {
+  S.products = products;
+  document.getElementById('productShowcaseScroll').innerHTML = products.map((p,i) => `
+    <div class="ps-card ${i===0?'featured':''} ${S.currentStream?.is_auction&&i===0?'auction':''}" onclick="openBuySheet('${p.id}')">
+      <div class="ps-emoji">${p.emoji||'📦'}</div>
+      <div class="ps-name">${p.name||'Sản phẩm'}</div>
+      <div class="ps-price ${S.currentStream?.is_auction&&i===0?'auction-price':''}">${fmtPrice(p.price)}</div>
+      <div class="ps-stock">Còn ${p.stock||0} ${p.stock===1?'cái':'sản phẩm'}</div>
+      <button class="ps-buy-btn ${S.currentStream?.is_auction&&i===0?'bid':''}" onclick="event.stopPropagation();${S.currentStream?.is_auction&&i===0?'openAuction()':'openBuySheet(\''+p.id+'\')'}">${S.currentStream?.is_auction&&i===0?'🔨 Đấu giá':'⚡ Mua ngay'}</button>
+    </div>`).join('');
+}
+
+// ━━ BUY SHEET ━━
+function openBuySheet(productId) {
+  const product = S.products.find(p=>p.id===productId) || S.products[0];
+  if (!product) return;
+  document.getElementById('buySheetContent').innerHTML = `
+    <div class="gift-handle"></div>
+    <div style="text-align:center;padding:0 0 16px;">
+      <div style="font-size:52px;margin-bottom:8px;">${product.emoji||'📦'}</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px;">${product.name}</div>
+      <div style="font-size:28px;font-weight:900;color:var(--brand);">${fmtPrice(product.price)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px;">Còn ${product.stock} sản phẩm</div>
+    </div>
+    <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px;">🔐 SafePass Escrow bảo vệ giao dịch</div>
+      <div style="font-size:12px;line-height:1.5;">Tiền được giữ an toàn cho đến khi bạn xác nhận nhận hàng. Hoàn 100% nếu có vấn đề.</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="addToCart('${product.id}')" style="flex:1;padding:13px;border-radius:11px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">🛒 Giỏ hàng</button>
+      <button onclick="buyNowLive('${product.id}')" style="flex:2;padding:13px;border-radius:11px;border:none;background:var(--brand);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">⚡ Mua ngay</button>
+    </div>`;
+  document.getElementById('buySheet').classList.add('show');
+  document.getElementById('buyOverlay').classList.add('show');
+}
+function closeBuySheet() {
+  document.getElementById('buySheet').classList.remove('show');
+  document.getElementById('buyOverlay').classList.remove('show');
+}
+function addToCart(pid) { closeBuySheet(); showToast('🛒 Đã thêm vào giỏ hàng'); }
+async function buyNowLive(pid) {
+  closeBuySheet();
+  showToast('🔄 Đang tạo đơn hàng Escrow...');
+  try { await api('/api/live/buy', {method:'POST',body:JSON.stringify({product_id:pid,stream_id:S.currentStream?.id})}); } catch(e){}
+  setTimeout(()=>showToast('✅ Đơn hàng Escrow đã tạo!','#22d38e'), 1500);
+}
+
+// ━━ LIKE ━━
+function toggleLiveLike() {
+  S.liveLiked = !S.liveLiked;
+  const btn = document.getElementById('lvLikeBtn');
+  if (S.liveLiked) {
+    S.liveLikes++;
+    btn.textContent = '❤️';
+    btn.style.transform = 'scale(1.3)';
+    setTimeout(()=>btn.style.transform='scale(1)',300);
+    addChatMsg('','❤️❤️❤️','gift');
+  } else {
+    S.liveLikes = Math.max(0,S.liveLikes-1);
+    btn.textContent = '🤍';
+  }
+  document.getElementById('lvLikeCount').textContent = fmtNum(S.liveLikes);
+}
+
+// ━━ FOLLOW ━━
+async function toggleLiveFollow() {
+  if (!S.token) { showToast('Đăng nhập để theo dõi'); return; }
+  const userId = S.currentStream?.user_id;
+  const isFollowing = S.liveFollowing.has(userId);
+  if (isFollowing) S.liveFollowing.delete(userId); else S.liveFollowing.add(userId);
+  const btn = document.getElementById('lvFollowBtn');
+  btn.textContent = S.liveFollowing.has(userId)?'✓ Đang theo dõi':'＋ Theo dõi';
+  btn.className = 'lv-follow-btn'+(S.liveFollowing.has(userId)?' following':'');
+  if (!isFollowing) {
+    addChatMsg('Hệ thống','🔔 Bạn đã theo dõi '+S.currentStream?.creator_name,'system');
+    showToast('Đã theo dõi — nhận thông báo live tiếp theo ✅');
+  }
+  try { await api(`/api/social/follow/${userId}`,{method:isFollowing?'DELETE':'POST'}); } catch(e){}
+}
+
+// ━━ LIVE CHAT ━━
+const DEMO_MSGS = [
+  {name:'Minh Anh',msg:'Bao giờ mở flash sale vậy bạn??'},
+  {name:'Thu Hà',msg:'🔥🔥🔥 Xem live thôi nào mọi người!'},
+  {name:'Quang Vinh',msg:'Mua rồi, giao nhanh lắm ❤️'},
+  {name:'Đức Mạnh',msg:'Còn vé VIP không ạ??'},
+  {name:'Hương Giang',msg:'❤️❤️❤️'},
+  {name:'Nam Phong',msg:'SafePass Escrow an toàn 100%!'},
+  {name:'Bảo Châu',msg:'Giá tốt quá! Order ngay!'},
+  {name:'Tuấn Kiệt',msg:'Ship về Hà Nội có không bạn?'},
+  {name:'Lan Chi',msg:'😍😍😍 Đẹp quá!'},
+  {name:'Hoàng Long',msg:'Còn bao nhiêu sản phẩm nữa?'},
+  {name:'VIP_Buyer',msg:'💎 Đã mua 3 cái rồi, quá uy tín!','type':'gift'},
+  {name:'FlashFan',msg:'🚀 Tặng Tên lửa cho streamer!','type':'gift'},
+];
+let msgIdx = 0;
+
+function startLiveChat(stream) {
+  S.chatInterval = setInterval(()=>{
+    const m = DEMO_MSGS[msgIdx%DEMO_MSGS.length];
+    msgIdx++;
+    addChatMsg(m.name,m.msg,m.type||'message');
+  }, 1800);
+}
+
+function addChatMsg(name,text,type='message') {
+  const overlay = document.getElementById('liveChatOverlay');
+  const div = document.createElement('div');
+  div.className = `lv-msg${type==='gift'?' lv-msg-gift':type==='system'?' lv-msg-system':''}`;
+  div.innerHTML = `<div class="lv-msg-bubble"><span class="lv-msg-name">${name?name+' ':''}${type==='gift'?'🎁 ':''}</span><span class="lv-msg-text">${text}</span></div>`;
+  overlay.appendChild(div);
+  while(overlay.children.length>8) overlay.removeChild(overlay.children[0]);
+  overlay.scrollTop = overlay.scrollHeight;
+}
+
+function sendLiveChat() {
+  const input = document.getElementById('lvChatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  closeEmojiPicker();
+  addChatMsg(S.user?.name||'Bạn',text,'message');
+  input.value='';
+  try { api(`/api/live/streams/${S.currentStream?.id}/chat`,{method:'POST',body:JSON.stringify({content:text})}); } catch(e){}
+}
+
+// ━━ EMOJI ━━
+function toggleEmojiPicker() {
+  document.getElementById('emojiPicker').classList.toggle('show');
+}
+function closeEmojiPicker() {
+  document.getElementById('emojiPicker').classList.remove('show');
+}
+function insertEmoji(e) {
+  document.getElementById('lvChatInput').value += e;
+  closeEmojiPicker();
+  document.getElementById('lvChatInput').focus();
+}
+
+// ━━ VIEWER FLUCTUATION ━━
+function startViewerFluctuation() {
+  S.viewerInterval = setInterval(()=>{
+    S.liveViewers += Math.floor(Math.random()*20-8);
+    S.liveViewers = Math.max(100, S.liveViewers);
+    document.getElementById('lvViewers').textContent = fmtNum(S.liveViewers);
+  }, 3000);
+}
+
+function stopAllIntervals() {
+  [S.chatInterval,S.viewerInterval,S.auctionInterval].forEach(i=>i&&clearInterval(i));
+  S.chatInterval=S.viewerInterval=S.auctionInterval=null;
+}
+
+// ━━ GIFT SYSTEM ━━
+function openGiftSheet() {
+  document.getElementById('giftSheet').classList.add('show');
+  document.getElementById('giftOverlay').classList.add('show');
+}
+function closeGiftSheet() {
+  document.getElementById('giftSheet').classList.remove('show');
+  document.getElementById('giftOverlay').classList.remove('show');
+}
+
+function selectGift(id,emoji,name,price) {
+  S.selectedGift = {id,emoji,name,price};
+  document.querySelectorAll('.gift-item').forEach(el=>el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('giftSendBtn').textContent = `🎁 Gửi ${name} (${fmtPrice(price)})`;
+}
+
+async function sendGift() {
+  if (!S.selectedGift) { showToast('Chọn quà trước!'); return; }
+  closeGiftSheet();
+  const g = S.selectedGift;
+  addChatMsg(S.user?.name||'Bạn',`đã gửi ${g.emoji} ${g.name}!`,'gift');
+  showToast(`🎁 Đã gửi ${g.name}!`,'#ffd700');
+  // Float animation
+  const float = document.createElement('div');
+  float.className = 'gift-float';
+  float.textContent = g.emoji;
+  document.getElementById('liveVideoArea').appendChild(float);
+  setTimeout(()=>float.remove(),2000);
+  try { await api(`/api/live/streams/${S.currentStream?.id}/gift`,{method:'POST',body:JSON.stringify({gift_type:g.id,amount:g.price})}); } catch(e){}
+  S.selectedGift=null;
+  document.getElementById('giftSendBtn').textContent='🎁 Gửi quà';
+  document.querySelectorAll('.gift-item').forEach(el=>el.classList.remove('selected'));
+}
+
+// ━━ AUCTION ━━
+function openAuction() {
+  const prod = S.products[0];
+  if (!prod) return;
+  document.getElementById('auctionEmoji').textContent = prod.emoji||'🎟';
+  document.getElementById('auctionTitle').textContent = prod.name||'Sản phẩm đấu giá';
+  document.getElementById('auctionDesc').textContent = '🔨 Phiên đấu giá đang diễn ra! Nhanh tay trả giá!';
+  updateAuctionUI();
+  document.getElementById('auctionPanel').classList.add('show');
+  startAuctionTimer();
+}
+
+function closeAuction() {
+  document.getElementById('auctionPanel').classList.remove('show');
+  if(S.auctionInterval){clearInterval(S.auctionInterval);S.auctionInterval=null;}
+}
+
+function startAuctionTimer() {
+  if(S.auctionInterval) clearInterval(S.auctionInterval);
+  S.auctionInterval = setInterval(()=>{
+    S.auctionTimeLeft--;
+    if(S.auctionTimeLeft<=0){
+      clearInterval(S.auctionInterval);
+      document.getElementById('auctionTimer').textContent='⏱ Kết thúc!';
+      document.getElementById('placeBidBtn').disabled=true;
+      showToast('🏆 Phiên đấu giá kết thúc!');
+      return;
+    }
+    const m=Math.floor(S.auctionTimeLeft/60), s=S.auctionTimeLeft%60;
+    const timerEl = document.getElementById('auctionTimer');
+    timerEl.textContent=`⏱ ${m}:${s.toString().padStart(2,'0')}`;
+    if(S.auctionTimeLeft<=30) timerEl.classList.add('urgent'); else timerEl.classList.remove('urgent');
+
+    // Simulate other bids
+    if(Math.random()<0.2){
+      const names=['Minh Anh','Thu Hà','Quang Vinh','Đức Mạnh','Hương Giang'];
+      const bump=Math.random()<0.5?10000:50000;
+      S.auctionCurrentPrice+=bump;
+      S.auctionLeader=names[Math.floor(Math.random()*names.length)];
+      updateAuctionUI();
+      addChatMsg(S.auctionLeader,`đã trả ${fmtPrice(S.auctionCurrentPrice)} 🔨`,'message');
+    }
+  },1000);
+}
+
+function selectBid(amount,btn) {
+  S.selectedBidAmount=amount;
+  document.querySelectorAll('.quick-bid').forEach(b=>b.classList.remove('selected'));
+  btn?.classList.add('selected');
+  document.getElementById('customBidInput').value='';
+}
+function clearSelectedBid(){
+  S.selectedBidAmount=0;
+  document.querySelectorAll('.quick-bid').forEach(b=>b.classList.remove('selected'));
+}
+
+async function placeBid() {
+  const customVal = parseInt(document.getElementById('customBidInput').value)||0;
+  const bidIncrement = S.selectedBidAmount||customVal;
+  if(!bidIncrement){showToast('Chọn hoặc nhập số tiền trả giá');return;}
+  if(!S.token){showToast('Đăng nhập để đặt giá');return;}
+  const newPrice=S.auctionCurrentPrice+bidIncrement;
+  S.auctionCurrentPrice=newPrice;
+  S.auctionLeader=S.user?.name||'Bạn';
+  S.auctionTimeLeft=Math.min(S.auctionTimeLeft+30,300); // extend by 30s on bid
+  updateAuctionUI();
+  addChatMsg('Bạn',`đã trả ${fmtPrice(newPrice)} 🔨🔥`,'message');
+  showToast(`✅ Đã đặt giá ${fmtPrice(newPrice)}!`,'#ffd700');
+  document.getElementById('placeBidBtn').textContent='🏆 Bạn đang dẫn đầu!';
+  setTimeout(()=>document.getElementById('placeBidBtn').textContent='🔨 Đặt giá',2000);
+  try { await api(`/api/live/streams/${S.currentStream?.id}/bid`,{method:'POST',body:JSON.stringify({amount:newPrice})}); } catch(e){}
+}
+
+function quickBidFromStrip(amount) {
+  if(!S.token){showToast('Đăng nhập để đặt giá');return;}
+  S.auctionCurrentPrice+=amount;
+  S.auctionLeader=S.user?.name||'Bạn';
+  updateAuctionUI();
+  addChatMsg('Bạn',`+${fmtPrice(amount)} → ${fmtPrice(S.auctionCurrentPrice)} 🔨`,'message');
+  showToast(`⚡ Đã thêm ${fmtPrice(amount)}!`,'#ffd700');
+}
+
+function updateAuctionUI(){
+  document.getElementById('auctionPrice').textContent=fmtPrice(S.auctionCurrentPrice);
+  document.getElementById('auctionLeader').textContent=`👑 Dẫn đầu: ${S.auctionLeader}`;
+}
+
+// ━━ SHARE ━━
+function shareStream() {
+  const url=window.location.href+'?stream='+S.currentStream?.id;
+  navigator.clipboard?.writeText(url).then(()=>showToast('Đã sao chép link 🔗')).catch(()=>showToast('Đã sao chép link 🔗'));
+}
+
+// ━━ GO LIVE ━━
+function openGoLive(){
+  if(!S.token){showToast('Đăng nhập để phát live');return;}
+  document.getElementById('goLivePage').classList.add('show');
+}
+function closeGoLive(){ document.getElementById('goLivePage').classList.remove('show'); }
+
+function selectCat(cat,el){
+  S.selectedCat=cat;
+  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('selected'));
+  el?.classList.add('selected');
+}
+
+function toggleProduct(id,el){
+  const check=el.querySelector('.product-add-check');
+  if(S.selectedProducts.has(id)){S.selectedProducts.delete(id);check.className='product-add-check';check.textContent='';}
+  else{S.selectedProducts.add(id);check.className='product-add-check checked';check.textContent='✓';}
+}
+
+async function startStream(){
+  const title=document.getElementById('liveTitle').value.trim();
+  if(!title){showToast('Nhập tiêu đề livestream');return;}
+  const btn=document.getElementById('goLiveBtn');
+  btn.disabled=true;btn.textContent='⏳ Đang bắt đầu...';
+  try{
+    await api('/api/live/streams',{method:'POST',body:JSON.stringify({
+      title,category:S.selectedCat,
+      enable_auction:document.getElementById('toggleAuction').classList.contains('on'),
+      enable_recording:document.getElementById('toggleRecord').classList.contains('on'),
+      enable_gifts:document.getElementById('toggleGifts').classList.contains('on'),
+    })});
+  }catch(e){}
+  btn.disabled=false;btn.textContent='🔴 GO LIVE';
+  closeGoLive();
+  showToast('🎙️ Bạn đang phát sóng LIVE!','#22d38e');
+  // Show a simulated stream
+  const myStream={id:'my-stream',user_id:S.user?.id||'me',creator_name:S.user?.name||'Bạn',initials:(S.user?.name||'B').slice(0,2).toUpperCase(),title,category:S.selectedCat,emoji:'📡',viewers_count:0,likes_count:0,is_live:true,is_auction:document.getElementById('toggleAuction').classList.contains('on'),products:[]};
+  S.streams.unshift(myStream);
+  renderGrid();
+  openStream('my-stream');
+}
+
+// ━━ ANALYTICS ━━
+async function showAnalytics(){
+  document.getElementById('analyticsPage').classList.add('show');
+  try{
+    const data=await api('/api/live/analytics');
+    document.getElementById('anlViews').textContent=fmtNum(data.total_views||0);
+    document.getElementById('anlRevenue').textContent=fmtPrice(data.total_revenue||0);
+    document.getElementById('anlLikes').textContent=fmtNum(data.total_likes||0);
+    document.getElementById('anlSales').textContent=data.total_sales||0;
+    renderPastStreams(data.past_streams||[]);
+  }catch(e){
+    document.getElementById('anlViews').textContent=fmtNum(48200);
+    document.getElementById('anlRevenue').textContent=fmtPrice(12400000);
+    document.getElementById('anlLikes').textContent=fmtNum(74100);
+    document.getElementById('anlSales').textContent='47';
+    renderPastStreams(getDemoStreams().slice(0,4));
+  }
+}
+function closeAnalytics(){ document.getElementById('analyticsPage').classList.remove('show'); }
+
+function renderPastStreams(streams){
+  document.getElementById('pastStreamsList').innerHTML=streams.map(s=>`
+    <div class="past-stream-item" onclick="openStream('${s.id}')">
+      <div class="past-thumb">${s.emoji||'🎥'}</div>
+      <div class="past-meta">
+        <div class="past-title">${s.title||'Livestream'}</div>
+        <div class="past-date">${new Date().toLocaleDateString('vi-VN')} · ${Math.floor(Math.random()*60+10)} phút</div>
+        <div class="past-stats">
+          <span>👁 ${fmtNum(s.viewers_count||0)}</span>
+          <span>❤️ ${fmtNum(s.likes_count||0)}</span>
+          <span>🛍️ ${Math.floor(Math.random()*20+1)} đơn</span>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--ok);">+${fmtPrice(Math.floor(Math.random()*5000000+500000))}</div>
+    </div>`).join('');
+}
+
+// ━━ ADMIN ━━
+function showAdmin(){
+  if(!S.token){showToast('Cần đăng nhập');return;}
+  document.getElementById('adminLivePage').classList.add('show');
+  loadAdminContent('live');
+}
+function closeAdmin(){ document.getElementById('adminLivePage').classList.remove('show'); }
+
+function switchAdminTab(tab,btn){
+  S.adminTab=tab;
+  document.querySelectorAll('.admin-tab').forEach(b=>{b.classList.remove('active');});
+  btn?.classList.add('active');
+  loadAdminContent(tab);
+}
+
+async function loadAdminContent(tab){
+  const el=document.getElementById('adminLiveContent');
+  try{
+    const data=await api(`/api/live/admin/${tab}`);
+    renderAdminContent(tab,data);
+  }catch(e){
+    renderAdminContent(tab,{streams:getDemoStreams(),reports:[]});
+  }
+}
+
+function renderAdminContent(tab,data){
+  const el=document.getElementById('adminLiveContent');
+  if(tab==='live'||tab==='ended'){
+    const streams=data.streams||[];
+    el.innerHTML=`<div style="overflow-x:auto;"><table class="admin-table">
+      <tr><th>Tiêu đề</th><th>Người live</th><th>Viewers</th><th>Trạng thái</th><th>Hành động</th></tr>
+      ${streams.map(s=>`<tr>
+        <td style="max-width:140px;font-size:11px;">${s.title||'—'}</td>
+        <td style="font-size:11px;">${s.creator_name||'—'}</td>
+        <td>${fmtNum(s.viewers_count||0)}</td>
+        <td><span class="badge ${s.is_live?'badge-live':'badge-ended'}">${s.is_live?'LIVE':'Kết thúc'}</span></td>
+        <td><div class="admin-action-row">
+          <button class="admin-mini-btn btn-red" onclick="adminAction('ban','${s.id}')">Cấm</button>
+          <button class="admin-mini-btn btn-warn" onclick="adminAction('warn','${s.id}')">Cảnh báo</button>
+          <button class="admin-mini-btn btn-ok" onclick="openStream('${s.id}')">Xem</button>
+        </div></td>
+      </tr>`).join('')}
+    </table></div>`;
+  }else if(tab==='reports'){
+    el.innerHTML=`<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4);">✅ Không có báo cáo vi phạm nào</div>`;
+  }else if(tab==='auctions'){
+    el.innerHTML=`<div style="text-align:center;padding:40px;font-size:13px;color:rgba(255,255,255,.4);">🔨 Có ${Math.floor(Math.random()*3+1)} phiên đấu giá đang diễn ra</div>`;
+  }
+}
+
+async function adminAction(action,streamId){
+  try{ await api(`/api/live/admin/streams/${streamId}/${action}`,{method:'POST'}); }catch(e){}
+  showToast(action==='ban'?'Đã cấm stream':'Đã gửi cảnh báo');
+  loadAdminContent(S.adminTab);
+}
+
+// ━━ NAV ━━
+function switchTab(tab,btn){
+  S.tab=tab;
+  document.querySelectorAll('.nav-pill').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  loadStreams();
+}
+function switchBNav(tab,btn){
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  if(tab==='following') showToast('Đang tải kênh đang theo dõi...');
+  else if(tab==='inbox') showToast('Thông báo live 🔔');
+}
+
+// ━━ UTILS ━━
+function fmtNum(n){
+  if(!n)return'0';
+  if(n>=1000000)return(n/1000000).toFixed(1)+'M';
+  if(n>=1000)return(n/1000).toFixed(1)+'K';
+  return n.toString();
+}
+function fmtPrice(p){
+  if(!p)return'—';
+  return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p);
+}
+let toastTimer;
+function showToast(msg,color='#fff'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.color=color;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeLiveViewer();closeGoLive();closeAnalytics();closeAdmin();closeGiftSheet();closeBuySheet();}
+});
+
+// Start
+init();
+</script>
+</body>
+</html>
