@@ -1,0 +1,315 @@
+XÂY DỰNG LẠI TRANG CHỦ SAFEPASS THÀNH MẠNG XÃ HỘI PHONG CÁCH FACEBOOK THẬT
+
+Giao diện người dùng hiện tại đã được cải thiện nhưng vẫn có cảm giác giống như một bảng điều khiển kết hợp.
+
+Tôi muốn SafePass có cảm giác như:
+
+Facebook 2025
++
+Thị trường Facebook
++
+Câu chuyện TikTok
+
+=========================================================
+
+MỤC TIÊU CHÍNH
+
+Khi người dùng mở SafePass:
+
+Họ phải ngay lập tức cảm thấy:
+
+"Đây là mạng xã hội"
+
+KHÔNG:
+
+"Đây là bảng điều khiển thương mại điện tử"
+
+=========================================================
+
+HỆ THỐNG BỐ TRÍ
+
+Bố cục máy tính để bàn:
+
+THANH BÊN TRÁI
+TRUNG TÂM FEED
+THANH Bên PHẢI
+
+---
+
+THANH BÊN TRÁI
+
+Chiều rộng: 280px
+
+dính
+
+Chứa:
+
+* Thẻ hồ sơ người dùng
+* Nguồn cấp tin tức
+* Bạn bè
+* Nhóm
+* Thị trường
+* Video & Câu chuyện
+* Phát trực tiếp
+* Đã lưu
+* Tin nhắn
+* Sự kiện
+* Cài đặt
+
+Phong cách Facebook hiện đại.
+
+=========================================================
+
+TRUNG TÂM FEED
+
+Chiều rộng: 780px
+
+Đây phải là trọng tâm chính.
+
+Mọi thứ nên xoay quanh nguồn cấp dữ liệu.
+
+=========================================================
+
+PHẦN 1
+
+CÂU CHUYỆN
+
+Thiết kế lại câu chuyện hoàn toàn.
+
+Những câu chuyện hiện tại trông giống như những tấm thẻ trò chơi đầy màu sắc.
+
+Thay thế bằng:
+
+* Hình nền thật
+* Hình đại diện của người dùng
+* Tên người dùng
+* Thẻ câu chuyện theo phong cách Facebook
+* Hoạt hình di chuột
+* Các góc tròn
+
+=========================================================
+
+PHẦN 2
+
+TẠO THẺ BÀI ĐĂNG
+
+Phong cách Facebook.
+
+Trình giữ chỗ:
+
+"Bạn đang nghĩ gì vậy?"
+
+Hành động nhanh:
+
+* Ảnh
+* Video
+* Đăng bán
+* Phát trực tiếp
+* Cuộn
+
+=========================================================
+
+PHẦN 3
+
+TIN TỨC
+
+Thẻ nguồn cấp dữ liệu xã hội lớn.
+
+Mỗi bài viết có chứa:
+
+* Hình đại diện
+* Tên
+* Huy hiệu xác minh
+* Dấu thời gian
+* Nội dung văn bản
+* Hình ảnh
+* Video
+* Đính kèm sản phẩm
+
+hành động:
+
+* Thích
+* Bình luận
+* Chia sẻ
+* Lưu
+
+=========================================================
+
+PHẦN 4
+
+BÀI ĐĂNG TRÊN THỊ TRƯỜNG BÊN TRONG FEED
+
+Đăng bài viết sản phẩm một cách tự nhiên.
+
+Ví dụ:
+
+Người dùng đăng lại iPhone.
+
+Bài đăng sẽ xuất hiện giống hệt như một bài đăng trên mạng xã hội.
+
+Chứa:
+
+* Hình ảnh sản phẩm
+* Giá
+* Huy hiệu ký quỹ
+* Điểm tin cậy
+* Nút mua
+
+KHÔNG sử dụng thẻ bảng điều khiển.
+
+=========================================================
+
+PHẦN 5
+
+TIN CẬY QUAY
+
+Tạo phần cuộn theo phong cách TikTok.
+
+Video dọc.
+
+Tính năng:
+
+* Thích
+* Bình luận
+* Chia sẻ
+* Theo dõi
+
+Hỗ trợ đính kèm sản phẩm.
+
+Người dùng có thể mua trực tiếp từ cuộn phim.
+
+=========================================================
+
+THANH Bên PHẢI
+
+Chiều rộng: 320px
+
+dính
+
+Chứa:
+
+1. Bạn bè trực tuyến
+
+2. Bạn bè được đề xuất
+
+3. Chủ đề thịnh hành
+
+4. Sản phẩm thịnh hành
+
+5. Bán chạy nhất
+
+6. Sống ngay bây giờ
+
+7. Sự kiện sắp tới
+
+=========================================================
+
+TIN NHẮN NỔI
+
+Thêm tiện ích nhắn tin kiểu Facebook.
+
+Dưới cùng bên phải.
+
+Hỗ trợ:
+
+* Cuộc trò chuyện gần đây
+* Mở rộng trò chuyện
+* Giảm thiểu trò chuyện
+* Tin nhắn thời gian thực
+
+=========================================================
+
+HỆ THỐNG NHÓM
+
+Tạo phần nhóm cộng đồng.
+
+Ví dụ:
+
+* Hòa nhạc Hội Pass Vé
+* Hội Pass iPhone
+* Hội Pass Laptop Gaming
+* Hội Pass Tài Khoản
+* Hội Local Brand
+
+Mỗi nhóm có:
+
+* Ảnh bìa
+* Số lượng thành viên
+* Thức ăn
+* Thị trường nhóm
+
+=========================================================
+
+THIẾT KẾ HỒ SƠ
+
+Hồ sơ người dùng phải bao gồm:
+
+* Ảnh bìa
+* Hình đại diện
+* Tiểu sử
+* Người theo dõi
+* Đang theo dõi
+* Điểm tin cậy
+* Đánh giá ký quỹ
+* Danh sách thị trường
+* Video
+* Bài viết
+
+Phong cách hồ sơ Facebook.
+
+=========================================================
+
+THIẾT KẾ HÌNH ẢNH
+
+Làm cho giao diện người dùng trông giống như Facebook 2025.
+
+Yêu cầu:
+
+* Thẻ nguồn cấp dữ liệu lớn
+* Khoảng cách tốt hơn
+* Kiểu chữ sạch hơn
+* Bóng tối hiện đại
+* Phân cấp tốt hơn
+* Hình ảnh động mượt mà
+
+=========================================================
+
+XÓA
+
+* Xuất hiện bảng điều khiển
+* Xuất hiện cổng thông tin
+* Biểu ngữ thị trường lớn
+* Phần danh mục lớn
+
+Di chuyển chúng đến các trang Marketplace.
+
+=========================================================
+
+GIỮ
+
+* Ký quỹ
+* Trung tâm tin cậy
+* Ví
+* Thị trường
+* Giao hàng
+* Phát trực tiếp
+
+Không loại bỏ chức năng hiện có.
+
+Chỉ thiết kế lại trải nghiệm xung quanh mạng xã hội.
+
+=========================================================
+
+KẾT QUẢ CUỐI CÙNG
+
+SafePass sẽ có cảm giác như:
+
+Facebook
++
+Thị trường Facebook
++
+Câu chuyện TikTok
++
+Bảo vệ ký quỹ
+
+với News Feed là trung tâm của toàn bộ nền tảng.

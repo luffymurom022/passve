@@ -306,109 +306,244 @@ body.dark .tb-me-btn{background:rgba(255,255,255,.08);}
 /* ━━ SOCIAL FEED ━━ */
 /* Stories */
 .sf-stories-wrap{
-  display:flex;gap:8px;overflow-x:auto;padding:12px;
+  display:flex;gap:10px;overflow-x:auto;padding:12px;
   background:var(--card);border-radius:var(--radius);
-  border:1px solid var(--border);margin-bottom:12px;
-  scrollbar-width:none;
+  border:1px solid var(--border);margin-bottom:10px;
+  scrollbar-width:none;box-shadow:0 1px 4px rgba(0,0,0,.06);
 }
 .sf-stories-wrap::-webkit-scrollbar{display:none;}
 .sf-story{
-  position:relative;width:110px;height:186px;flex-shrink:0;
-  border-radius:12px;overflow:hidden;cursor:pointer;
+  position:relative;width:114px;height:200px;flex-shrink:0;
+  border-radius:14px;overflow:hidden;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-  padding-bottom:10px;
-  transition:transform .15s;
+  padding-bottom:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,.14);
+  transition:transform .18s ease,box-shadow .18s ease;
 }
-.sf-story:hover{transform:scale(1.03);}
-.sf-story-bg{position:absolute;inset:0;border-radius:12px;}
+.sf-story:hover{transform:scale(1.04);box-shadow:0 6px 24px rgba(0,0,0,.22);}
+.sf-story-bg{position:absolute;inset:0;}
+.sf-story-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.6) 0%,transparent 55%);
+}
 .sf-story-av-ring{
   position:absolute;top:10px;left:50%;transform:translateX(-50%);
   width:44px;height:44px;border-radius:50%;
   border:3px solid var(--brand);
-  padding:2px;
+  display:flex;align-items:center;justify-content:center;
   background:var(--brand);
+  box-shadow:0 0 0 2px var(--card);
 }
-.sf-story-av2{
+.sf-story-add-av{
   position:absolute;top:10px;left:50%;transform:translateX(-50%);
   width:44px;height:44px;border-radius:50%;
-  border:3px solid var(--card);display:flex;align-items:center;justify-content:center;overflow:hidden;
-}
-.sf-story-av-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-.sf-story-plus{
-  position:absolute;bottom:-2px;right:-2px;
-  width:20px;height:20px;border-radius:50%;
-  background:var(--brand);color:#fff;
-  font-size:14px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:var(--brand);
   border:2px solid var(--card);
 }
-.sf-story-emoji{font-size:40px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.85;}
+.sf-story-add-bg{position:absolute;inset:0;background:var(--card2);}
+.sf-story-plus-ring{
+  position:absolute;top:38px;left:50%;transform:translateX(-50%);
+  width:22px;height:22px;border-radius:50%;
+  background:var(--brand);color:#fff;font-size:16px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  border:3px solid var(--card);z-index:2;
+}
+.sf-story-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-40%);
+  font-size:52px;opacity:.9;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3));
+}
 .sf-story-name{
   position:relative;font-size:12px;font-weight:700;
   color:#fff;text-align:center;
-  text-shadow:0 1px 4px rgba(0,0,0,.6);
-  max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:0 1px 5px rgba(0,0,0,.7);
+  max-width:104px;padding:0 4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 /* Create post */
 .sf-create{
   background:var(--card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:12px 16px;
-  margin-bottom:12px;
+  border-radius:var(--radius);padding:14px 16px;
+  margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);
 }
-.sf-create-top{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+.sf-create-top{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
 .sf-create-input{
-  flex:1;background:var(--card2);border:1px solid var(--border2);
-  border-radius:24px;padding:10px 16px;cursor:pointer;
-  transition:background .15s;
+  flex:1;background:var(--card2);border:1.5px solid var(--border2);
+  border-radius:24px;padding:11px 18px;cursor:pointer;
+  font-size:15px;color:var(--hint);
+  transition:border-color .15s;
 }
-.sf-create-input:hover{background:var(--border);}
-.sf-create-actions{
-  display:flex;border-top:1px solid var(--border);
-  padding-top:10px;gap:0;
-}
+.sf-create-input:hover{border-color:var(--brand);}
+.sf-create-actions{display:flex;border-top:1px solid var(--border);padding-top:8px;}
 .sf-create-btn{
   flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
-  padding:8px 4px;border:none;background:none;cursor:pointer;
-  font-size:14px;font-weight:600;color:var(--sub);border-radius:8px;
-  font-family:'Inter',sans-serif;transition:background .15s;
+  padding:9px 4px;border:none;background:none;cursor:pointer;
+  font-size:14px;font-weight:600;color:var(--sub);border-radius:10px;
+  font-family:'Inter',sans-serif;transition:background .15s;white-space:nowrap;
 }
 .sf-create-btn:hover{background:var(--card2);}
 /* Post card */
 .sf-post{
   background:var(--card);border:1px solid var(--border);
-  border-radius:var(--radius);margin-bottom:12px;overflow:hidden;
+  border-radius:var(--radius);margin-bottom:10px;overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+  animation:sfCardIn .22s ease;
 }
+@keyframes sfCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .sf-post-hd{
-  display:flex;align-items:center;gap:10px;
-  padding:12px 16px 8px;
+  display:flex;align-items:center;gap:10px;padding:14px 16px 6px;
 }
-.sf-post-text{
-  padding:0 16px 10px;font-size:15px;line-height:1.55;color:var(--text);
+.sf-post-av{
+  width:42px;height:42px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:800;color:#fff;flex-shrink:0;cursor:pointer;
+}
+.sf-post-text{padding:4px 16px 10px;font-size:15px;line-height:1.6;color:var(--text);}
+.sf-post-img{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  font-size:80px;min-height:220px;cursor:pointer;position:relative;overflow:hidden;
+}
+.sf-post-img-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.35) 0%,transparent 55%);
 }
 .sf-attach{
-  margin:0 16px 10px;border:1px solid var(--border);border-radius:10px;
-  overflow:hidden;cursor:pointer;display:flex;align-items:stretch;
-  transition:border-color .15s;
+  border-top:1px solid var(--border);cursor:pointer;
+  display:flex;align-items:stretch;transition:background .15s;
 }
-.sf-attach:hover{border-color:var(--brand);}
+.sf-attach:hover{background:var(--card2);}
 .sf-attach-thumb{
-  width:100px;flex-shrink:0;background:linear-gradient(135deg,var(--brandL),var(--card2));
-  display:flex;align-items:center;justify-content:center;font-size:42px;
+  width:90px;min-height:90px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--brandL),var(--card2));
+  display:flex;align-items:center;justify-content:center;font-size:36px;
 }
-.sf-attach-info{padding:12px;flex:1;min-width:0;}
+.sf-attach-info{padding:12px 14px;flex:1;min-width:0;}
+.sf-attach-buy{
+  display:inline-block;margin-top:8px;padding:5px 14px;border-radius:20px;
+  background:var(--brand);color:#fff;font-size:12px;font-weight:700;
+  border:none;cursor:pointer;font-family:'Inter',sans-serif;
+}
 .sf-post-stats{
-  display:flex;align-items:center;padding:8px 16px;
-  font-size:13px;color:var(--sub);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:10px 16px 8px;
+  font-size:13px;color:var(--sub);border-bottom:1px solid var(--border);cursor:pointer;
 }
-.sf-post-acts{display:flex;padding:4px 8px;}
+.sf-post-acts{display:flex;padding:4px 8px 4px;}
 .sf-act-btn{
   flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
   padding:8px 4px;border:none;background:none;cursor:pointer;
-  font-size:14px;font-weight:600;color:var(--sub);border-radius:8px;
-  font-family:'Inter',sans-serif;transition:background .15s;
+  font-size:14px;font-weight:600;color:var(--sub);border-radius:10px;
+  font-family:'Inter',sans-serif;transition:background .15s,color .15s;
 }
 .sf-act-btn:hover{background:var(--card2);}
+.sf-act-btn.liked{color:var(--brand);font-weight:700;}
 .sf-act-icon{font-size:18px;}
+.sf-comment-row{display:flex;gap:8px;padding:2px 16px 12px;align-items:center;}
+.sf-comment-inp{
+  flex:1;background:var(--card2);border-radius:20px;border:1px solid transparent;
+  padding:8px 16px;font-size:13px;color:var(--hint);cursor:text;
+  transition:border-color .15s;
+}
+.sf-comment-inp:hover{border-color:var(--border2);}
+/* Reels row */
+.sf-reels-wrap{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.sf-reels-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 10px;border-bottom:1px solid var(--border);
+}
+.sf-reels-more{font-size:13px;color:var(--brand);font-weight:600;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;}
+.sf-reels-more:hover{text-decoration:underline;}
+.sf-reels-row{display:flex;gap:8px;overflow-x:auto;padding:12px;scrollbar-width:none;}
+.sf-reels-row::-webkit-scrollbar{display:none;}
+.sf-reel{
+  position:relative;width:130px;height:220px;flex-shrink:0;
+  border-radius:12px;overflow:hidden;cursor:pointer;background:#0a0a1a;
+  transition:transform .18s ease;box-shadow:0 2px 10px rgba(0,0,0,.25);
+}
+.sf-reel:hover{transform:scale(1.04);}
+.sf-reel-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 60%,transparent 100%);
+}
+.sf-reel-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:56px;opacity:.9;transition:opacity .18s;
+}
+.sf-reel:hover .sf-reel-center{opacity:.45;}
+.sf-reel-play{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:#fff;backdrop-filter:blur(4px);
+  opacity:0;transition:opacity .18s;
+}
+.sf-reel:hover .sf-reel-play{opacity:1;}
+.sf-reel-info{position:absolute;bottom:0;left:0;right:0;padding:10px 10px 12px;}
+.sf-reel-name{font-size:11px;font-weight:700;color:#fff;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sf-reel-stats{font-size:11px;color:rgba(255,255,255,.8);}
+/* Groups row */
+.sf-groups-wrap{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.sf-groups-row{display:flex;gap:10px;overflow-x:auto;padding:12px;scrollbar-width:none;}
+.sf-groups-row::-webkit-scrollbar{display:none;}
+.sf-group-card{
+  width:150px;flex-shrink:0;border-radius:12px;overflow:hidden;
+  border:1px solid var(--border);cursor:pointer;transition:border-color .15s,transform .15s;
+  background:var(--card);
+}
+.sf-group-card:hover{border-color:var(--brand);transform:translateY(-2px);}
+.sf-group-cover{height:80px;display:flex;align-items:center;justify-content:center;font-size:38px;}
+.sf-group-info{padding:8px 10px 10px;}
+.sf-group-name{font-size:13px;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sf-group-members{font-size:11px;color:var(--sub);margin-bottom:6px;}
+.sf-group-join{
+  width:100%;padding:5px;border-radius:6px;border:none;
+  background:var(--brandL);color:var(--brand);
+  font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;
+}
+.sf-group-join:hover{background:var(--brandM);}
+/* Floating Messenger */
+.sf-messenger-fab{position:fixed;bottom:24px;right:24px;z-index:900;}
+@media(max-width:640px){.sf-messenger-fab{bottom:72px;right:12px;}}
+.sf-messenger-toggle{
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,#1877f2,#1251b3);
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;color:#fff;
+  box-shadow:0 4px 16px rgba(24,119,242,.5);
+  transition:transform .18s ease,box-shadow .18s;position:relative;
+}
+.sf-messenger-toggle:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(24,119,242,.6);}
+.sf-messenger-badge{
+  position:absolute;top:-2px;right:-2px;
+  width:18px;height:18px;border-radius:50%;
+  background:#e74c3c;color:#fff;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--card);
+}
+.sf-messenger-panel{
+  position:absolute;bottom:66px;right:0;width:300px;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  animation:dropIn .18s ease;
+}
+.sf-msg-hd{
+  background:linear-gradient(135deg,#1877f2,#1251b3);
+  padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+}
+.sf-msg-item{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border);
+}
+.sf-msg-item:hover{background:var(--card2);}
+.sf-msg-item:last-child{border-bottom:none;}
 
 /* ━━ MOBILE BOTTOM NAV ━━ */
 .mb-nav{
@@ -1851,13 +1986,72 @@ function render(){
 
         <div class="rsb-divider"></div>
 
+        <!-- Trending Topics -->
+        <div class="rsb-title">🔥 Đang thịnh hành</div>
+        ${[
+          {tag:"#ColdplayVN",posts:"42k bài viết",hot:true},
+          {tag:"#VLeague2026",posts:"18k bài viết",hot:false},
+          {tag:"#BlackPinkHN",posts:"35k bài viết",hot:true},
+          {tag:"#SafePassEscrow",posts:"8k bài viết",hot:false},
+          {tag:"#KPop2026",posts:"29k bài viết",hot:true},
+        ].map((t,i)=>`
+        <div class="rsb-item" onclick="setState({page:'search',query:'${t.tag.replace('#','')}'})">
+          <div style="display:flex;flex-direction:column;flex:1;min-width:0;">
+            <div style="font-size:11px;color:var(--hint);">Đang thịnh hành · ${i+1}</div>
+            <div style="font-size:14px;font-weight:700;color:${t.hot?'var(--brand)':'var(--text)'};">${t.tag}</div>
+            <div style="font-size:12px;color:var(--sub);">${t.posts}</div>
+          </div>
+          ${t.hot?`<span style="font-size:18px;">🔥</span>`:""}
+        </div>`).join("")}
+
+        <div class="rsb-divider"></div>
+
+        <!-- Live Now -->
+        <div class="rsb-title">📡 Đang Live</div>
+        ${[
+          {name:"Minh Tuấn",topic:"Flash Sale Vé Concert",viewers:"1.2k",color:"#e74c3c"},
+          {name:"Thu Hà",topic:"Unbox Pass iPhone 16",viewers:"847",color:"#1877f2"},
+          {name:"Văn Nam",topic:"Review Vé V-League VIP",viewers:"563",color:"#42b72a"},
+        ].map(l=>`
+        <div class="rsb-item" onclick="window.location.href='/live'">
+          <div style="position:relative;flex-shrink:0;">
+            <div class="rsb-av" style="width:36px;height:36px;font-size:12px;font-weight:800;border-radius:50%;background:${l.color};color:#fff;flex-shrink:0;">${l.name.charAt(0)+l.name.split(' ').pop().charAt(0)}</div>
+            <div style="position:absolute;bottom:-2px;right:-2px;background:#e74c3c;color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;border:1.5px solid var(--card);">LIVE</div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="rsb-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.name}</div>
+            <div class="rsb-meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.topic}</div>
+            <div style="font-size:11px;color:var(--hint);">👁 ${l.viewers} đang xem</div>
+          </div>
+        </div>`).join("")}
+        <div style="padding:4px 8px 6px;"><span style="font-size:13px;color:var(--brand);font-weight:600;cursor:pointer;" onclick="window.location.href='/live'">Xem tất cả Live →</span></div>
+
+        <div class="rsb-divider"></div>
+
+        <!-- Upcoming Events -->
+        <div class="rsb-title">📅 Sự kiện sắp tới</div>
+        ${[
+          {name:"Coldplay World Tour HN",date:"15/07/2026",emoji:"🎵",color:"#1877f2"},
+          {name:"V-League Final 2026",date:"22/07/2026",emoji:"⚽",color:"#42b72a"},
+          {name:"K-Pop Festival HCM",date:"05/08/2026",emoji:"🎤",color:"#e91e63"},
+        ].map(e=>`
+        <div class="rsb-item" onclick="setState({page:'search',query:'${e.name}'})">
+          <div class="rsb-av" style="border-radius:10px;font-size:20px;width:44px;height:44px;background:${e.color}22;border:1px solid ${e.color}44;">${e.emoji}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="rsb-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.name}</div>
+            <div class="rsb-meta">📅 ${e.date}</div>
+          </div>
+        </div>`).join("")}
+
+        <div class="rsb-divider"></div>
+
         <!-- Marketplace highlights -->
         <div class="rsb-title">🛍️ Nổi bật Marketplace</div>
-        ${trendingListings.slice(0,4).map(l=>`
+        ${trendingListings.slice(0,3).map(l=>`
         <div class="rsb-item" onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})">
           <div class="rsb-av" style="border-radius:8px;font-size:20px;width:44px;height:44px;">${catEmoji(l.category)}</div>
           <div style="flex:1;min-width:0">
-            <div class="rsb-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px">${l.title}</div>
+            <div class="rsb-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${l.title}</div>
             <div class="rsb-meta" style="color:var(--brand);font-weight:700;">${VND(l.price)}</div>
           </div>
         </div>`).join("")}
@@ -1884,6 +2078,49 @@ function render(){
         </button>`).join("")}
       </div>
     </div>
+
+    <!-- ═══════ FLOATING MESSENGER ═══════ -->
+    <div class="sf-messenger-fab" id="sf-fab">
+      ${state.sfMessengerOpen?`
+      <div class="sf-messenger-panel">
+        <div class="sf-msg-hd">
+          <span style="color:#fff;font-size:16px;font-weight:800;">💬 Tin nhắn</span>
+          <button style="background:rgba(255,255,255,.2);border:none;border-radius:50%;width:28px;height:28px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="setState({sfMessengerOpen:false})">✕</button>
+        </div>
+        <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
+          <input placeholder="Tìm tin nhắn..." style="width:100%;padding:8px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--card2);font-size:13px;font-family:'Inter',sans-serif;color:var(--text);outline:none;box-sizing:border-box;">
+        </div>
+        ${[
+          {name:"Minh Tuấn",msg:"Vé còn không bạn?",time:"2p",color:"#1877f2",ltr:"MT",unread:2},
+          {name:"Thu Hà",msg:"Ok mình chuyển ngay nhé!",time:"15p",color:"#42b72a",ltr:"TH",unread:0},
+          {name:"Văn Nam",msg:"SafePass escrow xịn thật 🙌",time:"1h",color:"#e74c3c",ltr:"VN",unread:1},
+          {name:"Linh Chi",msg:"Ảnh vé gửi mình với",time:"2h",color:"#9b59b6",ltr:"LC",unread:0},
+          {name:"Quốc Bảo",msg:"Thanks bạn nhé!",time:"3h",color:"#f5a623",ltr:"QB",unread:0},
+        ].map((m,i)=>`
+        <div class="sf-msg-item${i===4?' sf-msg-item-last':''}" onclick="setState({page:'chat'})">
+          <div style="position:relative;flex-shrink:0;">
+            <div style="width:40px;height:40px;border-radius:50%;background:${m.color};color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;">${m.ltr}</div>
+            <div style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#42b72a;border:2px solid var(--card);"></div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;font-weight:${m.unread?'700':'600'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;">${m.name}</span>
+              <span style="font-size:11px;color:var(--hint);flex-shrink:0;">${m.time}</span>
+            </div>
+            <div style="font-size:12px;color:var(--hint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;font-weight:${m.unread?'600':'400'};">${m.msg}</div>
+          </div>
+          ${m.unread?`<div style="min-width:18px;height:18px;border-radius:9px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${m.unread}</div>`:""}
+        </div>`).join("")}
+        <div style="padding:10px 14px;text-align:center;border-top:1px solid var(--border);">
+          <button onclick="setState({page:'chat'})" style="width:100%;padding:9px;border-radius:8px;border:none;background:var(--brandL);color:var(--brand);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">Mở Tin nhắn</button>
+        </div>
+      </div>`:""}
+      <button class="sf-messenger-toggle" onclick="setState({sfMessengerOpen:!state.sfMessengerOpen})" title="Tin nhắn">
+        ${state.sfMessengerOpen?`<span style="font-size:22px;">✕</span>`:`<span style="font-size:26px;">💬</span>`}
+        ${!state.sfMessengerOpen?`<div class="sf-messenger-badge">3</div>`:""}
+      </button>
+    </div>
+
   </div>`;
 
 
@@ -2606,9 +2843,7 @@ function submitReview(orderId){
 function buildHomePage(){
   const all=ALL_LISTINGS;
   const forYou=all.slice(0,8);
-  const trending=all.slice().sort((a,b)=>(b.views||0)-(a.views||0)).slice(0,5);
 
-  // Social feed posts — mix of real listings + demo posts
   const demoAuthors=[
     {name:"Minh Tuấn",color:"#1877f2",ltr:"MT",time:"2 phút trước",verified:true},
     {name:"Thu Hà",color:"#42b72a",ltr:"TH",time:"15 phút trước",verified:false},
@@ -2621,176 +2856,327 @@ function buildHomePage(){
   ];
   const postTexts=[
     "Vừa mua được vé concert Coldplay giá hời quá! SafePass escrow đỉnh thật, yên tâm 100% 🎵🔥",
-    "Ai cần vé V-League không ạ? Mình có 2 vé hàng VIP, cần chuyển nhượng gấp 🏆",
-    "Review trải nghiệm mua vé trên SafePass: Giao dịch siêu nhanh, seller uy tín, QR xác thực chuẩn 💯",
-    "Flash sale vé BlackPink đêm nay 20h! Số lượng có hạn nha anh em 👇",
-    "Lần đầu dùng tính năng Escrow An Toàn — không còn lo bị lừa nữa 🛡️ Recommend mạnh!",
-    "Tìm người bán vé Lễ hội âm nhạc Hà Nội cuối tuần này? Comment bên dưới nhé!",
-    "Vừa hoàn thành giao dịch thứ 10 trên SafePass 🎉 Cộng đồng này quá xịn!",
-    "Tips mua vé an toàn: Luôn dùng Escrow, kiểm tra Trust Score của seller, xác thực QR khi nhận ✅",
+    "Ai cần vé V-League không ạ? Mình có 2 vé hàng VIP, cần chuyển nhượng gấp. DM mình nha 🏆",
+    "Review SafePass: Giao dịch siêu nhanh, seller uy tín, QR xác thực chuẩn xác 💯 Recommend cả nhà!",
+    "Flash sale vé BlackPink tối nay 20h! Số lượng có hạn — ai cần ib ngay nhé 👇🎤",
+    "Lần đầu dùng Escrow An Toàn của SafePass — không còn sợ bị lừa khi mua vé nữa 🛡️",
+    "Tìm người bán vé Lễ hội âm nhạc Hà Nội cuối tuần này? Comment xuống dưới nha anh em!",
+    "Vừa hoàn thành giao dịch thứ 10 trên SafePass 🎉 Trust Score lên 98 điểm rồi!",
+    "Tips mua vé an toàn: Dùng Escrow, kiểm tra Trust Score seller, xác thực QR khi nhận vé ✅",
   ];
-  const reactions=["👍","❤️","😂","😮","😢","🤩"];
+
+  const postBgs=[
+    "linear-gradient(135deg,#1877f2 0%,#0d47a1 100%)",
+    "linear-gradient(135deg,#e74c3c 0%,#7c2d12 100%)",
+    "linear-gradient(135deg,#42b72a 0%,#1a5c0a 100%)",
+    "linear-gradient(135deg,#9b59b6 0%,#4a1a7c 100%)",
+    "linear-gradient(135deg,#f5a623 0%,#b45309 100%)",
+    "linear-gradient(135deg,#1abc9c 0%,#065f46 100%)",
+    "linear-gradient(135deg,#e91e63 0%,#7c1035 100%)",
+    "linear-gradient(135deg,#00bcd4 0%,#0c4a6e 100%)",
+  ];
+  const postEmojis=["🎵","🏆","💯","🎤","🛡️","🎪","🎉","✅"];
 
   const feedPosts=all.slice(0,8).map((l,i)=>{
     const author=demoAuthors[i%demoAuthors.length];
-    const likes=Math.floor(Math.random()*300)+20;
-    const comments=Math.floor(Math.random()*60)+3;
-    const shares=Math.floor(Math.random()*30)+1;
-    const hasAttachment=Math.random()>0.3;
+    const likes=Math.floor(Math.random()*500)+30;
+    const comments=Math.floor(Math.random()*80)+5;
+    const shares=Math.floor(Math.random()*40)+2;
     const postText=postTexts[i%postTexts.length];
-    return{l,author,likes,comments,shares,hasAttachment,postText,id:`post_${l.id}`};
+    const showImg=i%3!==1;
+    const showAttachment=i%3===1||i%4===0;
+    return{l,author,likes,comments,shares,postText,showImg,showAttachment,id:`post_${l.id}`,bg:postBgs[i%postBgs.length],emoji:postEmojis[i%postEmojis.length]};
   });
 
-  // Stories data
   const stories=[
-    {color:"linear-gradient(145deg,#1877f2,#0d47a1)",ltr:"MT",name:"Minh Tuấn",emoji:"🎵"},
-    {color:"linear-gradient(145deg,#e74c3c,#c0392b)",ltr:"TH",name:"Thu Hà",emoji:"🎪"},
-    {color:"linear-gradient(145deg,#42b72a,#2d8a1b)",ltr:"VN",name:"Văn Nam",emoji:"⚽"},
-    {color:"linear-gradient(145deg,#9b59b6,#7d3c98)",ltr:"LC",name:"Linh Chi",emoji:"🎤"},
-    {color:"linear-gradient(145deg,#f5a623,#e08c00)",ltr:"QB",name:"Quốc Bảo",emoji:"🏀"},
-    {color:"linear-gradient(145deg,#1abc9c,#16a085)",ltr:"PA",name:"Phương",emoji:"🎭"},
+    {bg:"linear-gradient(160deg,#1877f2,#0d47a1)",ltr:"MT",name:"Minh Tuấn",emoji:"🎵"},
+    {bg:"linear-gradient(160deg,#e74c3c,#c0392b)",ltr:"TH",name:"Thu Hà",emoji:"🎪"},
+    {bg:"linear-gradient(160deg,#42b72a,#1a5c0a)",ltr:"VN",name:"Văn Nam",emoji:"⚽"},
+    {bg:"linear-gradient(160deg,#9b59b6,#4a1a7c)",ltr:"LC",name:"Linh Chi",emoji:"🎤"},
+    {bg:"linear-gradient(160deg,#f5a623,#b45309)",ltr:"QB",name:"Quốc Bảo",emoji:"🏀"},
+    {bg:"linear-gradient(160deg,#1abc9c,#065f46)",ltr:"PA",name:"Phương",emoji:"🎭"},
+    {bg:"linear-gradient(160deg,#e91e63,#7c1035)",ltr:"ĐH",name:"Đức Hùng",emoji:"🎯"},
+  ];
+
+  const reelItems=all.slice(0,8).map((l,i)=>({
+    l,
+    bg:["#0a0a1a","#0f1729","#0a1f0a","#1a0a1a","#1a0a0a","#0a1a1a","#1a1a0a","#0a0a0a"][i%8],
+    emoji:postEmojis[i%postEmojis.length],
+    likes:Math.floor(Math.random()*8000)+500,
+    author:demoAuthors[i%demoAuthors.length],
+  }));
+
+  const groups=[
+    {name:"Hội Pass Vé Concert",emoji:"🎵",bg:"linear-gradient(135deg,#e74c3c,#c0392b)",members:"12.4k",joined:false},
+    {name:"Hội Pass iPhone",emoji:"📱",bg:"linear-gradient(135deg,#1877f2,#1251b3)",members:"8.7k",joined:true},
+    {name:"Hội Pass Laptop Gaming",emoji:"💻",bg:"linear-gradient(135deg,#42b72a,#2d8a1b)",members:"5.3k",joined:false},
+    {name:"Hội Pass Tài Khoản",emoji:"🔑",bg:"linear-gradient(135deg,#9b59b6,#7d3c98)",members:"15.1k",joined:false},
+    {name:"Hội Local Brand",emoji:"👕",bg:"linear-gradient(135deg,#f5a623,#e08c00)",members:"9.2k",joined:true},
   ];
 
   const uName=currentUser?.name||"Bạn";
   const uAv=currentUser?.avatar_url;
   const uAvHTML2=uAv?`<img src="${uAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="font-size:15px;font-weight:800;color:#fff">${uName.charAt(0).toUpperCase()}</span>`;
+  const uInitial=uName.charAt(0).toUpperCase();
 
   return`
 
-  <!-- ═══ STORIES ═══ -->
+  <!-- ═══════════ STORIES BAR ═══════════ -->
   <div class="sf-stories-wrap">
-    <!-- Add Story card -->
-    <div class="sf-story sf-story-add" onclick="setState({page:'sell'})">
-      <div class="sf-story-bg" style="background:var(--card2);border:2px dashed var(--border2);border-radius:12px;"></div>
-      <div class="sf-story-av2" style="background:var(--brand);">
-        <div class="sf-story-av-inner">${uAvHTML2}</div>
-        <div class="sf-story-plus">+</div>
-      </div>
-      <div class="sf-story-name" style="font-weight:700;">Tạo tin</div>
+    <!-- Add Story -->
+    <div class="sf-story" onclick="setState({page:'sell'})">
+      <div class="sf-story-add-bg"></div>
+      <div class="sf-story-overlay" style="background:linear-gradient(to top,rgba(0,0,0,.3) 0%,transparent 60%);"></div>
+      <div class="sf-story-add-av">${uAvHTML2}</div>
+      <div class="sf-story-plus-ring">+</div>
+      <div class="sf-story-name" style="color:var(--text);">Tạo tin</div>
     </div>
     ${stories.map(s=>`
     <div class="sf-story" onclick="window.location.href='/social'">
-      <div class="sf-story-bg" style="background:${s.color};"></div>
+      <div class="sf-story-bg" style="background:${s.bg};"></div>
+      <div class="sf-story-overlay"></div>
       <div class="sf-story-av-ring">
-        <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;">${s.ltr}</div>
+        <div style="font-size:14px;font-weight:800;color:#fff;">${s.ltr}</div>
       </div>
-      <div class="sf-story-emoji">${s.emoji}</div>
+      <div class="sf-story-center">${s.emoji}</div>
       <div class="sf-story-name">${s.name}</div>
     </div>`).join("")}
   </div>
 
-  <!-- ═══ CREATE POST BOX ═══ -->
+  <!-- ═══════════ CREATE POST ═══════════ -->
   <div class="sf-create">
     <div class="sf-create-top">
-      <div class="sf-av" style="background:var(--brand);width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;">${uAvHTML2}</div>
+      <div style="width:42px;height:42px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:15px;font-weight:800;color:#fff;">${uAvHTML2}</div>
       <div class="sf-create-input" onclick="setState({page:'sell'})">
-        <span style="color:var(--hint);font-size:15px;">${uName}, bạn muốn đăng vé hoặc chia sẻ gì?</span>
+        Bạn đang nghĩ gì vậy, ${uName.split(' ').pop()}?
       </div>
     </div>
     <div class="sf-create-actions">
       <button class="sf-create-btn" onclick="window.location.href='/live'" style="color:#f05068;">
-        <span style="font-size:18px;">📡</span> Live
+        <span>📡</span> Live
       </button>
       <button class="sf-create-btn" onclick="setState({page:'sell'})" style="color:#42b72a;">
-        <span style="font-size:18px;">🎟</span> Đăng vé
+        <span>🖼️</span> Ảnh/Video
       </button>
-      <button class="sf-create-btn" onclick="setState({page:'sell'})" style="color:#f5a623;">
-        <span style="font-size:18px;">📷</span> Ảnh/Video
+      <button class="sf-create-btn" onclick="setState({page:'sell'})" style="color:#1877f2;">
+        <span>🎟</span> Đăng vé
+      </button>
+      <button class="sf-create-btn" onclick="window.location.href='/social'" style="color:#9b59b6;">
+        <span>🎬</span> Cuộn
       </button>
     </div>
   </div>
 
-  <!-- ═══ SOCIAL FEED POSTS ═══ -->
-  ${feedPosts.map((p,pi)=>{
-    const commentForms=`
-    <div style="display:flex;gap:8px;padding:8px 16px 12px;align-items:center;">
-      <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:12px;font-weight:800;color:#fff;">${uName.charAt(0).toUpperCase()}</div>
-      <div style="flex:1;background:var(--card2);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--hint);cursor:pointer;" onclick="setState({page:'sell'})">Viết bình luận...</div>
-    </div>`;
-    return`
-    <div class="sf-post" id="${p.id}">
-      <!-- Post header -->
-      <div class="sf-post-hd">
-        <div style="width:40px;height:40px;border-radius:50%;background:${p.author.color};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;">${p.author.ltr}</div>
-        <div style="flex:1;">
-          <div style="font-size:14px;font-weight:700;">${p.author.name}${p.author.verified?` <span style="color:var(--brand);font-size:12px;">✓</span>`:""}</div>
-          <div style="font-size:12px;color:var(--hint);">${p.author.time} · 🌐</div>
+  <!-- ═══════════ FEED POSTS (first 3) ═══════════ -->
+  ${feedPosts.slice(0,3).map(p=>`
+  <div class="sf-post" id="${p.id}">
+    <div class="sf-post-hd">
+      <div class="sf-post-av" style="background:${p.author.color};" onclick="setState({page:'seller_profile',sellerProfileId:'demo'})">${p.author.ltr}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;line-height:1.3;">${p.author.name}${p.author.verified?` <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--brand);color:#fff;font-size:9px;font-weight:800;text-align:center;line-height:16px;vertical-align:middle;">✓</span>`:""}</div>
+        <div style="font-size:12px;color:var(--hint);margin-top:1px;">${p.author.time} · <span style="font-size:12px;">🌐</span></div>
+      </div>
+      <button style="width:36px;height:36px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:20px;color:var(--sub);display:flex;align-items:center;justify-content:center;letter-spacing:1px;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">···</button>
+    </div>
+    <div class="sf-post-text">${p.postText}</div>
+    ${p.showImg?`
+    <div class="sf-post-img" style="background:${p.bg};" onclick="setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">
+      <span>${p.emoji}</span>
+      <div class="sf-post-img-overlay"></div>
+      <div style="position:absolute;bottom:14px;left:16px;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.5);">${p.l.title}</div>
+    </div>`:""}
+    ${p.showAttachment?`
+    <div class="sf-attach" onclick="setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">
+      <div class="sf-attach-thumb">${catEmoji(p.l.category)}</div>
+      <div class="sf-attach-info">
+        <div style="font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">SafePass · Marketplace</div>
+        <div style="font-size:14px;font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.l.title}</div>
+        <div style="font-size:16px;font-weight:800;color:var(--brand);margin-top:6px;">${VND(p.l.price)}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--sub);">📍 ${p.l.location}</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(24,119,242,.12);color:var(--brand);font-weight:700;">🔐 Escrow</span>
         </div>
-        <button style="width:32px;height:32px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:18px;color:var(--sub);" title="Tùy chọn">···</button>
+        <button class="sf-attach-buy" onclick="event.stopPropagation();setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">Mua ngay</button>
       </div>
+    </div>`:""}
+    <div class="sf-post-stats">
+      <span id="stat_${p.id}">👍❤️😮 ${p.likes}</span>
+      <span style="margin-left:auto;cursor:pointer;">${p.comments} bình luận · ${p.shares} chia sẻ</span>
+    </div>
+    <div class="sf-post-acts">
+      <button class="sf-act-btn" id="like_${p.id}" onclick="sfLike('${p.id}',${p.likes})"><span class="sf-act-icon">👍</span> Thích</button>
+      <button class="sf-act-btn" onclick=""><span class="sf-act-icon">💬</span> Bình luận</button>
+      <button class="sf-act-btn" onclick=""><span class="sf-act-icon">↗️</span> Chia sẻ</button>
+      <button class="sf-act-btn" onclick=""><span class="sf-act-icon">🔖</span> Lưu</button>
+    </div>
+    <div class="sf-comment-row">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;">${uInitial}</div>
+      <div class="sf-comment-inp" onclick="">Viết bình luận...</div>
+    </div>
+  </div>`).join("")}
 
-      <!-- Post text -->
-      <div class="sf-post-text">${p.postText}</div>
-
-      <!-- Product attachment (listing card) -->
-      ${p.hasAttachment?`
-      <div class="sf-attach" onclick="setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">
-        <div class="sf-attach-thumb">${catEmoji(p.l.category)}</div>
-        <div class="sf-attach-info">
-          <div style="font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">SafePass · Marketplace</div>
-          <div style="font-size:14px;font-weight:700;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.l.title}</div>
-          <div style="font-size:15px;font-weight:800;color:var(--brand);margin-top:6px;">${VND(p.l.price)}</div>
-          <div style="font-size:11px;color:var(--sub);margin-top:2px;">📍 ${p.l.location} · 🔐 Escrow an toàn</div>
-        </div>
-      </div>`:""}
-
-      <!-- Reaction counts -->
-      <div class="sf-post-stats">
-        <span><span style="font-size:14px;">👍❤️😮</span> ${p.likes}</span>
-        <span style="margin-left:auto;">${p.comments} bình luận · ${p.shares} lượt chia sẻ</span>
+  <!-- ═══════════ REELS / VIDEO ═══════════ -->
+  <div class="sf-reels-wrap">
+    <div class="sf-reels-hd">
+      <div>
+        <div style="font-size:17px;font-weight:800;">🎬 Reels &amp; Cuộn</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px;">Video từ cộng đồng SafePass</div>
       </div>
-
-      <!-- Reaction buttons -->
-      <div class="sf-post-acts">
-        <button class="sf-act-btn" id="like_${p.id}" onclick="sfToggleLike('${p.id}',${p.likes})">
-          <span class="sf-act-icon">👍</span> Thích
-        </button>
-        <button class="sf-act-btn" onclick="setState({page:'sell'})">
-          <span class="sf-act-icon">💬</span> Bình luận
-        </button>
-        <button class="sf-act-btn" onclick="">
-          <span class="sf-act-icon">↗️</span> Chia sẻ
-        </button>
-      </div>
-
-      ${commentForms}
-    </div>`;
-  }).join("")}
-
-  <!-- ═══ MARKETPLACE SUGGESTIONS ═══ -->
-  <div class="sf-post" style="padding:16px;">
-    <div style="font-size:17px;font-weight:800;margin-bottom:14px;">🛍️ Gợi ý từ Marketplace</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${forYou.slice(0,4).map(l=>`
-      <div onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="height:80px;background:linear-gradient(135deg,var(--brandL),var(--card2));display:flex;align-items:center;justify-content:center;font-size:36px;">${catEmoji(l.category)}</div>
-        <div style="padding:8px 10px;">
-          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.title}</div>
-          <div style="font-size:13px;font-weight:800;color:var(--brand);margin-top:3px;">${VND(l.price)}</div>
+      <button class="sf-reels-more" onclick="window.location.href='/social'">Xem tất cả →</button>
+    </div>
+    <div class="sf-reels-row">
+      ${reelItems.map(r=>`
+      <div class="sf-reel" onclick="window.location.href='/social'" style="background:${r.bg};">
+        <div class="sf-reel-overlay"></div>
+        <div class="sf-reel-center">${r.emoji}</div>
+        <div class="sf-reel-play">▶</div>
+        <div class="sf-reel-info">
+          <div class="sf-reel-name">${r.l.title}</div>
+          <div class="sf-reel-stats">❤️ ${r.likes>1000?(r.likes/1000).toFixed(1)+'k':r.likes} · @${r.author.name.split(' ')[0].toLowerCase()}</div>
         </div>
       </div>`).join("")}
     </div>
-    <button onclick="setState({page:'search'})" style="width:100%;margin-top:12px;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Xem tất cả →</button>
   </div>
 
-  <div style="height:20px;"></div>
+  <!-- ═══════════ MORE FEED POSTS (3-6) ═══════════ -->
+  ${feedPosts.slice(3,6).map(p=>`
+  <div class="sf-post" id="${p.id}">
+    <div class="sf-post-hd">
+      <div class="sf-post-av" style="background:${p.author.color};">${p.author.ltr}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;">${p.author.name}${p.author.verified?` <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--brand);color:#fff;font-size:9px;font-weight:800;text-align:center;line-height:16px;vertical-align:middle;">✓</span>`:""}</div>
+        <div style="font-size:12px;color:var(--hint);margin-top:1px;">${p.author.time} · 🌐</div>
+      </div>
+      <button style="width:36px;height:36px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:20px;color:var(--sub);display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">···</button>
+    </div>
+    <div class="sf-post-text">${p.postText}</div>
+    ${p.showImg?`
+    <div class="sf-post-img" style="background:${p.bg};" onclick="setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">
+      <span>${p.emoji}</span>
+      <div class="sf-post-img-overlay"></div>
+      <div style="position:absolute;bottom:14px;left:16px;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.5);">${p.l.title}</div>
+    </div>`:""}
+    ${p.showAttachment?`
+    <div class="sf-attach" onclick="setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">
+      <div class="sf-attach-thumb">${catEmoji(p.l.category)}</div>
+      <div class="sf-attach-info">
+        <div style="font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">SafePass · Marketplace</div>
+        <div style="font-size:14px;font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.l.title}</div>
+        <div style="font-size:16px;font-weight:800;color:var(--brand);margin-top:6px;">${VND(p.l.price)}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:5px;">
+          <span style="font-size:11px;color:var(--sub);">📍 ${p.l.location}</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(24,119,242,.12);color:var(--brand);font-weight:700;">🔐 Escrow</span>
+        </div>
+        <button class="sf-attach-buy" onclick="event.stopPropagation();setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">Mua ngay</button>
+      </div>
+    </div>`:""}
+    <div class="sf-post-stats">
+      <span id="stat_${p.id}">👍❤️😮 ${p.likes}</span>
+      <span style="margin-left:auto;">${p.comments} bình luận · ${p.shares} chia sẻ</span>
+    </div>
+    <div class="sf-post-acts">
+      <button class="sf-act-btn" id="like_${p.id}" onclick="sfLike('${p.id}',${p.likes})"><span class="sf-act-icon">👍</span> Thích</button>
+      <button class="sf-act-btn"><span class="sf-act-icon">💬</span> Bình luận</button>
+      <button class="sf-act-btn"><span class="sf-act-icon">↗️</span> Chia sẻ</button>
+      <button class="sf-act-btn"><span class="sf-act-icon">🔖</span> Lưu</button>
+    </div>
+    <div class="sf-comment-row">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;">${uInitial}</div>
+      <div class="sf-comment-inp">Viết bình luận...</div>
+    </div>
+  </div>`).join("")}
+
+  <!-- ═══════════ GROUPS ═══════════ -->
+  <div class="sf-groups-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-size:17px;font-weight:800;">👥 Nhóm của bạn</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px;">Cộng đồng SafePass</div>
+      </div>
+      <button style="font-size:13px;color:var(--brand);font-weight:600;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;" onclick="">Khám phá →</button>
+    </div>
+    <div class="sf-groups-row">
+      ${groups.map(g=>`
+      <div class="sf-group-card">
+        <div class="sf-group-cover" style="background:${g.bg};">${g.emoji}</div>
+        <div class="sf-group-info">
+          <div class="sf-group-name">${g.name}</div>
+          <div class="sf-group-members">👥 ${g.members} thành viên</div>
+          <button class="sf-group-join" style="${g.joined?"background:var(--card2);color:var(--sub);":"background:var(--brandL);color:var(--brand);"}">${g.joined?"✓ Đã tham gia":"+ Tham gia"}</button>
+        </div>
+      </div>`).join("")}
+    </div>
+  </div>
+
+  <!-- ═══════════ FINAL FEED POSTS (6-8) ═══════════ -->
+  ${feedPosts.slice(6,8).map(p=>`
+  <div class="sf-post" id="${p.id}">
+    <div class="sf-post-hd">
+      <div class="sf-post-av" style="background:${p.author.color};">${p.author.ltr}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;">${p.author.name}</div>
+        <div style="font-size:12px;color:var(--hint);margin-top:1px;">${p.author.time} · 🌐</div>
+      </div>
+      <button style="width:36px;height:36px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:20px;color:var(--sub);display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">···</button>
+    </div>
+    <div class="sf-post-text">${p.postText}</div>
+    <div class="sf-post-img" style="background:${p.bg};" onclick="setState({page:'listing',activeListing:'${p.l.id}',listingBack:'home'})">
+      <span>${p.emoji}</span>
+      <div class="sf-post-img-overlay"></div>
+      <div style="position:absolute;bottom:14px;left:16px;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.5);">${p.l.title}</div>
+    </div>
+    <div class="sf-post-stats">
+      <span id="stat_${p.id}">👍❤️ ${p.likes}</span>
+      <span style="margin-left:auto;">${p.comments} bình luận</span>
+    </div>
+    <div class="sf-post-acts">
+      <button class="sf-act-btn" id="like_${p.id}" onclick="sfLike('${p.id}',${p.likes})"><span class="sf-act-icon">👍</span> Thích</button>
+      <button class="sf-act-btn"><span class="sf-act-icon">💬</span> Bình luận</button>
+      <button class="sf-act-btn"><span class="sf-act-icon">↗️</span> Chia sẻ</button>
+      <button class="sf-act-btn"><span class="sf-act-icon">🔖</span> Lưu</button>
+    </div>
+    <div class="sf-comment-row">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;">${uInitial}</div>
+      <div class="sf-comment-inp">Viết bình luận...</div>
+    </div>
+  </div>`).join("")}
+
+  <!-- ═══ MARKETPLACE IN FEED ═══ -->
+  <div class="sf-post" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div>
+        <div style="font-size:17px;font-weight:800;">🛍️ Marketplace gợi ý</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px;">Dựa trên hoạt động của bạn</div>
+      </div>
+      <button onclick="window.location.href='/marketplace'" style="font-size:13px;color:var(--brand);font-weight:600;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;">Xem tất cả →</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${forYou.slice(0,4).map(l=>`
+      <div onclick="setState({page:'listing',activeListing:'${l.id}',listingBack:'home'})" style="border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .15s;background:var(--card);" onmouseover="this.style.borderColor='var(--brand)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+        <div style="height:90px;background:linear-gradient(135deg,var(--brandL),var(--card2));display:flex;align-items:center;justify-content:center;font-size:40px;">${catEmoji(l.category)}</div>
+        <div style="padding:10px 12px 12px;">
+          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;">${l.title}</div>
+          <div style="font-size:14px;font-weight:800;color:var(--brand);">${VND(l.price)}</div>
+          <div style="font-size:10px;color:var(--hint);margin-top:2px;">📍 ${l.location}</div>
+        </div>
+      </div>`).join("")}
+    </div>
+  </div>
+
+  <div style="height:32px;"></div>
 
   <script>
   (function(){
-    window._sfLiked={};
-    window.sfToggleLike=function(pid,origLikes){
+    if(!window._sfLiked) window._sfLiked={};
+    window.sfLike=function(pid,orig){
       const btn=document.getElementById('like_'+pid);
+      const stat=document.getElementById('stat_'+pid);
       if(!btn) return;
       window._sfLiked[pid]=!window._sfLiked[pid];
       const liked=window._sfLiked[pid];
-      btn.style.color=liked?'var(--brand)':'var(--sub)';
-      btn.style.fontWeight=liked?'700':'500';
+      btn.className='sf-act-btn'+(liked?' liked':'');
       btn.innerHTML='<span class="sf-act-icon">'+(liked?'👍':'👍')+'</span> '+(liked?'Đã thích':'Thích');
-      const statsEl=btn.closest('.sf-post')?.querySelector('.sf-post-stats span');
-      if(statsEl){
-        const newCount=liked?origLikes+1:origLikes;
-        statsEl.innerHTML='<span style="font-size:14px;">👍❤️😮</span> '+newCount;
-      }
+      if(stat) stat.innerHTML='👍❤️😮 '+(liked?orig+1:orig);
     };
   })();
   <\/script>
