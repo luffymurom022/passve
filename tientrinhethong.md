@@ -1024,3 +1024,42 @@ CREATE INDEX IF NOT EXISTS idx_ticket_scans_time ON ticket_scans(scanned_at DESC
 | **⚠️ Cần chạy `pay_migration.sql` trong Supabase SQL Editor trước khi dùng** | 2026-06-21 |
 
 *Cập nhật lần cuối: 2026-06-21*
+
+---
+
+## ✅ PHASE 21: SAFEPASS STORIES — HOÀN THÀNH 2026-06-21
+
+| Tính năng | Ngày |
+|-----------|------|
+| **`stories_migration.sql`** — 4 bảng: `stories`, `story_views`, `story_likes`, `story_follows` | 2026-06-21 |
+| **`frontend/stories.html`** — Instagram/Facebook-style story UI, dark mode, mobile-first, max-width 640px | 2026-06-21 |
+| **Story Rings** — avatar rings cuộn ngang, gradient border (unseen=màu/viewed=xám), own ring riêng | 2026-06-21 |
+| **Full-Screen Viewer** — progress bar 8s/story, tap left/right chuyển story, tap ✕ thoát | 2026-06-21 |
+| **Keyboard Navigation** — ArrowLeft/Right/Escape trong viewer | 2026-06-21 |
+| **4 Loại Story** — promo (📢), product (🛍️), flash_sale (⚡), announcement (📣) | 2026-06-21 |
+| **Create Story Modal** — chọn type, nhập caption, giá/giá gốc → tự tính %, CTA button, 8 màu nền, 12 emoji | 2026-06-21 |
+| **Flash Sale Story** — hiển thị giá bán, giá gốc gạch ngang, badge % giảm | 2026-06-21 |
+| **Story Feed Grid** — 2-column grid, blue ring = unseen, gray ring = viewed | 2026-06-21 |
+| **Tab "Của tôi"** — story riêng: view count, like count, nút xóa trong viewer | 2026-06-21 |
+| **Tab "Khám phá"** — danh sách người bán đang có story, nút Follow/Unfollow | 2026-06-21 |
+| **`GET /api/stories/feed`** — feed nhóm theo tác giả, own first → following → others, unseen first | 2026-06-21 |
+| **`GET /api/stories/mine`** — story của chính mình (active, 24h) | 2026-06-21 |
+| **`POST /api/stories`** — tạo story với type/caption/price/CTA/bg/emoji | 2026-06-21 |
+| **`DELETE /api/stories/:id`** — xóa story của mình (soft delete → status:'deleted') | 2026-06-21 |
+| **`POST /api/stories/:id/view`** — ghi nhận đã xem (upsert), tăng views_count | 2026-06-21 |
+| **`POST /api/stories/:id/like`** — toggle like/unlike | 2026-06-21 |
+| **`POST /api/stories/follow/:uid`** — toggle theo dõi người bán | 2026-06-21 |
+| **`GET /api/stories/sellers`** — danh sách người bán đang có story, enrich is_following | 2026-06-21 |
+| **`GET /api/admin/stories`** — admin xem tất cả story đang active | 2026-06-21 |
+| **`DELETE /api/admin/stories/:id`** — admin xóa story vi phạm | 2026-06-21 |
+| **Auto cleanup** — `cleanExpiredStories()` tự động mark expired → 'deleted' mỗi request | 2026-06-21 |
+| **24h Expiry** — hiển thị thời gian còn lại (phút/giờ) trên mỗi story card | 2026-06-21 |
+| **Nav "📸 Stories"** thêm vào index.html → `/stories` | 2026-06-21 |
+
+**Tables mới:** `stories`, `story_views`, `story_likes`, `story_follows`
+
+**API routes:** 10 routes — `/api/stories/feed`, `/api/stories/mine`, `/api/stories`, `/api/stories/:id` (DELETE), `/api/stories/:id/view`, `/api/stories/:id/like`, `/api/stories/follow/:uid`, `/api/stories/sellers`, `/api/admin/stories` (GET/DELETE)
+
+> **⚠️ CẦN CHẠY MIGRATION:** Mở Supabase SQL Editor → chạy file `stories_migration.sql`
+
+*Cập nhật lần cuối: 2026-06-21*

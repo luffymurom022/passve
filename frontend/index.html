@@ -1289,6 +1289,7 @@ function render(){
     {id:"ecosystem",icon:"🌐",label:"Ecosystem"},
     {id:"superapp",icon:"⚡",label:"Super App"},
     {id:"pay",icon:"💳",label:"Pay"},
+    {id:"stories",icon:"📸",label:"Stories"},
     ...(currentUser?.is_admin?[{id:"admin_verify",icon:"🔐",label:"Admin"}]:[]),
     ...(currentUser?.is_moderator?[{id:"moderator",icon:"⚖️",label:"Mod"}]:[]),
   ];
@@ -1339,6 +1340,8 @@ function render(){
           ?"window.location.href='/superapp'"
           :p.id==="pay"
           ?"window.location.href='/pay'"
+          :p.id==="stories"
+          ?"window.location.href='/stories'"
           :`setState({page:'${p.id}'})`;
         return`<button class="nav-tab ${isActive?"active":""}" style="position:relative;" onclick="${click}">${p.icon} ${p.label}${badge}</button>`;
       }).join("")}

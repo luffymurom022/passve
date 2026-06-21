@@ -9736,6 +9736,234 @@ app.post('/api/live/admin/streams/:id/restore', adminAuth, async (req, res) => {
 
 /* ── END PHASE 19 ── */
 
+// ══════════════════════════════════════════════════════════════════
+// PHASE 21: SAFEPASS STORIES — 24h Story System
+// ══════════════════════════════════════════════════════════════════
+
+// Helper: clean expired stories
+async function cleanExpiredStories() {
+  await supabase.from('stories').update({ status: 'deleted' })
+    .eq('status', 'active').lt('expires_at', new Date().toISOString()).catch(() => {});
+}
+
+// GET /api/stories/feed — stories from followed sellers + popular stories (24h, active)
+app.get('/api/stories/feed', auth, async (req, res) => {
+  try {
+    await cleanExpiredStories();
+    const userId = req.user.id;
+    // Get following list
+    const { data: follows } = await supabase.from('story_follows')
+      .select('following_id').eq('follower_id', userId);
+    const followingIds = (follows || []).map(f => f.following_id);
+
+    // Stories from followed + own + popular (last 24h active)
+    const { data: stories, error } = await supabase.from('stories')
+      .select('*,users(id,name,phone)')
+      .eq('status', 'active')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+
+    // Get viewed story IDs for current user
+    const storyIds = (stories || []).map(s => s.id);
+    let viewedIds = new Set();
+    if (storyIds.length > 0) {
+      const { data: views } = await supabase.from('story_views')
+        .select('story_id').eq('viewer_id', userId).in('story_id', storyIds);
+      (views || []).forEach(v => viewedIds.add(v.story_id));
+    }
+
+    // Get liked story IDs
+    let likedIds = new Set();
+    if (storyIds.length > 0) {
+      const { data: likes } = await supabase.from('story_likes')
+        .select('story_id').eq('user_id', userId).in('story_id', storyIds);
+      (likes || []).forEach(l => likedIds.add(l.story_id));
+    }
+
+    const enriched = (stories || []).map(s => ({
+      ...s,
+      author_name: s.users?.name || 'Người dùng',
+      author_id: s.users?.id,
+      is_following: followingIds.includes(s.user_id) || s.user_id === userId,
+      is_own: s.user_id === userId,
+      is_viewed: viewedIds.has(s.id),
+      is_liked: likedIds.has(s.id),
+      time_left_sec: Math.max(0, Math.floor((new Date(s.expires_at) - new Date()) / 1000))
+    }));
+
+    // Group by author
+    const grouped = {};
+    enriched.forEach(s => {
+      const aid = s.user_id;
+      if (!grouped[aid]) grouped[aid] = { author_id: aid, author_name: s.author_name, is_following: s.is_following, is_own: s.is_own, has_unseen: false, stories: [] };
+      if (!s.is_viewed) grouped[aid].has_unseen = true;
+      grouped[aid].stories.push(s);
+    });
+
+    // Sort: own first, then following (unseen first), then others
+    const groups = Object.values(grouped).sort((a, b) => {
+      if (a.is_own && !b.is_own) return -1;
+      if (!a.is_own && b.is_own) return 1;
+      if (a.is_following && !b.is_following) return -1;
+      if (!a.is_following && b.is_following) return 1;
+      if (a.has_unseen && !b.has_unseen) return -1;
+      if (!a.has_unseen && b.has_unseen) return 1;
+      return 0;
+    });
+
+    res.json({ groups, following_ids: followingIds });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/stories/mine — my own stories
+app.get('/api/stories/mine', auth, async (req, res) => {
+  try {
+    await cleanExpiredStories();
+    const { data, error } = await supabase.from('stories')
+      .select('*').eq('user_id', req.user.id).eq('status', 'active')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ stories: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/stories — create story
+app.post('/api/stories', auth, async (req, res) => {
+  try {
+    const { type, caption, image_url, bg_color, emoji, listing_id, price, original_price, discount_pct, cta_label, cta_url } = req.body;
+    if (!caption && !image_url) return res.status(400).json({ error: 'Cần có nội dung hoặc hình ảnh' });
+    const validTypes = ['product', 'flash_sale', 'promo', 'announcement'];
+    const storyType = validTypes.includes(type) ? type : 'promo';
+    const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase.from('stories').insert({
+      user_id: req.user.id, type: storyType, caption, image_url,
+      bg_color: bg_color || '#1a2a4a', emoji: emoji || '🎫',
+      listing_id: listing_id || null, price: price || null,
+      original_price: original_price || null, discount_pct: discount_pct || null,
+      cta_label, cta_url, expires_at
+    }).select().single();
+    if (error) throw error;
+    res.json({ story: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/stories/:id — delete own story
+app.delete('/api/stories/:id', auth, async (req, res) => {
+  try {
+    const { data: story } = await supabase.from('stories').select('user_id').eq('id', req.params.id).single();
+    if (!story || story.user_id !== req.user.id) return res.status(403).json({ error: 'Không có quyền' });
+    await supabase.from('stories').update({ status: 'deleted' }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/stories/:id/view — mark story as viewed
+app.post('/api/stories/:id/view', auth, async (req, res) => {
+  try {
+    const storyId = req.params.id;
+    const viewerId = req.user.id;
+    // Upsert view
+    await supabase.from('story_views').upsert({ story_id: storyId, viewer_id: viewerId }, { onConflict: 'story_id,viewer_id' });
+    // Increment views_count (ignore error if story not found)
+    const { data: current } = await supabase.from('stories').select('views_count,user_id').eq('id', storyId).single();
+    if (current && current.user_id !== viewerId) {
+      await supabase.from('stories').update({ views_count: (current.views_count || 0) + 1 }).eq('id', storyId);
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/stories/:id/like — toggle like
+app.post('/api/stories/:id/like', auth, async (req, res) => {
+  try {
+    const storyId = req.params.id;
+    const userId = req.user.id;
+    const { data: existing } = await supabase.from('story_likes').select('story_id').eq('story_id', storyId).eq('user_id', userId).single();
+    if (existing) {
+      await supabase.from('story_likes').delete().eq('story_id', storyId).eq('user_id', userId);
+      const { data: s } = await supabase.from('stories').select('likes_count').eq('id', storyId).single();
+      await supabase.from('stories').update({ likes_count: Math.max(0, (s?.likes_count || 1) - 1) }).eq('id', storyId);
+      return res.json({ liked: false });
+    }
+    await supabase.from('story_likes').insert({ story_id: storyId, user_id: userId });
+    const { data: s } = await supabase.from('stories').select('likes_count').eq('id', storyId).single();
+    await supabase.from('stories').update({ likes_count: (s?.likes_count || 0) + 1 }).eq('id', storyId);
+    res.json({ liked: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/stories/follow/:uid — follow/unfollow a seller
+app.post('/api/stories/follow/:uid', auth, async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const followingId = req.params.uid;
+    if (followerId === followingId) return res.status(400).json({ error: 'Không thể tự theo dõi' });
+    const { data: existing } = await supabase.from('story_follows').select('follower_id').eq('follower_id', followerId).eq('following_id', followingId).single();
+    if (existing) {
+      await supabase.from('story_follows').delete().eq('follower_id', followerId).eq('following_id', followingId);
+      return res.json({ following: false });
+    }
+    await supabase.from('story_follows').insert({ follower_id: followerId, following_id: followingId });
+    res.json({ following: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/stories/sellers — list of sellers with active stories (for discovery)
+app.get('/api/stories/sellers', auth, async (req, res) => {
+  try {
+    await cleanExpiredStories();
+    const { data, error } = await supabase.from('stories')
+      .select('user_id,users(id,name)')
+      .eq('status', 'active')
+      .gt('expires_at', new Date().toISOString())
+      .order('views_count', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    // Deduplicate by user_id
+    const seen = new Set();
+    const sellers = [];
+    for (const s of (data || [])) {
+      if (!seen.has(s.user_id)) {
+        seen.add(s.user_id);
+        sellers.push({ id: s.user_id, name: s.users?.name || 'Người dùng' });
+      }
+    }
+    // Check who current user follows
+    const { data: follows } = await supabase.from('story_follows').select('following_id').eq('follower_id', req.user.id);
+    const followingSet = new Set((follows || []).map(f => f.following_id));
+    const enriched = sellers.map(s => ({ ...s, is_following: followingSet.has(s.id), is_own: s.id === req.user.id }));
+    res.json({ sellers: enriched });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: GET /api/admin/stories — view all active stories
+app.get('/api/admin/stories', adminAuth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('stories')
+      .select('*,users(name,phone)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    res.json({ stories: (data || []).map(s => ({ ...s, author_name: s.users?.name, author_phone: s.users?.phone })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: DELETE /api/admin/stories/:id — remove story
+app.delete('/api/admin/stories/:id', adminAuth, async (req, res) => {
+  try {
+    await supabase.from('stories').update({ status: 'deleted' }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Serve stories page
+app.get('/stories', (req, res) => res.sendFile(join(__dirname, 'frontend', 'stories.html')));
+
+/* ── END PHASE 21 ── */
+
 const PORT = process.env.PORT || 5000;
 const httpServer = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ SafePass chạy tại http://0.0.0.0:${PORT}`);
