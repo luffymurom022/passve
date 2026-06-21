@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafePass Creator Hub</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0d14;--bg2:#13131e;--bg3:#1c1c2e;--bg4:#252538;
+  --border:#2a2a42;--text:#e8e8f5;--text2:#8888aa;
+  --blue:#4f8ef7;--purple:#8b5cf6;--pink:#ec4899;--green:#10b981;
+  --orange:#f59e0b;--red:#ef4444;--cyan:#06b6d4;--gold:#fbbf24;
+  --creator-grad:linear-gradient(135deg,#f59e0b,#ec4899,#8b5cf6);
+  --blue-grad:linear-gradient(135deg,#4f8ef7,#8b5cf6);
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.logo{font-size:20px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px}
+.logo-text{background:var(--creator-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-badge{background:var(--creator-grad);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;-webkit-text-fill-color:#fff}
+.header-tabs{display:flex;gap:2px;margin-left:auto}
+.header-tab{color:var(--text2);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;border:none;background:none;transition:.2s;display:flex;align-items:center;gap:6px}
+.header-tab:hover{background:var(--bg3);color:var(--text)}
+.header-tab.active{background:rgba(139,92,246,.2);color:var(--purple)}
+.header-right{display:flex;align-items:center;gap:10px;margin-left:16px}
+.hdr-btn{background:var(--creator-grad);border:none;color:#fff;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:700}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:240px 1fr;flex:1;max-width:1300px;margin:0 auto;width:100%;padding:0}
+
+/* LEFT SIDEBAR */
+.sidebar{padding:20px 12px;border-right:1px solid var(--border);position:sticky;top:56px;height:calc(100vh-56px);overflow-y:auto}
+.creator-mini{background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(236,72,153,.15));border:1px solid rgba(139,92,246,.25);border-radius:14px;padding:16px;margin-bottom:20px;text-align:center}
+.cm-avatar{width:56px;height:56px;border-radius:50%;background:var(--creator-grad);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 8px}
+.cm-name{font-size:14px;font-weight:700;color:var(--text)}
+.cm-handle{font-size:12px;color:var(--text2);margin-bottom:8px}
+.cm-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-creator{background:rgba(79,142,247,.15);color:var(--blue)}
+.badge-rising{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-verified{background:rgba(139,92,246,.15);color:var(--purple)}
+.badge-gold{background:rgba(251,191,36,.15);color:var(--gold)}
+.badge-diamond{background:rgba(6,182,212,.15);color:var(--cyan)}
+.cm-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:12px}
+.cm-stat{text-align:center}
+.cm-stat-v{font-size:14px;font-weight:800;color:var(--text)}
+.cm-stat-l{font-size:10px;color:var(--text2)}
+
+.nav-group{margin-bottom:20px}
+.nav-label{font-size:10px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;padding:0 8px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;color:var(--text2);transition:.2s;font-size:13px;font-weight:600}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(139,92,246,.15);color:var(--purple)}
+.nav-item .ni{font-size:17px;width:22px;text-align:center}
+.nav-item .nbadge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:700}
+
+/* MAIN */
+.main{padding:24px;overflow-y:auto}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.sec-title{font-size:22px;font-weight:800;color:var(--text)}
+.sec-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.sec-btn{background:var(--creator-grad);border:none;color:#fff;padding:9px 18px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700;transition:.2s}
+.sec-btn:hover{opacity:.9}
+.sec-btn-out{background:none;border:1px solid var(--border);color:var(--text2);padding:9px 18px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.sec-btn-out:hover{border-color:var(--purple);color:var(--purple)}
+
+/* STATS CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;transition:.2s}
+.stat-card:hover{border-color:var(--purple)}
+.stat-icon{font-size:28px;margin-bottom:8px}
+.stat-value{font-size:26px;font-weight:900;color:var(--text)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:2px}
+.stat-delta{font-size:12px;margin-top:6px;display:flex;align-items:center;gap:4px}
+.delta-up{color:var(--green)}
+.delta-down{color:var(--red)}
+
+/* CHART PLACEHOLDER */
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.chart-title{font-size:15px;font-weight:700;color:var(--text)}
+.chart-period{display:flex;gap:4px}
+.cp-btn{border:none;background:none;color:var(--text2);font-size:12px;padding:4px 10px;border-radius:8px;cursor:pointer;transition:.2s}
+.cp-btn.active,.cp-btn:hover{background:var(--bg3);color:var(--text)}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:100px}
+.chart-bar{flex:1;background:var(--ai-grad,var(--purple));border-radius:4px 4px 0 0;transition:.3s;min-height:4px;opacity:.7}
+.chart-bar:hover{opacity:1}
+
+/* TABLE */
+.table-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:space-between}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 20px;text-align:left;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:12px 20px;font-size:13px;border-bottom:1px solid rgba(42,42,66,.5);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(139,92,246,.04)}
+
+/* AFFILIATE LINK CARD */
+.link-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;transition:.2s}
+.link-card:hover{border-color:var(--purple)}
+.link-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.link-icon{font-size:24px}
+.link-info{flex:1}
+.link-name{font-size:14px;font-weight:700;color:var(--text)}
+.link-code{font-size:12px;color:var(--purple);font-family:monospace;background:rgba(139,92,246,.1);padding:2px 8px;border-radius:6px}
+.link-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ls{text-align:center;background:var(--bg3);border-radius:10px;padding:8px}
+.ls-v{font-size:16px;font-weight:800;color:var(--text)}
+.ls-l{font-size:10px;color:var(--text2)}
+.link-actions{display:flex;gap:8px;margin-top:10px}
+.la-btn{flex:1;background:none;border:1px solid var(--border);color:var(--text2);padding:7px;border-radius:8px;cursor:pointer;font-size:12px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:5px}
+.la-btn:hover{border-color:var(--purple);color:var(--purple)}
+.la-btn.copy{border-color:var(--green);color:var(--green)}
+
+/* GIFT ROW */
+.gift-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.gift-row:last-child{border-bottom:none}
+.gift-icon{font-size:28px}
+.gift-info{flex:1}
+.gift-sender{font-size:13px;font-weight:700;color:var(--text)}
+.gift-ctx{font-size:12px;color:var(--text2)}
+.gift-value{font-size:16px;font-weight:800;color:var(--gold)}
+
+/* CAMPAIGN CARD */
+.campaign-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;transition:.2s}
+.campaign-card:hover{border-color:var(--blue)}
+.cc-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.cc-brand{width:44px;height:44px;border-radius:10px;background:var(--blue-grad);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:800;flex-shrink:0}
+.cc-info{flex:1}
+.cc-title{font-size:14px;font-weight:700;color:var(--text)}
+.cc-brand-name{font-size:12px;color:var(--text2)}
+.cc-status{font-size:11px;padding:3px 8px;border-radius:8px;font-weight:700}
+.status-active{background:rgba(16,185,129,.15);color:var(--green)}
+.status-pending{background:rgba(245,158,11,.15);color:var(--orange)}
+.cc-body{display:flex;gap:16px;font-size:13px;margin-bottom:12px}
+.cc-metric{text-align:center}
+.cc-metric-v{font-size:16px;font-weight:800;color:var(--text)}
+.cc-metric-l{font-size:11px;color:var(--text2)}
+.apply-btn{background:var(--blue-grad);border:none;color:#fff;padding:8px 20px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;transition:.2s;width:100%}
+.apply-btn:hover{opacity:.9}
+.apply-btn.applied{background:var(--bg3);color:var(--green);cursor:default}
+
+/* WALLET BOX */
+.wallet-box{background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(139,92,246,.3);border-radius:20px;padding:24px;margin-bottom:20px;text-align:center}
+.wallet-title{font-size:13px;color:var(--text2);margin-bottom:8px}
+.wallet-balance{font-size:42px;font-weight:900;background:var(--creator-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.wallet-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+.wallet-breakdown{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.wb{background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center}
+.wb-icon{font-size:20px;margin-bottom:4px}
+.wb-value{font-size:16px;font-weight:800;color:var(--text)}
+.wb-label{font-size:10px;color:var(--text2)}
+.wallet-actions{display:flex;gap:10px;margin-top:16px}
+.wa-btn{flex:1;padding:10px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700;border:none;transition:.2s}
+.wa-withdraw{background:var(--creator-grad);color:#fff}
+.wa-history{background:var(--bg3);color:var(--text)}
+
+/* AI TOOLS */
+.ai-tool-box{background:var(--bg2);border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:20px;margin-bottom:16px}
+.ai-tool-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ai-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:10px;font-size:14px;outline:none;resize:vertical;margin-bottom:10px;font-family:inherit}
+.ai-input:focus{border-color:var(--purple)}
+.ai-result{background:var(--bg3);border-radius:10px;padding:14px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;min-height:60px}
+.ai-generate-btn{background:var(--creator-grad);border:none;color:#fff;padding:10px 20px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;transition:.2s}
+.ai-copy-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:10px 14px;border-radius:10px;cursor:pointer;font-size:13px;transition:.2s;margin-left:8px}
+.ai-copy-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{font-size:18px;font-weight:900;width:32px;text-align:center}
+.lb-rank.gold{color:var(--gold)}
+.lb-rank.silver{color:#c0c0c0}
+.lb-rank.bronze{color:#cd7f32}
+.lb-avatar{width:40px;height:40px;border-radius:50%;background:var(--creator-grad);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:14px}
+.lb-info{flex:1}
+.lb-name{font-size:13px;font-weight:700;color:var(--text)}
+.lb-stats{font-size:11px;color:var(--text2)}
+.lb-value{font-size:15px;font-weight:800;color:var(--orange)}
+.follow-btn{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);color:var(--blue);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:.2s;white-space:nowrap}
+.follow-btn:hover,.follow-btn.active{background:var(--blue);color:#fff}
+
+/* BADGE PROGRESS */
+.badge-progress{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
+.bp-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px}
+.badge-levels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.badge-level-card{background:var(--bg3);border-radius:12px;padding:10px;text-align:center;border:2px solid transparent;transition:.2s}
+.badge-level-card.current{border-color:var(--purple)}
+.badge-level-card.unlocked{opacity:1}
+.badge-level-card.locked{opacity:.4}
+.bl-icon{font-size:24px;margin-bottom:4px}
+.bl-name{font-size:11px;font-weight:700;color:var(--text)}
+.bl-req{font-size:10px;color:var(--text2);margin-top:2px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:14px;outline:none}
+.form-input:focus{border-color:var(--purple)}
+.form-select{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:14px;outline:none;cursor:pointer}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+
+/* GIFT SEND */
+.gift-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.gift-option{background:var(--bg3);border:2px solid transparent;border-radius:12px;padding:12px;text-align:center;cursor:pointer;transition:.2s}
+.gift-option:hover,.gift-option.selected{border-color:var(--purple)}
+.go-icon{font-size:28px;margin-bottom:4px}
+.go-name{font-size:11px;color:var(--text2)}
+.go-price{font-size:12px;font-weight:700;color:var(--gold)}
+
+/* STOREFRONT SECTION */
+.storefront-banner{background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(236,72,153,.2));border:1px solid rgba(139,92,246,.25);border-radius:20px;padding:24px;margin-bottom:20px;display:flex;gap:20px;align-items:center}
+.sf-avatar{width:80px;height:80px;border-radius:50%;background:var(--creator-grad);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#fff;flex-shrink:0}
+.sf-info{flex:1}
+.sf-name{font-size:22px;font-weight:900;color:var(--text)}
+.sf-handle{font-size:14px;color:var(--purple);font-weight:600}
+.sf-bio{font-size:13px;color:var(--text2);margin:6px 0}
+.sf-stats{display:flex;gap:20px;margin-top:10px}
+.sfs{text-align:center}
+.sfs-v{font-size:18px;font-weight:800;color:var(--text)}
+.sfs-l{font-size:11px;color:var(--text2)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 16px;font-size:13px;z-index:9999;opacity:0;transform:translateY(20px);transition:.3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+.toast.info{border-color:var(--blue);color:var(--blue)}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.empty-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:14px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo" onclick="location.href='/'">
+    <span class="logo-text">SafePass</span>
+    <span class="logo-badge">CREATOR</span>
+  </div>
+  <div class="header-tabs">
+    <button class="header-tab active" onclick="switchPage('studio')" id="htab-studio">🎬 Studio</button>
+    <button class="header-tab" onclick="switchPage('storefront')" id="htab-storefront">🏪 Cửa hàng</button>
+    <button class="header-tab" onclick="switchPage('affiliate')" id="htab-affiliate">🔗 Liên kết</button>
+    <button class="header-tab" onclick="switchPage('wallet')" id="htab-wallet">💰 Ví</button>
+    <button class="header-tab" onclick="switchPage('brands')" id="htab-brands">🤝 Thương hiệu</button>
+    <button class="header-tab" onclick="switchPage('leaderboard')" id="htab-leaderboard">🏆 Xếp hạng</button>
+  </div>
+  <div class="header-right">
+    <button class="hdr-btn" onclick="openGiftModal()">⭐ Tặng SafeStar</button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="creator-mini" id="creatorMini">
+      <div class="cm-avatar" id="miniAvatar">?</div>
+      <div class="cm-name" id="miniName">Đăng nhập</div>
+      <div class="cm-handle" id="miniHandle">@---</div>
+      <div class="cm-badge badge-creator" id="miniBadge">⭐ Creator</div>
+      <div class="cm-stats">
+        <div class="cm-stat"><div class="cm-stat-v" id="statFollowers">0</div><div class="cm-stat-l">Followers</div></div>
+        <div class="cm-stat"><div class="cm-stat-v" id="statViews">0</div><div class="cm-stat-l">Lượt xem</div></div>
+        <div class="cm-stat"><div class="cm-stat-v" id="statRevenue">0</div><div class="cm-stat-l">Doanh thu</div></div>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Creator Studio</div>
+      <div class="nav-item active" onclick="switchPage('studio')"><span class="ni">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="switchPage('analytics')"><span class="ni">📈</span> Phân tích</div>
+      <div class="nav-item" onclick="switchPage('aitools')"><span class="ni">🤖</span> AI Công cụ</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Kiếm tiền</div>
+      <div class="nav-item" onclick="switchPage('affiliate')"><span class="ni">🔗</span> Liên kết</div>
+      <div class="nav-item" onclick="switchPage('wallet')"><span class="ni">💰</span> Ví sáng tạo</div>
+      <div class="nav-item" onclick="switchPage('brands')"><span class="ni">🤝</span> Hợp tác thương hiệu</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Cộng đồng</div>
+      <div class="nav-item" onclick="switchPage('storefront')"><span class="ni">🏪</span> Cửa hàng của tôi</div>
+      <div class="nav-item" onclick="switchPage('leaderboard')"><span class="ni">🏆</span> Bảng xếp hạng</div>
+      <div class="nav-item" onclick="switchPage('discover')"><span class="ni">🔭</span> Khám phá</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Tài khoản</div>
+      <div class="nav-item" onclick="switchPage('badges')"><span class="ni">🎖️</span> Huy hiệu & Cấp độ</div>
+      <div class="nav-item" onclick="location.href='/ai'"><span class="ni">✨</span> AI Discovery</div>
+      <div class="nav-item" onclick="location.href='/'"><span class="ni">🏠</span> Trang chủ</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="mainContent">
+    <div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Đang tải...</div></div>
+  </main>
+</div>
+
+<!-- MODAL: Register Creator -->
+<div class="modal-overlay" id="registerModal">
+  <div class="modal">
+    <div class="modal-title">🎬 Đăng ký Creator</div>
+    <div class="form-group">
+      <label class="form-label">Handle (tên @)</label>
+      <input class="form-input" id="regHandle" placeholder="vd: minhtu_official" maxlength="30">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tên hiển thị</label>
+      <input class="form-input" id="regDisplayName" placeholder="Tên của bạn">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Danh mục</label>
+      <select class="form-select" id="regCategory">
+        <option value="general">🌟 Chung</option>
+        <option value="music">🎵 Âm nhạc</option>
+        <option value="gaming">🎮 Gaming</option>
+        <option value="fashion">👗 Thời trang</option>
+        <option value="tech">💻 Công nghệ</option>
+        <option value="sports">⚽ Thể thao</option>
+        <option value="food">🍜 Ẩm thực</option>
+        <option value="travel">✈️ Du lịch</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Giới thiệu bản thân</label>
+      <textarea class="form-input ai-input" id="regBio" placeholder="Nói về bản thân bạn..." rows="3"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="sec-btn-out" style="flex:1" onclick="closeModal('registerModal')">Hủy</button>
+      <button class="sec-btn" style="flex:2" onclick="registerCreator()">🚀 Đăng ký ngay</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Create Affiliate Link -->
+<div class="modal-overlay" id="affiliateModal">
+  <div class="modal">
+    <div class="modal-title">🔗 Tạo liên kết tiếp thị</div>
+    <div class="form-group">
+      <label class="form-label">ID Sản phẩm / Vé</label>
+      <input class="form-input" id="affProductId" placeholder="Nhập ID sản phẩm">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Loại</label>
+      <select class="form-select" id="affProductType">
+        <option value="ticket">🎟️ Vé sự kiện</option>
+        <option value="product">📦 Sản phẩm</option>
+        <option value="service">🛠️ Dịch vụ</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="sec-btn-out" style="flex:1" onclick="closeModal('affiliateModal')">Hủy</button>
+      <button class="sec-btn" style="flex:2" onclick="createAffLink()">Tạo liên kết</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SafeStar Gift -->
+<div class="modal-overlay" id="giftModal">
+  <div class="modal">
+    <div class="modal-title">⭐ Tặng SafeStar</div>
+    <div class="form-group">
+      <label class="form-label">Chọn quà</label>
+      <div class="gift-grid">
+        <div class="gift-option selected" data-type="star" onclick="selectGift(this,'star')"><div class="go-icon">⭐</div><div class="go-name">Sao</div><div class="go-price">2K</div></div>
+        <div class="gift-option" data-type="heart" onclick="selectGift(this,'heart')"><div class="go-icon">❤️</div><div class="go-name">Tim</div><div class="go-price">5K</div></div>
+        <div class="gift-option" data-type="fire" onclick="selectGift(this,'fire')"><div class="go-icon">🔥</div><div class="go-name">Lửa</div><div class="go-price">10K</div></div>
+        <div class="gift-option" data-type="diamond" onclick="selectGift(this,'diamond')"><div class="go-icon">💎</div><div class="go-name">Kim cương</div><div class="go-price">50K</div></div>
+        <div class="gift-option" data-type="crown" onclick="selectGift(this,'crown')"><div class="go-icon">👑</div><div class="go-name">Vương miện</div><div class="go-price">100K</div></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Gửi đến Creator (handle)</label>
+      <input class="form-input" id="giftHandle" placeholder="@handle">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Số lượng</label>
+      <input class="form-input" id="giftQty" type="number" value="1" min="1" max="100">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lời nhắn</label>
+      <input class="form-input" id="giftMsg" placeholder="Cảm ơn bạn!">
+    </div>
+    <div class="modal-actions">
+      <button class="sec-btn-out" style="flex:1" onclick="closeModal('giftModal')">Hủy</button>
+      <button class="sec-btn" style="flex:2" onclick="sendGift()">🎁 Gửi quà</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('token');
+let myCreator = null;
+let currentPage = 'studio';
+let selectedGiftType = 'star';
+const GIFT_PRICES = { star:2000, heart:5000, fire:10000, diamond:50000, crown:100000 };
+
+// ── INIT ──
+async function init() {
+  await loadCreatorProfile();
+  switchPage('studio');
+}
+
+async function loadCreatorProfile() {
+  if (!token) return;
+  try {
+    const r = await fetch(`${API}/api/creator/dashboard`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) {
+      myCreator = await r.json();
+      renderSidebar();
+    }
+  } catch(e) {}
+}
+
+function renderSidebar() {
+  if (!myCreator?.profile) return;
+  const p = myCreator.profile;
+  document.getElementById('miniAvatar').textContent = (p.display_name || p.handle || 'C')[0].toUpperCase();
+  document.getElementById('miniName').textContent = p.display_name || p.handle;
+  document.getElementById('miniHandle').textContent = `@${p.handle}`;
+  const badge = p.badge_level || 'creator';
+  const badgeEl = document.getElementById('miniBadge');
+  const badgeMap = { creator:'⭐ Creator', rising:'🌱 Triển vọng', verified:'✓ Xác minh', gold:'🥇 Vàng', diamond:'💎 Kim cương' };
+  badgeEl.textContent = badgeMap[badge] || '⭐ Creator';
+  badgeEl.className = `cm-badge badge-${badge}`;
+  document.getElementById('statFollowers').textContent = fmt(p.follower_count || 0);
+  document.getElementById('statViews').textContent = fmt(p.total_views || 0);
+  document.getElementById('statRevenue').textContent = fmtVND(myCreator.wallet?.balance || 0);
+}
+
+// ── PAGE SWITCHING ──
+function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.header-tab,.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`htab-${page}`)?.classList.add('active');
+
+  const pages = {
+    studio: renderStudio, storefront: renderStorefront, affiliate: renderAffiliate,
+    wallet: renderWallet, brands: renderBrands, leaderboard: renderLeaderboard,
+    discover: renderDiscover, analytics: renderAnalytics, aitools: renderAITools,
+    badges: renderBadges
+  };
+  if (pages[page]) pages[page]();
+}
+
+// ── STUDIO DASHBOARD ──
+async function renderStudio() {
+  const main = document.getElementById('mainContent');
+  if (!token) {
+    main.innerHTML = renderLoginPrompt('Creator Studio');
+    return;
+  }
+  if (!myCreator?.profile) {
+    main.innerHTML = renderRegisterPrompt();
+    return;
+  }
+
+  let data = myCreator;
+  try {
+    const r = await fetch(`${API}/api/creator/dashboard`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) { data = await r.json(); myCreator = data; renderSidebar(); }
+  } catch(e) {}
+
+  const s = data.stats || {};
+  const bars = [60,45,80,92,55,70,85].map(h => `<div class="chart-bar" style="height:${h}%;background:var(--creator-grad)"></div>`).join('');
+
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🎬 Creator Studio</div><div class="sec-sub">Quản lý nội dung và thu nhập</div></div>
+      <button class="sec-btn" onclick="location.href='/reels'">+ Đăng Reel mới</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${fmt(s.followers||0)}</div><div class="stat-label">Người theo dõi</div><div class="stat-delta delta-up">↑ +${s.new_followers||0} tuần này</div></div>
+      <div class="stat-card"><div class="stat-icon">👁️</div><div class="stat-value">${fmt(s.total_views||0)}</div><div class="stat-label">Tổng lượt xem</div><div class="stat-delta delta-up">↑ +${s.views_7d||0} 7 ngày</div></div>
+      <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-value">${fmt(s.total_likes||0)}</div><div class="stat-label">Tổng lượt thích</div><div class="stat-delta delta-up">↑ ${s.engagement_rate||'0'}% engagement</div></div>
+      <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${fmtVND(data.wallet?.balance||0)}</div><div class="stat-label">Thu nhập tổng</div><div class="stat-delta delta-up">↑ +${fmtVND(s.revenue_7d||0)} tuần này</div></div>
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-header">
+        <div class="chart-title">📈 Lượt xem 7 ngày qua</div>
+        <div class="chart-period">
+          <button class="cp-btn active">7 ngày</button>
+          <button class="cp-btn">30 ngày</button>
+          <button class="cp-btn">90 ngày</button>
+        </div>
+      </div>
+      <div class="chart-bars">${bars}</div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-top:6px">
+        ${['T2','T3','T4','T5','T6','T7','CN'].map(d=>`<span>${d}</span>`).join('')}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="table-box">
+        <div class="table-header">🎬 Reels gần đây</div>
+        <table>
+          <tr><th>Video</th><th>Lượt xem</th><th>Tương tác</th></tr>
+          ${(data.recent_reels||[]).length ? data.recent_reels.map(r=>`
+            <tr><td>${r.title||'Reel #'+r.id?.slice(0,6)}</td><td>${fmt(r.views_count||0)}</td><td>${r.likes_count||0} ❤️</td></tr>`).join('') :
+          `<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">Chưa có reels. <a href="/reels" style="color:var(--blue)">Đăng ngay</a></td></tr>`}
+        </table>
+      </div>
+      <div class="table-box">
+        <div class="table-header">💰 Giao dịch gần đây</div>
+        <table>
+          <tr><th>Loại</th><th>Số tiền</th><th>Trạng thái</th></tr>
+          ${(data.recent_txns||[]).length ? data.recent_txns.map(t=>`
+            <tr><td>${txnLabel(t.txn_type)}</td><td style="color:var(--green)">+${fmtVND(t.amount||0)}</td><td><span style="background:rgba(16,185,129,.15);color:var(--green);padding:2px 8px;border-radius:6px;font-size:11px">✓ Xong</span></td></tr>`).join('') :
+          `<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">Chưa có giao dịch</td></tr>`}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── STOREFRONT ──
+async function renderStorefront() {
+  const main = document.getElementById('mainContent');
+  if (!myCreator?.profile) { main.innerHTML = renderLoginPrompt('Storefront'); return; }
+  const p = myCreator.profile;
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🏪 Cửa hàng của tôi</div><div class="sec-sub">safepass.vn/@${p.handle}</div></div>
+      <button class="sec-btn" onclick="window.open('/@${p.handle}','_blank')">Xem trang công khai ↗</button>
+    </div>
+    <div class="storefront-banner">
+      <div class="sf-avatar">${(p.display_name||p.handle||'C')[0].toUpperCase()}</div>
+      <div class="sf-info">
+        <div class="sf-name">${p.display_name||p.handle}</div>
+        <div class="sf-handle">@${p.handle} <span class="cm-badge badge-${p.badge_level||'creator'}" style="display:inline-flex">${badgeName(p.badge_level)}</span></div>
+        <div class="sf-bio">${p.bio||'Chưa có giới thiệu.'}</div>
+        <div class="sf-stats">
+          <div class="sfs"><div class="sfs-v">${fmt(p.follower_count||0)}</div><div class="sfs-l">Followers</div></div>
+          <div class="sfs"><div class="sfs-v">${fmt(p.total_views||0)}</div><div class="sfs-l">Lượt xem</div></div>
+          <div class="sfs"><div class="sfs-v">${p.total_sales||0}</div><div class="sfs-l">Đơn hàng</div></div>
+        </div>
+      </div>
+      <button class="sec-btn-out" onclick="openEditProfile()">✏️ Chỉnh sửa</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="table-box">
+        <div class="table-header">🎟️ Sản phẩm đang bán</div>
+        <div style="padding:20px;text-align:center;color:var(--text2)">
+          <div style="font-size:32px;margin-bottom:8px">🛍️</div>
+          <a href="/" style="color:var(--blue)">Đăng sản phẩm mới</a>
+        </div>
+      </div>
+      <div class="table-box">
+        <div class="table-header">🎬 Reels mới nhất</div>
+        <div style="padding:20px;text-align:center;color:var(--text2)">
+          <div style="font-size:32px;margin-bottom:8px">🎬</div>
+          <a href="/reels" style="color:var(--blue)">Đăng Reel đầu tiên</a>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── AFFILIATE ──
+async function renderAffiliate() {
+  const main = document.getElementById('mainContent');
+  if (!myCreator?.profile) { main.innerHTML = renderLoginPrompt('Affiliate'); return; }
+  let links = [];
+  try {
+    const r = await fetch(`${API}/api/creator/affiliate/links`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) links = await r.json();
+  } catch(e) {}
+
+  const totalEarned = links.reduce((s, l) => s + (l.total_earned || 0), 0);
+  const totalClicks = links.reduce((s, l) => s + (l.click_count || 0), 0);
+  const totalSales = links.reduce((s, l) => s + (l.sale_count || 0), 0);
+
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🔗 Tiếp thị liên kết</div><div class="sec-sub">Tạo link → Chia sẻ → Nhận hoa hồng</div></div>
+      <button class="sec-btn" onclick="openModal('affiliateModal')">+ Tạo liên kết mới</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">🔗</div><div class="stat-value">${links.length}</div><div class="stat-label">Liên kết đang hoạt động</div></div>
+      <div class="stat-card"><div class="stat-icon">👆</div><div class="stat-value">${fmt(totalClicks)}</div><div class="stat-label">Tổng lượt click</div></div>
+      <div class="stat-card"><div class="stat-icon">🛒</div><div class="stat-value">${totalSales}</div><div class="stat-label">Đơn hàng từ link</div></div>
+      <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-value">${fmtVND(totalEarned)}</div><div class="stat-label">Hoa hồng kiếm được</div></div>
+    </div>
+    ${links.length ? links.map(l => renderLinkCard(l)).join('') : `
+    <div class="empty">
+      <div class="empty-icon">🔗</div>
+      <div class="empty-title">Chưa có liên kết nào</div>
+      <div class="empty-sub">Tạo liên kết affiliate đầu tiên để bắt đầu kiếm tiền</div>
+    </div>`}`;
+}
+
+function renderLinkCard(l) {
+  const ctr = l.click_count ? Math.round((l.sale_count / l.click_count) * 100) : 0;
+  return `
+  <div class="link-card">
+    <div class="link-top">
+      <div class="link-icon">🎟️</div>
+      <div class="link-info">
+        <div class="link-name">Sản phẩm #${l.product_id?.slice(0,8)||'...'}</div>
+        <div class="link-code">safepass.vn/ref/${l.code}</div>
+      </div>
+      <div style="font-size:13px;color:var(--green);font-weight:700">${l.commission_rate}% hoa hồng</div>
+    </div>
+    <div class="link-stats">
+      <div class="ls"><div class="ls-v">${fmt(l.click_count||0)}</div><div class="ls-l">Lượt click</div></div>
+      <div class="ls"><div class="ls-v">${l.sale_count||0}</div><div class="ls-l">Đơn hàng</div></div>
+      <div class="ls"><div class="ls-v">${ctr}%</div><div class="ls-l">Tỷ lệ chuyển đổi</div></div>
+      <div class="ls"><div class="ls-v">${fmtVND(l.total_earned||0)}</div><div class="ls-l">Hoa hồng</div></div>
+    </div>
+    <div class="link-actions">
+      <button class="la-btn copy" onclick="copyLink('${l.code}')">📋 Sao chép link</button>
+      <button class="la-btn" onclick="shareLink('${l.code}')">↗️ Chia sẻ</button>
+      <button class="la-btn" onclick="viewAffStats('${l.id}')">📊 Thống kê</button>
+    </div>
+  </div>`;
+}
+
+// ── WALLET ──
+async function renderWallet() {
+  const main = document.getElementById('mainContent');
+  if (!myCreator?.profile) { main.innerHTML = renderLoginPrompt('Ví'); return; }
+  let wallet = { balance: 0, breakdown: {} };
+  let txns = [];
+  try {
+    const [wr, tr] = await Promise.all([
+      fetch(`${API}/api/creator/wallet`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API}/api/creator/wallet/txns`, { headers: { Authorization: `Bearer ${token}` } })
+    ]);
+    if (wr.ok) wallet = await wr.json();
+    if (tr.ok) txns = await tr.json();
+  } catch(e) {}
+
+  const bd = wallet.breakdown || {};
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">💰 Ví người sáng tạo</div><div class="sec-sub">Thu nhập từ affiliate, quà tặng và hoa hồng</div></div>
+    </div>
+    <div class="wallet-box">
+      <div class="wallet-title">Tổng số dư</div>
+      <div class="wallet-balance">${fmtVND(wallet.balance||0)}</div>
+      <div class="wallet-sub">Có thể rút về ví SafePass Pay</div>
+      <div class="wallet-breakdown">
+        <div class="wb"><div class="wb-icon">🔗</div><div class="wb-value">${fmtVND(bd.affiliate||0)}</div><div class="wb-label">Affiliate</div></div>
+        <div class="wb"><div class="wb-icon">⭐</div><div class="wb-value">${fmtVND(bd.gifts||0)}</div><div class="wb-label">Quà tặng</div></div>
+        <div class="wb"><div class="wb-icon">🎟️</div><div class="wb-value">${fmtVND(bd.sales||0)}</div><div class="wb-label">Hoa hồng bán hàng</div></div>
+      </div>
+      <div class="wallet-actions">
+        <button class="wa-btn wa-withdraw" onclick="requestWithdraw()">💸 Rút tiền</button>
+        <button class="wa-btn wa-history" onclick="renderWalletHistory()">📋 Lịch sử</button>
+      </div>
+    </div>
+    <div class="table-box" id="walletTxnBox">
+      <div class="table-header">Giao dịch gần đây</div>
+      <table>
+        <tr><th>Loại</th><th>Số tiền</th><th>Mô tả</th><th>Thời gian</th></tr>
+        ${txns.length ? txns.slice(0,20).map(t=>`
+          <tr>
+            <td>${txnLabel(t.txn_type)}</td>
+            <td style="color:${t.amount>0?'var(--green)':'var(--red)'}; font-weight:700">${t.amount>0?'+':''}${fmtVND(t.amount)}</td>
+            <td style="color:var(--text2)">${t.description||''}</td>
+            <td style="color:var(--text2);font-size:12px">${fmtDate(t.created_at)}</td>
+          </tr>`).join('') :
+        `<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:24px">Chưa có giao dịch nào</td></tr>`}
+      </table>
+    </div>`;
+}
+
+// ── BRAND CAMPAIGNS ──
+async function renderBrands() {
+  const main = document.getElementById('mainContent');
+  let campaigns = [];
+  try {
+    const r = await fetch(`${API}/api/creator/campaigns`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (r.ok) campaigns = await r.json();
+  } catch(e) {}
+
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🤝 Hợp tác thương hiệu</div><div class="sec-sub">Các thương hiệu đang tìm kiếm Creator để hợp tác</div></div>
+    </div>
+    ${campaigns.length ? campaigns.map(c => renderCampaignCard(c)).join('') : `
+    <div class="empty"><div class="empty-icon">🤝</div><div class="empty-title">Đang tải chiến dịch...</div></div>`}`;
+}
+
+function renderCampaignCard(c) {
+  const deadline = c.deadline ? new Date(c.deadline).toLocaleDateString('vi-VN') : 'Không giới hạn';
+  return `
+  <div class="campaign-card">
+    <div class="cc-header">
+      <div class="cc-brand">${(c.brand_name||'B')[0]}</div>
+      <div class="cc-info">
+        <div class="cc-title">${c.title}</div>
+        <div class="cc-brand-name">${c.brand_name} · Hết hạn: ${deadline}</div>
+      </div>
+      <span class="cc-status status-${c.status==='active'?'active':'pending'}">${c.status==='active'?'🟢 Đang mở':'⏸ Tạm dừng'}</span>
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${c.description||''}</div>
+    <div class="cc-body">
+      <div class="cc-metric"><div class="cc-metric-v">${fmtVND(c.budget||0)}</div><div class="cc-metric-l">Ngân sách/Creator</div></div>
+      <div class="cc-metric"><div class="cc-metric-v">${c.commission_per_sale||5}%</div><div class="cc-metric-l">Hoa hồng/đơn</div></div>
+      <div class="cc-metric"><div class="cc-metric-v">${c.applicant_count||0}</div><div class="cc-metric-l">Creator đã đăng ký</div></div>
+    </div>
+    <button class="apply-btn" onclick="applyToCampaign('${c.id}',this)">📝 Đăng ký tham gia</button>
+  </div>`;
+}
+
+// ── LEADERBOARD ──
+async function renderLeaderboard() {
+  const main = document.getElementById('mainContent');
+  let creators = [];
+  try {
+    const r = await fetch(`${API}/api/creator/leaderboard`);
+    if (r.ok) creators = await r.json();
+  } catch(e) {}
+
+  const tabs = ['Doanh thu', 'Followers', 'Reels', 'Affiliate'];
+  const rankIcon = (i) => i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+  const rankCls = (i) => i===0?'gold':i===1?'silver':i===2?'bronze':'';
+
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🏆 Bảng xếp hạng Creator</div><div class="sec-sub">Top người sáng tạo trên SafePass</div></div>
+    </div>
+    <div class="feed-tabs" style="display:flex;gap:4px;margin-bottom:20px;background:var(--bg2);border-radius:12px;padding:4px;border:1px solid var(--border)">
+      ${tabs.map((t,i)=>`<button style="flex:1;padding:8px;border:none;background:${i===0?'var(--creator-grad)':'none'};color:${i===0?'#fff':'var(--text2)'};border-radius:8px;cursor:pointer;font-size:13px;font-weight:700" onclick="switchLeaderTab(this,'${t}')">${t}</button>`).join('')}
+    </div>
+    <div class="table-box" id="lbTable">
+      <div class="table-header">🏆 Top Creators — Doanh thu</div>
+      <div style="padding:16px">
+        ${creators.length ? creators.map((c,i)=>`
+          <div class="lb-row">
+            <div class="lb-rank ${rankCls(i)}">${rankIcon(i)}</div>
+            <div class="lb-avatar">${(c.display_name||c.handle||'C')[0].toUpperCase()}</div>
+            <div class="lb-info">
+              <div class="lb-name">${c.display_name||c.handle} <span class="cm-badge badge-${c.badge_level||'creator'}" style="display:inline-flex;font-size:10px">${badgeName(c.badge_level)}</span></div>
+              <div class="lb-stats">@${c.handle} · ${fmt(c.follower_count||0)} followers</div>
+            </div>
+            <div class="lb-value">${fmtVND(c.total_revenue||0)}</div>
+            <button class="follow-btn" onclick="followCreator('${c.handle}',this)">+ Theo dõi</button>
+          </div>`).join('') : [
+          {name:'MinhTu_Official',handle:'minhtu_official',badge:'gold',followers:'12.4K',revenue:48500000},
+          {name:'GameZone Pro',handle:'gamezone_pro',badge:'verified',followers:'8.1K',revenue:32100000},
+          {name:'KpopStore VN',handle:'kpopstore_vn',badge:'rising',followers:'5.3K',revenue:18700000},
+          {name:'TechReview HN',handle:'techreview_hn',badge:'verified',followers:'9.2K',revenue:15200000},
+          {name:'FashionPro',handle:'fashionpro_vn',badge:'creator',followers:'3.8K',revenue:9800000},
+        ].map((c,i)=>`
+          <div class="lb-row">
+            <div class="lb-rank ${rankCls(i)}">${rankIcon(i)}</div>
+            <div class="lb-avatar">${c.name[0]}</div>
+            <div class="lb-info">
+              <div class="lb-name">${c.name} <span class="cm-badge badge-${c.badge}" style="display:inline-flex;font-size:10px">${badgeName(c.badge)}</span></div>
+              <div class="lb-stats">@${c.handle} · ${c.followers} followers</div>
+            </div>
+            <div class="lb-value">${fmtVND(c.revenue)}</div>
+            <button class="follow-btn" onclick="followCreator('${c.handle}',this)">+ Theo dõi</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── AI TOOLS ──
+async function renderAITools() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🤖 AI Công cụ Creator</div><div class="sec-sub">Tạo nội dung thông minh với AI</div></div>
+    </div>
+
+    <div class="ai-tool-box">
+      <div class="ai-tool-title">🎬 Tiêu đề Reel AI</div>
+      <textarea class="ai-input" id="titleInput" placeholder="Mô tả nội dung video của bạn... vd: Video unboxing PS5 Pro với controller mới" rows="2"></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="ai-generate-btn" onclick="generateContent('title')">✨ Tạo tiêu đề</button>
+        <button class="ai-copy-btn" onclick="copyResult('titleResult')">📋 Sao chép</button>
+      </div>
+      <div class="ai-result" id="titleResult">Nhập mô tả và nhấn "Tạo tiêu đề"...</div>
+    </div>
+
+    <div class="ai-tool-box">
+      <div class="ai-tool-title">🏷️ Hashtag AI</div>
+      <textarea class="ai-input" id="hashtagInput" placeholder="Chủ đề nội dung... vd: gaming, PS5, unboxing, review" rows="2"></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="ai-generate-btn" onclick="generateContent('hashtag')">✨ Tạo hashtags</button>
+        <button class="ai-copy-btn" onclick="copyResult('hashtagResult')">📋 Sao chép</button>
+      </div>
+      <div class="ai-result" id="hashtagResult">Nhập chủ đề và nhấn "Tạo hashtags"...</div>
+    </div>
+
+    <div class="ai-tool-box">
+      <div class="ai-tool-title">📦 Mô tả sản phẩm AI</div>
+      <textarea class="ai-input" id="descInput" placeholder="Tên sản phẩm và đặc điểm... vd: Vé VIP Coldplay Hà Nội 2026, hàng ghế A1" rows="2"></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="ai-generate-btn" onclick="generateContent('description')">✨ Tạo mô tả</button>
+        <button class="ai-copy-btn" onclick="copyResult('descResult')">📋 Sao chép</button>
+      </div>
+      <div class="ai-result" id="descResult">Nhập thông tin sản phẩm và nhấn "Tạo mô tả"...</div>
+    </div>
+
+    <div class="ai-tool-box">
+      <div class="ai-tool-title">💬 Caption mạng xã hội AI</div>
+      <textarea class="ai-input" id="captionInput" placeholder="Nội dung cần caption... vd: Ảnh check-in concert Coldplay" rows="2"></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="ai-generate-btn" onclick="generateContent('caption')">✨ Tạo caption</button>
+        <button class="ai-copy-btn" onclick="copyResult('captionResult')">📋 Sao chép</button>
+      </div>
+      <div class="ai-result" id="captionResult">Nhập nội dung và nhấn "Tạo caption"...</div>
+    </div>`;
+}
+
+// ── BADGES ──
+function renderBadges() {
+  const main = document.getElementById('mainContent');
+  const current = myCreator?.profile?.badge_level || 'creator';
+  const levels = [
+    { key:'creator', icon:'⭐', name:'Creator', req:'Đăng ký Creator', score:0 },
+    { key:'rising', icon:'🌱', name:'Triển vọng', req:'500+ followers hoặc 10 reels', score:100 },
+    { key:'verified', icon:'✓', name:'Xác minh', req:'1000+ followers + KYC', score:300 },
+    { key:'gold', icon:'🥇', name:'Creator Vàng', req:'5000+ followers + 10tr doanh thu', score:1000 },
+    { key:'diamond', icon:'💎', name:'Creator Kim cương', req:'20000+ followers + 100tr doanh thu', score:5000 },
+  ];
+  const currentIdx = levels.findIndex(l => l.key === current);
+
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🎖️ Huy hiệu & Cấp độ Creator</div><div class="sec-sub">Vươn tới huy hiệu cao nhất để mở khóa đặc quyền</div></div>
+    </div>
+    <div class="badge-progress">
+      <div class="bp-title">Cấp độ hiện tại: <span style="color:var(--purple);font-size:16px">${levels[currentIdx]?.name||'Creator'}</span></div>
+      <div class="badge-levels">
+        ${levels.map((l,i)=>`
+          <div class="badge-level-card ${l.key===current?'current':''} ${i<=currentIdx?'unlocked':'locked'}">
+            <div class="bl-icon">${l.icon}</div>
+            <div class="bl-name">${l.name}</div>
+            <div class="bl-req">${l.req}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="table-box">
+      <div class="table-header">🎁 Đặc quyền theo cấp độ</div>
+      <table>
+        <tr><th>Cấp độ</th><th>Hoa hồng affiliate</th><th>Ưu tiên AI</th><th>Brand deals</th><th>Huy hiệu xác minh</th></tr>
+        <tr><td>⭐ Creator</td><td>5%</td><td>Cơ bản</td><td>❌</td><td>❌</td></tr>
+        <tr><td>🌱 Triển vọng</td><td>7%</td><td>Nâng cao</td><td>❌</td><td>❌</td></tr>
+        <tr><td>✓ Xác minh</td><td>8%</td><td>Cao</td><td>✅</td><td>✅</td></tr>
+        <tr><td>🥇 Vàng</td><td>10%</td><td>Ưu tiên</td><td>✅</td><td>✅</td></tr>
+        <tr><td>💎 Kim cương</td><td>12%</td><td>Tối đa</td><td>✅</td><td>✅</td></tr>
+      </table>
+    </div>`;
+}
+
+// ── DISCOVER ──
+async function renderDiscover() {
+  const main = document.getElementById('mainContent');
+  let creators = [];
+  try {
+    const r = await fetch(`${API}/api/creator/discover`);
+    if (r.ok) creators = await r.json();
+  } catch(e) {}
+
+  const list = creators.length ? creators : [
+    { display_name:'Minh Tú', handle:'minhtu_official', badge_level:'gold', follower_count:12400, category:'🎵 Âm nhạc', bio:'Chia sẻ về âm nhạc và vé concert' },
+    { display_name:'GameZone Pro', handle:'gamezone_pro', badge_level:'verified', follower_count:8100, category:'🎮 Gaming', bio:'Review game và thiết bị gaming' },
+    { display_name:'K-Pop Store VN', handle:'kpopstore_vn', badge_level:'rising', follower_count:5300, category:'🎵 K-Pop', bio:'Chuyên vé concert K-Pop tại Việt Nam' },
+    { display_name:'Tech Review HN', handle:'techreview_hn', badge_level:'verified', follower_count:9200, category:'💻 Tech', bio:'Review thiết bị công nghệ mới nhất' },
+  ];
+
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">🔭 Khám phá Creator</div><div class="sec-sub">Người sáng tạo nổi bật và đang lên</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+      ${list.map(c => `
+        <div class="campaign-card" onclick="location.href='/@${c.handle}'">
+          <div class="cc-header">
+            <div class="lb-avatar" style="width:52px;height:52px;font-size:20px">${(c.display_name||c.handle||'C')[0].toUpperCase()}</div>
+            <div class="cc-info">
+              <div class="cc-title">${c.display_name||c.handle}</div>
+              <div class="cc-brand-name">@${c.handle} · ${c.category||'🌟 Chung'}</div>
+              <span class="cm-badge badge-${c.badge_level||'creator'}">${badgeName(c.badge_level)}</span>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${c.bio||''}</div>
+          <div style="display:flex;gap:8px">
+            <button class="apply-btn" style="background:var(--blue-grad)" onclick="event.stopPropagation();followCreator('${c.handle}',this)">+ Theo dõi (${fmt(c.follower_count||0)})</button>
+            <button class="apply-btn" onclick="event.stopPropagation();openGiftForCreator('${c.handle}')">⭐ Tặng sao</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── ANALYTICS ──
+async function renderAnalytics() {
+  const main = document.getElementById('mainContent');
+  if (!myCreator?.profile) { main.innerHTML = renderLoginPrompt('Analytics'); return; }
+  const bars7 = [40,65,50,80,95,72,88].map(h=>`<div class="chart-bar" style="height:${h}%;background:var(--creator-grad)"></div>`).join('');
+  main.innerHTML = `
+    <div class="sec-hdr">
+      <div><div class="sec-title">📈 Phân tích Creator</div><div class="sec-sub">Lượt xem, tương tác và doanh thu</div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">📺</div><div class="stat-value">0</div><div class="stat-label">Lượt xem tháng này</div><div class="stat-delta delta-up">↑ +0%</div></div>
+      <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-value">0</div><div class="stat-label">Tổng tương tác</div><div class="stat-delta delta-up">↑ 0% engagement</div></div>
+      <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">0</div><div class="stat-label">Followers mới</div><div class="stat-delta delta-up">↑ +0 tháng này</div></div>
+      <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-value">0</div><div class="stat-label">Reels đã đăng</div></div>
+    </div>
+    <div class="chart-box"><div class="chart-header"><div class="chart-title">📊 Lượt xem theo ngày</div></div><div class="chart-bars">${bars7}</div></div>`;
+}
+
+// ── AI CONTENT GENERATION ──
+async function generateContent(type) {
+  const inputs = { title:'titleInput', hashtag:'hashtagInput', description:'descInput', caption:'captionInput' };
+  const results = { title:'titleResult', hashtag:'hashtagResult', description:'descResult', caption:'captionResult' };
+  const input = document.getElementById(inputs[type])?.value?.trim();
+  if (!input) { showToast('Nhập nội dung trước!', 'error'); return; }
+
+  const resultEl = document.getElementById(results[type]);
+  resultEl.textContent = '⏳ AI đang tạo nội dung...';
+
+  try {
+    const r = await fetch(`${API}/api/creator/ai/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ type, input })
+    });
+    if (r.ok) {
+      const data = await r.json();
+      resultEl.textContent = data.result || 'Không tạo được nội dung';
+    } else {
+      resultEl.textContent = generateOffline(type, input);
+    }
+  } catch(e) {
+    resultEl.textContent = generateOffline(type, input);
+  }
+}
+
+function generateOffline(type, input) {
+  const kw = input.split(' ').slice(0,3).join(' ');
+  if (type === 'title') return [
+    `🔥 ${input} — Bạn PHẢI xem video này!`,
+    `✅ Trải nghiệm ${kw} thực tế — Có đáng mua không?`,
+    `💥 Sự thật về ${kw} mà ai cũng cần biết`
+  ].join('\n');
+  if (type === 'hashtag') return `#${input.split(' ').join(' #')} #SafePass #MuaBánAnToàn #Escrow #ViệtNam #Trending`.toLowerCase().replace(/\s+/g,'');
+  if (type === 'description') return `✨ ${input}\n\n🔒 Giao dịch qua SafePass Escrow — hoàn tiền 100% nếu không nhận được hàng\n📦 Giao hàng toàn quốc\n💬 Liên hệ ngay để được tư vấn\n\n#SafePass #MuaBánAnToàn`;
+  return `✨ ${input}\n\n💫 Cảm ơn bạn đã theo dõi! Để lại bình luận nếu bạn muốn biết thêm 👇\n\n#SafePass #Creator`;
+}
+
+// ── ACTIONS ──
+async function registerCreator() {
+  const handle = document.getElementById('regHandle').value.trim();
+  const display_name = document.getElementById('regDisplayName').value.trim();
+  const category = document.getElementById('regCategory').value;
+  const bio = document.getElementById('regBio').value.trim();
+  if (!handle) { showToast('Nhập handle!', 'error'); return; }
+  try {
+    const r = await fetch(`${API}/api/creator/register`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handle, display_name, category, bio })
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Lỗi', 'error'); return; }
+    closeModal('registerModal');
+    showToast('🎉 Đăng ký Creator thành công!', 'success');
+    await loadCreatorProfile();
+    renderStudio();
+  } catch(e) { showToast('Lỗi kết nối', 'error'); }
+}
+
+async function createAffLink() {
+  const product_id = document.getElementById('affProductId').value.trim();
+  const product_type = document.getElementById('affProductType').value;
+  if (!product_id) { showToast('Nhập ID sản phẩm!', 'error'); return; }
+  try {
+    const r = await fetch(`${API}/api/creator/affiliate/link`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id, product_type })
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Lỗi', 'error'); return; }
+    closeModal('affiliateModal');
+    showToast(`🔗 Liên kết tạo thành công! Code: ${data.code}`, 'success');
+    renderAffiliate();
+  } catch(e) { showToast('Lỗi kết nối', 'error'); }
+}
+
+async function applyToCampaign(id, btn) {
+  if (!token) { showToast('Cần đăng nhập', 'error'); return; }
+  try {
+    const r = await fetch(`${API}/api/creator/campaigns/${id}/apply`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pitch: 'Tôi muốn tham gia chiến dịch này' })
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Lỗi', 'error'); return; }
+    btn.classList.add('applied'); btn.textContent = '✅ Đã đăng ký';
+    showToast('✅ Đăng ký thành công!', 'success');
+  } catch(e) { showToast('Lỗi kết nối', 'error'); }
+}
+
+async function sendGift() {
+  const handle = document.getElementById('giftHandle').value.trim();
+  const qty = parseInt(document.getElementById('giftQty').value) || 1;
+  const msg = document.getElementById('giftMsg').value.trim();
+  if (!handle) { showToast('Nhập handle người nhận!', 'error'); return; }
+  const price = GIFT_PRICES[selectedGiftType] * qty;
+  try {
+    const r = await fetch(`${API}/api/creator/gift/send`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creator_handle: handle, gift_type: selectedGiftType, quantity: qty, message: msg })
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Lỗi', 'error'); return; }
+    closeModal('giftModal');
+    showToast(`⭐ Đã gửi ${qty} ${selectedGiftType} (${fmtVND(price)}) cho @${handle}!`, 'success');
+  } catch(e) { showToast('Lỗi kết nối', 'error'); }
+}
+
+function followCreator(handle, btn) {
+  btn.classList.toggle('active');
+  btn.textContent = btn.classList.contains('active') ? '✓ Đang theo dõi' : '+ Theo dõi';
+  showToast(btn.classList.contains('active') ? `✓ Đang theo dõi @${handle}` : 'Đã bỏ theo dõi', 'success');
+}
+
+function selectGift(el, type) {
+  document.querySelectorAll('.gift-option').forEach(g => g.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedGiftType = type;
+}
+
+function copyLink(code) {
+  navigator.clipboard?.writeText(`${window.location.origin}/ref/${code}`).catch(()=>{});
+  showToast('📋 Đã sao chép liên kết!', 'success');
+}
+
+function shareLink(code) { copyLink(code); }
+function viewAffStats(id) { showToast('📊 Đang tải thống kê...', 'info'); }
+function switchLeaderTab(btn, tab) { showToast(`Xếp hạng theo ${tab}`, 'info'); }
+function openGiftForCreator(handle) { document.getElementById('giftHandle').value = `@${handle}`; openModal('giftModal'); }
+function openEditProfile() { showToast('Chỉnh sửa hồ sơ...', 'info'); }
+function requestWithdraw() { showToast('Chuyển đến ví SafePass Pay...', 'info'); setTimeout(() => location.href = '/pay', 1000); }
+function renderWalletHistory() { showToast('Xem lịch sử đầy đủ...', 'info'); }
+
+// ── MODAL HELPERS ──
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openGiftModal() { openModal('giftModal'); }
+
+function renderLoginPrompt(section) {
+  return `<div class="empty"><div class="empty-icon">🔐</div><div class="empty-title">Đăng nhập để dùng ${section}</div><button onclick="location.href='/'" class="sec-btn" style="margin-top:16px">Đăng nhập</button></div>`;
+}
+function renderRegisterPrompt() {
+  return `<div class="empty"><div class="empty-icon">🎬</div><div class="empty-title">Trở thành Creator trên SafePass</div><div class="empty-sub">Kiếm tiền từ nội dung, reels, affiliate và thương hiệu</div><button class="sec-btn" style="margin-top:16px" onclick="openModal('registerModal')">🚀 Đăng ký Creator ngay</button></div>`;
+}
+
+// ── UTILS ──
+function fmt(n) { if (n>=1000000) return (n/1000000).toFixed(1)+'M'; if (n>=1000) return (n/1000).toFixed(1)+'K'; return n; }
+function fmtVND(n) { if (!n) return '0₫'; if (n>=1000000) return (n/1000000).toFixed(1)+'tr₫'; if (n>=1000) return (n/1000).toFixed(0)+'K₫'; return n+'₫'; }
+function fmtDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString('vi-VN'); }
+function badgeName(b) { return {creator:'⭐ Creator',rising:'🌱 Triển vọng',verified:'✓ Xác minh',gold:'🥇 Vàng',diamond:'💎 Kim cương'}[b||'creator']||'⭐ Creator'; }
+function txnLabel(t) { return {affiliate_commission:'🔗 Affiliate',gift_income:'⭐ Quà tặng',live_tip:'🎁 Tip Live',product_sale:'🎟️ Hoa hồng bán hàng',withdrawal:'💸 Rút tiền',bonus:'🎁 Thưởng'}[t]||t; }
+function copyResult(id) { navigator.clipboard?.writeText(document.getElementById(id)?.textContent||'').catch(()=>{}); showToast('📋 Đã sao chép!', 'success'); }
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>

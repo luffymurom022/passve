@@ -1,0 +1,346 @@
+GIAI ĐOẠN XÂY DỰNG MẠNG XÃ HỘI 5
+
+NỀN KINH TẾ NGƯỜI SÁNG TẠO
++ MẠNG LƯỚI LIÊN KẾT
++ KIẾM TIỀN TỪ THƯƠNG MẠI XÃ HỘI
+
+====================================================
+
+MỤC TIÊU
+
+Cho phép người dùng kiếm tiền từ:
+
+* Nội dung
+
+* Video ngắn
+* Phát trực tiếp
+* Giới thiệu sản phẩm
+* Doanh số bán hàng trên Marketplace
+
+=====================================================
+
+MODULE 1
+
+NGƯỜI SÁNG TẠO TÀI KHOẢN
+
+====================================================
+
+Cho phép người dùng trở thành người tạo nội dung.
+
+
+Hồ sơ người sáng tạo bao gồm:
+
+* Ảnh đại diện
+* Ảnh bìa
+* Tiểu sử
+* Số người theo dõi
+* Video ngắn (Reels)
+* Phát trực tiếp
+* Danh sách sản phẩm trên Marketplace
+* Điểm tin cậy
+
+=====================================================
+
+HUY HIỆU NGƯỜI SÁNG TẠO
+
+Các cấp độ:
+
+* Người sáng tạo
+* Người sáng tạo triển vọng
+* Người sáng tạo đã được xác minh
+* Người sáng tạo Vàng
+* Người sáng tạo Kim cương
+
+=====================================================
+
+MODULE 2
+
+ĐỐI TÁC TIẾP THỊ HỆ THỐNG
+
+====================================================
+
+Người dùng có thể quảng bá sản phẩm.
+
+
+Tạo:
+
+* Liên kết giới thiệu
+* Liên kết tiếp thị liên kết
+
+Theo dõi:
+
+* Lượt nhấp chuột
+* Doanh số bán hàng
+* Doanh thu
+
+=====================================================
+
+HOÀN TIỀN HOA HỒNG TIẾP THỊ LIÊN KẾT
+
+Hiển thị:
+
+* Tỷ lệ hoa hồng
+* Tổng doanh số bán hàng
+* Thu nhập
+
+======================================================
+
+MODULE 3
+
+CỬA HÀNG CỦA NGƯỜI SÁNG TẠO
+
+=====================================================
+
+Mỗi người sáng tạo Nhận được:
+
+safepass.com/@creatorname
+
+Chứa:
+
+* Sản phẩm
+
+* Video ngắn (Reels)
+
+* Phát trực tiếp (Livestreams)
+
+* Đánh giá
+
+====================================================
+
+MODULE 4
+
+VIDEO NGẮN CÓ THỂ MUA SẮM
+
+=====================================================
+
+Cho phép hiển thị sản phẩm trong video ngắn.
+
+Người dùng có thể:
+
+* Xem
+* Nhấp vào sản phẩm
+* Mua ngay lập tức
+
+====================================================
+
+MODULE 5
+
+GIAO DỊCH TRỰC TIẾP
+
+=====================================================
+
+Người tạo nội dung có thể phát trực tiếp.
+
+Tính năng:
+
+* Ghim sản phẩm
+* Giảm giá chớp nhoáng
+* Mua ngay
+* Thanh toán ký quỹ
+
+=====================================================
+
+MODULE 6
+
+PHÂN TÍCH NGƯỜI TẠO NỘI DUNG
+
+=====================================================
+
+Hiển thị:
+
+* Lượt xem
+* Người theo dõi
+* Lượt thích
+* Bình luận
+* Lượt chia sẻ
+* Doanh thu
+
+=====================================================
+
+MODULE 7
+
+NGƯỜI THEO DÕI TĂNG TRƯỞNG
+
+===================================================
+
+Theo dõi:
+
+* Số người theo dõi mới
+* Tỷ lệ tăng trưởng
+* Tỷ lệ tương tác
+
+=====================================================
+
+MODULE 8
+
+HỢP TÁC THƯƠNG HIỆU
+
+=====================================================
+
+Các doanh nghiệp có thể mời người sáng tạo nội dung.
+
+Tính năng:
+
+* Chiến dịch
+
+* Tài trợ
+* Quảng bá sản phẩm
+
+====================================================
+
+MODULE 9
+
+NGƯỜI ẢNH HƯỞNG TRÊN THỊ TRƯỜNG
+
+=====================================================
+
+Trang những người sáng tạo hàng đầu.
+
+Hiển thị:
+
+* Người bán hàng đầu
+* Người phát trực tiếp hàng đầu
+* Các đối tác liên kết hàng đầu
+* Người đánh giá hàng đầu
+
+=====================================================
+
+MODULE 10
+
+PHẦN THƯỞNG DÀNH CHO NGƯỜI SÁNG TẠO
+
+====================================================
+
+Thưởng cho người sáng tạo dựa trên:
+
+* Doanh số bán hàng
+* Tương tác
+* Niềm tin
+
+Huy hiệu và cấp bậc.
+
+=========================================================
+
+MÔ-ĐUN 11
+
+SAO AN TOÀN
+
+=========================================================
+
+Hệ thống tặng quà ảo.
+
+Người dùng có thể gửi:
+
+* Sao
+* Quà tặng
+* Tiền boa
+
+Trong suốt:
+
+* Video ngắn
+* Phát trực tiếp
+
+======================================================
+
+MODULE 12
+
+VÍ NGƯỜI SÁNG TẠO
+
+======================================================
+
+Hiển thị:
+
+* Thu nhập liên kết
+* Thu nhập từ phát trực tiếp
+* Tiền boa
+* Hoa hồng sản phẩm
+
+======================================================
+
+MODULE 13
+
+NGƯỜI SÁNG TẠO AI CÔNG CỤ
+
+===================================================
+
+Hỗ trợ người sáng tạo với:
+
+* Tiêu đề video ngắn
+* Mô tả sản phẩm
+* Hashtag
+* Chú thích
+
+=====================================================
+
+MODULE 14
+
+TRUNG TÂM KHÁM PHÁ
+
+=====================================================
+
+Đề xuất:
+
+* Người sáng tạo mới
+* Người sáng tạo đang lên
+* Xu hướng Người sáng tạo
+
+===================================================
+
+MODULE 15
+
+TRUNG TÂM QUẢN TRỊ NGƯỜI SÁNG TẠO
+
+=====================================================
+
+Quản lý:
+
+* Người sáng tạo
+* Đối tác liên kết
+* Chiến dịch
+* Doanh thu
+
+======================================================
+
+Giao diện người dùng
+
+Lấy cảm hứng từ:
+
+Trung tâm sáng tạo TikTok
+YouTube Studio
+Chế độ chuyên nghiệp của Facebook
+
+Màu tối Chế độ
+
+Đáp ứng
+
+===================================================
+
+KHÔNG ĐƯỢC XÓA
+
+* Chợ trực tuyến
+* Ký quỹ
+* Messenger
+* Nhóm
+* Reels
+* Trung tâm tin cậy
+* Giao hàng
+
+=====================================================
+
+KẾT QUẢ CUỐI CÙNG
+
+SafePass trở thành:
+
+Facebook
++
+TikTok
++
+Chợ trực tuyến
++
+Nền kinh tế người sáng tạo
++
+Mạng lưới liên kết
++
+Thương mại ký quỹ
++
+Nền tảng thương mại xã hội

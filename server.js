@@ -11034,9 +11034,474 @@ app.get('/api/dm/online', auth, async (req, res) => {
 // PHASE 4 — AI SOCIAL GRAPH & RECOMMENDATION ENGINE
 // ═══════════════════════════════════════════════════════════════
 
-// Static page
+// Static pages — Phase 4 & 5
 app.get('/ai', (req, res) => res.sendFile(join(__dirname, 'frontend/ai.html')));
 app.get('/ai.html', (req, res) => res.sendFile(join(__dirname, 'frontend/ai.html')));
+app.get('/creator', (req, res) => res.sendFile(join(__dirname, 'frontend/creator.html')));
+app.get('/creator.html', (req, res) => res.sendFile(join(__dirname, 'frontend/creator.html')));
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 5 — CREATOR ECONOMY & AFFILIATE NETWORK
+// ═══════════════════════════════════════════════════════════════
+
+// ── CREATOR BADGE LEVEL HELPER ──
+function computeBadgeLevel(profile) {
+  const f = profile.follower_count || 0;
+  const r = profile.total_revenue || 0;
+  if (f >= 20000 && r >= 100_000_000) return 'diamond';
+  if (f >= 5000 && r >= 10_000_000) return 'gold';
+  if (f >= 1000) return 'verified';
+  if (f >= 500) return 'rising';
+  return 'creator';
+}
+
+function genAffCode(handle, productId) {
+  const rand = Math.random().toString(36).slice(2, 7);
+  return `${handle.slice(0,8)}-${rand}`;
+}
+
+// ── MODULE 1: REGISTER CREATOR ──
+app.post('/api/creator/register', auth, async (req, res) => {
+  const { handle, display_name, bio, category, avatar_url, cover_url } = req.body;
+  if (!handle) return res.status(400).json({ error: 'handle required' });
+  const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (cleanHandle.length < 3) return res.status(400).json({ error: 'Handle must be at least 3 characters' });
+
+  const { data: existing } = await supabase.from('creator_profiles')
+    .select('id').eq('handle', cleanHandle).single();
+  if (existing) return res.status(409).json({ error: 'Handle đã được sử dụng' });
+
+  const { data, error } = await supabase.from('creator_profiles').insert({
+    user_id: req.user.id,
+    handle: cleanHandle,
+    display_name: display_name || cleanHandle,
+    bio: bio || '',
+    category: category || 'general',
+    avatar_url: avatar_url || null,
+    cover_url: cover_url || null,
+    badge_level: 'creator',
+    badge_score: 0,
+    affiliate_rate: 5.0,
+    is_active: true
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true, creator: data });
+});
+
+// ── CREATOR DASHBOARD ──
+app.get('/api/creator/dashboard', auth, async (req, res) => {
+  try {
+    const { data: profile } = await supabase.from('creator_profiles')
+      .select('*').eq('user_id', req.user.id).single();
+
+    if (!profile) return res.json({ profile: null });
+
+    // Update badge level
+    const newBadge = computeBadgeLevel(profile);
+    if (newBadge !== profile.badge_level) {
+      await supabase.from('creator_profiles').update({ badge_level: newBadge }).eq('id', profile.id);
+      profile.badge_level = newBadge;
+    }
+
+    // Wallet balance from txns
+    const { data: txns } = await supabase.from('creator_wallet_txns')
+      .select('amount, txn_type').eq('creator_id', profile.id);
+    const balance = (txns || []).reduce((s, t) => s + (t.amount || 0), 0);
+    const breakdown = {
+      affiliate: (txns||[]).filter(t=>t.txn_type==='affiliate_commission').reduce((s,t)=>s+(t.amount||0),0),
+      gifts: (txns||[]).filter(t=>t.txn_type==='gift_income').reduce((s,t)=>s+(t.amount||0),0),
+      sales: (txns||[]).filter(t=>t.txn_type==='product_sale').reduce((s,t)=>s+(t.amount||0),0)
+    };
+
+    // Recent reels
+    const { data: reels } = await supabase.from('social_videos')
+      .select('id, title, views_count, likes_count, created_at')
+      .eq('user_id', req.user.id).order('created_at', { ascending: false }).limit(5);
+
+    // Recent txns
+    const { data: recentTxns } = await supabase.from('creator_wallet_txns')
+      .select('*').eq('creator_id', profile.id)
+      .order('created_at', { ascending: false }).limit(5);
+
+    // Stats
+    const { data: follows } = await supabase.from('user_follows')
+      .select('id', { count: 'exact' }).eq('following_id', req.user.id);
+
+    res.json({
+      profile: { ...profile, follower_count: (follows||[]).length },
+      wallet: { balance, breakdown },
+      recent_reels: reels || [],
+      recent_txns: recentTxns || [],
+      stats: {
+        followers: (follows||[]).length,
+        total_views: profile.total_views || 0,
+        total_likes: 0,
+        engagement_rate: '0',
+        revenue_7d: 0,
+        views_7d: 0,
+        new_followers: 0
+      }
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── PUBLIC CREATOR PROFILE ──
+app.get('/api/creator/profile/:handle', async (req, res) => {
+  const { data, error } = await supabase.from('creator_profiles')
+    .select('*').eq('handle', req.params.handle.toLowerCase()).single();
+  if (error || !data) return res.status(404).json({ error: 'Creator not found' });
+
+  // Follower count
+  const { data: follows } = await supabase.from('user_follows')
+    .select('id', { count: 'exact' }).eq('following_id', data.user_id);
+  res.json({ ...data, follower_count: (follows||[]).length });
+});
+
+// Update own profile
+app.put('/api/creator/profile', auth, async (req, res) => {
+  const { display_name, bio, category, avatar_url, cover_url, social_links } = req.body;
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id').eq('user_id', req.user.id).single();
+  if (!profile) return res.status(404).json({ error: 'Creator profile not found' });
+
+  const updates = {};
+  if (display_name !== undefined) updates.display_name = display_name;
+  if (bio !== undefined) updates.bio = bio;
+  if (category !== undefined) updates.category = category;
+  if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+  if (cover_url !== undefined) updates.cover_url = cover_url;
+  if (social_links !== undefined) updates.social_links = social_links;
+  updates.updated_at = new Date().toISOString();
+
+  const { error } = await supabase.from('creator_profiles').update(updates).eq('id', profile.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// Public storefront page
+app.get('/@:handle', async (req, res) => {
+  res.sendFile(join(__dirname, 'frontend/storefront.html'));
+});
+
+// ── MODULE 2: AFFILIATE LINKS ──
+app.post('/api/creator/affiliate/link', auth, async (req, res) => {
+  const { product_id, product_type = 'ticket', commission_rate } = req.body;
+  if (!product_id) return res.status(400).json({ error: 'product_id required' });
+
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id, handle, affiliate_rate').eq('user_id', req.user.id).single();
+  if (!profile) return res.status(403).json({ error: 'Bạn chưa đăng ký Creator' });
+
+  const code = genAffCode(profile.handle, product_id);
+  const rate = commission_rate || profile.affiliate_rate || 5.0;
+
+  const { data, error } = await supabase.from('affiliate_links').insert({
+    creator_id: profile.id, product_id, product_type, code,
+    commission_rate: rate, is_active: true
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true, code, link: `${process.env.REPLIT_DEV_DOMAIN||''}/ref/${code}`, affiliate: data });
+});
+
+app.get('/api/creator/affiliate/links', auth, async (req, res) => {
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id').eq('user_id', req.user.id).single();
+  if (!profile) return res.json([]);
+
+  const { data, error } = await supabase.from('affiliate_links')
+    .select('*').eq('creator_id', profile.id).order('created_at', { ascending: false });
+  res.json(data || []);
+});
+
+app.get('/api/creator/affiliate/stats', auth, async (req, res) => {
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id').eq('user_id', req.user.id).single();
+  if (!profile) return res.json({});
+
+  const { data: links } = await supabase.from('affiliate_links').select('id, code, click_count, sale_count, total_earned').eq('creator_id', profile.id);
+  const { data: sales } = await supabase.from('affiliate_sales').select('commission_amount, status, created_at').eq('creator_id', profile.id);
+
+  const totalEarned = (sales||[]).reduce((s,x)=>s+(x.commission_amount||0),0);
+  const pending = (sales||[]).filter(s=>s.status==='pending').reduce((s,x)=>s+(x.commission_amount||0),0);
+
+  res.json({ links: links||[], total_earned: totalEarned, pending_payout: pending, total_sales: (sales||[]).length });
+});
+
+// Affiliate click tracking redirect
+app.get('/ref/:code', async (req, res) => {
+  try {
+    const { data: link } = await supabase.from('affiliate_links')
+      .select('*').eq('code', req.params.code).eq('is_active', true).single();
+    if (!link) return res.redirect('/');
+
+    // Track click
+    await Promise.all([
+      supabase.from('affiliate_clicks').insert({
+        link_id: link.id, visitor_ip: req.ip,
+        user_agent: req.headers['user-agent'], referrer: req.headers.referer
+      }),
+      supabase.from('affiliate_links').update({ click_count: (link.click_count||0)+1 }).eq('id', link.id)
+    ]);
+
+    // Redirect to product
+    res.redirect(`/?ref=${link.code}&product=${link.product_id}`);
+  } catch(e) {
+    res.redirect('/');
+  }
+});
+
+// ── MODULE 6: CREATOR ANALYTICS ──
+app.get('/api/creator/analytics', auth, async (req, res) => {
+  const { period = '7d' } = req.query;
+  try {
+    const { data: profile } = await supabase.from('creator_profiles')
+      .select('*').eq('user_id', req.user.id).single();
+    if (!profile) return res.status(404).json({ error: 'Not a creator' });
+
+    const days = period === '30d' ? 30 : period === '90d' ? 90 : 7;
+    const since = new Date(Date.now() - days * 86400 * 1000).toISOString();
+
+    const { data: reels } = await supabase.from('social_videos')
+      .select('views_count, likes_count, comments_count, shares_count, created_at')
+      .eq('user_id', req.user.id).gte('created_at', since);
+
+    const totals = (reels||[]).reduce((acc, r) => ({
+      views: acc.views + (r.views_count||0),
+      likes: acc.likes + (r.likes_count||0),
+      comments: acc.comments + (r.comments_count||0),
+      shares: acc.shares + (r.shares_count||0)
+    }), { views:0, likes:0, comments:0, shares:0 });
+
+    const { data: follows } = await supabase.from('user_follows')
+      .select('id', { count: 'exact' }).eq('following_id', req.user.id);
+
+    res.json({
+      period, profile,
+      follower_count: (follows||[]).length,
+      totals,
+      engagement_rate: totals.views > 0 ? ((totals.likes + totals.comments) / totals.views * 100).toFixed(1) : '0',
+      reel_count: (reels||[]).length
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── MODULE 8: BRAND CAMPAIGNS ──
+app.get('/api/creator/campaigns', async (req, res) => {
+  const { category } = req.query;
+  let query = supabase.from('brand_campaigns').select('*').eq('status', 'active').order('created_at', { ascending: false });
+  if (category) query = query.eq('category', category);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/creator/campaigns/:id/apply', auth, async (req, res) => {
+  const { pitch } = req.body;
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id').eq('user_id', req.user.id).single();
+  if (!profile) return res.status(403).json({ error: 'Bạn chưa là Creator' });
+
+  const { error } = await supabase.from('campaign_applications').insert({
+    campaign_id: req.params.id, creator_id: profile.id, pitch: pitch || ''
+  });
+  if (error && error.code === '23505') return res.status(409).json({ error: 'Bạn đã đăng ký chiến dịch này rồi' });
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Increment applicant count
+  await supabase.rpc('increment_campaign_applicants', { campaign_id: req.params.id }).catch(()=>{});
+  res.json({ ok: true });
+});
+
+// ── MODULE 9: LEADERBOARD ──
+app.get('/api/creator/leaderboard', async (req, res) => {
+  const { type = 'revenue', limit = 20 } = req.query;
+  const orderMap = { revenue: 'total_revenue', followers: 'follower_count', views: 'total_views', sales: 'total_sales' };
+  const orderCol = orderMap[type] || 'total_revenue';
+
+  const { data, error } = await supabase.from('creator_profiles')
+    .select('id, handle, display_name, badge_level, follower_count, total_views, total_sales, total_revenue, category, bio')
+    .eq('is_active', true).order(orderCol, { ascending: false }).limit(Number(limit));
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── MODULE 11: SAFESTAR GIFTS ──
+app.post('/api/creator/gift/send', auth, async (req, res) => {
+  const { creator_handle, gift_type = 'star', quantity = 1, message, context = 'profile', context_id } = req.body;
+  if (!creator_handle) return res.status(400).json({ error: 'creator_handle required' });
+
+  const handle = creator_handle.replace('@', '').toLowerCase();
+  const { data: creator } = await supabase.from('creator_profiles')
+    .select('id').eq('handle', handle).single();
+  if (!creator) return res.status(404).json({ error: 'Creator không tồn tại' });
+
+  const giftValues = { star: 2000, heart: 5000, fire: 10000, diamond: 50000, crown: 100000 };
+  const valueVND = (giftValues[gift_type] || 2000) * Math.max(1, Number(quantity));
+
+  const { error } = await supabase.from('creator_gifts').insert({
+    sender_id: req.user.id, creator_id: creator.id,
+    gift_type, quantity: Number(quantity), value_vnd: valueVND,
+    context, context_id: context_id || null, message: message || null
+  });
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Credit gift income to creator wallet
+  const { data: lastTxn } = await supabase.from('creator_wallet_txns')
+    .select('balance_after').eq('creator_id', creator.id)
+    .order('created_at', { ascending: false }).limit(1).single();
+  const prevBal = lastTxn?.balance_after || 0;
+
+  await supabase.from('creator_wallet_txns').insert({
+    creator_id: creator.id, txn_type: 'gift_income',
+    amount: valueVND, balance_after: prevBal + valueVND,
+    description: `${quantity}x ${gift_type} từ người dùng`
+  });
+
+  res.json({ ok: true, value_vnd: valueVND });
+});
+
+app.get('/api/creator/gifts', auth, async (req, res) => {
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id').eq('user_id', req.user.id).single();
+  if (!profile) return res.json([]);
+
+  const { data } = await supabase.from('creator_gifts')
+    .select('*, users!creator_gifts_sender_id_fkey(name)')
+    .eq('creator_id', profile.id)
+    .order('created_at', { ascending: false }).limit(50);
+  res.json(data || []);
+});
+
+// ── MODULE 12: CREATOR WALLET ──
+app.get('/api/creator/wallet', auth, async (req, res) => {
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id').eq('user_id', req.user.id).single();
+  if (!profile) return res.json({ balance: 0, breakdown: {} });
+
+  const { data: txns } = await supabase.from('creator_wallet_txns')
+    .select('amount, txn_type').eq('creator_id', profile.id);
+
+  const balance = (txns||[]).reduce((s,t)=>s+(t.amount||0),0);
+  const breakdown = {
+    affiliate: (txns||[]).filter(t=>t.txn_type==='affiliate_commission').reduce((s,t)=>s+(t.amount||0),0),
+    gifts: (txns||[]).filter(t=>t.txn_type==='gift_income').reduce((s,t)=>s+(t.amount||0),0),
+    sales: (txns||[]).filter(t=>t.txn_type==='product_sale').reduce((s,t)=>s+(t.amount||0),0)
+  };
+  res.json({ balance, breakdown });
+});
+
+app.get('/api/creator/wallet/txns', auth, async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const { data: profile } = await supabase.from('creator_profiles')
+    .select('id').eq('user_id', req.user.id).single();
+  if (!profile) return res.json([]);
+
+  const { data } = await supabase.from('creator_wallet_txns')
+    .select('*').eq('creator_id', profile.id)
+    .order('created_at', { ascending: false })
+    .range((page-1)*limit, page*limit-1);
+  res.json(data || []);
+});
+
+// ── MODULE 13: AI CONTENT TOOLS ──
+app.post('/api/creator/ai/generate', async (req, res) => {
+  const { type, input } = req.body;
+  if (!type || !input) return res.status(400).json({ error: 'type and input required' });
+
+  const kw = input.split(' ').slice(0, 4).join(' ');
+  const generators = {
+    title: (kw) => [
+      `🔥 ${input} — Bạn PHẢI xem video này!`,
+      `✅ Trải nghiệm ${kw} thực tế — Có đáng mua không?`,
+      `💥 Sự thật về ${kw} mà ai cũng cần biết`,
+      `🎯 ${kw}: Review chi tiết nhất 2026`,
+      `⚡ Đừng mua ${kw} trước khi xem video này!`
+    ].join('\n\n'),
+    hashtag: (kw) => {
+      const tags = input.split(/[\s]+/).filter(Boolean).map(t => `#${t}`);
+      return [...tags, '#SafePass', '#MuaBánAnToàn', '#Escrow', '#ViệtNam', '#Trending', '#Creator'].join(' ');
+    },
+    description: (kw) => `✨ ${input}\n\n📦 Sản phẩm chính hãng, giao dịch qua SafePass Escrow\n🔒 Bảo vệ người mua — hoàn tiền 100% nếu không nhận được hàng\n🚚 Giao hàng toàn quốc 2-5 ngày\n💬 Inbox để được tư vấn và đặt hàng\n⭐ Đánh giá 5 sao từ 500+ khách hàng\n\n#SafePass #MuaBánAnToàn #${kw.replace(/\s/g,'')}`,
+    caption: (kw) => `✨ ${input} 🔥\n\n💫 Cảm ơn mọi người đã theo dõi! Để lại bình luận nếu bạn muốn biết thêm nhé 👇\n\n❤️ Like nếu bạn thấy hữu ích\n🔔 Follow để không bỏ lỡ nội dung mới\n\n#SafePass #${kw.replace(/\s/g,'')} #Creator #ViệtNam`
+  };
+
+  const gen = generators[type];
+  if (!gen) return res.status(400).json({ error: 'Invalid type' });
+  res.json({ result: gen(kw), type });
+});
+
+// ── MODULE 14: CREATOR DISCOVER ──
+app.get('/api/creator/discover', async (req, res) => {
+  const { category, limit = 20 } = req.query;
+  let query = supabase.from('creator_profiles')
+    .select('id, handle, display_name, bio, category, badge_level, follower_count, total_views, avatar_url')
+    .eq('is_active', true).order('follower_count', { ascending: false }).limit(Number(limit));
+  if (category) query = query.eq('category', category);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// ── MODULE 15: ADMIN CREATOR CENTER ──
+app.get('/api/admin/creators', adminAuth, async (req, res) => {
+  const { status, badge_level, limit = 50, page = 1 } = req.query;
+  let query = supabase.from('creator_profiles').select('*').order('created_at', { ascending: false });
+  if (status === 'active') query = query.eq('is_active', true);
+  if (badge_level) query = query.eq('badge_level', badge_level);
+  query = query.range((page-1)*limit, page*limit-1);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.patch('/api/admin/creators/:id/verify', adminAuth, async (req, res) => {
+  const { is_verified, badge_level } = req.body;
+  const updates = {};
+  if (is_verified !== undefined) updates.is_verified = is_verified;
+  if (badge_level) updates.badge_level = badge_level;
+  const { error } = await supabase.from('creator_profiles').update(updates).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+
+  await supabase.from('admin_logs').insert({
+    admin_id: req.admin.id, action: 'creator_verify',
+    target_id: req.params.id, details: updates
+  }).catch(() => {});
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/affiliate/sales', adminAuth, async (req, res) => {
+  const { status = 'pending', limit = 50 } = req.query;
+  const { data, error } = await supabase.from('affiliate_sales')
+    .select('*, creator_profiles(handle, display_name)')
+    .eq('status', status).order('created_at', { ascending: false }).limit(Number(limit));
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// Approve affiliate payout
+app.post('/api/admin/affiliate/sales/:id/approve', adminAuth, async (req, res) => {
+  const { data: sale } = await supabase.from('affiliate_sales').select('*').eq('id', req.params.id).single();
+  if (!sale) return res.status(404).json({ error: 'Not found' });
+
+  await supabase.from('affiliate_sales').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', sale.id);
+
+  // Credit wallet
+  const { data: lastTxn } = await supabase.from('creator_wallet_txns')
+    .select('balance_after').eq('creator_id', sale.creator_id)
+    .order('created_at', { ascending: false }).limit(1).single();
+  const prevBal = lastTxn?.balance_after || 0;
+
+  await supabase.from('creator_wallet_txns').insert({
+    creator_id: sale.creator_id, txn_type: 'affiliate_commission',
+    amount: sale.commission_amount, balance_after: prevBal + sale.commission_amount,
+    reference_id: sale.id, description: `Hoa hồng đơn #${sale.order_id}`
+  });
+  res.json({ ok: true });
+});
 
 // ── AI SCORING HELPERS ──
 function calcPostScore(post, followingIds = [], prefCategories = {}) {
