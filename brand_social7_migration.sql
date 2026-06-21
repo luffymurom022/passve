@@ -1,13 +1,14 @@
 -- ══════════════════════════════════════════════════════════
 -- SAFEPASS — PHASE SOCIAL 7: BUSINESS & BRAND ECOSYSTEM
 -- Chạy file này trong Supabase SQL Editor
+-- Phiên bản v2: Không yêu cầu Phase 14 (business_accounts FK đã bỏ)
 -- ══════════════════════════════════════════════════════════
 
 -- 1. Brand Posts (Facebook-style posts on brand pages)
 CREATE TABLE IF NOT EXISTS brand_posts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id uuid REFERENCES business_accounts(id) ON DELETE CASCADE,
-  type text NOT NULL DEFAULT 'post', -- post, promo, event, announcement, product
+  business_id uuid,
+  type text NOT NULL DEFAULT 'post',
   content text NOT NULL,
   image_url text,
   cta_text text,
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS brand_posts (
   comments_count int DEFAULT 0,
   views_count int DEFAULT 0,
   is_pinned bool DEFAULT false,
-  status text DEFAULT 'active', -- active, hidden, deleted
+  status text DEFAULT 'active',
   created_at timestamptz DEFAULT now()
 );
 
@@ -41,11 +42,11 @@ CREATE TABLE IF NOT EXISTS brand_post_comments (
 -- 4. Brand Campaigns (Flash Sales, Coupons, Promos, Events)
 CREATE TABLE IF NOT EXISTS brand_campaigns (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id uuid REFERENCES business_accounts(id) ON DELETE CASCADE,
-  type text NOT NULL DEFAULT 'promo', -- promo, flash_sale, coupon, event
+  business_id uuid,
+  type text NOT NULL DEFAULT 'promo',
   title text NOT NULL,
   description text,
-  discount_type text DEFAULT 'percent', -- percent, fixed
+  discount_type text DEFAULT 'percent',
   discount_value numeric DEFAULT 0,
   min_order_value numeric DEFAULT 0,
   max_uses int DEFAULT 100,
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS brand_campaigns (
   coupon_code text UNIQUE,
   starts_at timestamptz DEFAULT now(),
   ends_at timestamptz,
-  status text DEFAULT 'active', -- active, paused, ended, draft
+  status text DEFAULT 'active',
   event_location text,
   event_date timestamptz,
   created_at timestamptz DEFAULT now()
@@ -71,15 +72,15 @@ CREATE TABLE IF NOT EXISTS brand_campaign_uses (
 -- 6. Brand Collaborations (Influencer/Creator Programs)
 CREATE TABLE IF NOT EXISTS brand_collaborations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id uuid REFERENCES business_accounts(id) ON DELETE CASCADE,
+  business_id uuid,
   title text NOT NULL,
   description text,
   requirements text,
   budget_min numeric DEFAULT 0,
   budget_max numeric DEFAULT 0,
   commission_rate numeric DEFAULT 10,
-  collaboration_type text DEFAULT 'affiliate', -- affiliate, sponsored, gifted, event, ambassador
-  status text DEFAULT 'open', -- open, closed, draft
+  collaboration_type text DEFAULT 'affiliate',
+  status text DEFAULT 'open',
   applications_count int DEFAULT 0,
   deadline timestamptz,
   created_at timestamptz DEFAULT now()
@@ -90,11 +91,11 @@ CREATE TABLE IF NOT EXISTS brand_collab_applications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   collaboration_id uuid REFERENCES brand_collaborations(id) ON DELETE CASCADE,
   creator_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  business_id uuid REFERENCES business_accounts(id) ON DELETE CASCADE,
+  business_id uuid,
   message text,
   portfolio_url text,
   follower_count int DEFAULT 0,
-  status text DEFAULT 'pending', -- pending, approved, rejected
+  status text DEFAULT 'pending',
   created_at timestamptz DEFAULT now(),
   UNIQUE(collaboration_id, creator_id)
 );
@@ -102,21 +103,21 @@ CREATE TABLE IF NOT EXISTS brand_collab_applications (
 -- 8. Business Inbox (Customer → Brand messages)
 CREATE TABLE IF NOT EXISTS business_inbox (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id uuid REFERENCES business_accounts(id) ON DELETE CASCADE,
+  business_id uuid,
   customer_id uuid REFERENCES users(id) ON DELETE CASCADE,
   subject text,
   message text NOT NULL,
   reply text,
   replied_at timestamptz,
   is_auto_replied bool DEFAULT false,
-  status text DEFAULT 'unread', -- unread, read, replied, closed
+  status text DEFAULT 'unread',
   created_at timestamptz DEFAULT now()
 );
 
 -- 9. Business Auto-Reply Rules
 CREATE TABLE IF NOT EXISTS business_auto_replies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id uuid REFERENCES business_accounts(id) ON DELETE CASCADE,
+  business_id uuid,
   trigger_keyword text NOT NULL,
   reply_text text NOT NULL,
   is_active bool DEFAULT true,
@@ -127,25 +128,31 @@ CREATE TABLE IF NOT EXISTS business_auto_replies (
 -- 10. Brand Follows (Users following brands)
 CREATE TABLE IF NOT EXISTS brand_follows (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id uuid REFERENCES business_accounts(id) ON DELETE CASCADE,
+  business_id uuid,
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
   created_at timestamptz DEFAULT now(),
   UNIQUE(business_id, user_id)
 );
 
--- 11. Add followers_count to business_accounts if not exists
-ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS followers_count int DEFAULT 0;
-ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS posts_count int DEFAULT 0;
-ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS trust_score numeric DEFAULT 0;
-ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS cover_image_url text;
-ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS category text DEFAULT 'retail';
-ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS tags text[];
+-- 11. Add columns to business_accounts if the table exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='business_accounts') THEN
+    ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS followers_count int DEFAULT 0;
+    ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS posts_count int DEFAULT 0;
+    ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS trust_score numeric DEFAULT 0;
+    ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS cover_image_url text;
+    ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS category text DEFAULT 'retail';
+    ALTER TABLE business_accounts ADD COLUMN IF NOT EXISTS tags text[];
+  END IF;
+END $$;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_brand_posts_business ON brand_posts(business_id);
 CREATE INDEX IF NOT EXISTS idx_brand_posts_status ON brand_posts(status);
 CREATE INDEX IF NOT EXISTS idx_brand_campaigns_business ON brand_campaigns(business_id);
 CREATE INDEX IF NOT EXISTS idx_brand_campaigns_status ON brand_campaigns(status);
+CREATE INDEX IF NOT EXISTS idx_brand_collabs_business ON brand_collaborations(business_id);
 CREATE INDEX IF NOT EXISTS idx_brand_collabs_status ON brand_collaborations(status);
 CREATE INDEX IF NOT EXISTS idx_business_inbox_business ON business_inbox(business_id);
 CREATE INDEX IF NOT EXISTS idx_brand_follows_business ON brand_follows(business_id);

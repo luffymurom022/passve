@@ -92,7 +92,7 @@ INSERT INTO sp_mini_apps (name,description,icon,color,url,category,is_featured,d
   ('Trust Center','Xác minh danh tính & uy tín','🛡️','#3b82f6','/trust','utilities',false,'SafePass'),
   ('AI Commerce','Thương mại thông minh AI','🤖','#6366f1','/aicommerce','entertainment',false,'SafePass'),
   ('Freelance','Thuê & tìm việc tự do','💼','#0ea5e9','/freelance','business',false,'SafePass'),
-  ('Social','Mạng xã hội & Reels','📱','/social','social',false,'SafePass','/social'),
+  ('Social','Mạng xã hội & Reels','📱','#f97316','/social','social',false,'SafePass'),
   ('Kho Bãi','Lưu kho thông minh','🏭','#78716c','/warehouse','business',false,'SafePass'),
   ('Chuỗi Nhượng Quyền','Mạng lưới đối tác','🤝','#ec4899','/franchise','business',false,'SafePass'),
   ('Trung Tâm Kiểm Định','Kiểm tra hàng hóa chuyên nghiệp','🔬','#14b8a6','/inspection','utilities',false,'SafePass'),
