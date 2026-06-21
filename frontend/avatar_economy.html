@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Avatar Economy — SafePass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050608;--bg2:#0a0c12;--bg3:#10131e;--bg4:#161a28;
+  --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.08);--glass3:rgba(255,255,255,.13);
+  --brand:#7c6dfa;--brand2:#a78bfa;--accent:#00e5ff;--accent2:#ff6b9d;--accent3:#39ff14;
+  --gold:#fbbf24;--green:#10f08a;--red:#ff4d6d;--orange:#ff8c42;
+  --text:#f0f2ff;--text2:#9ba8cc;--text3:#4a5270;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --radius:16px;--shadow:0 8px 40px rgba(0,0,0,.6);
+  --rare-glow:0 0 30px rgba(0,229,255,.25);
+  --epic-glow:0 0 30px rgba(124,109,250,.35);
+  --legendary-glow:0 0 40px rgba(251,191,36,.4);
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input,textarea,select{font-family:inherit;outline:none;border:none;background:none;color:inherit}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* ── PARTICLES ── */
+#av-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.av-particle{position:absolute;border-radius:50%;animation:av-float linear infinite;opacity:0}
+@keyframes av-float{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.8}90%{opacity:.2}100%{transform:translateY(-5vh) scale(1.2);opacity:0}}
+
+/* ── TOP NAV ── */
+.topnav{position:sticky;top:0;z-index:200;background:rgba(5,6,8,.88);backdrop-filter:blur(24px) saturate(200%);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 20px;height:62px}
+.tnav-logo{font-size:19px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.tnav-badge{font-size:10px;font-weight:900;background:linear-gradient(135deg,var(--gold),var(--orange));color:#fff;-webkit-text-fill-color:#fff;padding:3px 8px;border-radius:20px}
+.tnav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:12px;font-size:14px;font-weight:700;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-brand{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 0 24px rgba(124,109,250,.3)}
+.btn-brand:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 0 40px rgba(124,109,250,.5)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--orange));color:#fff;box-shadow:0 0 24px rgba(251,191,36,.3)}
+.btn-gold:hover{opacity:.88;transform:translateY(-1px)}
+.btn-glass{background:var(--glass2);color:var(--text2);border:1px solid var(--border);backdrop-filter:blur(12px)}
+.btn-glass:hover{background:var(--glass3);color:var(--text);border-color:var(--border2)}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:10px}
+.sp-balance{display:flex;align-items:center;gap:6px;background:var(--glass);border:1px solid rgba(251,191,36,.2);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:800;color:var(--gold)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;max-width:1440px;margin:0 auto;width:100%;padding:20px;gap:20px;position:relative;z-index:1}
+
+/* ── LEFT SIDEBAR ── */
+.lsb{width:210px;flex-shrink:0}
+.lsb-sect{margin-bottom:24px}
+.lsb-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:10px;padding:0 10px}
+.lsb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:.15s;margin-bottom:2px;border:1px solid transparent}
+.lsb-item:hover{background:var(--glass2);color:var(--text);border-color:var(--border)}
+.lsb-item.active{background:linear-gradient(135deg,rgba(124,109,250,.15),rgba(251,191,36,.06));color:var(--brand);border-color:rgba(124,109,250,.3)}
+.lsb-item .li-icon{font-size:18px;width:26px;text-align:center}
+.lsb-badge{margin-left:auto;font-size:10px;font-weight:800;background:var(--brand);color:#fff;padding:2px 7px;border-radius:20px}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0}
+.av-view{display:none}
+.av-view.active{display:block}
+
+/* ── HERO PROFILE ── */
+.av-hero{position:relative;border-radius:24px;overflow:hidden;margin-bottom:24px;background:linear-gradient(135deg,#0d0814 0%,#140a28 50%,#0a1428 100%);border:1px solid rgba(124,109,250,.2);padding:0}
+.av-hero-banner{height:140px;background:linear-gradient(135deg,#1a0a3a,#0a1a3a,#1a0a14);position:relative;overflow:hidden}
+.av-hero-banner-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(124,109,250,.4) 0%,transparent 60%),radial-gradient(ellipse at 70% 30%,rgba(0,229,255,.2) 0%,transparent 60%)}
+.av-hero-banner-stars{position:absolute;inset:0}
+.av-hero-content{padding:0 28px 24px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:flex-end;position:relative}
+.av-identity{display:flex;align-items:flex-end;gap:20px}
+.av-avatar-wrap{position:relative;margin-top:-50px}
+.av-avatar-ring{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--gold));padding:3px;box-shadow:0 0 40px rgba(124,109,250,.5)}
+.av-avatar-inner{width:100%;height:100%;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;overflow:hidden}
+.av-online{position:absolute;bottom:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--green);border:3px solid var(--bg);box-shadow:0 0 10px var(--green)}
+.av-info{padding-bottom:4px}
+.av-name{font-size:22px;font-weight:900;display:flex;align-items:center;gap:8px}
+.av-id{font-size:12px;color:var(--text3);margin-top:4px;font-family:monospace}
+.av-badges-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.av-badge-chip{font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;backdrop-filter:blur(8px)}
+.abc-gold{background:rgba(251,191,36,.15);color:var(--gold);border:1px solid rgba(251,191,36,.3)}
+.abc-brand{background:rgba(124,109,250,.15);color:var(--brand);border:1px solid rgba(124,109,250,.3)}
+.abc-green{background:rgba(16,240,138,.1);color:var(--green);border:1px solid rgba(16,240,138,.2)}
+.abc-red{background:rgba(255,107,157,.12);color:var(--accent2);border:1px solid rgba(255,107,157,.25)}
+.av-stats-row{display:flex;gap:24px;padding:16px 28px;border-top:1px solid var(--border)}
+.av-stat{text-align:center;flex:1}
+.av-stat .val{font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.av-stat .lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.level-bar-wrap{padding:0 28px 20px}
+.level-bar-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:6px}
+.level-bar-track{height:8px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.level-bar-fill{height:100%;background:linear-gradient(135deg,var(--brand),var(--gold));border-radius:4px;transition:.5s}
+
+/* ── TABS ── */
+.tabs-av{display:flex;gap:4px;background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:4px;margin-bottom:20px}
+.tab-av{flex:1;padding:9px;border-radius:13px;font-size:13px;font-weight:700;color:var(--text2);text-align:center;cursor:pointer;transition:.2s}
+.tab-av.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 0 20px rgba(124,109,250,.3)}
+.tab-av:hover:not(.active){background:var(--glass2);color:var(--text)}
+
+/* ── MARKETPLACE ── */
+.mkt-filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.mkt-filter{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;background:var(--glass);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:.15s}
+.mkt-filter:hover,.mkt-filter.active{background:rgba(124,109,250,.15);border-color:rgba(124,109,250,.4);color:var(--brand)}
+.mkt-search{flex:1;min-width:160px;background:var(--glass2);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--text)}
+.mkt-search::placeholder{color:var(--text3)}
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.item-card{background:var(--bg3);border:1px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:.25s;position:relative}
+.item-card:hover{transform:translateY(-4px);border-color:rgba(124,109,250,.4)}
+.item-card.rarity-legendary{border-color:rgba(251,191,36,.3);box-shadow:var(--legendary-glow)}
+.item-card.rarity-epic{border-color:rgba(124,109,250,.3);box-shadow:var(--epic-glow)}
+.item-card.rarity-rare{border-color:rgba(0,229,255,.25);box-shadow:var(--rare-glow)}
+.ic-visual{height:140px;display:flex;align-items:center;justify-content:center;font-size:64px;position:relative;overflow:hidden}
+.ic-visual-bg{position:absolute;inset:0}
+.ic-visual-glow{position:absolute;inset:0;background:radial-gradient(circle at 50% 80%,rgba(124,109,250,.3) 0%,transparent 60%)}
+.ic-emoji{position:relative;z-index:1;filter:drop-shadow(0 0 16px currentColor);animation:ic-float 3s ease-in-out infinite}
+@keyframes ic-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.ic-rarity{position:absolute;top:8px;left:8px;font-size:10px;font-weight:900;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+.rty-legendary{background:rgba(251,191,36,.2);color:var(--gold);border:1px solid rgba(251,191,36,.4)}
+.rty-epic{background:rgba(124,109,250,.2);color:var(--brand2);border:1px solid rgba(124,109,250,.4)}
+.rty-rare{background:rgba(0,229,255,.15);color:var(--accent);border:1px solid rgba(0,229,255,.3)}
+.rty-uncommon{background:rgba(16,240,138,.1);color:var(--green);border:1px solid rgba(16,240,138,.25)}
+.rty-common{background:rgba(255,255,255,.06);color:var(--text3);border:1px solid var(--border)}
+.rty-limited{background:rgba(255,107,157,.15);color:var(--accent2);border:1px solid rgba(255,107,157,.35)}
+.ic-featured{position:absolute;top:8px;right:8px;font-size:9px;font-weight:900;background:rgba(251,191,36,.2);color:var(--gold);border:1px solid rgba(251,191,36,.3);border-radius:20px;padding:2px 7px}
+.ic-body{padding:12px}
+.ic-name{font-size:14px;font-weight:800;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ic-category{font-size:11px;color:var(--text3);margin-bottom:10px;text-transform:capitalize}
+.ic-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ic-price{font-size:15px;font-weight:900;color:var(--gold);display:flex;align-items:center;gap:4px}
+.ic-price.free{color:var(--green)}
+.ic-buy-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:800;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;transition:.2s;white-space:nowrap}
+.ic-buy-btn:hover{box-shadow:0 0 20px rgba(124,109,250,.4)}
+.ic-buy-btn.owned{background:var(--glass2);color:var(--green);border:1px solid rgba(16,240,138,.3)}
+
+/* ── INVENTORY ── */
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.inv-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:.2s;position:relative;text-align:center;padding:14px}
+.inv-card:hover{border-color:rgba(124,109,250,.4);background:var(--glass2)}
+.inv-card.equipped{border-color:rgba(16,240,138,.4);background:rgba(16,240,138,.05)}
+.inv-equipped-tag{position:absolute;top:8px;right:8px;font-size:9px;font-weight:900;background:rgba(16,240,138,.2);color:var(--green);border:1px solid rgba(16,240,138,.3);border-radius:20px;padding:2px 7px}
+.inv-emoji{font-size:40px;margin-bottom:8px;display:block}
+.inv-name{font-size:12px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-cat{font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:capitalize}
+.inv-equip-btn{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(124,109,250,.15);border:1px solid rgba(124,109,250,.3);color:var(--brand);transition:.2s}
+.inv-equip-btn:hover,.inv-equip-btn.on{background:rgba(16,240,138,.15);border-color:rgba(16,240,138,.3);color:var(--green)}
+
+/* ── WARDROBE ── */
+.wardrobe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.wd-card{background:var(--glass);border:1px solid var(--border);border-radius:18px;padding:18px;cursor:pointer;transition:.2s;position:relative}
+.wd-card:hover{border-color:rgba(124,109,250,.4);transform:translateY(-2px)}
+.wd-card.default{border-color:rgba(251,191,36,.3)}
+.wd-default-tag{position:absolute;top:10px;right:10px;font-size:9px;font-weight:900;background:rgba(251,191,36,.15);color:var(--gold);border:1px solid rgba(251,191,36,.3);border-radius:20px;padding:2px 7px}
+.wd-icon{font-size:36px;margin-bottom:10px}
+.wd-name{font-size:15px;font-weight:800;margin-bottom:6px}
+.wd-items{font-size:12px;color:var(--text3)}
+
+/* ── AVATAR BUILDER (Advanced) ── */
+.av-builder{display:grid;grid-template-columns:240px 1fr;gap:20px}
+.avb-preview-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:20px;text-align:center;position:relative;overflow:hidden}
+.avb-preview-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 70%,rgba(124,109,250,.12) 0%,transparent 60%)}
+.avb-char{position:relative;width:160px;height:200px;margin:0 auto 16px}
+.avb-head{width:72px;height:72px;border-radius:50%;margin:0 auto;border:3px solid rgba(255,255,255,.12);transition:.3s}
+.avb-body{width:90px;height:110px;border-radius:45px 45px 24px 24px;margin:4px auto 0;transition:.3s;position:relative}
+.avb-halo{width:90px;height:12px;border-radius:50%;border:2px solid rgba(124,109,250,.6);margin:0 auto -16px;box-shadow:0 0 20px rgba(124,109,250,.5);animation:rot 4s linear infinite}
+.avb-accessory{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:28px;filter:drop-shadow(0 0 8px rgba(251,191,36,.5))}
+.avb-level-badge{display:inline-block;margin-top:10px;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--gold));color:#fff}
+.avb-name{font-size:15px;font-weight:700;margin-top:8px;color:var(--text)}
+@keyframes rot{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.avb-options{display:flex;flex-direction:column;gap:14px}
+.avb-group label{display:block;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s;flex-shrink:0}
+.swatch.active,.swatch:hover{border-color:#fff;transform:scale(1.15);box-shadow:0 0 12px currentColor}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--glass);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:.15s}
+.chip.active,.chip:hover{background:rgba(124,109,250,.15);border-color:rgba(124,109,250,.4);color:var(--brand)}
+.ctrl{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:13px;transition:.2s}
+.ctrl:focus{border-color:var(--brand)}
+
+/* ── REPUTATION / DASHBOARD ── */
+.rep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.rep-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center}
+.rep-card .val{font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.rep-card .lbl{font-size:11px;color:var(--text3);margin-top:4px}
+.rep-card .trend{font-size:11px;margin-top:6px;color:var(--green)}
+.txn-list{display:flex;flex-direction:column;gap:10px}
+.txn-item{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px}
+.txn-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.txn-icon.buy{background:rgba(255,107,157,.12)}
+.txn-icon.earn{background:rgba(16,240,138,.1)}
+.txn-name{flex:1;font-size:13px;font-weight:700}
+.txn-date{font-size:11px;color:var(--text3)}
+.txn-amount{font-size:15px;font-weight:900}
+.txn-amount.neg{color:var(--accent2)}
+.txn-amount.pos{color:var(--green)}
+
+/* ── SHOWROOM ── */
+.showroom-header{border-radius:20px;background:linear-gradient(135deg,#100a28,#0a1428);border:1px solid rgba(124,109,250,.2);padding:28px;margin-bottom:20px;display:flex;align-items:center;gap:20px}
+.sr-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--gold));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;box-shadow:0 0 30px rgba(124,109,250,.4)}
+.sr-info h2{font-size:20px;font-weight:900;margin-bottom:6px}
+.sr-badges{display:flex;gap:6px;flex-wrap:wrap}
+.sr-featured{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+
+/* ── AI ASSISTANT ── */
+.ai-assist{background:linear-gradient(135deg,rgba(124,109,250,.08),rgba(0,229,255,.04));border:1px solid rgba(124,109,250,.2);border-radius:18px;padding:18px;margin-bottom:20px}
+.ai-assist h3{font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ai-orb{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--gold));display:flex;align-items:center;justify-content:center;font-size:12px;animation:ai-pulse 2s infinite}
+@keyframes ai-pulse{0%,100%{box-shadow:0 0 16px rgba(124,109,250,.4)}50%{box-shadow:0 0 32px rgba(124,109,250,.7)}}
+.ai-suggestions{display:flex;gap:8px;flex-wrap:wrap}
+.ai-sug{padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;background:var(--glass2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:.2s}
+.ai-sug:hover{background:rgba(124,109,250,.15);border-color:rgba(124,109,250,.4);color:var(--text)}
+
+/* ── MODALS ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:24px;padding:28px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:20px;font-weight:900;margin-bottom:20px;background:linear-gradient(135deg,var(--brand),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal-close{float:right;background:none;color:var(--text3);font-size:22px;cursor:pointer;-webkit-text-fill-color:var(--text3)}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+
+/* ── ITEM DETAIL MODAL ── */
+.item-detail-visual{height:200px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:90px;margin-bottom:20px;position:relative;overflow:hidden}
+.item-detail-info h2{font-size:20px;font-weight:900;margin-bottom:8px;-webkit-text-fill-color:var(--text)}
+.item-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.item-tag{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(124,109,250,.1);color:var(--brand);border:1px solid rgba(124,109,250,.2)}
+.price-big{font-size:28px;font-weight:900;color:var(--gold);margin:12px 0}
+
+/* ── TOAST ── */
+.toasts{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px 20px;font-size:14px;font-weight:700;animation:slide-up .3s ease;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.toast.s{border-color:rgba(16,240,138,.4);color:var(--green)}
+.toast.e{border-color:rgba(255,77,109,.4);color:var(--red)}
+.toast.i{border-color:rgba(124,109,250,.4);color:var(--brand)}
+@keyframes slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty .ei{font-size:52px;margin-bottom:14px}
+.empty h3{font-size:16px;font-weight:700;color:var(--text2);margin-bottom:6px}
+
+/* ── SECTION HEADER ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sh h2{font-size:18px;font-weight:800}
+.sh p{font-size:12px;color:var(--text3);margin-top:2px}
+.sh .see-all{font-size:13px;color:var(--brand);cursor:pointer;font-weight:600}
+.sh .see-all:hover{text-decoration:underline}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){.lsb{display:none}.av-builder{grid-template-columns:1fr}}
+@media(max-width:640px){.items-grid{grid-template-columns:repeat(2,1fr)}.rep-grid{grid-template-columns:repeat(2,1fr)}.av-hero-content{grid-template-columns:1fr}.av-stats-row{gap:14px}}
+</style>
+</head>
+<body>
+
+<div id="av-bg"></div>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="tnav-logo">🎭 Avatar Economy <span class="tnav-badge">ECONOMY</span></div>
+  <div class="tnav-right">
+    <div class="sp-balance">🪙 <span id="spBalance">—</span> SP</div>
+    <button class="btn btn-gold btn-sm" onclick="showTab('marketplace')">🛍️ Marketplace</button>
+    <button class="btn btn-brand btn-sm" onclick="showPublishModal()">➕ Đăng bán</button>
+    <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--gold));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;cursor:pointer;border:2px solid rgba(255,255,255,.15)" id="navOrb" onclick="showTab('profile')">U</div>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="lsb">
+    <div class="lsb-sect">
+      <div class="lsb-title">Avatar</div>
+      <div class="lsb-item active" id="sb-profile" onclick="showTab('profile')"><span class="li-icon">🧬</span>Hồ sơ Avatar</div>
+      <div class="lsb-item" id="sb-builder" onclick="showTab('builder')"><span class="li-icon">✏️</span>Tùy chỉnh</div>
+      <div class="lsb-item" id="sb-wardrobe" onclick="showTab('wardrobe')"><span class="li-icon">👗</span>Tủ đồ</div>
+    </div>
+    <div class="lsb-sect">
+      <div class="lsb-title">Economy</div>
+      <div class="lsb-item" id="sb-marketplace" onclick="showTab('marketplace')"><span class="li-icon">🛍️</span>Marketplace</div>
+      <div class="lsb-item" id="sb-inventory" onclick="showTab('inventory')"><span class="li-icon">🎒</span>Kho đồ <span class="lsb-badge" id="invCount">0</span></div>
+      <div class="lsb-item" id="sb-dashboard" onclick="showTab('dashboard')"><span class="li-icon">📊</span>Dashboard</div>
+    </div>
+    <div class="lsb-sect">
+      <div class="lsb-title">Social</div>
+      <div class="lsb-item" id="sb-showroom" onclick="showTab('showroom')"><span class="li-icon">🏆</span>Showroom</div>
+      <div class="lsb-item" id="sb-creator" onclick="showTab('creator')"><span class="li-icon">🎨</span>Creator Studio</div>
+    </div>
+    <div class="lsb-sect">
+      <div class="lsb-item" onclick="window.location.href='/'"><span class="li-icon">🏠</span>Về trang chủ</div>
+      <div class="lsb-item" onclick="window.location.href='/xr'"><span class="li-icon">🥽</span>XR Network</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- PROFILE TAB -->
+    <div id="tab-profile" class="av-view active">
+
+      <div class="av-hero">
+        <div class="av-hero-banner">
+          <div class="av-hero-banner-glow"></div>
+        </div>
+        <div class="av-hero-content">
+          <div class="av-identity">
+            <div class="av-avatar-wrap">
+              <div class="av-avatar-ring">
+                <div class="av-avatar-inner" id="heroAvInner">U</div>
+              </div>
+              <div class="av-online"></div>
+            </div>
+            <div class="av-info">
+              <div class="av-name" id="heroName">Avatar Name <span style="font-size:16px">✅</span></div>
+              <div class="av-id" id="heroId">#AV-000000</div>
+              <div class="av-badges-row" id="heroBadges"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-glass btn-sm" onclick="showTab('builder')">✏️ Chỉnh sửa</button>
+            <button class="btn btn-brand btn-sm" onclick="showTab('showroom')">🏆 Showroom</button>
+          </div>
+        </div>
+        <div class="av-stats-row">
+          <div class="av-stat"><div class="val" id="hStat1">0</div><div class="lbl">Level</div></div>
+          <div class="av-stat"><div class="val" id="hStat2">0</div><div class="lbl">Vật phẩm</div></div>
+          <div class="av-stat"><div class="val" id="hStat3">0</div><div class="lbl">SP Tokens</div></div>
+          <div class="av-stat"><div class="val" id="hStat4">0</div><div class="lbl">Huy hiệu</div></div>
+          <div class="av-stat"><div class="val" id="hStat5">0</div><div class="lbl">XP</div></div>
+        </div>
+        <div class="level-bar-wrap">
+          <div class="level-bar-label"><span>Level <span id="barLevel">1</span></span><span id="barXP">0 / 100 XP</span></div>
+          <div class="level-bar-track"><div class="level-bar-fill" id="xpBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="ai-assist">
+        <h3><div class="ai-orb">🤖</div> AI Avatar Assistant — Gợi ý hôm nay</h3>
+        <div class="ai-suggestions">
+          <div class="ai-sug" onclick="showTab('marketplace')">👑 Crown of Glory đang hot — mua ngay!</div>
+          <div class="ai-sug" onclick="showTab('builder')">✨ Thay đổi skin tone để nổi bật hơn</div>
+          <div class="ai-sug" onclick="showTab('marketplace');setFilter('emote')">💃 Thêm emote mới cho avatar</div>
+          <div class="ai-sug" onclick="showTab('creator')">🎨 Bán item đầu tiên của bạn</div>
+        </div>
+      </div>
+
+      <div class="sh"><div><h2>⭐ Featured Items</h2><p>Vật phẩm nổi bật hôm nay</p></div><span class="see-all" onclick="showTab('marketplace')">Xem tất cả →</span></div>
+      <div class="items-grid" id="featuredItemsGrid"></div>
+
+    </div>
+
+    <!-- MARKETPLACE TAB -->
+    <div id="tab-marketplace" class="av-view">
+      <div class="sh"><div><h2>🛍️ Avatar Marketplace</h2><p>Mua vật phẩm, trang phục, emote cho avatar</p></div></div>
+      <div class="mkt-filters">
+        <input class="mkt-search" id="mktSearch" placeholder="🔍 Tìm vật phẩm..." oninput="filterItems()"/>
+        <div class="mkt-filter active" data-cat="" onclick="setFilter('',this)">Tất cả</div>
+        <div class="mkt-filter" data-cat="outfit" onclick="setFilter('outfit',this)">👗 Outfit</div>
+        <div class="mkt-filter" data-cat="accessories" onclick="setFilter('accessories',this)">💍 Phụ kiện</div>
+        <div class="mkt-filter" data-cat="emote" onclick="setFilter('emote',this)">💃 Emote</div>
+        <div class="mkt-filter" data-cat="skin" onclick="setFilter('skin',this)">🌙 Skin</div>
+        <div class="mkt-filter" data-cat="badge" onclick="setFilter('badge',this)">⭐ Badge</div>
+      </div>
+      <div class="items-grid" id="allItemsGrid"></div>
+    </div>
+
+    <!-- INVENTORY TAB -->
+    <div id="tab-inventory" class="av-view">
+      <div class="sh"><div><h2>🎒 Kho đồ của tôi</h2><p>Tất cả vật phẩm bạn đang sở hữu</p></div></div>
+      <div class="inv-grid" id="inventoryGrid">
+        <div class="empty" style="grid-column:1/-1"><div class="ei">🎒</div><h3>Kho đồ trống</h3><p style="color:var(--text3)">Mua vật phẩm từ Marketplace!</p></div>
+      </div>
+    </div>
+
+    <!-- WARDROBE TAB -->
+    <div id="tab-wardrobe" class="av-view">
+      <div class="sh"><div><h2>👗 Tủ đồ số</h2><p>Trang phục đã lưu và bộ sưu tập</p></div>
+        <button class="btn btn-brand btn-sm" onclick="showSaveOutfitModal()">💾 Lưu trang phục hiện tại</button>
+      </div>
+      <div class="wardrobe-grid" id="wardrobeGrid">
+        <div class="empty" style="grid-column:1/-1"><div class="ei">👗</div><h3>Chưa có trang phục nào</h3><p style="color:var(--text3)">Lưu bộ trang phục yêu thích của bạn!</p></div>
+      </div>
+    </div>
+
+    <!-- BUILDER TAB -->
+    <div id="tab-builder" class="av-view">
+      <div class="sh"><div><h2>✏️ Avatar Creator</h2><p>Tùy chỉnh diện mạo XR của bạn</p></div>
+        <button class="btn btn-brand btn-sm" onclick="saveAvatar()">💾 Lưu Avatar</button>
+      </div>
+      <div class="av-builder">
+        <!-- Preview -->
+        <div class="avb-preview-wrap">
+          <div class="avb-preview-bg"></div>
+          <div class="avb-char">
+            <div class="avb-halo"></div>
+            <div class="avb-accessory" id="avbAccessory"></div>
+            <div class="avb-head" id="avbHead"></div>
+            <div class="avb-body" id="avbBody"></div>
+          </div>
+          <div class="avb-level-badge" id="avbLevelBadge">Lv 1</div>
+          <div class="avb-name" id="avbName">Avatar</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:6px">XP: <span id="avbXP">0</span></div>
+        </div>
+        <!-- Controls -->
+        <div class="avb-options">
+          <div class="avb-group">
+            <label>Tên hiển thị</label>
+            <input class="ctrl" id="avbDisplayName" placeholder="Tên avatar trong XR..."/>
+          </div>
+          <div class="avb-group">
+            <label>Màu da</label>
+            <div class="swatches" id="skinSw"></div>
+          </div>
+          <div class="avb-group">
+            <label>Kiểu tóc</label>
+            <div class="chips" id="hairChips"></div>
+          </div>
+          <div class="avb-group">
+            <label>Màu tóc</label>
+            <div class="swatches" id="hairColorSw"></div>
+          </div>
+          <div class="avb-group">
+            <label>Kiểu mắt</label>
+            <div class="chips" id="eyeChips"></div>
+          </div>
+          <div class="avb-group">
+            <label>Trang phục</label>
+            <div class="chips" id="outfitChips"></div>
+          </div>
+          <div class="avb-group">
+            <label>Màu trang phục</label>
+            <div class="swatches" id="outfitColorSw"></div>
+          </div>
+          <div class="avb-group">
+            <label>Emote chào hỏi</label>
+            <div class="chips" id="emoteChips"></div>
+          </div>
+          <div class="avb-group">
+            <label>Phụ kiện đầu</label>
+            <div class="chips" id="accessoryChips"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="tab-dashboard" class="av-view">
+      <div class="sh"><div><h2>📊 Economy Dashboard</h2><p>Thống kê Avatar Economy của bạn</p></div></div>
+      <div class="rep-grid" id="dashGrid"></div>
+      <div class="sh"><div><h2>📋 Lịch sử giao dịch</h2></div></div>
+      <div class="txn-list" id="txnList">
+        <div class="empty"><div class="ei">📋</div><h3>Chưa có giao dịch</h3></div>
+      </div>
+    </div>
+
+    <!-- SHOWROOM TAB -->
+    <div id="tab-showroom" class="av-view">
+      <div id="showroomContent"></div>
+    </div>
+
+    <!-- CREATOR TAB -->
+    <div id="tab-creator" class="av-view">
+      <div class="sh"><div><h2>🎨 Creator Avatar Studio</h2><p>Tạo và bán vật phẩm avatar của riêng bạn</p></div>
+        <button class="btn btn-brand btn-sm" onclick="showPublishModal()">➕ Đăng vật phẩm mới</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px">
+        <div style="background:linear-gradient(135deg,rgba(124,109,250,.1),rgba(0,229,255,.05));border:1px solid rgba(124,109,250,.2);border-radius:18px;padding:20px;text-align:center;cursor:pointer" onclick="showPublishModal()">
+          <div style="font-size:40px;margin-bottom:10px">👗</div><div style="font-weight:800;margin-bottom:4px">Outfit Pack</div><div style="font-size:12px;color:var(--text3)">Tạo bộ trang phục độc đáo</div>
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(255,140,66,.04));border:1px solid rgba(251,191,36,.2);border-radius:18px;padding:20px;text-align:center;cursor:pointer" onclick="showPublishModal()">
+          <div style="font-size:40px;margin-bottom:10px">💃</div><div style="font-weight:800;margin-bottom:4px">Emote Pack</div><div style="font-size:12px;color:var(--text3)">Tạo emote phong cách riêng</div>
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(57,255,20,.04));border:1px solid rgba(0,229,255,.2);border-radius:18px;padding:20px;text-align:center;cursor:pointer" onclick="showPublishModal()">
+          <div style="font-size:40px;margin-bottom:10px">💍</div><div style="font-weight:800;margin-bottom:4px">Accessories</div><div style="font-size:12px;color:var(--text3)">Phụ kiện độc quyền</div>
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(255,107,157,.08),rgba(124,109,250,.04));border:1px solid rgba(255,107,157,.2);border-radius:18px;padding:20px;text-align:center;cursor:pointer" onclick="showPublishModal()">
+          <div style="font-size:40px;margin-bottom:10px">🌙</div><div style="font-weight:800;margin-bottom:4px">Skin Effect</div><div style="font-size:12px;color:var(--text3)">Hiệu ứng da đặc biệt</div>
+        </div>
+      </div>
+      <div class="sh"><div><h2>📦 Vật phẩm đã đăng</h2></div></div>
+      <div id="creatorItemsGrid" class="items-grid">
+        <div class="empty" style="grid-column:1/-1"><div class="ei">🎨</div><h3>Chưa có vật phẩm nào</h3><p style="color:var(--text3)">Hãy trở thành creator đầu tiên!</p></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ITEM DETAIL MODAL -->
+<div id="itemDetailModal" style="display:none" class="modal-ov" onclick="if(event.target===this)closeModal('itemDetailModal')">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="closeModal('itemDetailModal')">×</button>
+    <div id="itemDetailBody"></div>
+  </div>
+</div>
+
+<!-- PUBLISH ITEM MODAL -->
+<div id="publishModal" style="display:none" class="modal-ov" onclick="if(event.target===this)closeModal('publishModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('publishModal')">×</button>
+    <h2>🎨 Đăng vật phẩm mới</h2>
+    <div class="fg"><label>Tên vật phẩm *</label><input class="ctrl" id="pm-name" placeholder="Ví dụ: Cosmic Wings Pack"/></div>
+    <div class="fg"><label>Mô tả</label><textarea class="ctrl" id="pm-desc" style="resize:none;min-height:70px" placeholder="Mô tả vật phẩm..."></textarea></div>
+    <div class="fg-row">
+      <div class="fg"><label>Danh mục</label>
+        <select class="ctrl" id="pm-cat">
+          <option value="outfit">👗 Outfit</option>
+          <option value="accessories">💍 Accessories</option>
+          <option value="emote">💃 Emote</option>
+          <option value="skin">🌙 Skin</option>
+          <option value="badge">⭐ Badge</option>
+        </select>
+      </div>
+      <div class="fg"><label>Giá (SP Token)</label><input class="ctrl" id="pm-price" type="number" value="100" min="0"/></div>
+    </div>
+    <div class="fg"><label>Độ hiếm</label>
+      <select class="ctrl" id="pm-rarity">
+        <option value="common">Common</option>
+        <option value="uncommon">Uncommon</option>
+        <option value="rare">Rare</option>
+        <option value="epic">Epic</option>
+        <option value="legendary">Legendary</option>
+      </select>
+    </div>
+    <div class="fg"><label>Tags (cách nhau bởi dấu phẩy)</label><input class="ctrl" id="pm-tags" placeholder="fashion, premium, limited"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('publishModal')">Hủy</button>
+      <button class="btn btn-brand btn-sm" onclick="publishItem()">🚀 Đăng bán</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE OUTFIT MODAL -->
+<div id="saveOutfitModal" style="display:none" class="modal-ov" onclick="if(event.target===this)closeModal('saveOutfitModal')">
+  <div class="modal" style="max-width:400px">
+    <button class="modal-close" onclick="closeModal('saveOutfitModal')">×</button>
+    <h2>💾 Lưu trang phục</h2>
+    <div class="fg"><label>Tên bộ trang phục</label><input class="ctrl" id="so-name" placeholder="Ví dụ: Outfit ngày thứ 2"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-glass btn-sm" onclick="closeModal('saveOutfitModal')">Hủy</button>
+      <button class="btn btn-brand btn-sm" onclick="saveOutfit()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toastBox"></div>
+
+<script>
+const TOKEN = localStorage.getItem('token');
+const USER = (() => { try { return JSON.parse(atob(TOKEN.split('.')[1])); } catch { return null; } })();
+if (USER) {
+  const i = (USER.name||'U')[0].toUpperCase();
+  document.getElementById('navOrb').textContent = i;
+  document.getElementById('heroAvInner').textContent = i;
+  document.getElementById('avbHead').style.background = 'linear-gradient(135deg,#f5c5a3,#e8a882)';
+}
+
+// ── STATE ──
+let avatarState = {
+  display_name: USER?.name||'',
+  skin_tone:'#f5c5a3', hair_style:'short', hair_color:'#3d2b1f',
+  eye_style:'normal', outfit:'casual', outfit_color:'#7c6dfa',
+  emote:'wave', accessory:'none', level:1, xp:0
+};
+let inventory = [];
+let ownedIds = new Set();
+let activeCategory = '';
+let allItems = [];
+
+// ── PARTICLES ──
+(function(){
+  const bg=document.getElementById('av-bg');
+  const cls=['#7c6dfa','#fbbf24','#00e5ff','#ff6b9d','#39ff14'];
+  for(let i=0;i<24;i++){
+    const p=document.createElement('div'); p.className='av-particle';
+    const s=Math.random()*3+1;
+    p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;background:${cls[Math.floor(Math.random()*cls.length)]};animation-duration:${Math.random()*12+8}s;animation-delay:${Math.random()*10}s`;
+    bg.appendChild(p);
+  }
+})();
+
+// ── UTILS ──
+function toast(msg, type='i') {
+  const b=document.getElementById('toastBox');
+  const t=document.createElement('div'); t.className=`toast ${type}`;
+  t.innerHTML=`${type==='s'?'✅':type==='e'?'❌':'ℹ️'} ${msg}`;
+  b.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+function closeModal(id){document.getElementById(id).style.display='none'}
+function showPublishModal(){if(!TOKEN)return toast('Cần đăng nhập','e');document.getElementById('publishModal').style.display='flex'}
+function showSaveOutfitModal(){document.getElementById('saveOutfitModal').style.display='flex'}
+function fmtNum(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n||0)}
+function authH(){return{'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`}}
+async function api(url,opts={}){const r=await fetch(url,{...opts,headers:{...authH(),...(opts.headers||{})}});return r.json()}
+function rarityBg(r){return{legendary:'linear-gradient(135deg,#1a1000,#2a1800)',epic:'linear-gradient(135deg,#100a28,#180a38)',rare:'linear-gradient(135deg,#001420,#001a2a)',uncommon:'linear-gradient(135deg,#041408,#081a0c)',common:'linear-gradient(135deg,#0a0a10,#101018)',limited:'linear-gradient(135deg,#1a0a14,#220a1a)'}[r]||'linear-gradient(135deg,#0a0a10,#101018)'}
+function rarityIcon(r){return{outfit:'👗',accessories:'💍',emote:'💃',skin:'🌙',badge:'⭐'}[r]||'✨'}
+function catIcon(c){return{outfit:'👗',accessories:'💍',emote:'💃',skin:'🌙',badge:'⭐'}[c]||'✨'}
+
+// ── TAB MANAGEMENT ──
+function showTab(t) {
+  document.querySelectorAll('.av-view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.lsb-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`tab-${t}`).classList.add('active');
+  const sb=document.getElementById(`sb-${t}`);
+  if(sb) sb.classList.add('active');
+  if(t==='profile') loadProfile();
+  else if(t==='marketplace') loadMarketplace();
+  else if(t==='inventory') loadInventory();
+  else if(t==='wardrobe') loadWardrobe();
+  else if(t==='builder') initBuilder();
+  else if(t==='dashboard') loadDashboard();
+  else if(t==='showroom') loadShowroom();
+  else if(t==='creator') loadCreatorItems();
+}
+
+// ── LOAD PROFILE ──
+async function loadProfile() {
+  const r = await api('/api/avatar-economy/profile');
+  const p = r.profile||{};
+  document.getElementById('heroName').innerHTML = `${p.display_name||USER?.name||'Avatar'} <span style="font-size:16px">✅</span>`;
+  document.getElementById('heroId').textContent = `#AV-${(p.user_id||'000000').toString().slice(-6).toUpperCase()}`;
+  document.getElementById('hStat1').textContent = p.level||1;
+  document.getElementById('hStat2').textContent = fmtNum(p.item_count||0);
+  document.getElementById('hStat3').textContent = fmtNum(p.sp_balance||0);
+  document.getElementById('hStat4').textContent = p.badge_count||0;
+  document.getElementById('hStat5').textContent = fmtNum(p.xp||0);
+  document.getElementById('spBalance').textContent = fmtNum(p.sp_balance||0);
+  const xp = p.xp||0; const lvl = p.level||1;
+  const xpInLvl = xp % 100; const xpPct = xpInLvl;
+  document.getElementById('barLevel').textContent = lvl;
+  document.getElementById('barXP').textContent = `${xpInLvl} / 100 XP`;
+  document.getElementById('xpBar').style.width = xpPct+'%';
+  document.getElementById('avbLevelBadge').textContent = `Lv ${lvl}`;
+  // Badges
+  const badges = r.badges||[];
+  document.getElementById('heroBadges').innerHTML = badges.map(b=>`<span class="av-badge-chip abc-gold">${b.label}</span>`).join('') || '<span class="av-badge-chip abc-brand">🌟 Thành viên</span>';
+  document.getElementById('hStat4').textContent = badges.length;
+  document.getElementById('invCount').textContent = p.item_count||0;
+  // Load featured items
+  loadFeaturedItems();
+}
+
+async function loadFeaturedItems() {
+  const r = await api('/api/avatar-economy/items?featured=true&limit=6');
+  allItems = r.items||[];
+  const ivR = TOKEN ? await api('/api/avatar-economy/inventory') : {items:[]};
+  ownedIds = new Set((ivR.items||[]).map(i=>i.item_id));
+  document.getElementById('featuredItemsGrid').innerHTML = allItems.map(renderItemCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">🛍️</div><h3>Chưa có vật phẩm</h3></div>';
+}
+
+// ── MARKETPLACE ──
+async function loadMarketplace(cat='') {
+  const url = `/api/avatar-economy/items?limit=30${cat?`&category=${cat}`:''}`;
+  const r = await api(url);
+  allItems = r.items||[];
+  if(TOKEN){const ivR=await api('/api/avatar-economy/inventory');ownedIds=new Set((ivR.items||[]).map(i=>i.item_id));}
+  renderGrid();
+}
+function setFilter(cat, el) {
+  activeCategory = cat;
+  document.querySelectorAll('.mkt-filter').forEach(f=>f.classList.remove('active'));
+  if(el) el.classList.add('active');
+  loadMarketplace(cat);
+}
+function filterItems() {
+  const q = document.getElementById('mktSearch')?.value?.toLowerCase()||'';
+  const filtered = allItems.filter(i=>i.name.toLowerCase().includes(q)||(i.description||'').toLowerCase().includes(q));
+  document.getElementById('allItemsGrid').innerHTML = filtered.map(renderItemCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">🔍</div><h3>Không tìm thấy</h3></div>';
+}
+function renderGrid() {
+  document.getElementById('allItemsGrid').innerHTML = allItems.map(renderItemCard).join('') || '<div class="empty" style="grid-column:1/-1"><div class="ei">🛍️</div><h3>Chưa có vật phẩm</h3></div>';
+}
+function renderItemCard(item) {
+  const owned = ownedIds.has(item.id);
+  return `
+  <div class="item-card rarity-${item.rarity}" onclick="openItemDetail('${item.id}')">
+    <div class="ic-visual" style="background:${rarityBg(item.rarity)}">
+      <div class="ic-visual-glow"></div>
+      <span class="ic-emoji">${catIcon(item.category)}</span>
+      <span class="ic-rarity rty-${item.rarity}">${item.rarity}</span>
+      ${item.is_featured?'<span class="ic-featured">⭐ Featured</span>':''}
+    </div>
+    <div class="ic-body">
+      <div class="ic-name">${item.name}</div>
+      <div class="ic-category">${item.category}</div>
+      <div class="ic-footer">
+        <div class="ic-price ${item.price==0?'free':''}">🪙 ${item.price==0?'Miễn phí':fmtNum(item.price)+' SP'}</div>
+        <button class="ic-buy-btn ${owned?'owned':''}" onclick="event.stopPropagation();buyItem('${item.id}',this)">${owned?'✓ Sở hữu':'Mua ngay'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openItemDetail(id) {
+  const item = allItems.find(i=>i.id===id);
+  if(!item) return;
+  const owned = ownedIds.has(id);
+  document.getElementById('itemDetailBody').innerHTML = `
+    <div class="item-detail-visual" style="background:${rarityBg(item.rarity)}">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle,rgba(124,109,250,.3) 0%,transparent 60%)"></div>
+      <span style="font-size:90px;position:relative;filter:drop-shadow(0 0 20px rgba(124,109,250,.5))">${catIcon(item.category)}</span>
+      <span class="ic-rarity rty-${item.rarity}" style="position:absolute;top:12px;left:12px">${item.rarity}</span>
+    </div>
+    <div class="item-detail-info">
+      <h2>${item.name}</h2>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">${item.description||''}</div>
+      <div class="item-tags">${(item.tags||[]).map(t=>`<span class="item-tag">#${t}</span>`).join('')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+        <div class="price-big">🪙 ${item.price==0?'Miễn phí':fmtNum(item.price)+' SP'}</div>
+        <div style="font-size:12px;color:var(--text3)">Bán: ${fmtNum(item.sold_count||0)}</div>
+      </div>
+      <button class="btn ${owned?'btn-glass':'btn-gold'}" style="width:100%;justify-content:center;margin-top:6px" onclick="buyItem('${item.id}',this)">${owned?'✓ Đã sở hữu':'🛒 Mua ngay — '+fmtNum(item.price)+' SP'}</button>
+    </div>`;
+  document.getElementById('itemDetailModal').style.display='flex';
+}
+
+async function buyItem(id, btn) {
+  if(!TOKEN) return toast('Cần đăng nhập để mua vật phẩm','e');
+  if(ownedIds.has(id)) return toast('Bạn đã sở hữu vật phẩm này rồi!','i');
+  if(btn){btn.textContent='Đang mua...';btn.disabled=true;}
+  const r = await api(`/api/avatar-economy/buy/${id}`,{method:'POST'});
+  if(r.error){toast(r.error,'e');if(btn){btn.textContent='Mua ngay';btn.disabled=false;}return;}
+  ownedIds.add(id);
+  if(btn){btn.textContent='✓ Sở hữu';btn.classList.add('owned');btn.disabled=false;}
+  toast('✅ Đã mua vật phẩm! Kiểm tra kho đồ.','s');
+  document.getElementById('spBalance').textContent = fmtNum(r.new_balance||0);
+  renderGrid();
+}
+
+// ── INVENTORY ──
+async function loadInventory() {
+  if(!TOKEN){document.getElementById('inventoryGrid').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="ei">🔐</div><h3>Cần đăng nhập</h3></div>';return;}
+  const r = await api('/api/avatar-economy/inventory');
+  inventory = r.items||[];
+  document.getElementById('invCount').textContent = inventory.length;
+  document.getElementById('inventoryGrid').innerHTML = inventory.length ?
+    inventory.map(i=>`
+    <div class="inv-card ${i.is_equipped?'equipped':''}">
+      ${i.is_equipped?'<span class="inv-equipped-tag">✓ Đang mặc</span>':''}
+      <span class="inv-emoji">${catIcon(i.category)}</span>
+      <div class="inv-name">${i.name}</div>
+      <div class="inv-cat">${i.category} · <span class="rty-${i.rarity}" style="font-size:10px;font-weight:800">${i.rarity}</span></div>
+      <button class="inv-equip-btn ${i.is_equipped?'on':''}" onclick="equipItem('${i.id}',this)">${i.is_equipped?'✓ Đang mặc':'Mặc vào'}</button>
+    </div>`).join('') :
+    '<div class="empty" style="grid-column:1/-1"><div class="ei">🎒</div><h3>Kho đồ trống</h3><p style="color:var(--text3)">Mua vật phẩm từ Marketplace!</p><br><button class="btn btn-brand btn-sm" onclick="showTab(\'marketplace\')">🛍️ Đến Marketplace</button></div>';
+}
+
+async function equipItem(invId, btn) {
+  const r = await api(`/api/avatar-economy/equip/${invId}`,{method:'POST'});
+  if(r.error) return toast(r.error,'e');
+  toast(`${r.equipped?'✅ Đã mặc!':'📦 Đã bỏ ra!'}`, 's');
+  loadInventory();
+}
+
+// ── WARDROBE ──
+async function loadWardrobe() {
+  if(!TOKEN){document.getElementById('wardrobeGrid').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="ei">🔐</div><h3>Cần đăng nhập</h3></div>';return;}
+  const r = await api('/api/avatar-economy/wardrobe');
+  const wd = r.wardrobe||[];
+  document.getElementById('wardrobeGrid').innerHTML = wd.length ?
+    wd.map(w=>`
+    <div class="wd-card ${w.is_default?'default':''}">
+      ${w.is_default?'<span class="wd-default-tag">⭐ Mặc định</span>':''}
+      <div class="wd-icon">👗</div>
+      <div class="wd-name">${w.name}</div>
+      <div class="wd-items">Lưu lúc: ${new Date(w.created_at).toLocaleDateString('vi-VN')}</div>
+      <div style="margin-top:10px;display:flex;gap:6px">
+        <button class="btn btn-glass btn-sm" onclick="wearOutfit('${w.id}')">Mặc ngay</button>
+        ${!w.is_default?`<button class="btn btn-brand btn-sm" onclick="setDefaultOutfit('${w.id}')">Đặt mặc định</button>`:''}
+      </div>
+    </div>`).join('') + `<div class="wd-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:140px;cursor:pointer" onclick="showSaveOutfitModal()"><div style="font-size:32px;margin-bottom:8px">➕</div><div style="font-size:13px;font-weight:700;color:var(--text3)">Lưu trang phục mới</div></div>` :
+    '<div class="empty" style="grid-column:1/-1"><div class="ei">👗</div><h3>Chưa có trang phục</h3><p style="color:var(--text3)">Tùy chỉnh avatar và lưu bộ trang phục yêu thích!</p></div>';
+}
+
+async function saveOutfit() {
+  if(!TOKEN) return toast('Cần đăng nhập','e');
+  const name = document.getElementById('so-name').value.trim();
+  if(!name) return toast('Nhập tên trang phục','e');
+  const r = await api('/api/avatar-economy/wardrobe',{method:'POST',body:JSON.stringify({name,outfit_data:avatarState})});
+  if(r.error) return toast(r.error,'e');
+  closeModal('saveOutfitModal');
+  toast('💾 Đã lưu trang phục!','s');
+  loadWardrobe();
+}
+async function wearOutfit(id){toast('👗 Đã mặc trang phục!','s')}
+async function setDefaultOutfit(id){const r=await api(`/api/avatar-economy/wardrobe/${id}/default`,{method:'POST'});if(r.error)return toast(r.error,'e');toast('⭐ Đã đặt làm mặc định!','s');loadWardrobe()}
+
+// ── AVATAR BUILDER ──
+const SKINS=['#fde8d8','#f5c5a3','#e8a882','#d4845a','#c46d3d','#a0522d','#8b3a1a','#5c2912'];
+const HAIRS=['short','long','curly','bob','buzz','afro','ponytail','braid'];
+const HAIR_COLORS=['#1a0a00','#3d2b1f','#6b3a1f','#c4843d','#f5d04f','#ff4d6d','#a78bfa','#00e5ff','#ffffff'];
+const EYES=['normal','sharp','cute','sleepy','star','heart'];
+const OUTFITS=['casual','formal','sport','hoodie','kimono','futuristic','armor','witch'];
+const OUTFIT_COLORS=['#7c6dfa','#00e5ff','#ff6b9d','#39ff14','#fbbf24','#ef4444','#10b981','#1a1a2e','#ffffff'];
+const EMOTES=['wave','dance','bow','clap','thumbsup','heart','peace','dab'];
+const ACCESSORIES=['none','👑','🎩','🎀','🌟','🔮','💎','🦋'];
+
+function initBuilder() {
+  document.getElementById('skinSw').innerHTML = SKINS.map(c=>`<div class="swatch ${avatarState.skin_tone===c?'active':''}" style="background:${c}" onclick="setSkin('${c}',this)"></div>`).join('');
+  document.getElementById('hairChips').innerHTML = HAIRS.map(h=>`<div class="chip ${avatarState.hair_style===h?'active':''}" onclick="setHairStyle('${h}',this)">${h}</div>`).join('');
+  document.getElementById('hairColorSw').innerHTML = HAIR_COLORS.map(c=>`<div class="swatch ${avatarState.hair_color===c?'active':''}" style="background:${c}" onclick="setHairColor('${c}',this)"></div>`).join('');
+  document.getElementById('eyeChips').innerHTML = EYES.map(e=>`<div class="chip ${avatarState.eye_style===e?'active':''}" onclick="setEye('${e}',this)">${e}</div>`).join('');
+  document.getElementById('outfitChips').innerHTML = OUTFITS.map(o=>`<div class="chip ${avatarState.outfit===o?'active':''}" onclick="setOutfit('${o}',this)">${o}</div>`).join('');
+  document.getElementById('outfitColorSw').innerHTML = OUTFIT_COLORS.map(c=>`<div class="swatch ${avatarState.outfit_color===c?'active':''}" style="background:${c}" onclick="setOutfitColor('${c}',this)"></div>`).join('');
+  document.getElementById('emoteChips').innerHTML = EMOTES.map(e=>`<div class="chip ${avatarState.emote===e?'active':''}" onclick="setEmote('${e}',this)">${e}</div>`).join('');
+  document.getElementById('accessoryChips').innerHTML = ACCESSORIES.map(a=>`<div class="chip ${avatarState.accessory===a?'active':''}" onclick="setAccessory('${a}',this)">${a||'Không'}</div>`).join('');
+  document.getElementById('avbDisplayName').value = avatarState.display_name;
+  updateBuilderPreview();
+  if(TOKEN) api('/api/avatar-economy/avatar').then(r=>{if(r.avatar){Object.assign(avatarState,r.avatar);document.getElementById('avbXP').textContent=r.avatar.xp||0;initBuilder();}}).catch(()=>{});
+}
+function setSkin(c,el){avatarState.skin_tone=c;swActivate('#skinSw',el);updateBuilderPreview()}
+function setHairStyle(s,el){avatarState.hair_style=s;chipActivate('#hairChips',el)}
+function setHairColor(c,el){avatarState.hair_color=c;swActivate('#hairColorSw',el);updateBuilderPreview()}
+function setEye(e,el){avatarState.eye_style=e;chipActivate('#eyeChips',el)}
+function setOutfit(o,el){avatarState.outfit=o;chipActivate('#outfitChips',el)}
+function setOutfitColor(c,el){avatarState.outfit_color=c;swActivate('#outfitColorSw',el);updateBuilderPreview()}
+function setEmote(e,el){avatarState.emote=e;chipActivate('#emoteChips',el)}
+function setAccessory(a,el){avatarState.accessory=a;chipActivate('#accessoryChips',el);document.getElementById('avbAccessory').textContent=a==='none'?'':a}
+function swActivate(sel,el){document.querySelectorAll(sel+' .swatch').forEach(s=>s.classList.remove('active'));el.classList.add('active')}
+function chipActivate(sel,el){document.querySelectorAll(sel+' .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active')}
+function updateBuilderPreview(){
+  document.getElementById('avbHead').style.background=`linear-gradient(135deg,${avatarState.skin_tone},${avatarState.skin_tone}cc)`;
+  document.getElementById('avbBody').style.background=`linear-gradient(180deg,${avatarState.outfit_color},${avatarState.outfit_color}88)`;
+  const n=document.getElementById('avbDisplayName')?.value||avatarState.display_name;
+  document.getElementById('avbName').textContent=n||'Avatar';
+}
+async function saveAvatar() {
+  if(!TOKEN) return toast('Cần đăng nhập','e');
+  avatarState.display_name = document.getElementById('avbDisplayName').value.trim()||USER?.name||'';
+  const r = await api('/api/avatar-economy/avatar',{method:'PUT',body:JSON.stringify(avatarState)});
+  if(r.error) return toast(r.error,'e');
+  if(r.avatar){avatarState.xp=r.avatar.xp||0;avatarState.level=r.avatar.level||1;document.getElementById('avbXP').textContent=r.avatar.xp||0;document.getElementById('avbLevelBadge').textContent=`Lv ${r.avatar.level||1}`;}
+  toast('✅ Đã lưu Avatar! +10 XP','s');
+}
+
+// ── DASHBOARD ──
+async function loadDashboard() {
+  const r = await api('/api/avatar-economy/dashboard');
+  const s = r.stats||{};
+  document.getElementById('dashGrid').innerHTML = [
+    {val:fmtNum(s.items_owned||0),lbl:'Vật phẩm sở hữu',trend:''},
+    {val:fmtNum(s.total_spent||0)+' SP',lbl:'Đã chi tiêu',trend:''},
+    {val:fmtNum(s.total_earned||0)+' SP',lbl:'Đã kiếm được',trend:'+0'},
+    {val:s.level||1,lbl:'Avatar Level',trend:''},
+    {val:fmtNum(s.xp||0),lbl:'Tổng XP',trend:''},
+    {val:s.badges||0,lbl:'Huy hiệu',trend:''},
+  ].map(c=>`<div class="rep-card"><div class="val">${c.val}</div><div class="lbl">${c.lbl}</div>${c.trend?`<div class="trend">↑ ${c.trend}</div>`:''}</div>`).join('');
+  const txns = r.transactions||[];
+  document.getElementById('txnList').innerHTML = txns.length ?
+    txns.map(t=>`<div class="txn-item">
+      <div class="txn-icon buy">🛍️</div>
+      <div style="flex:1"><div class="txn-name">${t.item_name||'Vật phẩm'}</div><div class="txn-date">${new Date(t.created_at).toLocaleDateString('vi-VN')}</div></div>
+      <div class="txn-amount neg">-${fmtNum(t.amount)} SP</div>
+    </div>`).join('') :
+    '<div class="empty"><div class="ei">📋</div><h3>Chưa có giao dịch</h3></div>';
+}
+
+// ── SHOWROOM ──
+async function loadShowroom() {
+  const r = await api('/api/avatar-economy/profile');
+  const p = r.profile||{};
+  document.getElementById('showroomContent').innerHTML = `
+    <div class="showroom-header">
+      <div class="sr-avatar">${(USER?.name||'U')[0].toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="sr-info"><h2>${p.display_name||USER?.name||'Avatar'}</h2></div>
+        <div class="sr-badges">${(r.badges||[]).map(b=>`<span class="av-badge-chip abc-gold">${b.label}</span>`).join('') || '<span class="av-badge-chip abc-brand">🌟 Thành viên</span>'}</div>
+        <div style="margin-top:10px;font-size:13px;color:var(--text2)">Level ${p.level||1} · ${fmtNum(p.xp||0)} XP · ${p.item_count||0} vật phẩm</div>
+      </div>
+      <button class="btn btn-brand btn-sm" onclick="showTab('builder')">✏️ Chỉnh sửa Avatar</button>
+    </div>
+    <div class="sh"><div><h2>🎒 Bộ sưu tập của tôi</h2></div></div>
+    <div class="inv-grid" id="showroomInventory"></div>`;
+  if(TOKEN) {
+    const ivR = await api('/api/avatar-economy/inventory');
+    const items = ivR.items||[];
+    document.getElementById('showroomInventory').innerHTML = items.length ?
+      items.slice(0,12).map(i=>`<div class="inv-card ${i.is_equipped?'equipped':''}">
+        ${i.is_equipped?'<span class="inv-equipped-tag">✓ Đang mặc</span>':''}
+        <span class="inv-emoji">${catIcon(i.category)}</span>
+        <div class="inv-name">${i.name}</div>
+        <div class="inv-cat">${i.category} · <span style="font-size:10px;font-weight:800;color:var(--brand)">${i.rarity}</span></div>
+      </div>`).join('') :
+      '<div class="empty" style="grid-column:1/-1"><div class="ei">🎒</div><h3>Chưa có vật phẩm</h3></div>';
+  }
+}
+
+// ── CREATOR ──
+async function loadCreatorItems() {
+  if(!TOKEN) return;
+  const r = await api('/api/avatar-economy/creator/items');
+  const items = r.items||[];
+  document.getElementById('creatorItemsGrid').innerHTML = items.length ?
+    items.map(renderItemCard).join('') :
+    '<div class="empty" style="grid-column:1/-1"><div class="ei">🎨</div><h3>Chưa có vật phẩm nào</h3><p style="color:var(--text3)">Hãy trở thành creator đầu tiên!</p></div>';
+}
+
+async function publishItem() {
+  if(!TOKEN) return toast('Cần đăng nhập','e');
+  const name = document.getElementById('pm-name').value.trim();
+  if(!name) return toast('Nhập tên vật phẩm','e');
+  const r = await api('/api/avatar-economy/items',{method:'POST',body:JSON.stringify({
+    name, description:document.getElementById('pm-desc').value,
+    category:document.getElementById('pm-cat').value,
+    price:parseFloat(document.getElementById('pm-price').value)||0,
+    rarity:document.getElementById('pm-rarity').value,
+    tags:document.getElementById('pm-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  })});
+  if(r.error) return toast(r.error,'e');
+  closeModal('publishModal');
+  toast('🚀 Đã đăng vật phẩm lên Marketplace!','s');
+  loadCreatorItems();
+}
+
+// ── INIT ──
+loadProfile();
+</script>
+</body>
+</html>

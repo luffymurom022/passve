@@ -13917,6 +13917,243 @@ app.patch('/api/admin/xr/spaces/:id', adminAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ════════════════════════════════════════════════════════════════
+// PHASE SOCIAL 12: AVATAR ECONOMY
+// ════════════════════════════════════════════════════════════════
+
+app.get('/avatar-economy', (req, res) => res.sendFile(join(__dirname, 'frontend', 'avatar_economy.html')));
+app.get('/avatar-economy.html', (req, res) => res.sendFile(join(__dirname, 'frontend', 'avatar_economy.html')));
+
+// ── GET /api/avatar-economy/profile ──
+app.get('/api/avatar-economy/profile', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const [avR, invR, badgeR, walletR] = await Promise.all([
+      supabase.from('xr_avatars').select('*').eq('user_id', uid).single(),
+      supabase.from('avatar_inventory').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+      supabase.from('avatar_badges').select('*').eq('user_id', uid),
+      supabase.from('wallets').select('balance').eq('user_id', uid).single()
+    ]);
+    const av = avR.data || {};
+    res.json({
+      profile: {
+        user_id: uid,
+        display_name: av.display_name || req.user.name,
+        level: av.level || 1,
+        xp: av.xp || 0,
+        item_count: invR.count || 0,
+        badge_count: (badgeR.data || []).length,
+        sp_balance: Math.round((walletR.data?.balance || 0) / 100)
+      },
+      badges: badgeR.data || [],
+      avatar: av
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/avatar-economy/avatar ──
+app.get('/api/avatar-economy/avatar', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('xr_avatars').select('*').eq('user_id', req.user.id).single();
+    res.json({ avatar: data || null });
+  } catch(e) { res.json({ avatar: null }); }
+});
+
+// ── PUT /api/avatar-economy/avatar ──
+app.put('/api/avatar-economy/avatar', auth, async (req, res) => {
+  try {
+    const { display_name, skin_tone, hair_style, hair_color, eye_style, outfit, outfit_color, emote, accessory } = req.body;
+    const { data: existing } = await supabase.from('xr_avatars').select('id,xp,level').eq('user_id', req.user.id).single();
+    const xp = (existing?.xp || 0) + 10;
+    const level = Math.floor(xp / 100) + 1;
+    let result;
+    if (existing) {
+      const { data } = await supabase.from('xr_avatars').update({ display_name, skin_tone, hair_style, hair_color, outfit, outfit_color, emote, xp, level, updated_at: new Date().toISOString() }).eq('user_id', req.user.id).select().single();
+      result = data;
+    } else {
+      const { data } = await supabase.from('xr_avatars').insert({ user_id: req.user.id, display_name, skin_tone, hair_style, hair_color, outfit, outfit_color, emote, xp: 10, level: 1 }).select().single();
+      result = data;
+    }
+    res.json({ avatar: result });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/avatar-economy/items ──
+app.get('/api/avatar-economy/items', async (req, res) => {
+  try {
+    const { category, featured, limit = 30, page = 1 } = req.query;
+    let q = supabase.from('avatar_items').select('*').eq('is_active', true);
+    if (category) q = q.eq('category', category);
+    if (featured === 'true') q = q.eq('is_featured', true);
+    q = q.order('is_featured', { ascending: false }).order('created_at', { ascending: false }).range((page-1)*limit, page*limit-1);
+    const { data, error } = await q;
+    if (error) return res.json({ items: [] });
+    res.json({ items: data || [] });
+  } catch(e) { res.json({ items: [] }); }
+});
+
+// ── POST /api/avatar-economy/items (creator publish) ──
+app.post('/api/avatar-economy/items', auth, async (req, res) => {
+  try {
+    const { name, description, category = 'outfit', rarity = 'common', price = 0, tags = [] } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên vật phẩm' });
+    const { data: item, error } = await supabase.from('avatar_items').insert({
+      creator_id: req.user.id, name: name.trim(), description, category, rarity, price, tags
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ item });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/avatar-economy/buy/:itemId ──
+app.post('/api/avatar-economy/buy/:itemId', auth, async (req, res) => {
+  try {
+    const { data: item } = await supabase.from('avatar_items').select('*').eq('id', req.params.itemId).single();
+    if (!item) return res.status(404).json({ error: 'Không tìm thấy vật phẩm' });
+    const { data: existing } = await supabase.from('avatar_inventory').select('id').eq('user_id', req.user.id).eq('item_id', req.params.itemId).single();
+    if (existing) return res.status(400).json({ error: 'Bạn đã sở hữu vật phẩm này rồi' });
+    // Check wallet if price > 0
+    let newBalance = 0;
+    if (item.price > 0) {
+      const { data: wallet } = await supabase.from('wallets').select('balance').eq('user_id', req.user.id).single();
+      const spCost = item.price * 100;
+      if (!wallet || wallet.balance < spCost) return res.status(400).json({ error: 'Số dư SP không đủ. Nạp thêm SP Token!' });
+      await supabase.from('wallets').update({ balance: wallet.balance - spCost }).eq('user_id', req.user.id);
+      newBalance = Math.round((wallet.balance - spCost) / 100);
+    }
+    await supabase.from('avatar_inventory').insert({ user_id: req.user.id, item_id: req.params.itemId, source: 'purchase' });
+    await supabase.from('avatar_items').update({ sold_count: (item.sold_count || 0) + 1 }).eq('id', req.params.itemId);
+    await supabase.from('avatar_economy_txns').insert({ buyer_id: req.user.id, item_id: req.params.itemId, amount: item.price, txn_type: 'purchase' });
+    res.json({ success: true, new_balance: newBalance });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/avatar-economy/inventory ──
+app.get('/api/avatar-economy/inventory', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('avatar_inventory').select('*, avatar_items(name, category, rarity, price)').eq('user_id', req.user.id).order('acquired_at', { ascending: false });
+    const items = (data || []).map(row => ({ ...row, ...(row.avatar_items || {}), item_id: row.item_id }));
+    res.json({ items });
+  } catch(e) { res.json({ items: [] }); }
+});
+
+// ── POST /api/avatar-economy/equip/:invId ──
+app.post('/api/avatar-economy/equip/:invId', auth, async (req, res) => {
+  try {
+    const { data: invItem } = await supabase.from('avatar_inventory').select('*').eq('id', req.params.invId).eq('user_id', req.user.id).single();
+    if (!invItem) return res.status(404).json({ error: 'Không tìm thấy vật phẩm' });
+    const nowEquipped = !invItem.is_equipped;
+    await supabase.from('avatar_inventory').update({ is_equipped: nowEquipped }).eq('id', req.params.invId);
+    res.json({ success: true, equipped: nowEquipped });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/avatar-economy/wardrobe ──
+app.get('/api/avatar-economy/wardrobe', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('avatar_wardrobe').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false });
+    res.json({ wardrobe: data || [] });
+  } catch(e) { res.json({ wardrobe: [] }); }
+});
+
+// ── POST /api/avatar-economy/wardrobe ──
+app.post('/api/avatar-economy/wardrobe', auth, async (req, res) => {
+  try {
+    const { name, outfit_data = {} } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nhập tên trang phục' });
+    const { data: wd, error } = await supabase.from('avatar_wardrobe').insert({ user_id: req.user.id, name: name.trim(), outfit_data }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ wardrobe: wd });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/avatar-economy/wardrobe/:id/default ──
+app.post('/api/avatar-economy/wardrobe/:id/default', auth, async (req, res) => {
+  try {
+    await supabase.from('avatar_wardrobe').update({ is_default: false }).eq('user_id', req.user.id);
+    await supabase.from('avatar_wardrobe').update({ is_default: true }).eq('id', req.params.id).eq('user_id', req.user.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/avatar-economy/badges ──
+app.get('/api/avatar-economy/badges', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('avatar_badges').select('*').eq('user_id', req.user.id).order('awarded_at', { ascending: false });
+    res.json({ badges: data || [] });
+  } catch(e) { res.json({ badges: [] }); }
+});
+
+// ── GET /api/avatar-economy/dashboard ──
+app.get('/api/avatar-economy/dashboard', auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const [invR, txnR, avR, badgeR] = await Promise.all([
+      supabase.from('avatar_inventory').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+      supabase.from('avatar_economy_txns').select('amount, created_at, item_id, avatar_items(name)').eq('buyer_id', uid).order('created_at', { ascending: false }).limit(10),
+      supabase.from('xr_avatars').select('level, xp').eq('user_id', uid).single(),
+      supabase.from('avatar_badges').select('id', { count: 'exact', head: true }).eq('user_id', uid)
+    ]);
+    const txns = (txnR.data || []).map(t => ({ ...t, item_name: t.avatar_items?.name }));
+    const totalSpent = txns.reduce((a, t) => a + (parseFloat(t.amount) || 0), 0);
+    res.json({
+      stats: {
+        items_owned: invR.count || 0,
+        total_spent: Math.round(totalSpent),
+        total_earned: 0,
+        level: avR.data?.level || 1,
+        xp: avR.data?.xp || 0,
+        badges: badgeR.count || 0
+      },
+      transactions: txns
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/avatar-economy/creator/items ──
+app.get('/api/avatar-economy/creator/items', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('avatar_items').select('*').eq('creator_id', req.user.id).order('created_at', { ascending: false });
+    res.json({ items: data || [] });
+  } catch(e) { res.json({ items: [] }); }
+});
+
+// ── GET /api/avatar-economy/showroom/:userId ──
+app.get('/api/avatar-economy/showroom/:userId', async (req, res) => {
+  try {
+    const uid = req.params.userId;
+    const [avR, invR, badgeR] = await Promise.all([
+      supabase.from('xr_avatars').select('*').eq('user_id', uid).single(),
+      supabase.from('avatar_inventory').select('*, avatar_items(name, category, rarity)').eq('user_id', uid).eq('is_equipped', true).limit(12),
+      supabase.from('avatar_badges').select('*').eq('user_id', uid)
+    ]);
+    res.json({ avatar: avR.data, inventory: invR.data || [], badges: badgeR.data || [] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: GET /api/admin/avatar-economy/overview ──
+app.get('/api/admin/avatar-economy/overview', adminAuth, async (req, res) => {
+  try {
+    const [itemsR, invR, txnR] = await Promise.all([
+      supabase.from('avatar_items').select('*').order('sold_count', { ascending: false }).limit(20),
+      supabase.from('avatar_inventory').select('id', { count: 'exact', head: true }),
+      supabase.from('avatar_economy_txns').select('amount').eq('txn_type','purchase')
+    ]);
+    const totalRevenue = (txnR.data || []).reduce((a,t) => a + parseFloat(t.amount||0), 0);
+    res.json({ items: itemsR.data || [], total_inventory: invR.count || 0, total_revenue: totalRevenue });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN: PATCH /api/admin/avatar-economy/items/:id ──
+app.patch('/api/admin/avatar-economy/items/:id', adminAuth, async (req, res) => {
+  try {
+    const { is_featured, is_active } = req.body;
+    const { data, error } = await supabase.from('avatar_items').update({ is_featured, is_active }).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ item: data });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CATCH-ALL (must be last — serves index.html for unknown non-API routes) ──
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
