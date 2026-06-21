@@ -581,64 +581,62 @@ function normalizePhone(raw) {
 }
 
 app.post('/api/auth/register', async (req, res) => {
-  const { password, name, email, referral_code } = req.body;
-  const phone = normalizePhone(req.body.phone);
-  if (!phone || !password || !name)
-    return res.status(400).json({ error: 'Thiếu thông tin' });
-  if (phone.length < 9 || phone.length > 15)
-    return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
-  if (typeof password !== 'string' || password.length < 6)
-    return res.status(400).json({ error: 'Mật khẩu phải ít nhất 6 ký tự' });
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    return res.status(400).json({ error: 'Email không hợp lệ' });
+  try {
+    const { password, name, email } = req.body;
+    const phone = normalizePhone(req.body.phone);
+    if (!phone || !password || !name)
+      return res.status(400).json({ error: 'Thiếu thông tin' });
+    if (phone.length < 9 || phone.length > 15)
+      return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
+    if (typeof password !== 'string' || password.length < 6)
+      return res.status(400).json({ error: 'Mật khẩu phải ít nhất 6 ký tự' });
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ error: 'Email không hợp lệ' });
 
-  const { data: existing } = await supabase.from('users').select('id').eq('phone', phone).single();
-  if (existing) return res.status(400).json({ error: 'Số điện thoại đã tồn tại' });
+    const { data: existing } = await supabase.from('users').select('id').eq('phone', phone).maybeSingle();
+    if (existing) return res.status(400).json({ error: 'Số điện thoại đã tồn tại' });
 
-  // Generate unique referral code for new user
-  let newCode = generateReferralCode();
-  for (let i = 0; i < 5; i++) {
-    const { data: codeExists } = await supabase.from('users').select('id').eq('referral_code', newCode).maybeSingle();
-    if (!codeExists) break;
-    newCode = generateReferralCode();
-  }
+    const hashed = await bcrypt.hash(password, 10);
 
-  const hashed = await bcrypt.hash(password, 10);
-  const insertData = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0, referral_code: newCode };
-  if (email) insertData.email = email.toLowerCase().trim();
+    // Build insert payload — try with optional columns, fall back if schema missing them
+    const buildPayload = (withExtra) => {
+      const base = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0 };
+      if (email && withExtra) base.email = email.toLowerCase().trim();
+      if (withExtra) {
+        try { base.referral_code = generateReferralCode(); } catch(e) {}
+      }
+      return base;
+    };
 
-  let { data, error } = await supabase.from('users').insert(insertData).select().single();
-  if (error && error.message?.includes('email') && email) {
-    const fallback = { phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0, referral_code: newCode };
-    ({ data, error } = await supabase.from('users').insert(fallback).select().single());
-  }
-  if (error) return res.status(500).json({ error: error.message });
+    let data, error;
+    // Attempt 1: full payload with email + referral_code
+    ({ data, error } = await supabase.from('users').insert(buildPayload(true)).select().single());
 
-  // Apply referral code from inviter
-  let welcomeBonus = 0;
-  if (referral_code && String(referral_code).trim()) {
-    const code = String(referral_code).trim().toUpperCase();
-    const { data: referrer } = await supabase.from('users')
-      .select('id,name,referral_count').eq('referral_code', code).maybeSingle();
-    if (referrer && referrer.id !== data.id) {
-      welcomeBonus = 50000;
-      await supabase.from('users').update({ referred_by: referrer.id, balance: welcomeBonus }).eq('id', data.id);
-      await supabase.from('users').update({ referral_count: (referrer.referral_count || 0) + 1 }).eq('id', referrer.id);
-      await supabase.from('referrals').insert({
-        referrer_id: referrer.id, referred_id: data.id,
-        referred_name: sanitize(name), referred_phone: phone
-      }).catch(() => {});
-      await supabase.from('transactions').insert({
-        user_id: data.id, type: 'referral_bonus', amount: welcomeBonus,
-        description: `Thưởng chào mừng — được giới thiệu bởi ${referrer.name}`
-      }).catch(() => {});
-      createNotification(referrer.id, 'referral', '🎁 Bạn bè tham gia!',
-        `${sanitize(name)} đã đăng ký qua mã giới thiệu của bạn!`, '/referral');
+    // Attempt 2: without email if email column missing
+    if (error && error.message?.toLowerCase().includes('email')) {
+      const p = buildPayload(true); delete p.email;
+      ({ data, error } = await supabase.from('users').insert(p).select().single());
     }
-  }
 
-  const token = jwt.sign({ id: data.id, phone, name: data.name }, JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token, user: { id: data.id, phone, name: data.name, balance: welcomeBonus, escrow: 0 } });
+    // Attempt 3: without referral_code if column missing
+    if (error && (error.message?.toLowerCase().includes('referral_code') || error.message?.toLowerCase().includes('schema cache'))) {
+      const p = buildPayload(false);
+      if (email) p.email = email.toLowerCase().trim();
+      ({ data, error } = await supabase.from('users').insert(p).select().single());
+    }
+
+    // Attempt 4: bare minimum
+    if (error) {
+      ({ data, error } = await supabase.from('users').insert({ phone, password: hashed, name: sanitize(name), balance: 0, escrow: 0 }).select().single());
+    }
+
+    if (error) return res.status(500).json({ error: 'Đăng ký thất bại: ' + error.message });
+
+    const token = jwt.sign({ id: data.id, phone, name: data.name }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: { id: data.id, phone, name: data.name, balance: 0, escrow: 0 } });
+  } catch (e) {
+    res.status(500).json({ error: 'Lỗi server: ' + e.message });
+  }
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -9330,6 +9328,179 @@ app.post('/api/social/admin/videos/:id/restore', adminAuth, async (req, res) => 
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+
+/* ══════════════════════════════════════════════════
+   PHASE 20 — SAFEPASS MARKETPLACE (Facebook-style)
+══════════════════════════════════════════════════ */
+
+app.get('/marketplace', (req, res) => res.sendFile(join(__dirname, 'frontend/marketplace.html')));
+app.get('/marketplace.html', (req, res) => res.sendFile(join(__dirname, 'frontend/marketplace.html')));
+
+// GET /api/marketplace/posts — feed
+app.get('/api/marketplace/posts', async (req, res) => {
+  try {
+    const { tab = 'all', category, limit = 20, offset = 0 } = req.query;
+    let query = supabase.from('marketplace_posts')
+      .select('*,users(name,avatar_url)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .range(Number(offset), Number(offset) + Number(limit) - 1);
+    if (category && category !== 'all') query = query.eq('listing_category', category);
+    if (tab === 'listing') query = query.eq('post_type', 'listing');
+    else if (tab === 'want') query = query.eq('post_type', 'want');
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ posts: (data || []).map(p => ({ ...p, author: p.users?.name })) });
+  } catch (e) { res.json({ posts: [] }); }
+});
+
+// POST /api/marketplace/posts — create post/listing
+app.post('/api/marketplace/posts', auth, async (req, res) => {
+  try {
+    const { content, post_type, listing } = req.body;
+    const insertData = {
+      user_id: req.user.id,
+      content: content ? sanitize(content) : null,
+      post_type: post_type || 'status',
+      status: 'active'
+    };
+    if (listing) {
+      insertData.listing_title = sanitize(listing.title || '');
+      insertData.listing_price = Number(listing.price) || 0;
+      insertData.listing_category = listing.category || 'other';
+      insertData.listing_condition = listing.condition || 'used';
+      insertData.listing_location = sanitize(listing.location || '');
+      insertData.listing_description = sanitize(listing.description || '');
+    }
+    const { data, error } = await supabase.from('marketplace_posts').insert(insertData).select().single();
+    if (error) throw error;
+    res.json({ ok: true, post: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/marketplace/posts/:id — single post
+app.get('/api/marketplace/posts/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('marketplace_posts').select('*,users(name,avatar_url)').eq('id', req.params.id).single();
+    if (error) throw error;
+    res.json({ post: { ...data, author: data.users?.name } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/marketplace/posts/:id/like — like a post
+app.post('/api/marketplace/posts/:id/like', auth, async (req, res) => {
+  try {
+    const { data: existing } = await supabase.from('marketplace_likes').select('id').eq('post_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
+    if (existing) {
+      await supabase.from('marketplace_likes').delete().eq('id', existing.id);
+      await supabase.from('marketplace_posts').update({ likes_count: supabase.raw('GREATEST(likes_count-1,0)') }).eq('id', req.params.id);
+      return res.json({ liked: false });
+    }
+    await supabase.from('marketplace_likes').insert({ post_id: req.params.id, user_id: req.user.id });
+    await supabase.from('marketplace_posts').update({ likes_count: supabase.raw('likes_count+1') }).eq('id', req.params.id);
+    res.json({ liked: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/marketplace/posts/:id/comments — get comments
+app.get('/api/marketplace/posts/:id/comments', async (req, res) => {
+  try {
+    const { data } = await supabase.from('marketplace_comments').select('*,users(name)').eq('post_id', req.params.id).order('created_at').limit(50);
+    res.json({ comments: (data || []).map(c => ({ ...c, author: c.users?.name })) });
+  } catch (e) { res.json({ comments: [] }); }
+});
+
+// POST /api/marketplace/posts/:id/comments — post comment
+app.post('/api/marketplace/posts/:id/comments', auth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Nội dung trống' });
+    const { data } = await supabase.from('marketplace_comments').insert({ post_id: req.params.id, user_id: req.user.id, content: sanitize(content) }).select().single();
+    await supabase.from('marketplace_posts').update({ comments_count: supabase.raw('comments_count+1') }).eq('id', req.params.id);
+    res.json({ ok: true, comment: { ...data, author: req.user.name } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/marketplace/posts/:id/save — save/unsave post
+app.post('/api/marketplace/posts/:id/save', auth, async (req, res) => {
+  try {
+    const { data: existing } = await supabase.from('marketplace_saves').select('id').eq('post_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
+    if (existing) {
+      await supabase.from('marketplace_saves').delete().eq('id', existing.id);
+      return res.json({ saved: false });
+    }
+    await supabase.from('marketplace_saves').insert({ post_id: req.params.id, user_id: req.user.id });
+    res.json({ saved: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/marketplace/saved — get saved posts
+app.get('/api/marketplace/saved', auth, async (req, res) => {
+  try {
+    const { data } = await supabase.from('marketplace_saves').select('*,marketplace_posts(*,users(name))').eq('user_id', req.user.id).order('created_at', { ascending: false });
+    res.json({ posts: (data || []).map(s => ({ ...s.marketplace_posts, author: s.marketplace_posts?.users?.name })) });
+  } catch (e) { res.json({ posts: [] }); }
+});
+
+// GET /api/marketplace/listings — browse listings by category
+app.get('/api/marketplace/listings', async (req, res) => {
+  try {
+    const { category, min_price, max_price, condition, location, q, limit = 40 } = req.query;
+    let query = supabase.from('marketplace_posts').select('*,users(name)').eq('post_type', 'listing').eq('status', 'active');
+    if (category && category !== 'all') query = query.eq('listing_category', category);
+    if (condition) query = query.eq('listing_condition', condition);
+    if (min_price) query = query.gte('listing_price', Number(min_price));
+    if (max_price) query = query.lte('listing_price', Number(max_price));
+    if (location) query = query.ilike('listing_location', `%${location}%`);
+    if (q) query = query.ilike('listing_title', `%${q}%`);
+    query = query.order('created_at', { ascending: false }).limit(Number(limit));
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ listings: (data || []).map(p => ({ ...p, seller: p.users?.name })) });
+  } catch (e) { res.json({ listings: [] }); }
+});
+
+// GET /api/marketplace/profile/:userId — user marketplace profile
+app.get('/api/marketplace/profile/:userId', async (req, res) => {
+  try {
+    const { data: user } = await supabase.from('users').select('id,name,avatar_url,created_at').eq('id', req.params.userId).single();
+    const { data: posts } = await supabase.from('marketplace_posts').select('*').eq('user_id', req.params.userId).eq('status', 'active').order('created_at', { ascending: false }).limit(20);
+    const { count: friends } = await supabase.from('marketplace_friends').select('*', { count: 'exact', head: true }).eq('user_id', req.params.userId).eq('status', 'accepted');
+    res.json({ user, posts: posts || [], friends_count: friends || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/marketplace/friends — send friend request
+app.post('/api/marketplace/friends', auth, async (req, res) => {
+  try {
+    const { target_id } = req.body;
+    if (!target_id || target_id === req.user.id) return res.status(400).json({ error: 'Invalid' });
+    await supabase.from('marketplace_friends').insert({ user_id: req.user.id, friend_id: target_id, status: 'pending' }).onConflict().ignore();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/marketplace/search — search posts & listings
+app.get('/api/marketplace/search', async (req, res) => {
+  try {
+    const { q, type } = req.query;
+    if (!q?.trim()) return res.json({ results: [] });
+    let query = supabase.from('marketplace_posts').select('*,users(name)').eq('status', 'active').or(`listing_title.ilike.%${q}%,content.ilike.%${q}%`);
+    if (type) query = query.eq('post_type', type);
+    const { data } = await query.order('created_at', { ascending: false }).limit(30);
+    res.json({ results: (data || []).map(p => ({ ...p, author: p.users?.name })) });
+  } catch (e) { res.json({ results: [] }); }
+});
+
+// DELETE /api/marketplace/posts/:id — delete post (owner only)
+app.delete('/api/marketplace/posts/:id', auth, async (req, res) => {
+  try {
+    await supabase.from('marketplace_posts').update({ status: 'deleted' }).eq('id', req.params.id).eq('user_id', req.user.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ── END PHASE 20 ── */
 
 /* ══════════════════════════════════════════════════
    PHASE 19 — SAFEPASS LIVE COMMERCE
